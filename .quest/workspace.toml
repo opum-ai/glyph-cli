@@ -1,0 +1,6 @@
+schemaVersion = 1
+name = "glyph-cli"
+taskIdPrefix = "GCLI"
+
+[agents]
+skill_source = "plugin"
