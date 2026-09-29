@@ -1,0 +1,123 @@
+name: CI
+
+# The gated ref is dev. Once these checks have reported green there, a ruleset
+# makes them required (GCLI-1; the ruleset itself is a separate step). A
+# required check is evaluated against the pushed SHA's existing check history,
+# so a direct push to dev can never satisfy it: every change reaches dev
+# through a pull request, which is the intended effect.
+#
+# This repository has no code yet, so there is no `check` job below. Docs and
+# Tracker integrity are the whole gate; add the code job when code lands.
+#
+# What triggers this workflow, and why pull_request is scoped to dev. push
+# covers the two gated refs. pull_request covers what can land on the gated
+# ref, which is a pull request whose BASE is dev. A pull request whose base is
+# main is deliberately not covered: in this repository the only such pull
+# request is the dev -> main promotion, whose head is dev itself, and main only
+# ever receives a fast-forward of dev. Because main is an ancestor of dev, that
+# pull request's test merge IS the dev tip, so the push run tests exactly the
+# same bytes. ward-cli measured the duplicate run and scoped its trigger the
+# same way (WCLI-57).
+#
+# Every third-party action is pinned to a full commit SHA, verified against
+# its upstream tag when pinned (GCLI-1). Bump a pin by re-resolving the tag,
+# never by editing the comment alone.
+on:
+  pull_request:
+    branches:
+      - dev
+  push:
+    branches:
+      - dev
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: glyph-cli-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    name: Docs
+    runs-on: [self-hosted, Linux, ARM64]
+    timeout-minutes: 10
+    env:
+      # The published lore this job runs. The lore managed block in CLAUDE.md
+      # carries no version to derive it from, so it is pinned here, once.
+      LORE_VERSION: 0.11.0
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+      # Installed once and checked against the pin, so the log records the
+      # version the run actually resolved rather than the one it intended.
+      - name: Install the pinned Lore CLI
+        run: |
+          set -euo pipefail
+          npm install --global "@opum-ai/lore@${LORE_VERSION}"
+          installed="$(lore --version)"
+          if [ "$installed" != "$LORE_VERSION" ]; then
+            echo "::error::lore installed ${installed}, wanted ${LORE_VERSION}"
+            exit 1
+          fi
+          echo "Resolved lore version: $installed"
+      - name: Validate OKF documents
+        run: lore validate --strict
+      - name: Check Lore coherence
+        run: lore check --strict
+      # The lore:agents block in CLAUDE.md drifts on its own when the CLI moves
+      # underneath the committed copy; nothing else would notice (exit 6).
+      - name: Lore agent bridge is current
+        run: lore agents --check
+
+  # Two assertions about the tracker, in separate steps so a red names which
+  # one failed. The Quest version is read out of CLAUDE.md's managed block
+  # rather than pinned a second time: two pins drift apart silently, and
+  # floating at @latest would turn an unrelated upstream publish into a red
+  # build on somebody's unrelated pull request.
+  tracker:
+    name: Tracker integrity
+    runs-on: [self-hosted, Linux, ARM64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+      - name: Resolve the Quest version CLAUDE.md declares
+        id: quest
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/.*Quest CLI \([0-9][0-9.]*\).*/\1/p' CLAUDE.md | head -1)"
+          if [ -z "$version" ]; then
+            echo "::error file=CLAUDE.md::No 'Quest CLI <version>' line found in the managed Quest block."
+            exit 1
+          fi
+          echo "Declared Quest version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Install the declared Quest CLI
+        env:
+          QUEST_VERSION: ${{ steps.quest.outputs.version }}
+        run: |
+          set -euo pipefail
+          npm install --global "@opum-ai/quest@${QUEST_VERSION}"
+          installed="$(quest --version)"
+          if [ "$installed" != "$QUEST_VERSION" ]; then
+            echo "::error::quest installed ${installed}, wanted ${QUEST_VERSION}"
+            exit 1
+          fi
+          echo "Resolved quest version: $installed"
+      # A task id present in both .quest/tasks/ and .quest/completed/ makes
+      # every tracker read fail with conflict/5.
+      - name: Tracker reads cleanly
+        run: quest task list --json > /dev/null
+      # Managed instructions drift on their own when the CLI moves underneath
+      # the committed copy (exit 6). QUEST_AGENT_PLUGINS=off keeps this job off
+      # whatever plugin state the runner's user account happens to carry.
+      - name: Managed instructions are current
+        env:
+          QUEST_AGENT_PLUGINS: "off"
+        run: quest agents --check --require-installed --target claude
