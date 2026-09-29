@@ -119,4 +119,15 @@ runners, yet jobs are picked up within seconds by the `mbpm2` group's ephemeral
 way; an actual job's `runner_name` is. Lore is pinned in the workflow;
 the Quest version is read out of this file's own managed block rather than
 pinned a second time.
+
+**Read `dev` back after every promotion, not only `main`.** On 2026-09-29, during
+this repository's first promotion to `main`, `refs/heads/dev` disappeared from
+the remote and had to be recreated at the promoted SHA. The cause is still open
+(opum-agent OPAG-844), GitHub's events API does not record the deletion, and no
+fix is chosen — `delete_branch_on_merge` stays on until the mechanism is found.
+A promotion is the only thing that can reproduce it, so a check is what catches
+it: after `git push origin origin/dev:main`, confirm `refs/heads/dev` still
+exists and still points at the promoted SHA, and report it immediately if it is
+gone. Re-measure this paragraph with
+`gh api repos/opum-ai/glyph-cli/branches` rather than trusting it.
 <!-- opum:repo-profile:end -->
