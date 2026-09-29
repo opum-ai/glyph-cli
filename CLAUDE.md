@@ -97,12 +97,26 @@ covers.
 split. A document that spans Glyph or another product belongs in `glyph-doc`, not
 in this repository's bundle.
 
-**The gated ref and its required checks are not yet configured.** At onboarding
-on 2026-09-29 this repository had no commits, no remote and no rulesets, so there
-is nothing here to report yet. Record the measurement here — the ruleset id, the
-ref it gates, the required contexts and the bypass actors — once CI has reported
-green on the gated ref and the ruleset is added, the way the rest of the fleet
-records it. Re-measure with
-`gh api repos/opum-ai/glyph-cli/rules/branches/<ref>` rather than trusting a
-remembered summary.
+**The gated ref is `dev`.** Measured live on 2026-09-29 with
+`gh api repos/opum-ai/glyph-cli/rules/branches/dev`: ruleset 24218126, "require
+CI on dev", active, targeting `refs/heads/dev`, 0 bypass actors, requiring
+`Docs` and `Tracker integrity`, each pinned to integration 15368 (GitHub
+Actions), strict policy off. `main` has no rules and returns `[]`: it is
+protected by the operating model's fast-forward invariant rather than by a rule,
+the same shape ward-cli uses. Which ref carries the rule differs per
+repository — quest-cli gates both — so check yours rather than repeating a
+fleet-wide summary. A required check can only pass on a SHA that has already
+been through CI, so nothing can be pushed straight to `dev`, a tracker-only
+change included: every change lands through a pull request. Re-measure rather
+than trust this paragraph. Renaming or removing a CI job means updating the
+ruleset in the same change, or every merge blocks on a check that never reports.
+
+CI is `.github/workflows/ci.yml` (GCLI-1), both jobs on
+`[self-hosted, Linux, ARM64]`. The org and repository runner listings report 0
+runners, yet jobs are picked up within seconds by the `mbpm2` group's ephemeral
+`linux-arm64-*` runners — measured 2026-09-29, run 36640462475, runners
+`linux-arm64-dccd7-runner-6ftkf` and `-9mjpx`. A listing is not evidence either
+way; an actual job's `runner_name` is. Lore is pinned in the workflow;
+the Quest version is read out of this file's own managed block rather than
+pinned a second time.
 <!-- opum:repo-profile:end -->
