@@ -142,9 +142,11 @@ the Quest version is read out of this file's own managed block rather than
 pinned a second time. `Check` runs the package's own toolchain — Bun resolved
 from `.bun-version` via a pinned `oven-sh/setup-bun`, then typecheck, lint,
 format:check and test, one step each so a red names which assertion failed. It is
-not yet a required context on `dev`: the ruleset requires `Docs` and `Tracker
-integrity` only, so a red `Check` is visible but not blocking until the ruleset
-changes. A conflicted pull request receives no `pull_request` workflow runs at
+a required context on `dev` since 2026-09-30: the ruleset requires `Docs`,
+`Tracker integrity` and `Check`, each pinned to integration 15368, and the
+`Check` context was appended only after its first green run on the gated ref
+(run 36659158468 on `353dc79`; DEC-75, applied first-party by the operator). A
+conflicted pull request receives no `pull_request` workflow runs at
 all: pushes and reopens on a CONFLICTING PR produce no CI, and runs resume once
 a push resolves the merge (measured 2026-09-30 on opum-ai/glyph-cli#16, where
 several pushes first read as dropped events).
