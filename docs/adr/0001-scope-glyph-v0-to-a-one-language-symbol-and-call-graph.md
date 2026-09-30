@@ -2,7 +2,7 @@
 # yaml-language-server: $schema=../../.lore/schemas/adr.schema.json
 type: ADR
 title: Scope Glyph v0 to a one-language symbol and call graph
-summary: Glyph v0 is a symbol table and call graph for one language and one repository at a time; the first language stays an open operator choice.
+summary: Glyph v0 is a symbol table and call graph for one language and one repository at a time; its first language is TypeScript and JavaScript, chosen by the operator (DEC-66).
 generated:
   by: lore/0.11.0
   at: 2026-09-29T23:57:05.875Z
@@ -16,8 +16,11 @@ Accepted — operator ruling, 2026-09-29, relayed as opum-doc seq 54
 (ODOC-OP-2026-09-29-32, 2026-09-29T23:51:46Z) and recorded as DEC-65. The
 operator's label, verbatim: **"Narrow increment now (Recommended)"**.
 
-The first-language choice in the last section is **proposed**, not decided. It is
-not part of what the operator settled here and this record does not bind it.
+Accepted — the first-language choice, operator ruling, 2026-09-30, relayed as
+opum-doc seq 56 (ODOC-OP-2026-09-30-01, 2026-09-30T01:37:43Z) and recorded as
+opum-agent DEC-66. The operator's label, verbatim: **"TypeScript/JavaScript
+(Recommended)"**. The last section carries the decision and the A/B it was made
+on.
 
 ## Context
 
@@ -72,11 +75,15 @@ of assumed.
   dispatched target is not achievable by parsing, so the graph's recall is a
   property of the chosen language, which is the next section's subject.
 
-## First language — proposed, the operator decides
+## First language — decided: TypeScript and JavaScript
 
-This is an A/B for the operator. It is drafted here because the choice shapes the
-tool's usefulness more than any other single decision, and it is left open because
-this repository owns the measurement but not the decision.
+The operator chose candidate 1, answered first-party via `AskUserQuestion` in
+opum-doc, relayed as opum-doc seq 56 (ODOC-OP-2026-09-30-01, 2026-09-30T01:37:43Z)
+and recorded as opum-agent DEC-66. The chosen label, verbatim:
+**"TypeScript/JavaScript (Recommended)"**. The option the operator saw is
+candidate 1 as written below — one target using the TypeScript compiler's type
+checker, so callers resolve through types, with the fleet itself as the test
+corpus. The A/B and its counts stay below as the record the choice was made on.
 
 **Candidate 1 (recommended): TypeScript and JavaScript, as one target.**
 TypeScript's compiler API exposes a real type checker rather than only a parser, so
