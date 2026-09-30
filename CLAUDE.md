@@ -122,12 +122,22 @@ pinned a second time.
 
 **Read `dev` back after every promotion, not only `main`.** On 2026-09-29, during
 this repository's first promotion to `main`, `refs/heads/dev` disappeared from
-the remote and had to be recreated at the promoted SHA. The cause is still open
-(opum-agent OPAG-844), GitHub's events API does not record the deletion, and no
-fix is chosen — `delete_branch_on_merge` stays on until the mechanism is found.
-A promotion is the only thing that can reproduce it, so a check is what catches
-it: after `git push origin origin/dev:main`, confirm `refs/heads/dev` still
-exists and still points at the promoted SHA, and report it immediately if it is
-gone. Re-measure this paragraph with
+the remote and had to be recreated at the promoted SHA. It recurred on the second
+promotion, 2026-09-30 at `4da4a2b`: `refs/heads/dev` was deleted one second after
+the promotion pull request auto-marked MERGED, and was again recreated at the
+promoted SHA. The pull-request timelines carry both occurrences and their
+recovery — `head_ref_deleted` at 23:51:15Z on opum-ai/glyph-cli#5 and 00:12:33Z
+on opum-ai/glyph-cli#11, each followed by `head_ref_restored` — and that is where
+to look; the repository events feed showed the 2026-09-30 deletion as a
+`DeleteEvent` for ref `dev` but not the first one, and it drops other branch
+deletions, so it is not a complete record. The mechanism is consistent with
+`delete_branch_on_merge` (still true in the repository settings) acting on the
+auto-merged `dev`→`main` promotion pull request, whose head branch is `dev`
+itself. No setting has been changed and no fix is chosen — that remains open
+under opum-agent OPAG-844. A promotion is the only thing that can reproduce it,
+so a check is what catches it: after `git push origin origin/dev:main`, confirm
+`refs/heads/dev` still exists and still points at the promoted SHA, and report it
+immediately if it is gone; recreating it at the promoted SHA is the recovery both
+times. Re-measure this paragraph with
 `gh api repos/opum-ai/glyph-cli/branches` rather than trusting it.
 <!-- opum:repo-profile:end -->
