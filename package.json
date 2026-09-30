@@ -1,0 +1,47 @@
+{
+	"name": "@opum-ai/glyph",
+	"version": "0.0.0",
+	"description": "Software-intelligence CLI: a typed symbol table and call graph for one language and one repository at a time.",
+	"license": "MIT",
+	"author": "Opum AI",
+	"type": "module",
+	"packageManager": "bun@1.4.2",
+	"engines": {
+		"bun": ">=1.4.2"
+	},
+	"private": true,
+	"homepage": "https://glyphgraph.dev",
+	"bugs": {
+		"url": "https://github.com/opum-ai/glyph-cli/issues"
+	},
+	"keywords": [
+		"cli",
+		"code-intelligence",
+		"call-graph",
+		"symbols",
+		"typescript",
+		"ai-agents",
+		"claude-code"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/opum-ai/glyph-cli.git"
+	},
+	"scripts": {
+		"glyph": "bun run src/cli.ts",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome lint src test",
+		"format": "biome format --write .",
+		"format:check": "biome ci --linter-enabled=false --assist-enabled=false src test",
+		"test": "bun test",
+		"check": "bun run typecheck && bun run lint && bun run format:check && bun run test"
+	},
+	"dependencies": {
+		"commander": "15.0.0",
+		"typescript": "5.9.3"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.8",
+		"@types/bun": "1.4.2"
+	}
+}
