@@ -1,0 +1,11 @@
+schema_version = 1
+name = "implementation"
+description = "Grounds glyph-cli implementation work in this bundle's accepted scope ADR (Glyph v0 is a symbol table and call graph for one language and one repository at a time, TypeScript and JavaScript first, DEC-66) and the bundle entry point."
+kind = "specialist"
+max_tokens = 12000
+pinned = [
+  "adr/0001-scope-glyph-v0-to-a-one-language-symbol-and-call-graph",
+]
+sources = [
+  "index",
+]

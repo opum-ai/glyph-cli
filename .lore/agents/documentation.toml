@@ -1,0 +1,11 @@
+schema_version = 1
+name = "documentation"
+description = "Grounds documentation authoring in the bundle entry point and the accepted scope ADR, so a documentation change lands where this repository already owns the fact rather than duplicating the ADR or absorbing the Glyph-wide strategy glyph-doc owns."
+kind = "specialist"
+max_tokens = 12000
+pinned = [
+  "index",
+]
+sources = [
+  "adr/0001-scope-glyph-v0-to-a-one-language-symbol-and-call-graph",
+]
