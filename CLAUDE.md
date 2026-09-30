@@ -144,7 +144,10 @@ from `.bun-version` via a pinned `oven-sh/setup-bun`, then typecheck, lint,
 format:check and test, one step each so a red names which assertion failed. It is
 not yet a required context on `dev`: the ruleset requires `Docs` and `Tracker
 integrity` only, so a red `Check` is visible but not blocking until the ruleset
-changes.
+changes. A conflicted pull request receives no `pull_request` workflow runs at
+all: pushes and reopens on a CONFLICTING PR produce no CI, and runs resume once
+a push resolves the merge (measured 2026-09-30 on opum-ai/glyph-cli#16, where
+several pushes first read as dropped events).
 
 **Read `dev` back after every promotion, not only `main`.** On 2026-09-29, during
 this repository's first promotion to `main`, `refs/heads/dev` disappeared from
@@ -171,8 +174,12 @@ was declined by its permission layer, which requires the operator's own
 authorization for a change of that kind. The decision is tracked as opum-doc
 DEC-70 (opum-agent outbound seq 79, 2026-09-30) and was executed by the operator
 on 2026-09-30: re-measured here, the default branch now reads `dev` with
-`delete_branch_on_merge` still true. No promotion has run since, so the fix is
-untested and the check below still stands until one reads `dev` back clean. A promotion is the only thing that can reproduce it,
+`delete_branch_on_merge` still true. The first promotion under it read
+`refs/heads/dev` back clean: dev went to main at `4069c19` (PR
+opum-ai/glyph-cli#17, landed with `git push origin origin/dev:main`), and both
+refs read at the same SHA afterwards by `git ls-remote` and the branches API,
+with no recreate — OPAG-844's closing evidence. The check below stays the
+standing procedure on every promotion. A promotion is the only thing that can reproduce it,
 so a check is what catches it: after `git push origin origin/dev:main`, confirm
 `refs/heads/dev` still exists and still points at the promoted SHA, and report it
 immediately if it is gone; recreating it at the promoted SHA is the recovery both
