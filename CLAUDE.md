@@ -130,11 +130,21 @@ recovery — `head_ref_deleted` at 23:51:15Z on opum-ai/glyph-cli#5 and 00:12:33
 on opum-ai/glyph-cli#11, each followed by `head_ref_restored` — and that is where
 to look; the repository events feed showed the 2026-09-30 deletion as a
 `DeleteEvent` for ref `dev` but not the first one, and it drops other branch
-deletions, so it is not a complete record. The mechanism is consistent with
-`delete_branch_on_merge` (still true in the repository settings) acting on the
-auto-merged `dev`→`main` promotion pull request, whose head branch is `dev`
-itself. No setting has been changed and no fix is chosen — that remains open
-under opum-agent OPAG-844. A promotion is the only thing that can reproduce it,
+deletions, so it is not a complete record. The cause, measured 2026-09-30: this was the only one of the twelve fleet
+repositories whose default branch was `main` — the other eleven default to `dev`
+— and the auto-delete (`delete_branch_on_merge` is on fleet-wide) does not touch
+the default branch, so only here was the promotion pull request's head `dev`
+deletable. Five promotion pull requests across lore-cli, ward-cli and opum-agent
+carry no `head_ref_deleted` while this repository's two both do, and those
+repositories' `dev` rules are the same shape as these (required checks only). The
+evidence is that comparison, not a documented carve-out: the GitHub docs page on
+automatic deletion names protection rules as the blocker and does not state a
+default-branch exception. On opum-agent's ruling the fix is to make `dev` the
+default branch, matching the fleet; executing it from this repository's session
+was declined by its permission layer, which requires the operator's own
+authorization for a change of that kind. The decision is tracked as opum-doc
+DEC-70 (opum-agent outbound seq 79, 2026-09-30); as of this writing the default
+branch is still `main` and the check below remains this repository's protection. A promotion is the only thing that can reproduce it,
 so a check is what catches it: after `git push origin origin/dev:main`, confirm
 `refs/heads/dev` still exists and still points at the promoted SHA, and report it
 immediately if it is gone; recreating it at the promoted SHA is the recovery both
