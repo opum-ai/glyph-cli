@@ -1,0 +1,11 @@
+schema_version = 1
+name = "verification"
+description = "Retrieves the scope and language decision a glyph-cli claim is measured against, plus the bundle entry point, so a verification pass measures behaviour against what the repository's own records permit it to claim."
+kind = "specialist"
+max_tokens = 9000
+pinned = [
+  "adr/0001-scope-glyph-v0-to-a-one-language-symbol-and-call-graph",
+]
+sources = [
+  "index",
+]

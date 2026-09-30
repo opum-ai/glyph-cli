@@ -1,0 +1,11 @@
+schema_version = 1
+name = "review"
+description = "Reviews glyph-cli changes against the accepted scope ADR (v0 answers symbols, the call graph and the paths between them for one language and one repository at a time) and the bundle entry point, so a review enforces the bounds Glyph v0 has written down rather than widening them."
+kind = "specialist"
+max_tokens = 10000
+pinned = [
+  "adr/0001-scope-glyph-v0-to-a-one-language-symbol-and-call-graph",
+]
+sources = [
+  "index",
+]
