@@ -7,8 +7,9 @@ name: CI
 # through a pull request, which is the intended effect.
 #
 # The `check` job below is the code gate (typecheck, lint, format, tests). It
-# is not yet a required context on dev — the ruleset requires Docs and Tracker
-# integrity — so a red Check does not block a merge until that changes.
+# is a required context on dev since 2026-09-30 — the ruleset requires Docs,
+# Tracker integrity and Check — appended only after the job's first green run
+# on the gated ref (run 36659158468 on 353dc79).
 #
 # What triggers this workflow, and why pull_request is scoped to dev. push
 # covers the two gated refs. pull_request covers what can land on the gated
