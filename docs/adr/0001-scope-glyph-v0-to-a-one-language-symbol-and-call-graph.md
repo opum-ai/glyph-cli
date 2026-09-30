@@ -91,9 +91,10 @@ difference between a call graph and a guess. One parser covers both languages.
   rather than a new one.
 - *Cost*: lowest, and the only candidate whose quality can be measured inside this
   fleet rather than asserted. Every fleet repository is a dogfooding corpus whose
-  behaviour the operator already knows — measured 2026-09-29: lore-cli 316
-  TypeScript files, quest-cli 203, ward-cli 96, and opum-agent's 2,353 `.mjs`. A
-  blast-radius answer can be checked against a real known change.
+  behaviour the operator already knows — counted per ref on 2026-09-29 with
+  `git ls-tree -r --name-only origin/dev`: lore-cli 286 TypeScript files,
+  quest-cli 203, ward-cli 96, and opum-agent 141 `.mjs`. A blast-radius answer can
+  be checked against a real known change.
 
 **Candidate 2: Python.**
 - *Quality*: materially lower for this purpose. Python dispatches dynamically, so
@@ -101,13 +102,24 @@ difference between a call graph and a guess. One parser covers both languages.
   more approximate than candidate 1's on the same effort.
 - *Speed*: fast in isolation — CPython ships `ast`, so parsing costs no dependency
   at all.
-- *Cost*: the fleet has nothing to validate it against. Measured the same day:
-  0 `.py` files in lore-cli, quest-cli and ward-cli, and opum-agent's tree is
-  JavaScript and shell. Quality would be asserted from outside the fleet rather
-  than measured inside it.
+- *Cost*: the fleet has nothing to validate it against. Counted the same way and
+  the same day: 0 `.py`, `.rs` and `.go` files across lore-cli, quest-cli and
+  ward-cli, and exactly one in opum-agent —
+  `scratchpad/questgraph-release-claim-check.py`, a scratchpad script rather than
+  shipped code. Quality would be asserted from outside the fleet rather than
+  measured inside it.
 
 *Left out deliberately*: Rust, Go and Java. Each has strong analysis tooling, and
 none appears anywhere in this fleet, so any of them buys zero dogfooding — and
 there is no measurement here that would order them against each other honestly.
 
 *Recommendation: candidate 1, TypeScript and JavaScript.*
+
+*Corrected 2026-09-29.* The first version of this section gave 316 TypeScript
+files for lore-cli and 2,353 `.mjs` for opum-agent. Both were counts of a working
+tree — including untracked and generated files — stated as if they were those
+repositories' committed content. 2,353 against 141 is not a rounding error; it is
+two different objects. Both are replaced above with per-ref counts, and the method
+is named beside the numbers so a later reader can re-take them rather than trust
+them. Nothing about the recommendation changes: the fleet is TypeScript and
+JavaScript either way, and the alternative candidate still has no corpus here.
