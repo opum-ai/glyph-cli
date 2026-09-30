@@ -142,8 +142,9 @@ automatic deletion names protection rules as the blocker and does not state a
 default-branch exception. On opum-agent's ruling the fix is to make `dev` the
 default branch, matching the fleet; executing it from this repository's session
 was declined by its permission layer, which requires the operator's own
-authorization for a change of that kind, so as of this writing the default branch
-is still `main` and the check below remains this repository's protection. A promotion is the only thing that can reproduce it,
+authorization for a change of that kind. The decision is tracked as opum-doc
+DEC-70 (opum-agent outbound seq 79, 2026-09-30); as of this writing the default
+branch is still `main` and the check below remains this repository's protection. A promotion is the only thing that can reproduce it,
 so a check is what catches it: after `git push origin origin/dev:main`, confirm
 `refs/heads/dev` still exists and still points at the promoted SHA, and report it
 immediately if it is gone; recreating it at the promoted SHA is the recovery both
