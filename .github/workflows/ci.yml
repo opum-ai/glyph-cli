@@ -6,8 +6,9 @@ name: CI
 # so a direct push to dev can never satisfy it: every change reaches dev
 # through a pull request, which is the intended effect.
 #
-# This repository has no code yet, so there is no `check` job below. Docs and
-# Tracker integrity are the whole gate; add the code job when code lands.
+# The `check` job below is the code gate (typecheck, lint, format, tests). It
+# is not yet a required context on dev — the ruleset requires Docs and Tracker
+# integrity — so a red Check does not block a merge until that changes.
 #
 # What triggers this workflow, and why pull_request is scoped to dev. push
 # covers the two gated refs. pull_request covers what can land on the gated
@@ -121,3 +122,31 @@ jobs:
         env:
           QUEST_AGENT_PLUGINS: "off"
         run: quest agents --check --require-installed --target claude
+
+  # The package's own toolchain. The Bun version is read from .bun-version
+  # rather than pinned a second time here, and the log names the version that
+  # resolved: two runs with identical exit codes can measure different
+  # toolchains, so a proof has to carry the bytes it ran with.
+  check:
+    name: Check
+    runs-on: [self-hosted, Linux, ARM64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          echo "Resolved bun version: $(bun --version)"
+          bun install --frozen-lockfile
+      # One assertion per step, so a red names which one failed.
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Lint
+        run: bun run lint
+      - name: Format check
+        run: bun run format:check
+      - name: Test
+        run: bun run test

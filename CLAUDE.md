@@ -60,9 +60,11 @@ questions, routed through the orchestrator to opum-doc rather than settled here.
 
 ### Retirement machinery carried here
 
-None known. This repository carried no code at onboarding, so there is nothing
-here that detects or sweeps leftover Treehouse or Codex state. Re-check when code
-lands rather than assuming this stays true.
+None known — re-checked when code landed (GCLI-2, 2026-09-30). The v0 sources
+(`src/`, `test/`, `.github/workflows/`, `README.md`, `package.json`) carry no
+Treehouse, Codex or OpenCode detection or sweeping; the sweep and its positive
+control are recorded on GCLI-2. Re-check when new machinery lands rather than
+assuming this stays true.
 
 ### What other repositories read from here
 
@@ -75,8 +77,26 @@ monitor demonstrably needs it", with Glyph's first implementation in phase 4 of
 that plan. Nothing blocks on Glyph existing — the harness's v0 port is a no-op
 (opum-doc ADR, "Admit Glyph as the third Opum product primitive", Consequences).
 
-That spec is the concrete contract; there is no code here yet for a deleter to
-find. Name the implementing files in this section once they exist.
+That spec is the concrete contract. The implementing files, named for whoever
+deletes or reads them (landed with glyph v0, GCLI-2):
+
+- **Symbols and the call graph**: `src/indexer.ts` builds both from one
+  TypeScript program, resolving each call site to its declaration through the
+  type checker; `src/types.ts` is the index's shape.
+- **The two query answers**: `src/queries.ts` — `callersOf` (what calls this
+  symbol) and `touchedSymbols` (which symbols a diff touches, innermost only).
+- **Source discovery, refs and diff ranges**: `src/discover.ts` picks the files
+  in scope and the compiler options; `src/git.ts` resolves the refs and parses
+  changed line ranges.
+- **The command surface and machine contract**: `src/cli.ts` on commander, with
+  error types and exit codes in `src/errors.ts` — stdout carries one success
+  envelope, stderr the failure, exit 0/1/2/3.
+- **The local cache**: `src/cache.ts`, under `$GLYPH_CACHE_DIR`, else
+  `$XDG_CACHE_HOME/glyph`, else `~/.cache/glyph`; disposable by design.
+
+The machine contract in `src/cli.ts` is the surface a consumer can pin; there is
+no published package yet (private until first release), so nothing here is a
+stable import.
 
 ### Constraints and couplings to respect
 
@@ -111,14 +131,20 @@ change included: every change lands through a pull request. Re-measure rather
 than trust this paragraph. Renaming or removing a CI job means updating the
 ruleset in the same change, or every merge blocks on a check that never reports.
 
-CI is `.github/workflows/ci.yml` (GCLI-1), both jobs on
-`[self-hosted, Linux, ARM64]`. The org and repository runner listings report 0
+CI is `.github/workflows/ci.yml` (GCLI-1; the `Check` job landed with glyph v0
+under GCLI-2), three jobs on `[self-hosted, Linux, ARM64]`. The org and
+repository runner listings report 0
 runners, yet jobs are picked up within seconds by the `mbpm2` group's ephemeral
 `linux-arm64-*` runners — measured 2026-09-29, run 36640462475, runners
 `linux-arm64-dccd7-runner-6ftkf` and `-9mjpx`. A listing is not evidence either
 way; an actual job's `runner_name` is. Lore is pinned in the workflow;
 the Quest version is read out of this file's own managed block rather than
-pinned a second time.
+pinned a second time. `Check` runs the package's own toolchain — Bun resolved
+from `.bun-version` via a pinned `oven-sh/setup-bun`, then typecheck, lint,
+format:check and test, one step each so a red names which assertion failed. It is
+not yet a required context on `dev`: the ruleset requires `Docs` and `Tracker
+integrity` only, so a red `Check` is visible but not blocking until the ruleset
+changes.
 
 **Read `dev` back after every promotion, not only `main`.** On 2026-09-29, during
 this repository's first promotion to `main`, `refs/heads/dev` disappeared from
@@ -143,8 +169,10 @@ default-branch exception. On opum-agent's ruling the fix is to make `dev` the
 default branch, matching the fleet; executing it from this repository's session
 was declined by its permission layer, which requires the operator's own
 authorization for a change of that kind. The decision is tracked as opum-doc
-DEC-70 (opum-agent outbound seq 79, 2026-09-30); as of this writing the default
-branch is still `main` and the check below remains this repository's protection. A promotion is the only thing that can reproduce it,
+DEC-70 (opum-agent outbound seq 79, 2026-09-30) and was executed by the operator
+on 2026-09-30: re-measured here, the default branch now reads `dev` with
+`delete_branch_on_merge` still true. No promotion has run since, so the fix is
+untested and the check below still stands until one reads `dev` back clean. A promotion is the only thing that can reproduce it,
 so a check is what catches it: after `git push origin origin/dev:main`, confirm
 `refs/heads/dev` still exists and still points at the promoted SHA, and report it
 immediately if it is gone; recreating it at the promoted SHA is the recovery both
