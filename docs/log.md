@@ -8,6 +8,7 @@
 - 2026-10-08T13:34:17-05:00 5e38c6a94e4b23f47be0f80bddcc02f2bcc2f320 chore(GCLI-8): move to the published quest/lore 0.13.0 pair (#32)
 - 2026-10-20T18:07:52-05:00 297cea4fff05875f1c9574902bc21283aebdf7e7 feat(GCLI-9): conform to the Opum command contract
 - 2026-10-20T18:08:58-05:00 ccb30ef6c08a2ba63c314a588a52cb7254a40571 chore(GCLI-9): complete the task with PR 34's validating run
+- 2026-10-20T18:22:00-05:00 d5bb06885c46748fab8360b3e69422cdaa7da806 fix(GCLI-9): address the PR 34 review
 
 ## docs/adr
 

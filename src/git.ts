@@ -17,6 +17,9 @@ export interface GitResult {
 
 export function gitRun(repoRoot: string, args: string[]): GitResult {
 	const proc = Bun.spawnSync(["git", "-C", repoRoot, ...args], {
+		// A fixed locale keeps discovery's "not a git repository" test
+		// independent of the caller's environment.
+		env: { ...process.env, LC_ALL: "C" },
 		stdout: "pipe",
 		stderr: "pipe",
 	});

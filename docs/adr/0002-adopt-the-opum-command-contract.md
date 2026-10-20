@@ -57,11 +57,13 @@ package that does not exist yet:
   registries in `src/contract.ts` are the only source: every handler takes its
   kind from them by lookup, and `glyph help --json` publishes them as
   `help.manifest`, built from the registry rather than hand-listed beside it.
-- **Help and version are result-bearing under `--json`.** The reference
-  implementation answers `--json --version` with a `version` envelope and
-  `--json --help` (and a bare `--json` run) with a `help` envelope; Glyph does
-  the same with dotted kinds, and narrows the manifest to a command when help
-  names one. No successful `--json` invocation prints plain text.
+- **Help and version are result-bearing under `--json`.** The shared contract
+  is silent on their kinds, and the reference implementation emits undotted
+  `version` and `help`. Glyph keeps its own registry's dotted rule
+  (`version.info`, `help.usage`) and narrows the manifest to a command when
+  help names one. Whether to mirror lore's undotted names instead is an A/B
+  with opum-doc, where keeping dotted is the recommended arm. No successful
+  `--json` invocation prints plain text.
 - **The full exit-code family is mapped**: 0 ok, 1 uncaught, 2 usage,
   3 not_found, 4 denied, 5 conflict, 6 validation/drift, 7 indeterminate, in
   one frozen `EXIT_CODES` map. A failed `git diff` over already-resolved refs

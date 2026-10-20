@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { globalKindOf, kindOf } from "../src/contract.ts";
+import { allResultKinds, globalKindOf, kindOf } from "../src/contract.ts";
 import { repoRootFor } from "../src/git.ts";
 import { makeScratchRepo, scratchCacheDir } from "./helpers.ts";
 
@@ -166,6 +166,7 @@ describe("cli", () => {
 			{ args: ["--json", "help", "callers"], kind: kindOf("help") },
 			{ args: ["--json", "callers", "--help"], kind: kindOf("help") },
 			{ args: ["--json", "--version"], kind: globalKindOf("version") },
+			{ args: ["--json", "-v"], kind: globalKindOf("version") },
 			{ args: ["--json", "--help"], kind: globalKindOf("help") },
 			{ args: ["--json"], kind: globalKindOf("help") },
 		];
@@ -178,6 +179,38 @@ describe("cli", () => {
 			expect(envelope.kind).toBe(kind);
 			expect(envelope.principal).toBeNull();
 		}
+
+		// Every kind the registry can emit is exercised by this table, so a new
+		// result kind cannot be added without an end-to-end case.
+		expect(new Set(cases.map((entry) => entry.kind))).toEqual(new Set(allResultKinds()));
+	});
+
+	test("-v is the shorthand and -V is not a version flag", () => {
+		const repo = makeScratchRepo(FILES);
+		const cache = scratchCacheDir();
+
+		const shorthand = runCli(repo.root, ["-v"], cache);
+		expect(shorthand.code).toBe(0);
+		expect(shorthand.stdout.trim()).toBe("0.0.0");
+
+		const upper = runCli(repo.root, ["-V"], cache);
+		expect(upper.code).toBe(2);
+		expect(upper.stdout).toBe("");
+		expect(upper.stderr).toContain("unknown option");
+
+		const upperJson = runCli(repo.root, ["--json", "-V"], cache);
+		expect(upperJson.code).toBe(2);
+		expect(upperJson.stdout).toBe("");
+		expect(JSON.parse(upperJson.stderr).error_type).toBe("usage");
+	});
+
+	test("an unknown command with --help is a usage error, not text help", () => {
+		const repo = makeScratchRepo(FILES);
+		const cache = scratchCacheDir();
+		const result = runCli(repo.root, ["--json", "frobnicate", "--help"], cache);
+		expect(result.code).toBe(2);
+		expect(result.stdout).toBe("");
+		expect(JSON.parse(result.stderr).error_type).toBe("usage");
 	});
 
 	test("help and version answer envelopes under --json and text otherwise", () => {

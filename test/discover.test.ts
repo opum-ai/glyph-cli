@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { discoverSources } from "../src/discover.ts";
 import { GlyphError } from "../src/errors.ts";
+import { gitRun } from "../src/git.ts";
 import { makeScratchRepo, scratchCacheDir } from "./helpers.ts";
 
 const CLI = new URL("../src/cli.ts", import.meta.url).pathname;
@@ -79,6 +80,29 @@ describe("source discovery", () => {
 		expect(indexing.code).toBe(7);
 		expect(indexing.stdout).toBe("");
 		expect(JSON.parse(indexing.stderr).error_type).toBe("indeterminate");
+	});
+
+	test("a refused git marker at rev-parse is indeterminate before any listing", () => {
+		const root = mkdtempSync(join(tmpdir(), "glyph-broken-git-"));
+		writeFileSync(join(root, ".git"), "garbage");
+		writeFileSync(join(root, "src.ts"), "export const src = 1;\n");
+
+		// The refusal happens at rev-parse, not at ls-files. Its message is a
+		// broken-gitfile error, not "not a git repository", so the fallback that
+		// is right for a plain directory must not fire here.
+		const probe = gitRun(root, ["rev-parse", "--is-inside-work-tree"]);
+		expect(probe.code).not.toBe(0);
+		expect(probe.stderr).toContain("gitfile");
+		expect(probe.stderr).not.toContain("not a git repository");
+
+		try {
+			discoverSources(root);
+			throw new Error("expected discoverSources to refuse");
+		} catch (error) {
+			expect(error).toBeInstanceOf(GlyphError);
+			expect((error as GlyphError).errorType).toBe("indeterminate");
+			expect((error as GlyphError).code).toBe(7);
+		}
 	});
 
 	test("an ignored source never enters the index, while an untracked non-ignored source does", () => {

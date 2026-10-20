@@ -51,9 +51,15 @@ export interface FlagSpec {
 	summary: string;
 }
 
+/**
+ * The registered invocation names. Handlers and the manifest take this union,
+ * so a typo is a compile error rather than a lookup that misses at runtime.
+ */
+export type CommandName = "callers" | "diff" | "cache path" | "cache clear" | "help";
+
 export interface CommandSpec {
 	/** The invocation a caller writes, e.g. `callers` or `cache clear`. */
-	name: string;
+	name: CommandName;
 	summary: string;
 	args: string;
 	flags: FlagSpec[];
@@ -119,10 +125,15 @@ export interface GlobalFlagSpec extends FlagSpec {
 }
 
 /**
- * Global flags. `version` and `help` are result-bearing under `--json`, as the
- * reference implementation emits them: `lore --json --version` answers with a
- * `version` envelope and `lore --json --help` (and a bare `--json` run) with a
- * `help` envelope, rather than plain text.
+ * Global flags. `version` and `help` are result-bearing under `--json`: no
+ * successful `--json` invocation may print plain text, and the reference
+ * implementation answers these with envelopes rather than text.
+ *
+ * The shared contract is silent on their kinds, and the reference
+ * implementation emits undotted `version` and `help`. Glyph keeps its own
+ * registry's dotted rule (`version.info`, `help.usage`); whether to mirror
+ * lore's undotted names instead is an A/B with opum-doc, where keeping dotted
+ * is the recommended arm.
  */
 export const GLOBAL_FLAGS: readonly GlobalFlagSpec[] = Object.freeze([
 	{ name: "json", takesValue: false, summary: "emit the machine-readable JSON envelope" },
@@ -136,7 +147,7 @@ export const GLOBAL_FLAGS: readonly GlobalFlagSpec[] = Object.freeze([
  * as a literal beside the handler. An unknown name is a programming error and
  * throws, so a new command cannot emit a kind the registry does not declare.
  */
-export function kindOf(name: string): string {
+export function kindOf(name: CommandName): string {
 	const command = COMMANDS.find((entry) => entry.name === name);
 	if (command === undefined) throw new Error(`no command registered as '${name}'`);
 	return command.kind;
@@ -162,7 +173,7 @@ export interface Manifest {
 	exitCodes: Record<string, number>;
 	globalFlags: GlobalFlagSpec[];
 	commands: Array<{
-		name: string;
+		name: CommandName;
 		summary: string;
 		args: string;
 		flags: FlagSpec[];
@@ -178,7 +189,7 @@ export interface Manifest {
  * Passing names narrows it to those commands (a `cache` topic keeps both of
  * its entries); the taxonomy and global flags stay whole.
  */
-export function buildManifest(commandNames?: readonly string[]): Manifest {
+export function buildManifest(commandNames?: readonly CommandName[]): Manifest {
 	const commands =
 		commandNames === undefined ? COMMANDS : COMMANDS.filter((command) => commandNames.includes(command.name));
 	return {
@@ -212,7 +223,7 @@ export function validateKindRegistry(
 	dotted: RegExp = DOTTED_KIND,
 ): string[] {
 	const findings: string[] = [];
-	const liveKinds = new Map(live.map((command) => [command.name, command.kind]));
+	const liveKinds = new Map<string, string>(live.map((command) => [command.name, command.kind]));
 	const goldenNames = Object.keys(golden).sort();
 	const liveNames = [...liveKinds.keys()].sort();
 

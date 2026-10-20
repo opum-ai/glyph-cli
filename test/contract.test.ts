@@ -3,6 +3,7 @@ import {
 	allResultKinds,
 	buildManifest,
 	COMMANDS,
+	type CommandName,
 	errorEnvelope,
 	exitCodeTaxonomy,
 	GLOBAL_FLAGS,
@@ -70,6 +71,16 @@ describe("command contract", () => {
 			expect(GLOBAL_FLAGS.find((flag) => flag.name === name)?.kind).toBe(globalKindOf(name as "version" | "help"));
 			expect(globalKindOf(name as "version" | "help")).toBe(kind);
 		}
+	});
+
+	test("the global result-kind registry matches the golden map in both directions", () => {
+		const live = Object.fromEntries(
+			GLOBAL_FLAGS.filter((flag) => flag.kind !== undefined).map((flag) => [flag.name, flag.kind]),
+		);
+		// Exact key equality both ways: no unlisted result flag, none missing.
+		expect(Object.keys(live).sort()).toEqual(Object.keys(GOLDEN_GLOBAL_KINDS).sort());
+		expect(live).toEqual(GOLDEN_GLOBAL_KINDS);
+		expect(validateResultKinds(Object.values(GOLDEN_GLOBAL_KINDS))).toEqual([]);
 	});
 
 	test("the whole emitted-kind set is dotted and non-vacuous", () => {
@@ -164,7 +175,9 @@ describe("command contract", () => {
 		const manifest = buildManifest();
 		expect(manifest.schemaVersion).toBe(1);
 		expect(manifest.exitCodes).toEqual(GOLDEN_EXIT_CODES);
-		expect(manifest.commands.map((command) => command.name).sort()).toEqual(Object.keys(GOLDEN_KINDS).sort());
+		expect(manifest.commands.map((command) => command.name).sort()).toEqual(
+			Object.keys(GOLDEN_KINDS).sort() as CommandName[],
+		);
 		for (const command of manifest.commands) {
 			expect(command.kind).toBe(String(GOLDEN_KINDS[command.name]));
 			expect(command.json).toBe(true);
@@ -180,8 +193,9 @@ describe("command contract", () => {
 	});
 
 	test("a narrowed manifest keeps only the requested commands but the whole taxonomy", () => {
-		const manifest = buildManifest(["cache path", "cache clear"]);
-		expect(manifest.commands.map((command) => command.name)).toEqual(["cache path", "cache clear"]);
+		const names: CommandName[] = ["cache path", "cache clear"];
+		const manifest = buildManifest(names);
+		expect(manifest.commands.map((command) => command.name)).toEqual(names);
 		expect(manifest.exitCodes).toEqual(GOLDEN_EXIT_CODES);
 	});
 });

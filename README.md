@@ -91,11 +91,14 @@ envelope:
   it, and a conformance test compares the registry and the exit-code taxonomy
   against a golden set by exact equality, failing on a vacuous or deliberately
   corrupted one.
-- **Help and version are result-bearing under `--json`**, following the
-  reference implementation: `glyph --json --version` emits `version.info`, and
-  `glyph --json --help` or a bare `glyph --json` emits `help.usage`. Help with
-  a topic, or `--help` after a command, emits `help.manifest` narrowed to that
-  command. No successful `--json` invocation prints plain text.
+- **Help and version are result-bearing under `--json`**, so no successful
+  `--json` invocation prints text: `glyph --json --version` emits
+  `version.info`, and `glyph --json --help` or a bare `glyph --json` emits
+  `help.usage`. Help with a topic, or `--help` after a command, emits
+  `help.manifest` narrowed to that command. The shared contract is silent on
+  these kinds, and the reference implementation uses undotted `version` and
+  `help`; Glyph keeps its registry's dotted rule, with that naming an open A/B
+  with opum-doc.
 
 Callers branch on the exit code, never on the message. The family is the full
 frozen taxonomy:
@@ -111,9 +114,10 @@ frozen taxonomy:
 | 6 | `validation` / `drift` | invalid input, or state that drifted from its record (two types, one code, by design) |
 | 7 | `indeterminate` | a check looked and cannot judge |
 
-Only `usage` and `not_found` are produced by v0's commands today; the rest are
-mapped and published so a consumer meets one vocabulary, not a later second
-one.
+v0's commands produce `usage` and `not_found`, `indeterminate` when Git
+refuses to describe a repository, and `uncaught` for a bug; `denied`,
+`conflict`, `validation` and `drift` are mapped and published so a consumer
+meets one vocabulary, not a later second one.
 
 ## How the index is built
 

@@ -5,6 +5,7 @@ import { cacheDir, clearCache, computeKey, readCachedIndex, writeCachedIndex } f
 import {
 	buildManifest,
 	COMMANDS,
+	type CommandName,
 	type EnvelopeErrorType,
 	errorEnvelope,
 	globalKindOf,
@@ -102,7 +103,7 @@ function shortSha(sha: string): string {
 }
 
 /** Registry names for a command token; `cache` keeps both of its entries. */
-function commandNamesFor(token: string): string[] | undefined {
+function commandNamesFor(token: string): CommandName[] | undefined {
 	const names = COMMANDS.filter((command) => command.name === token || command.name.startsWith(`${token} `)).map(
 		(command) => command.name,
 	);
@@ -131,6 +132,26 @@ function wantsVersion(argv: string[]): boolean {
 	return argv.includes("--version") || argv.includes("-v");
 }
 
+/**
+ * True when every argument is a known global flag (or `--repo`'s value). A
+ * bare invocation with an unknown option such as `-V` must reach commander so
+ * it reports usage, rather than being swallowed as "no command".
+ */
+function onlyKnownGlobalOptions(argv: string[]): boolean {
+	for (let index = 0; index < argv.length; index += 1) {
+		const arg = argv[index];
+		if (arg === "--json" || arg === "--version" || arg === "-v" || arg === "--help" || arg === "-h") continue;
+		if (arg === "--repo") {
+			index += 1;
+			if (index >= argv.length) return false;
+			continue;
+		}
+		if (arg?.startsWith("--repo=")) continue;
+		return false;
+	}
+	return true;
+}
+
 function writeError(json: boolean, errorType: EnvelopeErrorType, message: string): void {
 	if (json) {
 		process.stderr.write(`${JSON.stringify(errorEnvelope(errorType, message))}\n`);
@@ -146,7 +167,7 @@ export function buildProgram(): Command {
 		.description(
 			"Software intelligence about one repository: what calls this symbol, and which symbols a diff touches.",
 		)
-		.version(readVersion())
+		.version(readVersion(), "-v, --version")
 		.option("--repo <dir>", "repository directory to analyze (default: current directory)")
 		.option("--json", "emit the machine-readable JSON envelope")
 		.exitOverride()
@@ -280,45 +301,44 @@ export function buildProgram(): Command {
 /**
  * `argv` is the USER argument list (process.argv.slice(2)).
  *
- * Under `--json`, help and version answer with envelopes rather than text: the
- * reference implementation emits a `version` result for `--json --version` and
- * a `help` result for `--json --help` and for a bare `--json` run, so the
- * output-mode precedence holds for every successful invocation.
+ * Under `--json`, help and version answer with envelopes rather than text, so
+ * the output-mode precedence holds for every successful invocation. The shared
+ * contract is silent on their kinds; Glyph uses its own dotted registry.
  */
 export async function run(argv: string[]): Promise<number> {
 	const program = buildProgram();
 	const json = argv.includes("--json");
 
-	if (json && wantsVersion(argv)) {
-		emit(true, globalKindOf("version"), { version: readVersion() }, () => "");
-		return 0;
-	}
-
-	const token = firstCommandToken(argv);
-
-	if (wantsHelp(argv)) {
-		if (json && token === undefined) {
-			emit(true, globalKindOf("help"), { usage: program.helpInformation() }, () => "");
+	try {
+		if (json && wantsVersion(argv)) {
+			emit(true, globalKindOf("version"), { version: readVersion() }, () => "");
 			return 0;
 		}
-		if (json && token !== undefined) {
-			const names = commandNamesFor(token);
-			if (names !== undefined) {
+
+		const token = firstCommandToken(argv);
+
+		if (wantsHelp(argv)) {
+			if (json && token === undefined) {
+				emit(true, globalKindOf("help"), { usage: program.helpInformation() }, () => "");
+				return 0;
+			}
+			if (json && token !== undefined) {
+				const names = commandNamesFor(token);
+				// Commander answers help before it reports an unknown command, so an
+				// unknown token would otherwise print text help and exit 0.
+				if (names === undefined) throw usageError(`unknown command '${token}'`);
 				emit(true, kindOf("help"), buildManifest(names), () => "");
 				return 0;
 			}
-			// An unknown command with --help falls through to commander's usage error.
 		}
-	}
 
-	// A bare invocation answers help, like the reference implementation, rather
-	// than throwing commander's "(outputHelp)" as a usage error.
-	if (token === undefined && !wantsVersion(argv) && !wantsHelp(argv)) {
-		emit(json, globalKindOf("help"), { usage: program.helpInformation() }, () => program.helpInformation().trimEnd());
-		return 0;
-	}
+		// A bare invocation answers help, like the reference implementation, rather
+		// than throwing commander's "(outputHelp)" as a usage error.
+		if (token === undefined && !wantsVersion(argv) && !wantsHelp(argv) && onlyKnownGlobalOptions(argv)) {
+			emit(json, globalKindOf("help"), { usage: program.helpInformation() }, () => program.helpInformation().trimEnd());
+			return 0;
+		}
 
-	try {
 		await program.parseAsync(argv, { from: "user" });
 		return 0;
 	} catch (error) {
