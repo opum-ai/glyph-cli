@@ -36,6 +36,22 @@ describe("git", () => {
 		expect(changes).toEqual([]);
 	});
 
+	test("a diff git cannot produce over resolved refs is indeterminate, not usage", () => {
+		const repo = makeScratchRepo({ "src/a.ts": "export const a = 1;\n" });
+		repo.commit("base");
+		let error: unknown;
+		try {
+			// Both ids are 40 hex characters, so they parse as commits but no
+			// object exists: git exits non-zero after refs were already resolved.
+			parseDiff(repo.root, "a".repeat(40), "b".repeat(40));
+		} catch (caught) {
+			error = caught;
+		}
+		expect(error).toBeInstanceOf(GlyphError);
+		expect((error as GlyphError).errorType).toBe("indeterminate");
+		expect((error as GlyphError).code).toBe(7);
+	});
+
 	test("an unresolvable ref is not-found", () => {
 		const repo = makeScratchRepo({ "src/a.ts": "export const a = 1;\n" });
 		repo.commit("base");

@@ -84,10 +84,18 @@ envelope:
   both envelopes. It is `null` until an identity is populated; omitting it is
   non-conformance, not an equivalent variant.
 - **Kinds are dotted `command.payload`** (`callers.result`, `diff.result`,
-  `cache.path`, `cache.clear`, `help.manifest`). They are a registry, not a
-  convention: `glyph help --json` publishes it, and a conformance test compares
-  that live registry and the exit-code taxonomy against a golden set by exact
-  equality, failing on a vacuous or deliberately corrupted one.
+  `cache.path`, `cache.clear`, `help.manifest`), plus `version.info` and
+  `help.usage` for the global `--version` and `--help` results. They are a
+  registry, not a convention: handlers read their kind from it, `glyph help
+  --json` publishes it, a test walks the registered commander commands against
+  it, and a conformance test compares the registry and the exit-code taxonomy
+  against a golden set by exact equality, failing on a vacuous or deliberately
+  corrupted one.
+- **Help and version are result-bearing under `--json`**, following the
+  reference implementation: `glyph --json --version` emits `version.info`, and
+  `glyph --json --help` or a bare `glyph --json` emits `help.usage`. Help with
+  a topic, or `--help` after a command, emits `help.manifest` narrowed to that
+  command. No successful `--json` invocation prints plain text.
 
 Callers branch on the exit code, never on the message. The family is the full
 frozen taxonomy:
@@ -112,10 +120,28 @@ one.
 Discovery takes every `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs` and
 `.cjs` file in scope — a tsconfig governs compiler *options*, never which files
 are visible — and builds one TypeScript program over them. In a Git repository
-the selection is Git's own (`ls-files`, tracked plus untracked-but-not-ignored),
-so nested `.gitignore` files and negation patterns are honoured and an ignored
-generated or local directory never enters the index. A directory outside Git
-falls back to a filesystem walk, where Git has no ignore rules to apply.
+the selection is Git's own (`ls-files`: tracked files plus **untracked** files
+that are not ignored), so nested `.gitignore` files and negation patterns are
+honoured and an **untracked ignored** source never enters the index.
+
+Two consequences are deliberate, not accidents:
+
+- A **tracked** file stays visible even when a pattern matches it, because Git
+  ignores patterns for tracked files. A repository that commits `dist/`,
+  `vendor/` or `build/`, or leaves `node_modules/` untracked and unignored,
+  therefore indexes those files; the old fixed directory list hid them. This is
+  the DEC-216 behavior and it is stated here because `callers` and `diff`
+  answers change in exactly those repositories.
+- `git ls-files` does not descend into submodules or nested repositories;
+  their contents are not indexed. Symlinks are followed when they resolve to a
+  file, and the link's own path is what enters the index.
+
+A directory outside Git falls back to a filesystem walk with a fixed
+excluded-directory list (`.git`, `node_modules`, `dist`, `build`, `out`,
+`coverage`, `vendor`, `.next`, `.nuxt`), where Git has no ignore rules to
+apply. Git failing for any other reason — dubious ownership, a corrupt index, a
+permission error — is **indeterminate** (exit 7), never a silent walk that
+would index sources Git was refusing to describe.
 
 - **Symbols** are declarations: functions, methods (accessors included),
   properties, classes, interfaces, type aliases, enums, and variables.

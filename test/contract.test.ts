@@ -1,19 +1,27 @@
 import { describe, expect, test } from "bun:test";
 import {
+	allResultKinds,
 	buildManifest,
 	COMMANDS,
 	errorEnvelope,
 	exitCodeTaxonomy,
+	GLOBAL_FLAGS,
+	globalKindOf,
+	kindOf,
 	successEnvelope,
 	validateExitTaxonomy,
 	validateKindRegistry,
+	validateResultKinds,
 } from "../src/contract.ts";
 import { EXIT_CODES, exitCodeFor, GlyphError, type GlyphErrorType } from "../src/errors.ts";
+import { buildProgram } from "../src/program.ts";
 
 /**
- * Hand-transcribed from each command handler's own emitted `kind`, as the
+ * Hand-transcribed from each command handler's own emitted kind, as the
  * frozen contract's conformance test requires. It is compared against the live
- * registry, never asserted against nothing.
+ * registry, never asserted against nothing. The handlers themselves take their
+ * kind from `COMMANDS` by lookup, so this golden map checks the registry while
+ * the end-to-end test checks that the handlers actually emit what it says.
  */
 const GOLDEN_KINDS: Record<string, string> = {
 	callers: "callers.result",
@@ -21,6 +29,11 @@ const GOLDEN_KINDS: Record<string, string> = {
 	"cache path": "cache.path",
 	"cache clear": "cache.clear",
 	help: "help.manifest",
+};
+
+const GOLDEN_GLOBAL_KINDS: Record<string, string> = {
+	version: "version.info",
+	help: "help.usage",
 };
 
 const GOLDEN_EXIT_CODES: Record<string, number> = {
@@ -42,6 +55,28 @@ describe("command contract", () => {
 		expect(validateKindRegistry(GOLDEN_KINDS)).toEqual([]);
 	});
 
+	test("every registered commander command has a registry entry, and every entry a command", () => {
+		const program = buildProgram();
+		const names = program.commands.flatMap((command) =>
+			command.name() === "cache" ? ["cache path", "cache clear"] : [command.name()],
+		);
+		expect(names.length).toBeGreaterThan(0);
+		expect(names.sort()).toEqual(COMMANDS.map((command) => command.name).sort());
+	});
+
+	test("every handler's kind lookup agrees with the registry entry", () => {
+		for (const command of COMMANDS) expect(kindOf(command.name)).toBe(command.kind);
+		for (const [name, kind] of Object.entries(GOLDEN_GLOBAL_KINDS)) {
+			expect(GLOBAL_FLAGS.find((flag) => flag.name === name)?.kind).toBe(globalKindOf(name as "version" | "help"));
+			expect(globalKindOf(name as "version" | "help")).toBe(kind);
+		}
+	});
+
+	test("the whole emitted-kind set is dotted and non-vacuous", () => {
+		expect(allResultKinds().length).toBeGreaterThan(0);
+		expect(validateResultKinds(allResultKinds())).toEqual([]);
+	});
+
 	test("the live exit-code taxonomy is exactly the frozen family", () => {
 		expect(exitCodeTaxonomy()).toEqual(GOLDEN_EXIT_CODES);
 		expect(validateExitTaxonomy(GOLDEN_EXIT_CODES)).toEqual([]);
@@ -52,11 +87,31 @@ describe("command contract", () => {
 		expect(findings.some((finding) => finding.startsWith("VACUOUS"))).toBe(true);
 	});
 
-	test("the kind check rejects one corrupted kind and names only that command", () => {
+	test("the kind check rejects one corrupted golden kind and names only that command", () => {
 		const findings = validateKindRegistry({ ...GOLDEN_KINDS, diff: "results.diff" });
 		expect(findings).toHaveLength(1);
 		expect(findings[0]).toContain('"diff"');
 		expect(findings[0]).toContain("KIND MISMATCH");
+	});
+
+	test("the kind check rejects a corrupted LIVE kind, not only a corrupted golden one", () => {
+		const live = COMMANDS.map((command) => (command.name === "diff" ? { ...command, kind: "diff.changed" } : command));
+		const findings = validateKindRegistry(GOLDEN_KINDS, live);
+		expect(findings).toHaveLength(1);
+		expect(findings[0]).toContain('"diff"');
+		expect(findings[0]).toContain("KIND MISMATCH");
+	});
+
+	test("the kind check's dotted-pattern is the thing that rejects a malformed live kind", () => {
+		const live = COMMANDS.map((command) => (command.name === "diff" ? { ...command, kind: "diffchanged" } : command));
+		const withPattern = validateKindRegistry(GOLDEN_KINDS, live);
+		expect(withPattern.some((finding) => finding.startsWith("MALFORMED KIND"))).toBe(true);
+		// Mutating the CHECK — a pattern that accepts anything — removes only the
+		// malformed-kind finding; the value mismatch still fails. This proves the
+		// dotted assertion is not decorative.
+		const withoutPattern = validateKindRegistry(GOLDEN_KINDS, live, /.*/);
+		expect(withoutPattern.some((finding) => finding.startsWith("MALFORMED KIND"))).toBe(false);
+		expect(withoutPattern.some((finding) => finding.includes("KIND MISMATCH"))).toBe(true);
 	});
 
 	test("the kind check rejects a missing command", () => {
@@ -113,10 +168,20 @@ describe("command contract", () => {
 		for (const command of manifest.commands) {
 			expect(command.kind).toBe(String(GOLDEN_KINDS[command.name]));
 			expect(command.json).toBe(true);
-			expect(command.exitCodes.length).toBeGreaterThan(0);
+			// Every command can crash; `uncaught` must be declared, not omitted.
+			expect(command.exitCodes).toContain(1);
+			expect(command.exitCodes.length).toBeGreaterThan(1);
 			for (const code of command.exitCodes) {
 				expect(Object.values(manifest.exitCodes)).toContain(code);
 			}
 		}
+		expect(manifest.globalFlags.find((flag) => flag.name === "version")?.kind).toBe(GOLDEN_GLOBAL_KINDS.version);
+		expect(manifest.globalFlags.find((flag) => flag.name === "help")?.kind).toBe(GOLDEN_GLOBAL_KINDS.help);
+	});
+
+	test("a narrowed manifest keeps only the requested commands but the whole taxonomy", () => {
+		const manifest = buildManifest(["cache path", "cache clear"]);
+		expect(manifest.commands.map((command) => command.name)).toEqual(["cache path", "cache clear"]);
+		expect(manifest.exitCodes).toEqual(GOLDEN_EXIT_CODES);
 	});
 });

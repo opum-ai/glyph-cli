@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { discoverSources } from "../src/discover.ts";
+import { GlyphError } from "../src/errors.ts";
 import { makeScratchRepo, scratchCacheDir } from "./helpers.ts";
 
 const CLI = new URL("../src/cli.ts", import.meta.url).pathname;
@@ -37,6 +41,44 @@ describe("source discovery", () => {
 		repo.write(".gitignore", "src/tracked.ts\n");
 
 		expect(discoverSources(repo.root)).toContain("src/tracked.ts");
+	});
+
+	test("a POSIX file name containing a backslash is preserved", () => {
+		const repo = makeScratchRepo({ "a\\b.ts": "export const odd = 1;\n" });
+		repo.commit("base");
+		expect(discoverSources(repo.root)).toContain("a\\b.ts");
+	});
+
+	test("a directory outside Git falls back to the walk", () => {
+		const root = mkdtempSync(join(tmpdir(), "glyph-nongit-"));
+		writeFileSync(join(root, "loose.ts"), "export const loose = 1;\n");
+		expect(discoverSources(root)).toEqual(["loose.ts"]);
+	});
+
+	test("git refusing a repository is indeterminate, not a silent walk", () => {
+		const repo = makeScratchRepo({ "src/app.ts": "export const app = 1;\n" });
+		repo.commit("base");
+		// A corrupt index makes `git ls-files` fail while the directory is still
+		// unmistakably a repository. Walking instead would index ignored sources.
+		repo.write(".git/index", "garbage");
+
+		expect(() => discoverSources(repo.root)).toThrow(GlyphError);
+		try {
+			discoverSources(repo.root);
+		} catch (error) {
+			expect(error).toBeInstanceOf(GlyphError);
+			expect((error as GlyphError).errorType).toBe("indeterminate");
+			expect((error as GlyphError).code).toBe(7);
+		}
+
+		const result = runCli(repo.root, ["--json", "cache", "path"], scratchCacheDir());
+		// `cache path` does not index, so it still answers; the indexing command
+		// is the one that must refuse.
+		expect(result.code).toBe(0);
+		const indexing = runCli(repo.root, ["--json", "callers", "app"], scratchCacheDir());
+		expect(indexing.code).toBe(7);
+		expect(indexing.stdout).toBe("");
+		expect(JSON.parse(indexing.stderr).error_type).toBe("indeterminate");
 	});
 
 	test("an ignored source never enters the index, while an untracked non-ignored source does", () => {

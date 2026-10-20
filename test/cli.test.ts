@@ -1,4 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { globalKindOf, kindOf } from "../src/contract.ts";
+import { repoRootFor } from "../src/git.ts";
 import { makeScratchRepo, scratchCacheDir } from "./helpers.ts";
 
 const CLI = new URL("../src/cli.ts", import.meta.url).pathname;
@@ -139,5 +145,97 @@ describe("cli", () => {
 		const result = runCli("/tmp", ["--repo", repo.root, "callers", "helper"], cache);
 		expect(result.code).toBe(0);
 		expect(result.stdout).toContain("callers of helper");
+	});
+
+	test("every successful --json invocation emits its registry kind, never plain text", () => {
+		const repo = makeScratchRepo(FILES);
+		const cache = scratchCacheDir();
+		const base = repo.commit("base");
+		repo.write(
+			"src/main.ts",
+			'import { helper } from "./util";\nexport function main(): number {\n  return helper(1) + 1;\n}\n',
+		);
+		repo.commit("tweak");
+
+		const cases: Array<{ args: string[]; kind: string }> = [
+			{ args: ["--json", "callers", "helper"], kind: kindOf("callers") },
+			{ args: ["--json", "diff", base, "HEAD"], kind: kindOf("diff") },
+			{ args: ["--json", "cache", "path"], kind: kindOf("cache path") },
+			{ args: ["--json", "cache", "clear"], kind: kindOf("cache clear") },
+			{ args: ["--json", "help"], kind: kindOf("help") },
+			{ args: ["--json", "help", "callers"], kind: kindOf("help") },
+			{ args: ["--json", "callers", "--help"], kind: kindOf("help") },
+			{ args: ["--json", "--version"], kind: globalKindOf("version") },
+			{ args: ["--json", "--help"], kind: globalKindOf("help") },
+			{ args: ["--json"], kind: globalKindOf("help") },
+		];
+
+		for (const { args, kind } of cases) {
+			const result = runCli(repo.root, args, cache);
+			expect(result.code).toBe(0);
+			const envelope = JSON.parse(result.stdout) as Record<string, unknown>;
+			expect(Object.keys(envelope)).toEqual(["schemaVersion", "kind", "data", "principal"]);
+			expect(envelope.kind).toBe(kind);
+			expect(envelope.principal).toBeNull();
+		}
+	});
+
+	test("help and version answer envelopes under --json and text otherwise", () => {
+		const repo = makeScratchRepo(FILES);
+		const cache = scratchCacheDir();
+
+		const version = runCli(repo.root, ["--json", "--version"], cache);
+		expect(JSON.parse(version.stdout).data.version).toBe("0.0.0");
+
+		const topHelp = runCli(repo.root, ["--json", "--help"], cache);
+		expect(JSON.parse(topHelp.stdout).data.usage).toContain("Usage: glyph");
+
+		const commandHelp = runCli(repo.root, ["--json", "callers", "--help"], cache);
+		expect(JSON.parse(commandHelp.stdout).data.commands.map((command: { name: string }) => command.name)).toEqual([
+			"callers",
+		]);
+
+		const bare = runCli(repo.root, [], cache);
+		expect(bare.code).toBe(0);
+		expect(bare.stdout).toContain("Usage: glyph");
+		expect(bare.stderr).toBe("");
+
+		const bareJson = runCli(repo.root, ["--json"], cache);
+		expect(bareJson.code).toBe(0);
+		expect(JSON.parse(bareJson.stdout).kind).toBe(globalKindOf("help"));
+	});
+
+	test("a --json commander usage error writes the error envelope and exits 2", () => {
+		const repo = makeScratchRepo(FILES);
+		const cache = scratchCacheDir();
+		const result = runCli(repo.root, ["--json", "frobnicate"], cache);
+		expect(result.code).toBe(2);
+		expect(result.stdout).toBe("");
+		const error = JSON.parse(result.stderr) as { error_type: string; principal: null };
+		expect(error.error_type).toBe("usage");
+		expect(error.principal).toBeNull();
+	});
+
+	test("an uncaught failure writes the uncaught envelope and exits 1", () => {
+		const repo = makeScratchRepo(FILES);
+		repo.commit("base");
+		const cacheRoot = mkdtempSync(join(tmpdir(), "glyph-cache-file-"));
+		// A regular file where the cache directory must go: the index write
+		// throws, and a bug is `uncaught`/1 rather than a classified failure.
+		// The CLI keys the cache on git's own top-level path, which on macOS may
+		// resolve /var to /private/var; hash the path it will actually use.
+		const hash = createHash("sha1")
+			.update(repoRootFor(repo.root) ?? repo.root)
+			.digest("hex")
+			.slice(0, 12);
+		writeFileSync(join(cacheRoot, hash), "not a directory");
+
+		const result = runCli(repo.root, ["--json", "callers", "helper"], cacheRoot);
+		expect(result.code).toBe(1);
+		expect(result.stdout).toBe("");
+		const error = JSON.parse(result.stderr) as { error_type: string; message: string; principal: null };
+		expect(Object.keys(error)).toEqual(["error_type", "message", "principal"]);
+		expect(error.error_type).toBe("uncaught");
+		expect(error.principal).toBeNull();
 	});
 });

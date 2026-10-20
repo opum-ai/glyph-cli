@@ -72,7 +72,7 @@ export const COMMANDS: readonly CommandSpec[] = Object.freeze([
 		args: "<name>",
 		flags: [{ name: "file", takesValue: true, summary: "narrow to symbols whose file path contains <pattern>" }],
 		kind: "callers.result",
-		exitCodes: [0, 2, 3],
+		exitCodes: [0, 1, 2, 3, 7],
 		examples: ["glyph callers buildReport", "glyph callers parseDiff --file src/git.ts"],
 	},
 	{
@@ -81,7 +81,7 @@ export const COMMANDS: readonly CommandSpec[] = Object.freeze([
 		args: "<base> [head]",
 		flags: [],
 		kind: "diff.result",
-		exitCodes: [0, 2, 3],
+		exitCodes: [0, 1, 2, 3, 7],
 		examples: ["glyph diff main", "glyph diff v0.1.0 HEAD"],
 	},
 	{
@@ -90,7 +90,7 @@ export const COMMANDS: readonly CommandSpec[] = Object.freeze([
 		args: "",
 		flags: [],
 		kind: "cache.path",
-		exitCodes: [0, 2],
+		exitCodes: [0, 1, 2],
 		examples: ["glyph cache path"],
 	},
 	{
@@ -99,7 +99,7 @@ export const COMMANDS: readonly CommandSpec[] = Object.freeze([
 		args: "",
 		flags: [],
 		kind: "cache.clear",
-		exitCodes: [0, 2],
+		exitCodes: [0, 1, 2],
 		examples: ["glyph cache clear"],
 	},
 	{
@@ -108,15 +108,59 @@ export const COMMANDS: readonly CommandSpec[] = Object.freeze([
 		args: "[command]",
 		flags: [],
 		kind: "help.manifest",
-		exitCodes: [0, 2],
+		exitCodes: [0, 1, 2],
 		examples: ["glyph help", "glyph help --json"],
 	},
 ]);
 
+export interface GlobalFlagSpec extends FlagSpec {
+	/** Present when the flag itself produces a JSON result under `--json`. */
+	kind?: string;
+}
+
+/**
+ * Global flags. `version` and `help` are result-bearing under `--json`, as the
+ * reference implementation emits them: `lore --json --version` answers with a
+ * `version` envelope and `lore --json --help` (and a bare `--json` run) with a
+ * `help` envelope, rather than plain text.
+ */
+export const GLOBAL_FLAGS: readonly GlobalFlagSpec[] = Object.freeze([
+	{ name: "json", takesValue: false, summary: "emit the machine-readable JSON envelope" },
+	{ name: "repo", takesValue: true, summary: "repository directory to analyze (default: current directory)" },
+	{ name: "version", takesValue: false, summary: "print the version and exit", kind: "version.info" },
+	{ name: "help", takesValue: false, summary: "show help and exit", kind: "help.usage" },
+]);
+
+/**
+ * A command handler's kind, read from the one live registry rather than typed
+ * as a literal beside the handler. An unknown name is a programming error and
+ * throws, so a new command cannot emit a kind the registry does not declare.
+ */
+export function kindOf(name: string): string {
+	const command = COMMANDS.find((entry) => entry.name === name);
+	if (command === undefined) throw new Error(`no command registered as '${name}'`);
+	return command.kind;
+}
+
+/** The same lookup for a global flag that produces a result. */
+export function globalKindOf(name: "version" | "help"): string {
+	const flag = GLOBAL_FLAGS.find((entry) => entry.name === name);
+	if (flag?.kind === undefined) throw new Error(`no global result kind registered for '${name}'`);
+	return flag.kind;
+}
+
+/** Every kind any handler can emit, command and global flags included. */
+export function allResultKinds(): string[] {
+	return [
+		...COMMANDS.map((command) => command.kind),
+		...GLOBAL_FLAGS.flatMap((flag) => (flag.kind === undefined ? [] : [flag.kind])),
+	];
+}
+
 export interface Manifest {
 	schemaVersion: typeof SCHEMA_VERSION;
 	exitCodes: Record<string, number>;
-	globalFlags: FlagSpec[];
+	globalFlags: GlobalFlagSpec[];
 	commands: Array<{
 		name: string;
 		summary: string;
@@ -129,18 +173,19 @@ export interface Manifest {
 	}>;
 }
 
-/** `glyph help --json`'s data, sourced from the live registry and taxonomy. */
-export function buildManifest(): Manifest {
+/**
+ * `glyph help --json`'s data, sourced from the live registry and taxonomy.
+ * Passing names narrows it to those commands (a `cache` topic keeps both of
+ * its entries); the taxonomy and global flags stay whole.
+ */
+export function buildManifest(commandNames?: readonly string[]): Manifest {
+	const commands =
+		commandNames === undefined ? COMMANDS : COMMANDS.filter((command) => commandNames.includes(command.name));
 	return {
 		schemaVersion: SCHEMA_VERSION,
 		exitCodes: exitCodeTaxonomy(),
-		globalFlags: [
-			{ name: "json", takesValue: false, summary: "emit the machine-readable JSON envelope" },
-			{ name: "repo", takesValue: true, summary: "repository directory to analyze (default: current directory)" },
-			{ name: "version", takesValue: false, summary: "print the version and exit" },
-			{ name: "help", takesValue: false, summary: "show help and exit" },
-		],
-		commands: COMMANDS.map((command) => ({
+		globalFlags: GLOBAL_FLAGS.map((flag) => ({ ...flag })),
+		commands: commands.map((command) => ({
 			name: command.name,
 			summary: command.summary,
 			args: command.args,
@@ -164,6 +209,7 @@ const DOTTED_KIND = /^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/;
 export function validateKindRegistry(
 	golden: Record<string, string>,
 	live: readonly CommandSpec[] = COMMANDS,
+	dotted: RegExp = DOTTED_KIND,
 ): string[] {
 	const findings: string[] = [];
 	const liveKinds = new Map(live.map((command) => [command.name, command.kind]));
@@ -188,9 +234,23 @@ export function validateKindRegistry(
 		}
 	}
 	for (const command of live) {
-		if (!DOTTED_KIND.test(command.kind)) {
+		if (!dotted.test(command.kind)) {
 			findings.push(`MALFORMED KIND on command "${command.name}": "${command.kind}" is not dotted command.payload`);
 		}
+	}
+	return findings;
+}
+
+/**
+ * The whole emitted-kind set, global flags included. Every kind is dotted and
+ * the set is non-empty; this is the check the e2e test pairs with a run of each
+ * command so a handler that emits a different string is caught.
+ */
+export function validateResultKinds(kinds: readonly string[], dotted: RegExp = DOTTED_KIND): string[] {
+	const findings: string[] = [];
+	if (kinds.length === 0) findings.push("VACUOUS: result-kind set is empty");
+	for (const kind of kinds) {
+		if (!dotted.test(kind)) findings.push(`MALFORMED KIND: "${kind}" is not dotted command.payload`);
 	}
 	return findings;
 }
