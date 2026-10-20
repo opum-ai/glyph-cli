@@ -1,29 +1,56 @@
 import { readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import ts from "typescript";
+import { gitRun } from "./git.ts";
 
 /**
- * Source discovery is Glyph's own walk, not the project's tsconfig `include`.
+ * Source discovery is Glyph's own selection, not the project's tsconfig
+ * `include`.
  *
- * DEC-66 chose "TypeScript and JavaScript, as one target", so the walk takes
+ * DEC-66 chose "TypeScript and JavaScript, as one target", so discovery takes
  * both regardless of what a project's tsconfig chooses to compile — a tsconfig
  * that excludes its own `.js` files must not make those files invisible to the
  * call graph. The tsconfig is still read, but only for compiler *options*
  * (paths, jsx, and friends), never for the file list; that keeps behavior
  * uniform across repositories that have a tsconfig and ones that do not.
+ *
+ * In a Git repository the file selection is Git's own: tracked files plus
+ * untracked files that `.gitignore` does not exclude. That inherits nested
+ * ignore files, negation patterns and `.git/info/exclude` instead of a fixed
+ * directory list, so a generated or local directory the repository ignores
+ * cannot inflate the index (DEC-216). A directory outside Git falls back to a
+ * filesystem walk, where Git has no ignore rules to apply.
  */
 
 const EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
 
-/** Directories that never contain the repository's own sources. */
+/** Directories a non-Git walk never descends into; Git ignores them in a repository. */
 const EXCLUDED_DIRS = new Set([".git", "node_modules", "dist", "build", "out", "coverage", "vendor", ".next", ".nuxt"]);
 
 function hasSourceExtension(path: string): boolean {
 	return EXTENSIONS.some((ext) => path.endsWith(ext));
 }
 
-/** Repository-relative paths of every TS/JS source under `repoRoot`, sorted. */
+/** Repository-relative paths of every TS/JS source in scope, sorted. */
 export function discoverSources(repoRoot: string): string[] {
+	const listed = gitRun(repoRoot, ["ls-files", "-z", "--cached", "--others", "--exclude-standard"]);
+	if (listed.code === 0) {
+		const found = new Set<string>();
+		for (const path of listed.stdout.split("\0")) {
+			if (path === "" || !hasSourceExtension(path)) continue;
+			try {
+				if (!statSync(join(repoRoot, path)).isFile()) continue;
+			} catch {
+				continue; // Listed in the index but absent from this worktree.
+			}
+			found.add(path.split("\\").join("/"));
+		}
+		return [...found].sort();
+	}
+	return walkSources(repoRoot);
+}
+
+function walkSources(repoRoot: string): string[] {
 	const found: string[] = [];
 
 	const walk = (dir: string): void => {

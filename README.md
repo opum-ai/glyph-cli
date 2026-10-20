@@ -60,32 +60,62 @@ line where the deletion happened.
 
 Show or clear this repository's local cache directory.
 
+### `glyph help --json`
+
+Emit the live command manifest — every command's dotted `kind`, its flags and
+exit codes, and the frozen exit-code taxonomy. The manifest is built from the
+same registry the commands use, so it cannot drift from the handlers.
+
 ## The machine contract
 
+Glyph implements the frozen
+[Opum command contract](https://github.com/opum-ai/opum-doc/blob/dev/docs/specs/opum-command-contract.md)
+and records that obligation in [ADR 0002](docs/adr/0002-adopt-the-opum-command-contract.md).
 stdout carries exactly one success envelope — JSON under `--json`, human text
-otherwise. On failure stdout stays **empty** and stderr carries the message;
-under `--json` that message is an object of the same shape:
+otherwise. On failure stdout stays **empty**, and stderr carries the error
+envelope:
 
 ```json
-{ "schemaVersion": 1, "kind": "callers", "data": { } }
-{ "schemaVersion": 1, "kind": "error", "errorType": "not_found", "message": "…" }
+{ "schemaVersion": 1, "kind": "callers.result", "data": { }, "principal": null }
+{ "error_type": "not_found", "message": "…", "principal": null }
 ```
 
-Callers branch on the exit code, never on the message:
+- **`principal` is reserved and always present**, as the last top-level key on
+  both envelopes. It is `null` until an identity is populated; omitting it is
+  non-conformance, not an equivalent variant.
+- **Kinds are dotted `command.payload`** (`callers.result`, `diff.result`,
+  `cache.path`, `cache.clear`, `help.manifest`). They are a registry, not a
+  convention: `glyph help --json` publishes it, and a conformance test compares
+  that live registry and the exit-code taxonomy against a golden set by exact
+  equality, failing on a vacuous or deliberately corrupted one.
 
-| code | meaning |
-|------|---------|
-| 0 | ok |
-| 1 | internal / unexpected |
-| 2 | usage (an ambiguous symbol included) |
-| 3 | not found (no such symbol, ref, or sources) |
+Callers branch on the exit code, never on the message. The family is the full
+frozen taxonomy:
+
+| code | `error_type` | meaning |
+|------|--------------|---------|
+| 0 | — | ok |
+| 1 | `uncaught` | an unexpected bug, never a classified failure |
+| 2 | `usage` | bad invocation, an ambiguous symbol included |
+| 3 | `not_found` | no such symbol, ref, or sources |
+| 4 | `denied` | the operation is not permitted |
+| 5 | `conflict` | a concurrent or contradictory state |
+| 6 | `validation` / `drift` | invalid input, or state that drifted from its record (two types, one code, by design) |
+| 7 | `indeterminate` | a check looked and cannot judge |
+
+Only `usage` and `not_found` are produced by v0's commands today; the rest are
+mapped and published so a consumer meets one vocabulary, not a later second
+one.
 
 ## How the index is built
 
-The indexer takes its own walk of every `.ts`, `.tsx`, `.mts`, `.cts`, `.js`,
-`.jsx`, `.mjs` and `.cjs` file under the repository — a tsconfig governs
-compiler *options*, never which files are visible — and builds one TypeScript
-program over them.
+Discovery takes every `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs` and
+`.cjs` file in scope — a tsconfig governs compiler *options*, never which files
+are visible — and builds one TypeScript program over them. In a Git repository
+the selection is Git's own (`ls-files`, tracked plus untracked-but-not-ignored),
+so nested `.gitignore` files and negation patterns are honoured and an ignored
+generated or local directory never enters the index. A directory outside Git
+falls back to a filesystem walk, where Git has no ignore rules to apply.
 
 - **Symbols** are declarations: functions, methods (accessors included),
   properties, classes, interfaces, type aliases, enums, and variables.

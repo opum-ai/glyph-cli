@@ -35,9 +35,12 @@ describe("cli", () => {
 			schemaVersion: number;
 			kind: string;
 			data: { symbol: { name: string }; totals: { callers: number }; index: { cache: string } };
+			principal: null;
 		};
+		expect(Object.keys(envelope)).toEqual(["schemaVersion", "kind", "data", "principal"]);
 		expect(envelope.schemaVersion).toBe(1);
-		expect(envelope.kind).toBe("callers");
+		expect(envelope.kind).toBe("callers.result");
+		expect(envelope.principal).toBeNull();
 		expect(envelope.data.symbol.name).toBe("helper");
 		expect(envelope.data.totals.callers).toBe(1);
 		expect(envelope.data.index.cache).toBe("miss");
@@ -45,6 +48,43 @@ describe("cli", () => {
 		const second = runCli(repo.root, ["--json", "callers", "helper"], cache);
 		const secondEnvelope = JSON.parse(second.stdout) as { data: { index: { cache: string } } };
 		expect(secondEnvelope.data.index.cache).toBe("hit");
+	});
+
+	test("help --json publishes the live manifest, and every JSON result carries principal last", () => {
+		const repo = makeScratchRepo(FILES);
+		const cache = scratchCacheDir();
+
+		const result = runCli(repo.root, ["help", "--json"], cache);
+		expect(result.code).toBe(0);
+		const envelope = JSON.parse(result.stdout) as {
+			kind: string;
+			data: { exitCodes: Record<string, number>; commands: { name: string; kind: string }[] };
+			principal: null;
+		};
+		expect(Object.keys(envelope)).toEqual(["schemaVersion", "kind", "data", "principal"]);
+		expect(envelope.kind).toBe("help.manifest");
+		expect(envelope.principal).toBeNull();
+		expect(envelope.data.exitCodes).toEqual({
+			ok: 0,
+			uncaught: 1,
+			usage: 2,
+			not_found: 3,
+			denied: 4,
+			conflict: 5,
+			validation: 6,
+			drift: 6,
+			indeterminate: 7,
+		});
+		expect(envelope.data.commands.map((command) => command.name).sort()).toEqual([
+			"cache clear",
+			"cache path",
+			"callers",
+			"diff",
+			"help",
+		]);
+
+		const cachePath = runCli(repo.root, ["--json", "cache", "path"], cache);
+		expect(Object.keys(JSON.parse(cachePath.stdout))).toEqual(["schemaVersion", "kind", "data", "principal"]);
 	});
 
 	test("failures keep stdout empty and exit with the code the contract names", () => {
@@ -59,9 +99,10 @@ describe("cli", () => {
 		const missingJson = runCli(repo.root, ["--json", "callers", "nope"], cache);
 		expect(missingJson.code).toBe(3);
 		expect(missingJson.stdout).toBe("");
-		const error = JSON.parse(missingJson.stderr) as { kind: string; errorType: string; message: string };
-		expect(error.kind).toBe("error");
-		expect(error.errorType).toBe("not_found");
+		const error = JSON.parse(missingJson.stderr) as { error_type: string; message: string; principal: null };
+		expect(Object.keys(error)).toEqual(["error_type", "message", "principal"]);
+		expect(error.error_type).toBe("not_found");
+		expect(error.principal).toBeNull();
 
 		const unknown = runCli(repo.root, ["frobnicate"], cache);
 		expect(unknown.code).toBe(2);
@@ -83,7 +124,7 @@ describe("cli", () => {
 			kind: string;
 			data: { symbols: { name: string }[]; filesChanged: number };
 		};
-		expect(envelope.kind).toBe("diff");
+		expect(envelope.kind).toBe("diff.result");
 		expect(envelope.data.symbols.map((symbol) => symbol.name)).toEqual(["main"]);
 		expect(envelope.data.filesChanged).toBe(1);
 

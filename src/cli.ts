@@ -3,12 +3,13 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Command, CommanderError } from "commander";
 import { cacheDir, clearCache, computeKey, readCachedIndex, writeCachedIndex } from "./cache.ts";
+import { buildManifest, type EnvelopeErrorType, errorEnvelope, successEnvelope } from "./contract.ts";
 import { discoverSources } from "./discover.ts";
-import { GlyphError, notFoundError, usageError } from "./errors.ts";
+import { EXIT_CODES, EXIT_UNCAUGHT, GlyphError, notFoundError, usageError } from "./errors.ts";
 import { parseDiff, repoRootFor, resolveDiffRefs } from "./git.ts";
 import { buildIndex } from "./indexer.ts";
 import { callersOf, display, resolveSymbol, touchedSymbols } from "./queries.ts";
-import { ENVELOPE_SCHEMA, type GlyphIndex, type IndexInfo } from "./types.ts";
+import type { GlyphIndex, IndexInfo } from "./types.ts";
 
 /**
  * Glyph's command surface and machine contract.
@@ -16,9 +17,10 @@ import { ENVELOPE_SCHEMA, type GlyphIndex, type IndexInfo } from "./types.ts";
  * Contract, stated once here because scripts branch on it:
  * - stdout carries exactly one success envelope (JSON under --json, human text
  *   otherwise); on failure stdout stays EMPTY and stderr carries the message —
- *   under --json, an `{schemaVersion, kind: "error", errorType, message}` object.
- * - exit codes: 0 ok · 1 internal · 2 usage (including an ambiguous symbol) ·
- *   3 not found (symbol, ref, or sources).
+ *   under --json, an `{error_type, message, principal}` object.
+ * - every JSON payload carries `principal: null` as its last top-level key.
+ * - exit codes are the frozen Opum family (see src/errors.ts), and the `kind`
+ *   registry is the live source `glyph help --json` publishes.
  */
 
 const HELP_EPILOGUE = `
@@ -28,6 +30,7 @@ Examples:
   glyph diff main
   glyph diff v0.1.0 HEAD
   glyph cache path
+  glyph help --json
 `;
 
 interface Context {
@@ -74,7 +77,7 @@ function infoOf(index: GlyphIndex, cache: "hit" | "miss"): IndexInfo {
 
 function emit(json: boolean, kind: string, data: unknown, renderHuman: () => string): void {
 	if (json) {
-		process.stdout.write(`${JSON.stringify({ schemaVersion: ENVELOPE_SCHEMA, kind, data }, null, 2)}\n`);
+		process.stdout.write(`${JSON.stringify(successEnvelope(kind, data), null, 2)}\n`);
 	} else {
 		process.stdout.write(`${renderHuman()}\n`);
 	}
@@ -99,7 +102,8 @@ function buildProgram(): Command {
 		.option("--repo <dir>", "repository directory to analyze (default: current directory)")
 		.option("--json", "emit the machine-readable JSON envelope")
 		.exitOverride()
-		.configureOutput({ writeErr: () => {} }); // Errors are re-printed by the single handler in run().
+		.configureOutput({ writeErr: () => {} }) // Errors are re-printed by the single handler in run().
+		.helpCommand(false); // `help` is a real command below, so `--json` reaches it.
 	program.addHelpText("after", HELP_EPILOGUE);
 
 	program
@@ -134,7 +138,7 @@ function buildProgram(): Command {
 				totals: { callers: callers.length, files },
 				index: info,
 			};
-			emit(context.json, "callers", data, () => {
+			emit(context.json, "callers.result", data, () => {
 				const lines = [
 					`callers of ${display(symbol)} (${symbol.kind}) at ${symbol.file}:${symbol.line}:${symbol.column} — ${callers.length} call site(s) in ${files} file(s)`,
 				];
@@ -165,7 +169,7 @@ function buildProgram(): Command {
 				totals: { symbols: touched.symbols.length },
 				index: info,
 			};
-			emit(context.json, "diff", data, () => {
+			emit(context.json, "diff.result", data, () => {
 				const lines = [
 					`symbols touched by ${shortSha(resolved.baseSha)}..${shortSha(resolved.headSha)} — ${touched.symbols.length} symbol(s) in ${touched.filesChanged} changed file(s)`,
 				];
@@ -202,12 +206,26 @@ function buildProgram(): Command {
 			throw usageError(`unknown cache action '${action}' (expected 'path' or 'clear')`);
 		});
 
+	program
+		.command("help [command]")
+		.description("show help, or under --json the machine-readable command manifest")
+		.action((commandName: string | undefined) => {
+			const context = contextOf(program);
+			if (commandName !== undefined) {
+				const target = program.commands.find((command) => command.name() === commandName);
+				if (target === undefined) throw usageError(`unknown command '${commandName}'`);
+				process.stdout.write(target.helpInformation());
+				return;
+			}
+			emit(context.json, "help.manifest", buildManifest(), () => program.helpInformation().trimEnd());
+		});
+
 	return program;
 }
 
-function writeError(json: boolean, errorType: GlyphError["errorType"], message: string): void {
+function writeError(json: boolean, errorType: EnvelopeErrorType, message: string): void {
 	if (json) {
-		process.stderr.write(`${JSON.stringify({ schemaVersion: ENVELOPE_SCHEMA, kind: "error", errorType, message })}\n`);
+		process.stderr.write(`${JSON.stringify(errorEnvelope(errorType, message))}\n`);
 	} else {
 		process.stderr.write(`glyph: ${message}\n`);
 	}
@@ -228,10 +246,10 @@ export async function run(argv: string[]): Promise<number> {
 		if (error instanceof CommanderError) {
 			if (error.exitCode === 0) return 0; // --help / --version already printed to stdout.
 			writeError(json, "usage", error.message);
-			return 2;
+			return EXIT_CODES.usage;
 		}
-		writeError(json, "internal", error instanceof Error ? error.message : String(error));
-		return 1;
+		writeError(json, "uncaught", error instanceof Error ? error.message : String(error));
+		return EXIT_UNCAUGHT;
 	}
 }
 
