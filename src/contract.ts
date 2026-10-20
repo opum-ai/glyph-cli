@@ -129,11 +129,11 @@ export interface GlobalFlagSpec extends FlagSpec {
  * successful `--json` invocation may print plain text, and the reference
  * implementation answers these with envelopes rather than text.
  *
- * The shared contract is silent on their kinds, and the reference
- * implementation emits undotted `version` and `help`. Glyph keeps its own
- * registry's dotted rule (`version.info`, `help.usage`); whether to mirror
- * lore's undotted names instead is an A/B with opum-doc, where keeping dotted
- * is the recommended arm.
+ * Their kinds are dotted per the frozen contract's §4 rule 1 — every command
+ * that supports `--json` declares a stable dotted `command.payload` kind — and
+ * per opum-doc ruling A (2026-10-20), which keeps `version.info` and
+ * `help.usage` rather than mirroring lore's undotted `version`/`help`.
+ * Consumers tolerate unknown kinds, so the names stay Glyph's own.
  */
 export const GLOBAL_FLAGS: readonly GlobalFlagSpec[] = Object.freeze([
 	{ name: "json", takesValue: false, summary: "emit the machine-readable JSON envelope" },

@@ -95,10 +95,9 @@ envelope:
   `--json` invocation prints text: `glyph --json --version` emits
   `version.info`, and `glyph --json --help` or a bare `glyph --json` emits
   `help.usage`. Help with a topic, or `--help` after a command, emits
-  `help.manifest` narrowed to that command. The shared contract is silent on
-  these kinds, and the reference implementation uses undotted `version` and
-  `help`; Glyph keeps its registry's dotted rule, with that naming an open A/B
-  with opum-doc.
+  `help.manifest` narrowed to that command. Their names are dotted per the
+  frozen contract's §4 rule 1, per opum-doc ruling A (2026-10-20), rather than
+  lore's undotted `version`/`help`; consumers tolerate unknown kinds.
 
 Callers branch on the exit code, never on the message. The family is the full
 frozen taxonomy:

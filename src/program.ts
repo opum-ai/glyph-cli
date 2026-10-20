@@ -302,8 +302,9 @@ export function buildProgram(): Command {
  * `argv` is the USER argument list (process.argv.slice(2)).
  *
  * Under `--json`, help and version answer with envelopes rather than text, so
- * the output-mode precedence holds for every successful invocation. The shared
- * contract is silent on their kinds; Glyph uses its own dotted registry.
+ * the output-mode precedence holds for every successful invocation. Their
+ * kinds are dotted per the frozen contract's §4 rule 1 (opum-doc ruling A),
+ * so `version.info` and `help.usage` stay.
  */
 export async function run(argv: string[]): Promise<number> {
 	const program = buildProgram();
