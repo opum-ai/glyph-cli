@@ -1,29 +1,90 @@
 import { readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 import ts from "typescript";
+import { indeterminateError } from "./errors.ts";
+import { gitRun } from "./git.ts";
 
 /**
- * Source discovery is Glyph's own walk, not the project's tsconfig `include`.
+ * Source discovery is Glyph's own selection, not the project's tsconfig
+ * `include`.
  *
- * DEC-66 chose "TypeScript and JavaScript, as one target", so the walk takes
+ * DEC-66 chose "TypeScript and JavaScript, as one target", so discovery takes
  * both regardless of what a project's tsconfig chooses to compile — a tsconfig
  * that excludes its own `.js` files must not make those files invisible to the
  * call graph. The tsconfig is still read, but only for compiler *options*
  * (paths, jsx, and friends), never for the file list; that keeps behavior
  * uniform across repositories that have a tsconfig and ones that do not.
+ *
+ * In a Git repository the file selection is Git's own: tracked files plus
+ * **untracked** files that `.gitignore` does not exclude. That inherits nested
+ * ignore files, negation patterns and `.git/info/exclude` instead of a fixed
+ * directory list, so an untracked generated or local directory the repository
+ * ignores cannot inflate the index (DEC-216). Two consequences worth naming:
+ *
+ * - A **tracked** file stays visible even when a pattern matches it, because
+ *   Git ignores patterns for tracked files. A repository that commits `dist/`,
+ *   `vendor/` or `build/`, or leaves `node_modules/` untracked and unignored,
+ *   therefore indexes those files. That is the decided behavior, not a fixed
+ *   list quietly applied over Git's answer.
+ * - `git ls-files` does not descend into submodules or nested repositories;
+ *   their contents are not indexed. It lists a submodule as a gitlink, which
+ *   this selection skips because it is not a file.
+ *
+ * Symlinks are followed when they resolve to a file (`statSync`), and the
+ * link's own repository-relative path is what enters the index.
+ *
+ * A directory outside Git falls back to a filesystem walk, where Git has no
+ * ignore rules to apply; that walk keeps a fixed excluded-directory list. Git
+ * failing for any other reason — "dubious ownership", a corrupt index, a
+ * permission error — is **indeterminate** (exit 7), never a silent walk that
+ * would index sources Git was refusing to describe.
  */
+
+/** Only the first line of git's stderr belongs in a diagnostic. */
+function firstLine(text: string): string {
+	return text.trim().split("\n")[0] ?? "";
+}
+
+/** Git prints POSIX paths; the walk fallback normalizes only on Windows. */
+function toPosix(path: string): string {
+	return sep === "\\" ? path.split("\\").join("/") : path;
+}
 
 const EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
 
-/** Directories that never contain the repository's own sources. */
+/** Directories a non-Git walk never descends into; Git ignores them in a repository. */
 const EXCLUDED_DIRS = new Set([".git", "node_modules", "dist", "build", "out", "coverage", "vendor", ".next", ".nuxt"]);
 
 function hasSourceExtension(path: string): boolean {
 	return EXTENSIONS.some((ext) => path.endsWith(ext));
 }
 
-/** Repository-relative paths of every TS/JS source under `repoRoot`, sorted. */
+/** Repository-relative paths of every TS/JS source in scope, sorted. */
 export function discoverSources(repoRoot: string): string[] {
+	const inside = gitRun(repoRoot, ["rev-parse", "--is-inside-work-tree"]);
+	if (inside.code !== 0) {
+		if (/not a git repository/i.test(inside.stderr)) return walkSources(repoRoot);
+		throw indeterminateError(`git could not read ${repoRoot}: ${firstLine(inside.stderr)}`);
+	}
+
+	const listed = gitRun(repoRoot, ["ls-files", "-z", "--cached", "--others", "--exclude-standard"]);
+	if (listed.code !== 0) {
+		throw indeterminateError(`git ls-files failed in ${repoRoot}: ${firstLine(listed.stderr)}`);
+	}
+	const found = new Set<string>();
+	for (const path of listed.stdout.split("\0")) {
+		if (path === "" || !hasSourceExtension(path)) continue;
+		try {
+			if (!statSync(join(repoRoot, path)).isFile()) continue;
+		} catch {
+			continue; // Listed in the index but absent from this worktree.
+		}
+		found.add(toPosix(path));
+	}
+	return [...found].sort();
+}
+
+function walkSources(repoRoot: string): string[] {
 	const found: string[] = [];
 
 	const walk = (dir: string): void => {
@@ -44,7 +105,7 @@ export function discoverSources(repoRoot: string): string[] {
 			if (isDirectory) {
 				if (!EXCLUDED_DIRS.has(entry)) walk(absolute);
 			} else if (hasSourceExtension(entry)) {
-				found.push(relative(repoRoot, absolute).split("\\").join("/"));
+				found.push(toPosix(relative(repoRoot, absolute)));
 			}
 		}
 	};

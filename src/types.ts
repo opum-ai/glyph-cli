@@ -9,9 +9,6 @@
 /** Bumped when the index shape changes; part of every cache key. */
 export const INDEX_FORMAT = 1;
 
-/** Bumped when the envelope shape changes. */
-export const ENVELOPE_SCHEMA = 1;
-
 export type SymbolKind = "function" | "method" | "property" | "class" | "interface" | "type" | "enum" | "variable";
 
 /** One declaration in the symbol table. Ids are `file:line:column` of the name. */
@@ -74,6 +71,3 @@ export interface IndexInfo {
 	symbols: number;
 	sites: number;
 }
-
-export type ExitOk = 0;
-export const EXIT_OK: ExitOk = 0;

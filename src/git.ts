@@ -1,4 +1,4 @@
-import { notFoundError, usageError } from "./errors.ts";
+import { indeterminateError, notFoundError } from "./errors.ts";
 
 /**
  * The small slice of git Glyph needs: the repository root, resolved SHAs for
@@ -17,6 +17,9 @@ export interface GitResult {
 
 export function gitRun(repoRoot: string, args: string[]): GitResult {
 	const proc = Bun.spawnSync(["git", "-C", repoRoot, ...args], {
+		// A fixed locale keeps discovery's "not a git repository" test
+		// independent of the caller's environment.
+		env: { ...process.env, LC_ALL: "C" },
 		stdout: "pipe",
 		stderr: "pipe",
 	});
@@ -84,7 +87,9 @@ const HUNK_HEADER = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
 export function parseDiff(repoRoot: string, baseSha: string, headSha: string): FileChange[] {
 	const result = gitRun(repoRoot, ["diff", "--unified=0", "--no-color", "--no-ext-diff", baseSha, headSha, "--"]);
 	if (result.code !== 0) {
-		throw usageError(`git diff failed for ${baseSha}..${headSha}: ${result.stderr.trim() || "unknown error"}`);
+		// The refs resolved, so this is not the caller's usage error: Git could
+		// not produce the diff (a corrupt object store, a refused repository).
+		throw indeterminateError(`git diff failed for ${baseSha}..${headSha}: ${result.stderr.trim() || "unknown error"}`);
 	}
 	const changes: FileChange[] = [];
 	let current: FileChange | null = null;
