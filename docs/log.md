@@ -17,6 +17,8 @@
 - 2026-10-21T12:00:27-05:00 2a3b03862ffbfc218929828f352c96ea48b81d91 fix(GCLI-10): address the round-1 review, findings 3 to 12
 - 2026-10-21T12:00:37-05:00 6b560a8fe990015eb8e145502a2285fe99f59bb2 docs: regenerate the change log with lore 0.13.0
 - 2026-10-21T12:05:32-05:00 a528e505d7a38012bcad090e136feaa3e7027ba7 fix(GCLI-10): apply DEC-216 (a2), no in-repo node_modules under --ref
+- 2026-10-21T12:05:41-05:00 827ae1df10ac146e6540d5381842f568877d7547 docs: regenerate the change log with lore 0.13.0
+- 2026-10-21T12:08:55-05:00 4077f8108b7917a80226c6489b21b954a706879b chore(GCLI-16): file the profile exit-family staleness follow-up (#40)
 
 ## docs/adr
 
