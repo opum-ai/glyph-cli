@@ -15,6 +15,7 @@
 - 2026-10-21T11:41:10-05:00 c6ab79b65cdd9305155b30359a9d25ce679b5ade docs: regenerate the change log with lore 0.13.0
 - 2026-10-21T11:47:45-05:00 8b816c1841fc20ac133f253aa68b33b4af2abf42 chore(GCLI-15): file the worktree-indexing follow-up (#39)
 - 2026-10-21T12:00:27-05:00 2a3b03862ffbfc218929828f352c96ea48b81d91 fix(GCLI-10): address the round-1 review, findings 3 to 12
+- 2026-10-21T12:00:37-05:00 6b560a8fe990015eb8e145502a2285fe99f59bb2 docs: regenerate the change log with lore 0.13.0
 
 ## docs/adr
 

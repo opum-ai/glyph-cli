@@ -202,13 +202,14 @@ without a checkout. The commit's regular blobs are listed with
 on an in-memory compiler host, and the commit's own `tsconfig.json` (with
 anything it extends) supplies the compiler options. Paths inside the tree that it does not
 contain are invisible to that program, so an edited, added or deleted source
-file cannot change a `--ref` answer. Two kinds of path are read from disk
-instead: anything outside the repository root (not part of any tree — that is
-where TypeScript's own library, a hoisted dependency tree, or a parent
-directory's tsconfig reached through `extends` lives), and `node_modules`
-inside the repository, whose installed dependencies and TypeScript standard
-library belong to no commit; a tracked `node_modules` still wins, because the
-tree is asked first. Symlinks and submodules are not source files at a commit
+file cannot change a `--ref` answer. **In-repo `node_modules` is not read from
+disk either** (DEC-216 (a2)): a module that would resolve through the
+checkout's installed dependencies resolves to nothing, and its call sites are
+counted in `unresolvedSites` — so two machines with different installs answer
+the same commit identically. A tracked `node_modules` is part of the tree and
+is read from the tree. Only paths outside the repository root are read from
+disk, which is where a hoisted dependency tree and a parent directory's
+tsconfig reached through `extends` live. Symlinks and submodules are not source files at a commit
 and are skipped. The working tree remains the default for interactive use.
 
 `diff` and the code-map seam will require `--ref` (DEC-216 Q4). Making an

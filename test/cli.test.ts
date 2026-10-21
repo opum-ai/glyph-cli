@@ -219,7 +219,7 @@ describe("cli", () => {
 		expect(text.stdout).toContain("impact of d (function)");
 		expect(text.stdout).toContain("depth 1  c");
 		expect(text.stdout).toContain("a -> b -> c -> d");
-		expect(text.stdout).toContain("unresolved (index-wide):");
+		expect(text.stdout).toContain("coverage (index-wide):");
 	});
 
 	test("--depth bounds the answer, --all lifts the bound, and the truncation count is exact", () => {
@@ -291,7 +291,7 @@ describe("cli", () => {
 			"at least one symbol in this closure (this symbol included) sits on a call cycle",
 		);
 		expect(cycleText.stdout).not.toContain("reach itself through this symbol");
-		expect(cycleText.stdout).toContain("unresolved (index-wide):");
+		expect(cycleText.stdout).toContain("coverage (index-wide):");
 	});
 
 	test("impact refuses a bad depth, an ambiguous name, an unknown symbol and an unknown ref", () => {
@@ -332,6 +332,35 @@ describe("cli", () => {
 		// impact has no --file flag, so the remedy must not name a flag it lacks.
 		expect(error.message).not.toContain("--file");
 		expect(error.message).toContain("must be unique");
+	});
+
+	test("--ref never resolves through an in-repo node_modules the commit does not contain", () => {
+		const repo = makeScratchRepo({
+			"src/helper.ts": "export function helper(): number {\n  return 1;\n}\n",
+			"src/app.ts": 'import { helper } from "pkg";\nexport function app(): number {\n  return helper();\n}\n',
+		});
+		repo.commit("base");
+		// A dirty in-repo node_modules whose package redirects a bare specifier
+		// into the committed sources. Reading it would resolve the call to
+		// helper; the ruling says the ref answer must not.
+		repo.write(
+			"node_modules/pkg/package.json",
+			JSON.stringify({ name: "pkg", version: "1.0.0", types: "../../src/helper.ts" }),
+		);
+		const cache = scratchCacheDir();
+
+		const ref = runCli(repo.root, ["--json", "impact", "app", "--ref", "HEAD"], cache);
+		expect(ref.code).toBe(0);
+		const refEnvelope = JSON.parse(ref.stdout) as ImpactEnvelope;
+		expect(refEnvelope.data.resolvedSites).toBe(0);
+		expect(refEnvelope.data.unresolvedSites).toBe(1);
+
+		// The same dirty tree does change the working-tree answer, which is why the
+		// ref answer must not read it.
+		const working = runCli(repo.root, ["--json", "impact", "app"], scratchCacheDir());
+		const workingEnvelope = JSON.parse(working.stdout) as ImpactEnvelope;
+		expect(workingEnvelope.data.resolvedSites).toBe(1);
+		expect(workingEnvelope.data.unresolvedSites).toBe(0);
 	});
 
 	test("--ref answers from the commit's tree, so a dirty checkout cannot change it", () => {

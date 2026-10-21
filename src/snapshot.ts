@@ -1,4 +1,4 @@
-import { join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import ts from "typescript";
 import { type ConfigReadHost, loadCompilerOptions, SOURCE_EXTENSIONS } from "./discover.ts";
 import { listTree, readBlobs } from "./git.ts";
@@ -7,24 +7,29 @@ import type { GlyphIndex } from "./types.ts";
 
 /**
  * The index source for `--ref`: the tree of one commit, read without a
- * checkout (DEC-216 Q4).
+ * checkout (DEC-216 Q4, as ruled in DEC-216 (a2)).
  *
  * The commit's own files are authoritative. Blobs are listed with
  * `git ls-tree -r` and read with one `git cat-file --batch`, so nothing is
- * taken from the working tree. The one deliberate exception is
- * `node_modules`: installed dependencies and the TypeScript standard library
- * are not part of any commit, and a program cannot resolve types without
- * them, so a path under `node_modules` that the tree does not contain is read
- * from disk. A tracked `node_modules` still wins, because the tree is asked
- * first. Everything else inside the repository is served from the tree or not
- * at all, which is what makes a `--ref` answer independent of uncommitted
- * edits: an edited, added or deleted source file cannot enter the index.
+ * taken from the working tree. In-repo `node_modules` is **not** read from
+ * disk: a module that would resolve through the checkout's installed
+ * dependencies resolves to nothing, and its call sites are counted in
+ * `unresolvedSites`. That keeps the answer exact — two machines with different
+ * installs cannot answer the same `--ref` differently — and consistent with a
+ * cache key that cannot see node_modules content. A tracked `node_modules` is
+ * part of the tree, so it is served from the tree like any other committed
+ * path.
+ *
+ * `ts.sys` is the fallback only for paths outside the repository root: the
+ * TypeScript standard library, a hoisted dependency tree, and a
+ * parent-directory tsconfig reached through `extends` live there, outside any
+ * tree this commit describes. The standard library is also served when the
+ * running TypeScript package happens to sit inside the analyzed checkout,
+ * because it belongs to the tool rather than to the commit.
  *
  * Symlinks are not followed here (a tree records the link text, not the
  * target), and submodules are gitlinks, not blobs, so neither enters the file
- * list. Paths outside the repository root are not part of any tree and are
- * read from disk, which is where TypeScript's own library, a hoisted
- * dependency tree or a parent-directory tsconfig reached by `extends` lives.
+ * list.
  */
 
 /** Extensions read from the tree: the sources, plus JSON for tsconfig and package metadata. */
@@ -64,8 +69,16 @@ function repositoryPath(root: string, absolutePath: string): string | null {
 	return rel;
 }
 
-function underNodeModules(rel: string): boolean {
-	return rel.split("/").includes("node_modules");
+/**
+ * The running TypeScript package's own library directory. It is part of the
+ * tool, not of any commit, so it is served from disk even when the analyzed
+ * checkout is the one that contains the tool.
+ */
+const TYPESCRIPT_LIB_DIRECTORY = resolve(dirname(ts.getDefaultLibFilePath({})));
+
+function isTypeScriptLibrary(absolutePath: string): boolean {
+	const path = resolve(absolutePath);
+	return path === TYPESCRIPT_LIB_DIRECTORY || path.startsWith(`${TYPESCRIPT_LIB_DIRECTORY}/`);
 }
 
 /**
@@ -113,13 +126,13 @@ export function snapshotAtRef(repoRoot: string, sha: string): TreeSnapshot {
 		if (rel === null) return ts.sys.readFile(absolutePath);
 		const text = docs.get(rel);
 		if (text !== undefined) return text;
-		return underNodeModules(rel) ? ts.sys.readFile(absolutePath) : undefined;
+		return isTypeScriptLibrary(absolutePath) ? ts.sys.readFile(absolutePath) : undefined;
 	};
 	const fileExists = (absolutePath: string): boolean => {
 		const rel = repositoryPath(root, absolutePath);
 		if (rel === null) return ts.sys.fileExists(absolutePath);
 		if (docs.has(rel)) return true;
-		return underNodeModules(rel) ? ts.sys.fileExists(absolutePath) : false;
+		return isTypeScriptLibrary(absolutePath) ? ts.sys.fileExists(absolutePath) : false;
 	};
 	const directoryExists = (absolutePath: string): boolean => {
 		const rel = repositoryPath(root, absolutePath);
@@ -129,11 +142,11 @@ export function snapshotAtRef(repoRoot: string, sha: string): TreeSnapshot {
 		for (const key of docs.keys()) {
 			if (key.startsWith(prefix)) return true;
 		}
-		return underNodeModules(rel) ? (ts.sys.directoryExists?.(absolutePath) ?? false) : false;
+		return isTypeScriptLibrary(absolutePath) ? (ts.sys.directoryExists?.(absolutePath) ?? false) : false;
 	};
 	const getDirectories = (absolutePath: string): string[] => {
 		const rel = repositoryPath(root, absolutePath);
-		if (rel === null || underNodeModules(rel)) return ts.sys.getDirectories(absolutePath);
+		if (rel === null || isTypeScriptLibrary(absolutePath)) return ts.sys.getDirectories(absolutePath);
 		const prefix = rel === "" ? "" : `${rel}/`;
 		const names = new Set<string>();
 		for (const key of docs.keys()) {
@@ -141,7 +154,6 @@ export function snapshotAtRef(repoRoot: string, sha: string): TreeSnapshot {
 			const rest = key.slice(prefix.length).split("/");
 			if (rest.length > 1 && rest[0] !== undefined && rest[0] !== "") names.add(rest[0]);
 		}
-		if (ts.sys.directoryExists?.(join(absolutePath, "node_modules")) ?? false) names.add("node_modules");
 		return [...names].sort();
 	};
 	const readDirectory = (
@@ -152,7 +164,7 @@ export function snapshotAtRef(repoRoot: string, sha: string): TreeSnapshot {
 		depth?: number,
 	): string[] => {
 		const rel = repositoryPath(root, path);
-		if (rel === null || underNodeModules(rel)) {
+		if (rel === null || isTypeScriptLibrary(path)) {
 			return ts.sys.readDirectory(path, extensions, excludes, includes, depth);
 		}
 		const prefix = rel === "" ? "" : `${rel}/`;

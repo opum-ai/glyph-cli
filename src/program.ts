@@ -340,7 +340,7 @@ export function buildProgram(): Command {
 					lines.push("  cycle: at least one symbol in this closure (this symbol included) sits on a call cycle");
 				}
 				lines.push(
-					`  unresolved (index-wide): ${index.unresolvedSites} of ${index.sites.length} call site(s) did not resolve; an empty answer is not proof of no impact`,
+					`  coverage (index-wide): ${index.sites.length} resolved call site(s); ${index.unresolvedSites} call-shaped site(s) did not resolve; an empty answer is not proof of no impact`,
 				);
 				lines.push(indexLine(info));
 				return lines.join("\n");

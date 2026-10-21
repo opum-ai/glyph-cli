@@ -20,7 +20,11 @@ Accepted — opum-doc DEC-216 (2026-10-20, accepted), Q2 and Q4, to the six
 acceptance criteria in the design-readiness review's section 3
 (`opum-doc` `docs/research/market/evidence/2026-10-20-glyph-cli/design-readiness.md`).
 Module-scope call sites were ruled option A, recorded as DEC-216 (a1)
-(`opum-ai/opum-doc#1173`). Implemented under GCLI-10, slice 2 of the four
+(`opum-ai/opum-doc#1173`), and DEC-216 (a2) amends it: a module-scope caller is
+terminal at its true depth, with its full path, and depth 1 stays a superset of
+`callers`. DEC-216 (a2) also rules the `--ref` disk question: in-repo
+`node_modules` is never read from disk, and a resolution that would go through
+it counts as unresolved. Implemented under GCLI-10, slice 2 of the four
 DEC-216 slices; it builds on slice 1's command contract (ADR 0002) and changes
 no existing command's answer.
 
@@ -70,11 +74,11 @@ kind, `impact.result`, with the exit-code family every Glyph command shares.
   and the envelope carries `cycle: true` when any such cycle exists — a
   recursive target is reported as a cycle with no caller entry of its own,
   because the selected symbol is never its own impact.
-- **Module scope (DEC-216 (a1)).** A call site outside any declaration has no
-  caller symbol. Each is reported as a terminal caller with `symbol: null`, its
-  own depth and a path of the edges down to the target, and it is never
-  expanded. `impact`'s depth-1 set is therefore a superset of what `callers`
-  reports for the same symbol.
+- **Module scope (DEC-216 (a1), amended by (a2)).** A call site outside any
+  declaration has no caller symbol. Each is reported as a terminal caller with
+  `symbol: null`, its true depth and a path of the edges down to the target,
+  and it is never expanded. `impact`'s depth-1 set is therefore a superset of
+  what `callers` reports for the same symbol.
 - **`--ref <ref>` indexes a commit's tree without a checkout.** The ref is
   resolved to a commit (unresolvable is `not_found`, exit 3); its regular blobs
   are listed with one `git ls-tree -r -z` and read with one
@@ -82,15 +86,19 @@ kind, `impact.result`, with the exit-code family every Glyph command shares.
   compiler host over that map. The commit's own `tsconfig.json` (and whatever
   it extends) supplies compiler options, so the answer cannot move because a
   checkout changed. Paths inside the repository that the tree does not contain
-  are invisible to a `--ref` program — the deliberate exception is
-  `node_modules`, whose installed dependencies and TypeScript standard library
-  are part of no commit and without which no program resolves types; a tracked
-  `node_modules` still wins because the tree is asked first. Paths outside the
-  repository root are not in any tree and are read from disk, which is where
-  TypeScript's own library, a hoisted dependency tree or a parent-directory
-  tsconfig reached through `extends` lives. Symlink entries
-  and submodule gitlinks are not source files and are skipped. The working tree
-  remains the default for interactive use.
+  are invisible to a `--ref` program, and **in-repo `node_modules` is not read
+  from disk** (DEC-216 (a2)): a module that would resolve through the
+  checkout's installed dependencies resolves to nothing, and its call sites are
+  counted in `unresolvedSites`. That keeps the answer exact across machines
+  with different installs and consistent with a cache key that cannot see
+  node_modules content. A tracked `node_modules` is part of the tree and is
+  served from the tree like any other committed path. `ts.sys` is the fallback
+  only for paths outside the repository root — which is where a hoisted
+  dependency tree and a parent-directory tsconfig reached through `extends`
+  live — and for the running TypeScript package's own library directory, which
+  belongs to the tool rather than to the commit. Symlink entries and submodule
+  gitlinks are not source files and are skipped. The working tree remains the
+  default for interactive use.
 - **The cache is addressed by the commit under `--ref`.** The key is the index
   format plus the commit SHA plus the tree's file list — not file stats — so a
   dirty working tree can neither serve nor overwrite a `--ref` answer. The
@@ -118,11 +126,13 @@ exactly as before.
 - A dirty checkout can no longer influence a `--ref` answer, at the cost of
   ignoring uncommitted files (including a locally added source file that is not
   in the commit) under `--ref`.
-- Installed dependencies under `node_modules` are read from disk in `--ref`
-  mode. They are not part of any commit and are not in the cache key, so the
-  first build of a cache entry can be influenced by the installed versions
-  while a later cache hit cannot; deleting the cache is what forces a rebuild.
-  A tracked `node_modules` is read from the tree instead.
+- In-repo `node_modules` is never read in `--ref` mode (DEC-216 (a2)).
+  Dependencies installed in the checkout are not part of the commit, so a
+  resolution that would go through them is reported as unresolved instead; two
+  machines with different installs answer the same `--ref` identically, and a
+  cache entry cannot be influenced by them. The cost is recall: a call whose
+  resolution needed a dependency's types is counted, not resolved. A tracked
+  `node_modules` is read from the tree like any committed path.
 - An empty answer never reads as "no impact": `unresolvedSites` is always
   reported, and the precision caveat is stated in the README and in every human
   answer.
