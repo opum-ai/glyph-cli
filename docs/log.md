@@ -10,8 +10,6 @@
 - 2026-10-20T19:13:27-05:00 7cf3d4bc66288f8fa91f272c9bf1f37495b3fe38 feat(GCLI-9): conform to the Opum command contract (#34)
 - 2026-10-20T19:15:24-05:00 cf847a02aba222c0addfd98cd486b65c25786f94 chore(GCLI-9): renewal handoff note (#35)
 - 2026-10-20T22:24:53-05:00 a7b9d0abae835615bdea233ca6edb1c5e7759c2b chore(GCLI-10): record the slice-2 plan on the tracker (#36)
-- 2026-10-21T11:34:12-05:00 b3937111236ca03c796afaa43712daebf70e39fa chore(GCLI-10): claim the task and carry the lore log regeneration
-- 2026-10-21T11:41:01-05:00 3e969ea21e42e3b461d7283e7488516f89e126a2 docs(GCLI-10): record the impact semantics, depth default and precision caveat
 
 ## docs/adr
 
