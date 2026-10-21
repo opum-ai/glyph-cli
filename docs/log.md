@@ -11,6 +11,7 @@
 - 2026-10-20T19:15:24-05:00 cf847a02aba222c0addfd98cd486b65c25786f94 chore(GCLI-9): renewal handoff note (#35)
 - 2026-10-20T22:24:53-05:00 a7b9d0abae835615bdea233ca6edb1c5e7759c2b chore(GCLI-10): record the slice-2 plan on the tracker (#36)
 - 2026-10-21T11:47:45-05:00 8b816c1841fc20ac133f253aa68b33b4af2abf42 chore(GCLI-15): file the worktree-indexing follow-up (#39)
+- 2026-10-21T12:08:55-05:00 4077f8108b7917a80226c6489b21b954a706879b chore(GCLI-16): file the profile exit-family staleness follow-up (#40)
 
 ## docs/adr
 
