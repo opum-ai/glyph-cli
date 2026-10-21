@@ -70,7 +70,15 @@ function position(
 	a: { file: string; line: number; column: number },
 	b: { file: string; line: number; column: number },
 ): number {
-	return a.file.localeCompare(b.file) || a.line - b.line || a.column - b.column;
+	return compareText(a.file, b.file) || a.line - b.line || a.column - b.column;
+}
+
+/**
+ * Codepoint order, never `localeCompare`: the byte-identical guarantee must not
+ * depend on the host's ICU default locale.
+ */
+function compareText(a: string, b: string): number {
+	return a < b ? -1 : a > b ? 1 : 0;
 }
 
 function pathString(discovery: Discovery): string {
@@ -80,7 +88,7 @@ function pathString(discovery: Discovery): string {
 /** The total order: depth, path string, then the first edge's position. */
 function compareCallers(a: Discovery, b: Discovery): number {
 	if (a.depth !== b.depth) return a.depth - b.depth;
-	const byPath = pathString(a).localeCompare(pathString(b));
+	const byPath = compareText(pathString(a), pathString(b));
 	if (byPath !== 0) return byPath;
 	const first = a.edges[0];
 	const other = b.edges[0];

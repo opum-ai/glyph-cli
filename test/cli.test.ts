@@ -157,6 +157,7 @@ describe("cli", () => {
 			cycle: boolean;
 			truncated: boolean;
 			unexplored: number;
+			total: number;
 			resolvedSites: number;
 			unresolvedSites: number;
 			index: { cache: string };
@@ -194,8 +195,10 @@ describe("cli", () => {
 		expect(envelope.data.callers[2]?.path.map((edge) => edge.file)).toEqual(["src/a.ts", "src/b.ts", "src/c.ts"]);
 		expect(envelope.data.truncated).toBe(false);
 		expect(envelope.data.cycle).toBe(false);
-		expect(envelope.data.resolvedSites).toBeGreaterThan(0);
-		expect(typeof envelope.data.unresolvedSites).toBe("number");
+		// The index holds exactly the three cross-file calls of this fixture; the
+		// values are asserted, not merely their presence.
+		expect(envelope.data.resolvedSites).toBe(3);
+		expect(envelope.data.unresolvedSites).toBe(0);
 		expect(envelope.data.index.cache).toBe("miss");
 
 		// Same state twice: the second run is a cache hit and the answer is
@@ -216,7 +219,7 @@ describe("cli", () => {
 		expect(text.stdout).toContain("impact of d (function)");
 		expect(text.stdout).toContain("depth 1  c");
 		expect(text.stdout).toContain("a -> b -> c -> d");
-		expect(text.stdout).toContain("unresolved:");
+		expect(text.stdout).toContain("unresolved (index-wide):");
 	});
 
 	test("--depth bounds the answer, --all lifts the bound, and the truncation count is exact", () => {
@@ -236,6 +239,59 @@ describe("cli", () => {
 		expect(all.data.truncated).toBe(false);
 		expect(all.data.unexplored).toBe(0);
 		expect(all.data.depth).toEqual({ bound: null, all: true });
+	});
+
+	test("the default depth of 5 and --all are proven on a chain deeper than the default", () => {
+		const files: Record<string, string> = {};
+		for (let hop = 1; hop <= 8; hop += 1) {
+			const importLine = hop === 8 ? "" : `import { f${hop + 1} } from "./f${hop + 1}";\n`;
+			const body = hop === 8 ? "  return 0;\n" : `  return f${hop + 1}();\n`;
+			files[`src/f${hop}.ts`] = `${importLine}export function f${hop}(): number {\n${body}}\n`;
+		}
+		const repo = makeScratchRepo(files);
+		const cache = scratchCacheDir();
+
+		const dflt = runCli(repo.root, ["--json", "impact", "f8"], cache);
+		const defaultEnvelope = JSON.parse(dflt.stdout) as ImpactEnvelope;
+		expect(defaultEnvelope.data.depth).toEqual({ bound: 5, all: false });
+		expect(defaultEnvelope.data.callers).toHaveLength(5);
+		expect(defaultEnvelope.data.truncated).toBe(true);
+		expect(defaultEnvelope.data.unexplored).toBe(2);
+		expect(defaultEnvelope.data.total).toBe(7);
+
+		const all = runCli(repo.root, ["--json", "impact", "f8", "--all"], cache);
+		const allEnvelope = JSON.parse(all.stdout) as ImpactEnvelope;
+		expect(allEnvelope.data.callers).toHaveLength(7);
+		expect(allEnvelope.data.truncated).toBe(false);
+		expect(allEnvelope.data.unexplored).toBe(0);
+	});
+
+	test("the cycle line is true for a recursive target and for a caller-only cycle", () => {
+		const cache = scratchCacheDir();
+		const recursive = makeScratchRepo({
+			"src/d.ts": "export function d(n: number): number {\n  return n <= 0 ? 0 : d(n - 1);\n}\n",
+		});
+		const selfText = runCli(recursive.root, ["impact", "d"], cache);
+		expect(selfText.code).toBe(0);
+		expect(selfText.stdout).toContain("  (none)");
+		expect(selfText.stdout).toContain(
+			"at least one symbol in this closure (this symbol included) sits on a call cycle",
+		);
+		expect(selfText.stdout).not.toContain("reach itself through this symbol");
+
+		const callerCycle = makeScratchRepo({
+			"src/d.ts": "export function d(): number {\n  return 1;\n}\n",
+			"src/a.ts": 'import { b } from "./b";\nexport function a(): number {\n  return b();\n}\n',
+			"src/b.ts":
+				'import { d } from "./d";\nimport { a } from "./a";\nexport function b(): number {\n  return d() + a();\n}\n',
+		});
+		const cycleText = runCli(callerCycle.root, ["impact", "d"], cache);
+		expect(cycleText.code).toBe(0);
+		expect(cycleText.stdout).toContain(
+			"at least one symbol in this closure (this symbol included) sits on a call cycle",
+		);
+		expect(cycleText.stdout).not.toContain("reach itself through this symbol");
+		expect(cycleText.stdout).toContain("unresolved (index-wide):");
 	});
 
 	test("impact refuses a bad depth, an ambiguous name, an unknown symbol and an unknown ref", () => {
@@ -273,6 +329,9 @@ describe("cli", () => {
 		expect(error.error_type).toBe("usage");
 		expect(error.message).toContain("matches 2 symbols");
 		expect(error.message).toContain("src/one.ts");
+		// impact has no --file flag, so the remedy must not name a flag it lacks.
+		expect(error.message).not.toContain("--file");
+		expect(error.message).toContain("must be unique");
 	});
 
 	test("--ref answers from the commit's tree, so a dirty checkout cannot change it", () => {
@@ -299,6 +358,13 @@ describe("cli", () => {
 		const dirtyRef = runCli(repo.root, ["--json", "impact", "d", "--ref", "HEAD"], scratchCacheDir());
 		const dirtyEnvelope = JSON.parse(dirtyRef.stdout) as ImpactEnvelope;
 		expect(JSON.stringify(withoutCache(dirtyEnvelope))).toBe(JSON.stringify(withoutCache(cleanEnvelope)));
+
+		// A second run against the same commit is served from the commit-addressed
+		// cache, after only the tree listing that computes the key.
+		const repeat = runCli(repo.root, ["--json", "impact", "d", "--ref", "HEAD"], cache);
+		const repeatEnvelope = JSON.parse(repeat.stdout) as ImpactEnvelope;
+		expect(repeatEnvelope.data.index.cache).toBe("hit");
+		expect(JSON.stringify(withoutCache(repeatEnvelope))).toBe(JSON.stringify(withoutCache(cleanEnvelope)));
 
 		const working = runCli(repo.root, ["--json", "impact", "d"], scratchCacheDir());
 		const workingEnvelope = JSON.parse(working.stdout) as ImpactEnvelope;
@@ -393,6 +459,11 @@ describe("cli", () => {
 
 		const topHelp = runCli(repo.root, ["--json", "--help"], cache);
 		expect(JSON.parse(topHelp.stdout).data.usage).toContain("Usage: glyph");
+		// The root description names all three questions, impact included.
+		// Commander wraps at 80 columns, so compare on normalized whitespace.
+		expect((JSON.parse(topHelp.stdout).data.usage as string).replace(/\s+/g, " ")).toContain(
+			"what its change can reach",
+		);
 
 		const commandHelp = runCli(repo.root, ["--json", "callers", "--help"], cache);
 		expect(JSON.parse(commandHelp.stdout).data.commands.map((command: { name: string }) => command.name)).toEqual([

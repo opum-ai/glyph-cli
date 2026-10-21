@@ -19,7 +19,7 @@ import type { ImpactCaller } from "./impact.ts";
 import { impactOf } from "./impact.ts";
 import { buildIndex } from "./indexer.ts";
 import { callersOf, display, resolveSymbol, touchedSymbols } from "./queries.ts";
-import { indexSnapshot, snapshotAtRef } from "./snapshot.ts";
+import { indexSnapshot, snapshotAtRef, sourceFilesAtRef } from "./snapshot.ts";
 import type { GlyphIndex, IndexInfo, SymbolEntry } from "./types.ts";
 
 /**
@@ -97,14 +97,16 @@ function loadIndex(context: Context, ref?: string): LoadedIndex {
 		if (sha === null) {
 			throw notFoundError(`could not resolve '${ref}' to a commit in ${context.repoRoot}`);
 		}
-		const snapshot = snapshotAtRef(context.repoRoot, sha);
-		if (snapshot.files.length === 0) {
+		// The listing alone is enough to key the cache; the blobs are read only
+		// on a miss, so a hit does not pay for the tree it already holds.
+		const files = sourceFilesAtRef(context.repoRoot, sha);
+		if (files.length === 0) {
 			throw notFoundError(`no TypeScript or JavaScript sources at ${ref} (${shortSha(sha)}) in ${context.repoRoot}`);
 		}
-		const key = computeRefKey(sha, snapshot.files);
+		const key = computeRefKey(sha, files);
 		const cached = readCachedIndex(context.repoRoot, key);
 		if (cached !== null) return { index: cached, info: infoOf(cached, "hit"), ref: { ref, sha } };
-		const index = indexSnapshot(snapshot);
+		const index = indexSnapshot(snapshotAtRef(context.repoRoot, sha));
 		writeCachedIndex(context.repoRoot, key, index);
 		return { index, info: infoOf(index, "miss"), ref: { ref, sha } };
 	}
@@ -235,7 +237,7 @@ export function buildProgram(): Command {
 	program
 		.name("glyph")
 		.description(
-			"Software intelligence about one repository: what calls this symbol, and which symbols a diff touches.",
+			"Software intelligence about one repository: what calls this symbol, what its change can reach, and which symbols a diff touches.",
 		)
 		.version(readVersion(), "-v, --version")
 		.option("--repo <dir>", "repository directory to analyze (default: current directory)")
@@ -301,7 +303,7 @@ export function buildProgram(): Command {
 			const depth = depthOf(options.depth, options.all === true);
 			const context = contextOf(program);
 			const { index, info, ref } = loadIndex(context, options.ref);
-			const symbol = resolveSymbol(index, name, undefined);
+			const symbol = resolveSymbol(index, name, undefined, "impact has no file filter, so the name must be unique");
 			const result = impactOf(index, symbol, depth);
 			const byId = new Map(index.symbols.map((entry) => [entry.id, entry]));
 			const data = {
@@ -334,9 +336,11 @@ export function buildProgram(): Command {
 				if (result.truncated) {
 					lines.push(`  ${result.unexplored} caller(s) beyond depth ${depth} not shown (--all for the full closure)`);
 				}
-				if (result.cycle) lines.push("  cycle: at least one caller can reach itself through this symbol");
+				if (result.cycle) {
+					lines.push("  cycle: at least one symbol in this closure (this symbol included) sits on a call cycle");
+				}
 				lines.push(
-					`  unresolved: ${index.unresolvedSites} of ${index.sites.length} call site(s) did not resolve; an empty answer is not proof of no impact`,
+					`  unresolved (index-wide): ${index.unresolvedSites} of ${index.sites.length} call site(s) did not resolve; an empty answer is not proof of no impact`,
 				);
 				lines.push(indexLine(info));
 				return lines.join("\n");

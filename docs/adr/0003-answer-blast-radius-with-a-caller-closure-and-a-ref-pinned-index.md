@@ -66,10 +66,10 @@ kind, `impact.result`, with the exit-code family every Glyph command shares.
 - **Cycles terminate and are marked.** A symbol cannot be discovered twice, so
   the walk terminates on any graph. Membership is decided by strongly connected
   components over the discovered subgraph (the selected symbol included), so a
-  caller carries `cycle: true` when it can reach itself through the target, and
-  the envelope carries `cycle: true` when any such cycle exists — a recursive
-  target is reported as a cycle with no caller entry of its own, because the
-  selected symbol is never its own impact.
+  caller carries `cycle: true` when it lies on a call cycle inside the closure,
+  and the envelope carries `cycle: true` when any such cycle exists — a
+  recursive target is reported as a cycle with no caller entry of its own,
+  because the selected symbol is never its own impact.
 - **Module scope (DEC-216 (a1)).** A call site outside any declaration has no
   caller symbol. Each is reported as a terminal caller with `symbol: null`, its
   own depth and a path of the edges down to the target, and it is never
@@ -85,7 +85,10 @@ kind, `impact.result`, with the exit-code family every Glyph command shares.
   are invisible to a `--ref` program — the deliberate exception is
   `node_modules`, whose installed dependencies and TypeScript standard library
   are part of no commit and without which no program resolves types; a tracked
-  `node_modules` still wins because the tree is asked first. Symlink entries
+  `node_modules` still wins because the tree is asked first. Paths outside the
+  repository root are not in any tree and are read from disk, which is where
+  TypeScript's own library, a hoisted dependency tree or a parent-directory
+  tsconfig reached through `extends` lives. Symlink entries
   and submodule gitlinks are not source files and are skipped. The working tree
   remains the default for interactive use.
 - **The cache is addressed by the commit under `--ref`.** The key is the index
@@ -116,9 +119,10 @@ exactly as before.
   ignoring uncommitted files (including a locally added source file that is not
   in the commit) under `--ref`.
 - Installed dependencies under `node_modules` are read from disk in `--ref`
-  mode. They are not part of any commit; a dependency version change can
-  therefore change a `--ref` answer, and a tracked `node_modules` is read from
-  the tree instead.
+  mode. They are not part of any commit and are not in the cache key, so the
+  first build of a cache entry can be influenced by the installed versions
+  while a later cache hit cannot; deleting the cache is what forces a rebuild.
+  A tracked `node_modules` is read from the tree instead.
 - An empty answer never reads as "no impact": `unresolvedSites` is always
   reported, and the precision caveat is stated in the README and in every human
   answer.

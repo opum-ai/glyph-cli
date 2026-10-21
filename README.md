@@ -200,11 +200,14 @@ would index sources Git was refusing to describe.
 without a checkout. The commit's regular blobs are listed with
 `git ls-tree -r` and read with one `git cat-file --batch`; the program is built
 on an in-memory compiler host, and the commit's own `tsconfig.json` (with
-anything it extends) supplies the compiler options. Paths the tree does not
+anything it extends) supplies the compiler options. Paths inside the tree that it does not
 contain are invisible to that program, so an edited, added or deleted source
-file cannot change a `--ref` answer. The one exception is `node_modules`,
-whose installed dependencies and TypeScript standard library belong to no
-commit and are read from disk; a tracked `node_modules` still wins, because the
+file cannot change a `--ref` answer. Two kinds of path are read from disk
+instead: anything outside the repository root (not part of any tree — that is
+where TypeScript's own library, a hoisted dependency tree, or a parent
+directory's tsconfig reached through `extends` lives), and `node_modules`
+inside the repository, whose installed dependencies and TypeScript standard
+library belong to no commit; a tracked `node_modules` still wins, because the
 tree is asked first. Symlinks and submodules are not source files at a commit
 and are skipped. The working tree remains the default for interactive use.
 

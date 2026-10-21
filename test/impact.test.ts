@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { configHostOf, indexSnapshot, snapshotAtRef } from "../src/snapshot.ts";
+import { configHostOf, indexSnapshot, snapshotAtRef, sourceFilesAtRef } from "../src/snapshot.ts";
 import { discoverSources, loadCompilerOptions } from "../src/discover.ts";
 import { impactOf } from "../src/impact.ts";
 import { buildIndex } from "../src/indexer.ts";
@@ -164,6 +164,75 @@ describe("impact", () => {
 		expect(result.total).toBe(3);
 	});
 
+	test("the bound is exercised by data deeper than the default: 5 of 7 callers, 2 unexplored, --all finds 7", () => {
+		const files: Record<string, string> = {};
+		for (let hop = 1; hop <= 8; hop += 1) {
+			const importLine = hop === 8 ? "" : `import { f${hop + 1} } from "./f${hop + 1}";\n`;
+			const body = hop === 8 ? "  return 0;\n" : `  return f${hop + 1}();\n`;
+			files[`src/f${hop}.ts`] = `${importLine}export function f${hop}(): number {\n${body}}\n`;
+		}
+		const index = indexOf(files);
+		const target = symbolOf(index, "f8");
+
+		const bounded = impactOf(index, target, 5);
+		expect(bounded.callers).toHaveLength(5);
+		expect(bounded.truncated).toBe(true);
+		expect(bounded.unexplored).toBe(2);
+		expect(bounded.total).toBe(7);
+
+		const all = impactOf(index, target, null);
+		expect(all.callers).toHaveLength(7);
+		expect(all.truncated).toBe(false);
+		expect(all.unexplored).toBe(0);
+	});
+
+	test("the tie-break replacement branch runs, and the answer does not depend on index order", () => {
+		// p1 is discovered before p2, but its path string sorts after p2's, so the
+		// second candidate for c must replace the first.
+		const repoFile = [
+			"export function target(): number {",
+			"  return 0;",
+			"}",
+			"export function p2(): number {",
+			"  return y();",
+			"}",
+			"export function p1(): number {",
+			"  return x();",
+			"}",
+			"export function x(): number {",
+			"  return target();",
+			"}",
+			"export function y(): number {",
+			"  return target();",
+			"}",
+			"export function c(): number {",
+			"  return p1() + p2();",
+			"}",
+			"",
+		].join("\n");
+		const index = indexOf({ "src/r.ts": repoFile });
+		const c = symbolOf(index, "c");
+		const p2 = symbolOf(index, "p2");
+		const result = impactOf(index, symbolOf(index, "target"), 5);
+		const entry = result.callers.find((caller) => caller.symbol?.id === c.id);
+		expect(entry?.depth).toBe(3);
+		expect(entry?.path[0]?.calleeId).toBe(p2.id);
+		expect(entry?.path.map((edge) => edge.calleeId)).toEqual([
+			p2.id,
+			symbolOf(index, "y").id,
+			symbolOf(index, "target").id,
+		]);
+
+		// The same index with its arrays reversed must answer identically: nothing
+		// may leak insertion order.
+		const permuted: GlyphIndex = {
+			...index,
+			symbols: [...index.symbols].reverse(),
+			sites: [...index.sites].reverse(),
+		};
+		expect(impactOf(permuted, resolveSymbol(permuted, "target", undefined), 5)).toEqual(result);
+	});
+
 	test("the ref-pinned index ignores a dirty checkout, while the working tree does not", () => {
 		const repo = makeScratchRepo(CHAIN);
 		const base = repo.commit("base");
@@ -201,6 +270,12 @@ describe("impact", () => {
 		expect(snapshot.files).toContain("src/e.ts");
 		expect(discoverSources(repo.root)).not.toContain("src/e.ts");
 		expect(indexSnapshot(snapshot).symbols.map((entry) => entry.name)).toContain("e");
+	});
+
+	test("the ref cache key's listing is computed without reading blobs and matches the snapshot", () => {
+		const repo = makeScratchRepo(CHAIN);
+		const sha = repo.commit("base");
+		expect(sourceFilesAtRef(repo.root, sha)).toEqual(snapshotAtRef(repo.root, sha).files);
 	});
 
 	test("compiler options come from the commit's tsconfig, not the dirty one", () => {

@@ -22,7 +22,9 @@ import type { GlyphIndex } from "./types.ts";
  *
  * Symlinks are not followed here (a tree records the link text, not the
  * target), and submodules are gitlinks, not blobs, so neither enters the file
- * list.
+ * list. Paths outside the repository root are not part of any tree and are
+ * read from disk, which is where TypeScript's own library, a hoisted
+ * dependency tree or a parent-directory tsconfig reached by `extends` lives.
  */
 
 /** Extensions read from the tree: the sources, plus JSON for tsconfig and package metadata. */
@@ -64,6 +66,23 @@ function repositoryPath(root: string, absolutePath: string): string | null {
 
 function underNodeModules(rel: string): boolean {
 	return rel.split("/").includes("node_modules");
+}
+
+/**
+ * The source files of `sha`'s tree from `git ls-tree` alone. The cache key
+ * needs no blob content, so a hit costs one listing rather than reading every
+ * file the tree contains.
+ */
+export function sourceFilesAtRef(repoRoot: string, sha: string): string[] {
+	return listTree(repoRoot, sha)
+		.filter(
+			(entry) =>
+				entry.type === "blob" &&
+				(entry.mode === "100644" || entry.mode === "100755") &&
+				SOURCE_EXTENSIONS.some((ext) => entry.path.endsWith(ext)),
+		)
+		.map((entry) => posix(entry.path))
+		.sort();
 }
 
 /** Read the tree of `sha` into memory. Throws indeterminate when Git refuses it. */
