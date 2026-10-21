@@ -15,3 +15,4 @@
 - 2026-10-20T18:22:00-05:00 d5bb06885c46748fab8360b3e69422cdaa7da806 fix(GCLI-9): address the PR 34 review
 - 2026-10-20T18:55:51-05:00 f819efb960f3c7333626f5e557bbaf910c4e5a51 fix(GCLI-9): address the confirmatory review
 - 2026-10-20T18:57:25-05:00 f1942deb638537c474aac2c980e61aeaf3435e2e docs(GCLI-9): record opum-doc ruling A on the help/version kinds
+- 2026-10-20T19:13:27-05:00 7cf3d4bc66288f8fa91f272c9bf1f37495b3fe38 feat(GCLI-9): conform to the Opum command contract (#34)
