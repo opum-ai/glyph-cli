@@ -3,4 +3,5 @@
 <!-- lore:index:begin -->
 - [Scope Glyph v0 to a one-language symbol and call graph](0001-scope-glyph-v0-to-a-one-language-symbol-and-call-graph.md)
 - [Adopt the Opum command contract](0002-adopt-the-opum-command-contract.md)
+- [Answer blast radius with a caller closure and a ref-pinned index](0003-answer-blast-radius-with-a-caller-closure-and-a-ref-pinned-index.md)
 <!-- lore:index:end -->

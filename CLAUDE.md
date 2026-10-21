@@ -83,8 +83,11 @@ deletes or reads them (landed with glyph v0, GCLI-2):
 - **Symbols and the call graph**: `src/indexer.ts` builds both from one
   TypeScript program, resolving each call site to its declaration through the
   type checker; `src/types.ts` is the index's shape.
-- **The two query answers**: `src/queries.ts` — `callersOf` (what calls this
-  symbol) and `touchedSymbols` (which symbols a diff touches, innermost only).
+- **The query answers**: `src/queries.ts` — `callersOf` (what calls this
+  symbol) and `touchedSymbols` (which symbols a diff touches, innermost only);
+  `src/impact.ts` — `impactOf`, the transitive reverse closure behind
+  `glyph impact`; `src/snapshot.ts` — a commit's tree read without a checkout,
+  for `--ref`.
 - **Source discovery, refs and diff ranges**: `src/discover.ts` picks the files
   in scope and the compiler options; `src/git.ts` resolves the refs and parses
   changed line ranges.
