@@ -55,7 +55,7 @@ export interface FlagSpec {
  * The registered invocation names. Handlers and the manifest take this union,
  * so a typo is a compile error rather than a lookup that misses at runtime.
  */
-export type CommandName = "callers" | "diff" | "cache path" | "cache clear" | "help";
+export type CommandName = "callers" | "impact" | "diff" | "cache path" | "cache clear" | "help";
 
 export interface CommandSpec {
 	/** The invocation a caller writes, e.g. `callers` or `cache clear`. */
@@ -80,6 +80,23 @@ export const COMMANDS: readonly CommandSpec[] = Object.freeze([
 		kind: "callers.result",
 		exitCodes: [0, 1, 2, 3, 7],
 		examples: ["glyph callers buildReport", "glyph callers parseDiff --file src/git.ts"],
+	},
+	{
+		name: "impact",
+		summary: "Every caller this symbol's change can reach, to a depth (default 5)",
+		args: "<name>",
+		flags: [
+			{ name: "depth", takesValue: true, summary: "how many hops to report (default: 5)" },
+			{ name: "all", takesValue: false, summary: "report the full closure instead of a depth" },
+			{ name: "ref", takesValue: true, summary: "index that commit's tree instead of the working tree" },
+		],
+		kind: "impact.result",
+		exitCodes: [0, 1, 2, 3, 7],
+		examples: [
+			"glyph impact buildIndex",
+			"glyph impact buildIndex --depth 3",
+			"glyph impact buildIndex --all --ref main",
+		],
 	},
 	{
 		name: "diff",

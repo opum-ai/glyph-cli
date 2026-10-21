@@ -87,6 +87,7 @@ describe("cli", () => {
 			"callers",
 			"diff",
 			"help",
+			"impact",
 		]);
 
 		const cachePath = runCli(repo.root, ["--json", "cache", "path"], cache);
@@ -139,6 +140,175 @@ describe("cli", () => {
 		expect(cleared.stdout).toContain("cleared");
 	});
 
+	const IMPACT_FILES = {
+		"src/d.ts": "export function d(): number {\n  return 1;\n}\n",
+		"src/c.ts": 'import { d } from "./d";\nexport function c(): number {\n  return d();\n}\n',
+		"src/b.ts": 'import { c } from "./c";\nexport function b(): number {\n  return c();\n}\n',
+		"src/a.ts": 'import { b } from "./b";\nexport function a(): number {\n  return b();\n}\n',
+	};
+
+	interface ImpactEnvelope {
+		kind: string;
+		data: {
+			symbol: { name: string };
+			ref: { ref: string; sha: string } | null;
+			depth: { bound: number | null; all: boolean };
+			callers: { symbol: { name: string } | null; depth: number; path: { file: string; line: number }[] }[];
+			cycle: boolean;
+			truncated: boolean;
+			unexplored: number;
+			resolvedSites: number;
+			unresolvedSites: number;
+			index: { cache: string };
+		};
+	}
+
+	function triples(envelope: ImpactEnvelope): Array<[string | null, number]> {
+		return envelope.data.callers.map((caller) => [caller.symbol?.name ?? null, caller.depth]);
+	}
+
+	/** The `cache` field is the one documented difference between two runs. */
+	function withoutCache(envelope: ImpactEnvelope): ImpactEnvelope {
+		const copy = structuredClone(envelope);
+		copy.data.index.cache = "same";
+		return copy;
+	}
+
+	test("impact answers the transitive closure in text and JSON, deterministically and from cache", () => {
+		const repo = makeScratchRepo(IMPACT_FILES);
+		const cache = scratchCacheDir();
+
+		const first = runCli(repo.root, ["--json", "impact", "d"], cache);
+		expect(first.code).toBe(0);
+		expect(first.stderr).toBe("");
+		const envelope = JSON.parse(first.stdout) as ImpactEnvelope;
+		expect(envelope.kind).toBe("impact.result");
+		expect(envelope.data.symbol.name).toBe("d");
+		expect(envelope.data.ref).toBeNull();
+		expect(envelope.data.depth).toEqual({ bound: 5, all: false });
+		expect(triples(envelope)).toEqual([
+			["c", 1],
+			["b", 2],
+			["a", 3],
+		]);
+		expect(envelope.data.callers[2]?.path.map((edge) => edge.file)).toEqual(["src/a.ts", "src/b.ts", "src/c.ts"]);
+		expect(envelope.data.truncated).toBe(false);
+		expect(envelope.data.cycle).toBe(false);
+		expect(envelope.data.resolvedSites).toBeGreaterThan(0);
+		expect(typeof envelope.data.unresolvedSites).toBe("number");
+		expect(envelope.data.index.cache).toBe("miss");
+
+		// Same state twice: the second run is a cache hit and the answer is
+		// byte-identical once the documented cache field is set aside.
+		const second = runCli(repo.root, ["--json", "impact", "d"], cache);
+		const hit = JSON.parse(second.stdout) as ImpactEnvelope;
+		expect(hit.data.index.cache).toBe("hit");
+		expect(JSON.stringify(withoutCache(hit))).toBe(JSON.stringify(withoutCache(envelope)));
+
+		// A different cache directory produces the same bytes too.
+		const cold = runCli(repo.root, ["--json", "impact", "d"], scratchCacheDir());
+		const coldEnvelope = JSON.parse(cold.stdout) as ImpactEnvelope;
+		expect(coldEnvelope.data.index.cache).toBe("miss");
+		expect(JSON.stringify(withoutCache(coldEnvelope))).toBe(JSON.stringify(withoutCache(envelope)));
+
+		const text = runCli(repo.root, ["impact", "d"], cache);
+		expect(text.code).toBe(0);
+		expect(text.stdout).toContain("impact of d (function)");
+		expect(text.stdout).toContain("depth 1  c");
+		expect(text.stdout).toContain("a -> b -> c -> d");
+		expect(text.stdout).toContain("unresolved:");
+	});
+
+	test("--depth bounds the answer, --all lifts the bound, and the truncation count is exact", () => {
+		const repo = makeScratchRepo(IMPACT_FILES);
+		const cache = scratchCacheDir();
+
+		const bounded = runCli(repo.root, ["--json", "impact", "d", "--depth", "1"], cache);
+		expect(bounded.code).toBe(0);
+		const one = JSON.parse(bounded.stdout) as ImpactEnvelope;
+		expect(triples(one)).toEqual([["c", 1]]);
+		expect(one.data.truncated).toBe(true);
+		expect(one.data.unexplored).toBe(2);
+
+		const unbounded = runCli(repo.root, ["--json", "impact", "d", "--all"], cache);
+		const all = JSON.parse(unbounded.stdout) as ImpactEnvelope;
+		expect(triples(all)).toHaveLength(3);
+		expect(all.data.truncated).toBe(false);
+		expect(all.data.unexplored).toBe(0);
+		expect(all.data.depth).toEqual({ bound: null, all: true });
+	});
+
+	test("impact refuses a bad depth, an ambiguous name, an unknown symbol and an unknown ref", () => {
+		const repo = makeScratchRepo(IMPACT_FILES);
+		repo.commit("base");
+		const cache = scratchCacheDir();
+
+		for (const args of [
+			["--json", "impact", "d", "--depth", "0"],
+			["--json", "impact", "d", "--depth", "abc"],
+			["--json", "impact", "d", "--depth", "2", "--all"],
+		]) {
+			const result = runCli(repo.root, args, cache);
+			expect(result.code).toBe(2);
+			expect(result.stdout).toBe("");
+			expect(JSON.parse(result.stderr).error_type).toBe("usage");
+		}
+
+		const missing = runCli(repo.root, ["--json", "impact", "nope"], cache);
+		expect(missing.code).toBe(3);
+		expect(JSON.parse(missing.stderr).error_type).toBe("not_found");
+
+		const unknownRef = runCli(repo.root, ["--json", "impact", "d", "--ref", "no-such-ref"], cache);
+		expect(unknownRef.code).toBe(3);
+		expect(JSON.parse(unknownRef.stderr).error_type).toBe("not_found");
+
+		const ambiguousRepo = makeScratchRepo({
+			"src/one.ts": "export function twin(): void {}\n",
+			"src/two.ts": "export function twin(): void {}\n",
+		});
+		const ambiguous = runCli(ambiguousRepo.root, ["--json", "impact", "twin"], scratchCacheDir());
+		expect(ambiguous.code).toBe(2);
+		expect(ambiguous.stdout).toBe("");
+		const error = JSON.parse(ambiguous.stderr) as { error_type: string; message: string };
+		expect(error.error_type).toBe("usage");
+		expect(error.message).toContain("matches 2 symbols");
+		expect(error.message).toContain("src/one.ts");
+	});
+
+	test("--ref answers from the commit's tree, so a dirty checkout cannot change it", () => {
+		const repo = makeScratchRepo(IMPACT_FILES);
+		repo.commit("base");
+		const cache = scratchCacheDir();
+
+		const clean = runCli(repo.root, ["--json", "impact", "d", "--ref", "HEAD"], cache);
+		expect(clean.code).toBe(0);
+		const cleanEnvelope = JSON.parse(clean.stdout) as ImpactEnvelope;
+		expect(cleanEnvelope.data.ref?.ref).toBe("HEAD");
+		expect(cleanEnvelope.data.ref?.sha).toMatch(/^[0-9a-f]{40}$/);
+		expect(triples(cleanEnvelope)).toEqual([
+			["c", 1],
+			["b", 2],
+			["a", 3],
+		]);
+
+		repo.write(
+			"src/a.ts",
+			'import { b } from "./b";\nimport { d } from "./d";\nexport function a(): number {\n  return b() + d();\n}\n',
+		);
+
+		const dirtyRef = runCli(repo.root, ["--json", "impact", "d", "--ref", "HEAD"], scratchCacheDir());
+		const dirtyEnvelope = JSON.parse(dirtyRef.stdout) as ImpactEnvelope;
+		expect(JSON.stringify(withoutCache(dirtyEnvelope))).toBe(JSON.stringify(withoutCache(cleanEnvelope)));
+
+		const working = runCli(repo.root, ["--json", "impact", "d"], scratchCacheDir());
+		const workingEnvelope = JSON.parse(working.stdout) as ImpactEnvelope;
+		expect(triples(workingEnvelope)).toEqual([
+			["a", 1],
+			["c", 1],
+			["b", 2],
+		]);
+	});
+
 	test("--repo points at another directory", () => {
 		const repo = makeScratchRepo(FILES);
 		const cache = scratchCacheDir();
@@ -159,6 +329,7 @@ describe("cli", () => {
 
 		const cases: Array<{ args: string[]; kind: string }> = [
 			{ args: ["--json", "callers", "helper"], kind: kindOf("callers") },
+			{ args: ["--json", "impact", "helper"], kind: kindOf("impact") },
 			{ args: ["--json", "diff", base, "HEAD"], kind: kindOf("diff") },
 			{ args: ["--json", "cache", "path"], kind: kindOf("cache path") },
 			{ args: ["--json", "cache", "clear"], kind: kindOf("cache clear") },
@@ -183,7 +354,7 @@ describe("cli", () => {
 		// Every kind the registry can emit is exercised by this table, so a new
 		// result kind cannot be added without an end-to-end case.
 		expect(new Set(cases.map((entry) => entry.kind))).toEqual(new Set(allResultKinds()));
-	});
+	}, 20_000);
 
 	test("-v is the shorthand and -V is not a version flag", () => {
 		const repo = makeScratchRepo(FILES);

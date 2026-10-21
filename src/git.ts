@@ -41,7 +41,7 @@ export function repoRootFor(dir: string): string | null {
 /** Resolve a single ref to a commit SHA, or null. `rev-parse --verify` takes
  * exactly ONE revision per invocation ("fatal: Needed a single revision"
  * otherwise), which is why the two refs are resolved by two calls. */
-function resolveOne(repoRoot: string, ref: string): string | null {
+export function resolveCommit(repoRoot: string, ref: string): string | null {
 	const result = gitRun(repoRoot, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
 	const sha = result.stdout.trim();
 	return result.code === 0 && sha !== "" ? sha : null;
@@ -49,8 +49,8 @@ function resolveOne(repoRoot: string, ref: string): string | null {
 
 /** Resolve `base` and `head` to commit SHAs; a ref that will not resolve is not-found. */
 export function resolveDiffRefs(repoRoot: string, base: string, head: string): { baseSha: string; headSha: string } {
-	const baseSha = resolveOne(repoRoot, base);
-	const headSha = resolveOne(repoRoot, head);
+	const baseSha = resolveCommit(repoRoot, base);
+	const headSha = resolveCommit(repoRoot, head);
 	if (baseSha === null || headSha === null) {
 		throw notFoundError(`could not resolve '${base}' or '${head}' to a commit in ${repoRoot}`);
 	}
@@ -71,6 +71,86 @@ export interface FileChange {
 }
 
 const HUNK_HEADER = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
+
+/** One entry of `git ls-tree -r`, as the ref-index source consumes it. */
+export interface TreeEntry {
+	mode: string;
+	type: string;
+	sha: string;
+	/** Repository-relative, POSIX. */
+	path: string;
+}
+
+/**
+ * Every entry of the tree at `sha`, recursively. `--full-tree` makes the paths
+ * relative to the repository root regardless of the current directory, and
+ * `-z` removes quoting, so a non-ASCII or backslash-named path arrives intact.
+ */
+export function listTree(repoRoot: string, sha: string): TreeEntry[] {
+	const result = gitRun(repoRoot, ["ls-tree", "-r", "-z", "--full-tree", sha]);
+	if (result.code !== 0) {
+		throw indeterminateError(`git ls-tree failed for ${sha}: ${result.stderr.trim() || "unknown error"}`);
+	}
+	const entries: TreeEntry[] = [];
+	for (const record of result.stdout.split("\0")) {
+		if (record === "") continue;
+		const tab = record.indexOf("\t");
+		if (tab < 0) continue;
+		const [mode, type, object] = record.slice(0, tab).split(" ");
+		const path = record.slice(tab + 1);
+		if (mode === undefined || type === undefined || object === undefined || path === "") continue;
+		entries.push({ mode, type, sha: object, path });
+	}
+	return entries;
+}
+
+/**
+ * Read the contents of `objectIds` in one `git cat-file --batch` invocation.
+ * The batch protocol is a text header line (`<sha> <type> <size>`) followed by
+ * exactly `size` bytes and a newline, so the reader walks bytes rather than
+ * lines: a source file may contain anything, including newlines that look
+ * like headers.
+ */
+export function readBlobs(repoRoot: string, objectIds: readonly string[]): Map<string, string> {
+	const contents = new Map<string, string>();
+	if (objectIds.length === 0) return contents;
+	const proc = Bun.spawnSync(["git", "-C", repoRoot, "cat-file", "--batch"], {
+		env: { ...process.env, LC_ALL: "C" },
+		stdin: new TextEncoder().encode(`${objectIds.join("\n")}\n`),
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+	if (proc.exitCode !== 0) {
+		throw indeterminateError(
+			`git cat-file failed for ${objectIds.length} object(s): ${proc.stderr.toString().trim() || "unknown error"}`,
+		);
+	}
+	const bytes = proc.stdout;
+	const decoder = new TextDecoder();
+	let offset = 0;
+	for (const id of objectIds) {
+		const headerStart = offset;
+		while (offset < bytes.length && bytes[offset] !== 0x0a) offset += 1;
+		if (offset >= bytes.length) {
+			throw indeterminateError(`git cat-file returned a truncated header for ${id}`);
+		}
+		const header = decoder.decode(bytes.subarray(headerStart, offset));
+		offset += 1; // the header's newline
+		const parts = header.split(" ");
+		const size = Number.parseInt(parts[2] ?? "", 10);
+		if (parts.length < 3 || !Number.isFinite(size)) {
+			// `<name> missing` or `<name> ambiguous`: the tree listed an object it
+			// will not now produce, which is an indeterminate repository, not a miss.
+			continue;
+		}
+		if (offset + size > bytes.length) {
+			throw indeterminateError(`git cat-file returned a truncated body for ${id}`);
+		}
+		contents.set(id, decoder.decode(bytes.subarray(offset, offset + size)));
+		offset += size + 1; // the body's trailing newline
+	}
+	return contents;
+}
 
 /**
  * Parse `git diff --unified=0` into per-file changed line ranges on the NEW

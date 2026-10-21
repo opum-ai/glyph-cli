@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Command, CommanderError } from "commander";
-import { cacheDir, clearCache, computeKey, readCachedIndex, writeCachedIndex } from "./cache.ts";
+import { cacheDir, clearCache, computeKey, computeRefKey, readCachedIndex, writeCachedIndex } from "./cache.ts";
 import {
 	buildManifest,
 	COMMANDS,
@@ -14,10 +14,13 @@ import {
 } from "./contract.ts";
 import { discoverSources } from "./discover.ts";
 import { exitCodeFor, GlyphError, notFoundError, usageError } from "./errors.ts";
-import { parseDiff, repoRootFor, resolveDiffRefs } from "./git.ts";
+import { parseDiff, repoRootFor, resolveCommit, resolveDiffRefs } from "./git.ts";
+import type { ImpactCaller } from "./impact.ts";
+import { impactOf } from "./impact.ts";
 import { buildIndex } from "./indexer.ts";
 import { callersOf, display, resolveSymbol, touchedSymbols } from "./queries.ts";
-import type { GlyphIndex, IndexInfo } from "./types.ts";
+import { indexSnapshot, snapshotAtRef } from "./snapshot.ts";
+import type { GlyphIndex, IndexInfo, SymbolEntry } from "./types.ts";
 
 /**
  * Glyph's command surface and machine contract.
@@ -38,11 +41,17 @@ const HELP_EPILOGUE = `
 Examples:
   glyph callers buildReport
   glyph callers parseDiff --file src/git.ts
+  glyph impact buildIndex
+  glyph impact buildIndex --depth 3
+  glyph impact buildIndex --all --ref main
   glyph diff main
   glyph diff v0.1.0 HEAD
   glyph cache path
   glyph help --json
 `;
+
+/** The depth `glyph impact` answers at when neither --depth nor --all is given. */
+const DEFAULT_IMPACT_DEPTH = 5;
 
 interface Context {
 	repoRoot: string;
@@ -69,17 +78,46 @@ function contextOf(program: Command): Context {
 	return { repoRoot: repoRootFor(dir) ?? dir, json: options.json === true };
 }
 
-function loadIndex(context: Context): { index: GlyphIndex; info: IndexInfo } {
+interface LoadedIndex {
+	index: GlyphIndex;
+	info: IndexInfo;
+	/** Set only under `impact --ref`: the ref as written and the commit it named. */
+	ref: { ref: string; sha: string } | null;
+}
+
+/**
+ * The index a command answers from: the working tree by default, or the tree
+ * of `--ref`'s commit, read without a checkout (DEC-216 Q4). The two sources
+ * share the cache directory but never a key — the ref key is addressed by the
+ * commit rather than by file stats, so a dirty checkout cannot answer for it.
+ */
+function loadIndex(context: Context, ref?: string): LoadedIndex {
+	if (ref !== undefined) {
+		const sha = resolveCommit(context.repoRoot, ref);
+		if (sha === null) {
+			throw notFoundError(`could not resolve '${ref}' to a commit in ${context.repoRoot}`);
+		}
+		const snapshot = snapshotAtRef(context.repoRoot, sha);
+		if (snapshot.files.length === 0) {
+			throw notFoundError(`no TypeScript or JavaScript sources at ${ref} (${shortSha(sha)}) in ${context.repoRoot}`);
+		}
+		const key = computeRefKey(sha, snapshot.files);
+		const cached = readCachedIndex(context.repoRoot, key);
+		if (cached !== null) return { index: cached, info: infoOf(cached, "hit"), ref: { ref, sha } };
+		const index = indexSnapshot(snapshot);
+		writeCachedIndex(context.repoRoot, key, index);
+		return { index, info: infoOf(index, "miss"), ref: { ref, sha } };
+	}
 	const files = discoverSources(context.repoRoot);
 	if (files.length === 0) {
 		throw notFoundError(`no TypeScript or JavaScript sources found under ${context.repoRoot}`);
 	}
 	const key = computeKey(context.repoRoot, files);
 	const cached = readCachedIndex(context.repoRoot, key);
-	if (cached !== null) return { index: cached, info: infoOf(cached, "hit") };
+	if (cached !== null) return { index: cached, info: infoOf(cached, "hit"), ref: null };
 	const index = buildIndex(context.repoRoot, files);
 	writeCachedIndex(context.repoRoot, key, index);
-	return { index, info: infoOf(index, "miss") };
+	return { index, info: infoOf(index, "miss"), ref: null };
 }
 
 function infoOf(index: GlyphIndex, cache: "hit" | "miss"): IndexInfo {
@@ -100,6 +138,38 @@ function indexLine(info: IndexInfo): string {
 
 function shortSha(sha: string): string {
 	return sha.slice(0, 7);
+}
+
+/** `--depth` takes a positive integer and is exclusive with `--all`. */
+function depthOf(raw: string | undefined, all: boolean): number | null {
+	if (all) {
+		if (raw !== undefined) throw usageError("--depth and --all are mutually exclusive");
+		return null;
+	}
+	if (raw === undefined) return DEFAULT_IMPACT_DEPTH;
+	if (!/^[1-9][0-9]*$/.test(raw)) throw usageError(`--depth expects a positive integer, got '${raw}'`);
+	return Number.parseInt(raw, 10);
+}
+
+function labelOf(id: string | null, byId: Map<string, SymbolEntry>): string {
+	if (id === null) return "module scope";
+	const symbol = byId.get(id);
+	return symbol === undefined ? id : display(symbol);
+}
+
+/** The caller's chosen shortest path, rendered `caller -> ... -> target`. */
+function pathLabel(caller: ImpactCaller, byId: Map<string, SymbolEntry>): string {
+	const first = caller.path[0];
+	if (first === undefined) return "";
+	return [labelOf(first.callerId, byId), ...caller.path.map((edge) => labelOf(edge.calleeId, byId))].join(" -> ");
+}
+
+function byDepth(callers: readonly ImpactCaller[]): Record<string, number> {
+	const counts = new Map<number, number>();
+	for (const caller of callers) counts.set(caller.depth, (counts.get(caller.depth) ?? 0) + 1);
+	return Object.fromEntries(
+		[...counts.entries()].sort((a, b) => a[0] - b[0]).map(([depth, count]) => [String(depth), count]),
+	);
 }
 
 /** Registry names for a command token; `cache` keeps both of its entries. */
@@ -216,6 +286,58 @@ export function buildProgram(): Command {
 					const who = site.caller === null ? "at module scope" : `in ${display(site.caller)}`;
 					lines.push(`${where}  ${site.kind}  ${who}`);
 				}
+				lines.push(indexLine(info));
+				return lines.join("\n");
+			});
+		});
+
+	program
+		.command("impact <name>")
+		.description("every caller this symbol's change can reach, to a depth (default 5)")
+		.option("--depth <n>", `how many hops to report (default: ${DEFAULT_IMPACT_DEPTH})`)
+		.option("--all", "report the full closure instead of a depth")
+		.option("--ref <ref>", "index that commit's tree instead of the working tree")
+		.action((name: string, options: { depth?: string; all?: boolean; ref?: string }) => {
+			const depth = depthOf(options.depth, options.all === true);
+			const context = contextOf(program);
+			const { index, info, ref } = loadIndex(context, options.ref);
+			const symbol = resolveSymbol(index, name, undefined);
+			const result = impactOf(index, symbol, depth);
+			const byId = new Map(index.symbols.map((entry) => [entry.id, entry]));
+			const data = {
+				symbol,
+				ref,
+				depth: { bound: depth, all: depth === null },
+				callers: result.callers,
+				cycle: result.cycle,
+				truncated: result.truncated,
+				unexplored: result.unexplored,
+				total: result.total,
+				resolvedSites: index.sites.length,
+				unresolvedSites: index.unresolvedSites,
+				totals: { callers: result.callers.length, byDepth: byDepth(result.callers) },
+				index: info,
+			};
+			emit(context.json, kindOf("impact"), data, () => {
+				const where = ref === null ? "the working tree" : `${ref.ref} (${shortSha(ref.sha)})`;
+				const lines = [
+					`impact of ${display(symbol)} (${symbol.kind}) at ${symbol.file}:${symbol.line}:${symbol.column} in ${where} — ${result.callers.length} caller(s) within depth ${depth === null ? "all" : String(depth)} (${result.total} found, cache ${info.cache})`,
+				];
+				for (const caller of result.callers) {
+					const first = caller.path[0];
+					const site = first === undefined ? "" : `${first.file}:${first.line}:${first.column}`;
+					const who = caller.symbol === null ? "module scope" : display(caller.symbol);
+					const marker = caller.cycle ? "  cycle" : "";
+					lines.push(`  depth ${caller.depth}  ${who}  ${site}  ${pathLabel(caller, byId)}${marker}`);
+				}
+				if (result.callers.length === 0) lines.push("  (none)");
+				if (result.truncated) {
+					lines.push(`  ${result.unexplored} caller(s) beyond depth ${depth} not shown (--all for the full closure)`);
+				}
+				if (result.cycle) lines.push("  cycle: at least one caller can reach itself through this symbol");
+				lines.push(
+					`  unresolved: ${index.unresolvedSites} of ${index.sites.length} call site(s) did not resolve; an empty answer is not proof of no impact`,
+				);
 				lines.push(indexLine(info));
 				return lines.join("\n");
 			});

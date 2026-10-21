@@ -201,7 +201,8 @@ function collectSites(
 
 /**
  * Build the index for `repoRoot` over `files` (repository-relative, from
- * `discoverSources`). Throws `not_found` when there is nothing to analyze.
+ * `discoverSources`), reading the working tree. Throws `not_found` when there
+ * is nothing to analyze.
  */
 export function buildIndex(repoRoot: string, files: string[]): GlyphIndex {
 	if (files.length === 0) {
@@ -212,6 +213,19 @@ export function buildIndex(repoRoot: string, files: string[]): GlyphIndex {
 		rootNames: files.map((file) => join(repoRoot, file)),
 		options,
 	});
+	return indexProgram(repoRoot, files, program);
+}
+
+/**
+ * Index an already-built program. The working-tree path builds its program
+ * here; the `--ref` path builds one over an in-memory tree (see
+ * `src/snapshot.ts`) and hands it to this function, so both sources produce the
+ * same index from the same walk.
+ */
+export function indexProgram(repoRoot: string, files: string[], program: ts.Program): GlyphIndex {
+	if (files.length === 0) {
+		throw notFoundError(`no TypeScript or JavaScript sources found under ${repoRoot}`);
+	}
 	const checker = program.getTypeChecker();
 
 	const symbols: SymbolEntry[] = [];

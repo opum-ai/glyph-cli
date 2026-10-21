@@ -3,7 +3,6 @@ import { join, relative, sep } from "node:path";
 import ts from "typescript";
 import { indeterminateError } from "./errors.ts";
 import { gitRun } from "./git.ts";
-
 /**
  * Source discovery is Glyph's own selection, not the project's tsconfig
  * `include`.
@@ -50,13 +49,14 @@ function toPosix(path: string): string {
 	return sep === "\\" ? path.split("\\").join("/") : path;
 }
 
-const EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
+/** Extensions discovery takes in a working tree and at a ref alike. */
+export const SOURCE_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
 
 /** Directories a non-Git walk never descends into; Git ignores them in a repository. */
 const EXCLUDED_DIRS = new Set([".git", "node_modules", "dist", "build", "out", "coverage", "vendor", ".next", ".nuxt"]);
 
 function hasSourceExtension(path: string): boolean {
-	return EXTENSIONS.some((ext) => path.endsWith(ext));
+	return SOURCE_EXTENSIONS.some((ext) => path.endsWith(ext));
 }
 
 /** Repository-relative paths of every TS/JS source in scope, sorted. */
@@ -115,6 +115,24 @@ function walkSources(repoRoot: string): string[] {
 }
 
 /**
+ * Where a tsconfig is read from. The default is the filesystem; the `--ref`
+ * path supplies an in-memory host over the commit's tree, so compiler options
+ * are those the commit chose, not those of whatever checkout happens to exist.
+ */
+export interface ConfigReadHost {
+	useCaseSensitiveFileNames: boolean;
+	fileExists(path: string): boolean;
+	readFile(path: string): string | undefined;
+	readDirectory(
+		path: string,
+		extensions: readonly string[],
+		excludes: readonly string[] | undefined,
+		includes: readonly string[],
+		depth?: number,
+	): string[];
+}
+
+/**
  * Compiler options for the program: the project's tsconfig when one exists,
  * otherwise a permissive default. `allowJs` is forced on either way so the
  * walk's `.js` files take part, and diagnostics are never surfaced — Glyph
@@ -122,8 +140,16 @@ function walkSources(repoRoot: string): string[] {
  * it is not a linter and must not fail on code that does not compile cleanly
  * (ADR 0001's consequence: recall is a property of the language, and v0 makes
  * no precision promise).
+ *
+ * Only the options are taken from the tsconfig; the file list is always
+ * discovery's own. With a custom `host`, the tsconfig is looked for at the
+ * repository root only: walking upward would leave the tree the host describes.
  */
-export function loadCompilerOptions(repoRoot: string, configPath: string | undefined): ts.CompilerOptions {
+export function loadCompilerOptions(
+	repoRoot: string,
+	configPath: string | undefined,
+	host?: ConfigReadHost,
+): ts.CompilerOptions {
 	const defaults: ts.CompilerOptions = {
 		target: ts.ScriptTarget.ESNext,
 		module: ts.ModuleKind.ESNext,
@@ -133,11 +159,19 @@ export function loadCompilerOptions(repoRoot: string, configPath: string | undef
 		skipLibCheck: true,
 		noEmit: true,
 	};
-	const found = configPath ?? ts.findConfigFile(repoRoot, ts.sys.fileExists, "tsconfig.json");
-	if (!found) return defaults;
-	const read = ts.readConfigFile(found, ts.sys.readFile);
+	const rootConfig = join(repoRoot, "tsconfig.json");
+	const found =
+		configPath ??
+		(host === undefined
+			? ts.findConfigFile(repoRoot, ts.sys.fileExists, "tsconfig.json")
+			: host.fileExists(rootConfig)
+				? rootConfig
+				: undefined);
+	if (found === undefined) return defaults;
+	const readHost = host ?? ts.sys;
+	const read = ts.readConfigFile(found, (path) => readHost.readFile(path));
 	if (read.error || !read.config) return defaults;
-	const parsed = ts.parseJsonConfigFileContent(read.config, ts.sys, repoRoot);
+	const parsed = ts.parseJsonConfigFileContent(read.config, readHost, repoRoot);
 	return {
 		...parsed.options,
 		allowJs: true,
