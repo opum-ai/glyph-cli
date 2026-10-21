@@ -19,6 +19,7 @@
 - 2026-10-21T12:05:32-05:00 a528e505d7a38012bcad090e136feaa3e7027ba7 fix(GCLI-10): apply DEC-216 (a2), no in-repo node_modules under --ref
 - 2026-10-21T12:05:41-05:00 827ae1df10ac146e6540d5381842f568877d7547 docs: regenerate the change log with lore 0.13.0
 - 2026-10-21T12:08:55-05:00 4077f8108b7917a80226c6489b21b954a706879b chore(GCLI-16): file the profile exit-family staleness follow-up (#40)
+- 2026-10-21T12:18:32-05:00 84bb4dd295a33749d1cb648f192427195548dbf7 chore(GCLI-17): record the session handoff for GCLI-10 round 2 (#41)
 
 ## docs/adr
 
