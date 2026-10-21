@@ -9,6 +9,7 @@
 - 2026-10-20T18:08:58-05:00 ccb30ef6c08a2ba63c314a588a52cb7254a40571 chore(GCLI-9): complete the task with PR 34's validating run
 - 2026-10-20T19:13:27-05:00 7cf3d4bc66288f8fa91f272c9bf1f37495b3fe38 feat(GCLI-9): conform to the Opum command contract (#34)
 - 2026-10-20T19:15:24-05:00 cf847a02aba222c0addfd98cd486b65c25786f94 chore(GCLI-9): renewal handoff note (#35)
+- 2026-10-20T22:24:53-05:00 a7b9d0abae835615bdea233ca6edb1c5e7759c2b chore(GCLI-10): record the slice-2 plan on the tracker (#36)
 
 ## docs/adr
 
