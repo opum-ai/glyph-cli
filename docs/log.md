@@ -14,6 +14,7 @@
 - 2026-10-21T11:41:01-05:00 3e969ea21e42e3b461d7283e7488516f89e126a2 docs(GCLI-10): record the impact semantics, depth default and precision caveat
 - 2026-10-21T11:41:10-05:00 c6ab79b65cdd9305155b30359a9d25ce679b5ade docs: regenerate the change log with lore 0.13.0
 - 2026-10-21T11:47:45-05:00 8b816c1841fc20ac133f253aa68b33b4af2abf42 chore(GCLI-15): file the worktree-indexing follow-up (#39)
+- 2026-10-21T12:00:27-05:00 2a3b03862ffbfc218929828f352c96ea48b81d91 fix(GCLI-10): address the round-1 review, findings 3 to 12
 
 ## docs/adr
 
