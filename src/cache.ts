@@ -57,6 +57,21 @@ export function computeKey(repoRoot: string, files: string[]): string {
 	return hash.digest("hex").slice(0, 24);
 }
 
+/**
+ * The cache key for an index of one commit's tree. That tree is immutable, so
+ * the commit SHA and the index format determine the derived index; the file
+ * list is mixed in as well so two different trees can never collide even if a
+ * format bump ever fails to reach this line. Deliberately not stat-based: a
+ * `--ref` answer must not move when the checkout does.
+ */
+export function computeRefKey(sha: string, files: readonly string[]): string {
+	const hash = createHash("sha1");
+	hash.update(`glyph-index-format:${INDEX_FORMAT}\n`);
+	hash.update(`ref:${sha}\n`);
+	for (const file of files) hash.update(`${file}\n`);
+	return hash.digest("hex").slice(0, 24);
+}
+
 export function readCachedIndex(repoRoot: string, key: string): GlyphIndex | null {
 	const path = join(cacheDir(repoRoot), `${key}.json`);
 	try {

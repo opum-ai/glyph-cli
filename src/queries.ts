@@ -27,8 +27,15 @@ export function findSymbols(index: GlyphIndex, name: string, filePattern: string
 /**
  * The one symbol a caller meant. Ambiguity is a usage error (exit 2) that
  * lists the candidates rather than guessing; absence is not-found (exit 3).
+ * `remedy` names the command's own disambiguation path, because the advice in
+ * one command's error must not name a flag another command does not have.
  */
-export function resolveSymbol(index: GlyphIndex, name: string, filePattern: string | undefined): SymbolEntry {
+export function resolveSymbol(
+	index: GlyphIndex,
+	name: string,
+	filePattern: string | undefined,
+	remedy = "narrow with --file",
+): SymbolEntry {
 	const matches = findSymbols(index, name, filePattern);
 	const narrowed = filePattern !== undefined ? ` in files matching '${filePattern}'` : "";
 	if (matches.length === 0) {
@@ -36,9 +43,7 @@ export function resolveSymbol(index: GlyphIndex, name: string, filePattern: stri
 	}
 	if (matches.length > 1) {
 		const lines = matches.map((m) => `  ${display(m)} (${m.kind}) at ${m.file}:${m.line}:${m.column}`);
-		throw usageError(
-			`'${name}' matches ${matches.length} symbols${narrowed}; narrow with --file:\n${lines.join("\n")}`,
-		);
+		throw usageError(`'${name}' matches ${matches.length} symbols${narrowed}; ${remedy}:\n${lines.join("\n")}`);
 	}
 	const only = matches[0];
 	if (only === undefined) throw notFoundError(`no symbol named '${name}'${narrowed} in ${index.repo}`);

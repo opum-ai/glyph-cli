@@ -26,6 +26,7 @@ import { buildProgram } from "../src/program.ts";
  */
 const GOLDEN_KINDS: Record<string, string> = {
 	callers: "callers.result",
+	impact: "impact.result",
 	diff: "diff.result",
 	"cache path": "cache.path",
 	"cache clear": "cache.clear",

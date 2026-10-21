@@ -1,7 +1,8 @@
 # Glyph
 
-Software intelligence about source code: **what calls this symbol**, and
-**which symbols a diff touches** — one language, one repository at a time.
+Software intelligence about source code: **what calls this symbol**, **what a
+symbol's change can reach**, and **which symbols a diff touches** — one
+language, one repository at a time.
 
 Glyph is Opum's software-intelligence primitive, the third peer product
 alongside Lore and Quest. v0 is deliberately narrow; its scope is the operator
@@ -24,6 +25,7 @@ checkout, with [Bun](https://bun.sh) matching `.bun-version`:
 ```sh
 bun install
 bun run glyph callers buildReport --repo /path/to/repo
+bun run glyph impact buildReport --repo /path/to/repo
 bun run glyph diff main --repo /path/to/repo
 ```
 
@@ -47,6 +49,40 @@ callers of buildIndex (function) at src/indexer.ts:206:17 — 3 call site(s) in 
   test/queries.test.ts:12:9  call  in indexOf
 index: 13 files, 81 symbols, 139 sites (cache miss)
 ```
+
+### `glyph impact <name>`
+
+Every caller a change to this symbol can reach — the transitive reverse closure
+of the call graph. Each caller appears once, at its shortest depth (direct
+callers are depth 1), with one shortest path to the target and the call sites
+on that path. When several shortest paths exist, a total order — the path
+string, then the call site's file, line and column — picks one, so the answer
+is deterministic.
+
+```console
+$ bun run glyph impact d
+impact of d (function) at src/d.ts:1:17 in the working tree — 3 caller(s) within depth 5 (3 found, cache hit)
+  depth 1  c  src/c.ts:3:10  c -> d
+  depth 2  b  src/b.ts:3:10  b -> c -> d
+  depth 3  a  src/a.ts:3:10  a -> b -> c -> d
+  unresolved: 0 of 3 call site(s) did not resolve; an empty answer is not proof of no impact
+index: 4 files, 4 symbols, 3 sites (cache hit)
+```
+
+- The default depth is 5. `--depth <n>` reports fewer hops and `--all` runs the
+  full closure; the two are mutually exclusive. A depth-bounded answer still
+  traverses the whole closure, so `truncated: true` comes with the **exact**
+  number of callers left unexplored rather than a frontier estimate. A cycle
+  terminates, and the callers on it are marked `cycle: true`.
+- A call site at module scope has no enclosing declaration. It is reported as a
+  terminal caller with `symbol: null` and is never expanded, so the depth-1
+  answer is a superset of `callers` (DEC-216 (a1)).
+- `--ref <ref>` answers from that commit's tree instead of the working tree;
+  see [Answering against a commit](#answering-against-a-commit).
+- The envelope carries `resolvedSites` and `unresolvedSites`, the index's
+  call-site counts, because an empty or shallow answer is not proof of no
+  impact: calls that resolve outside the repository, dynamic dispatch and
+  reflection are counted as unresolved and never guessed at.
 
 ### `glyph diff <base> [head]`
 
@@ -83,14 +119,14 @@ envelope:
 - **`principal` is reserved and always present**, as the last top-level key on
   both envelopes. It is `null` until an identity is populated; omitting it is
   non-conformance, not an equivalent variant.
-- **Kinds are dotted `command.payload`** (`callers.result`, `diff.result`,
-  `cache.path`, `cache.clear`, `help.manifest`), plus `version.info` and
-  `help.usage` for the global `--version` and `--help` results. They are a
-  registry, not a convention: handlers read their kind from it, `glyph help
-  --json` publishes it, a test walks the registered commander commands against
-  it, and a conformance test compares the registry and the exit-code taxonomy
-  against a golden set by exact equality, failing on a vacuous or deliberately
-  corrupted one.
+- **Kinds are dotted `command.payload`** (`callers.result`, `impact.result`,
+  `diff.result`, `cache.path`, `cache.clear`, `help.manifest`), plus
+  `version.info` and `help.usage` for the global `--version` and `--help`
+  results. They are a registry, not a convention: handlers read their kind from
+  it, `glyph help --json` publishes it, a test walks the registered commander
+  commands against it, and a conformance test compares the registry and the
+  exit-code taxonomy against a golden set by exact equality, failing on a
+  vacuous or deliberately corrupted one.
 - **Help and version are result-bearing under `--json`**, so no successful
   `--json` invocation prints text: `glyph --json --version` emits
   `version.info`, and `glyph --json --help` or a bare `glyph --json` emits
@@ -158,6 +194,28 @@ would index sources Git was refusing to describe.
   nowhere — a dynamic `x[key]()`, a function from a dependency — is counted
   in `unresolvedSites` and never guessed.
 
+## Answering against a commit
+
+`glyph impact --ref <ref>` indexes the tree of the commit `<ref>` names,
+without a checkout. The commit's regular blobs are listed with
+`git ls-tree -r` and read with one `git cat-file --batch`; the program is built
+on an in-memory compiler host, and the commit's own `tsconfig.json` (with
+anything it extends) supplies the compiler options. Paths inside the tree that it does not
+contain are invisible to that program, so an edited, added or deleted source
+file cannot change a `--ref` answer. **In-repo `node_modules` is not read from
+disk either** (DEC-216 (a2)): a module that would resolve through the
+checkout's installed dependencies resolves to nothing, and its call sites are
+counted in `unresolvedSites` — so two machines with different installs answer
+the same commit identically. A tracked `node_modules` is part of the tree and
+is read from the tree. Only paths outside the repository root are read from
+disk, which is where a hoisted dependency tree and a parent directory's
+tsconfig reached through `extends` live. Symlinks and submodules are not source files at a commit
+and are skipped. The working tree remains the default for interactive use.
+
+`diff` and the code-map seam will require `--ref` (DEC-216 Q4). Making an
+existing command's surface change is out of this slice, so that requirement is
+recorded in ADR 0003 and deferred to the seam's own slice.
+
 ## The cache
 
 The only state Glyph keeps, and disposable: every entry is re-derivable, so
@@ -166,18 +224,24 @@ deleting it costs time, never evidence. Location: `$GLYPH_CACHE_DIR`, else
 repository's absolute path. An entry's key covers the index format, `HEAD`
 when there is one, and every source file's path, size and mtime — a dirty
 working tree is what the index describes, so keying on `HEAD` alone would
-serve a stale answer after an edit. The five most recent revisions of a
-repository are retained.
+serve a stale answer after an edit. A `--ref` entry is keyed instead by the
+index format, the commit SHA and the tree's file list — never by file stats —
+so a dirty checkout can neither serve nor overwrite it. The five most recent
+revisions of a repository are retained.
 
 ## Limits (v0)
 
 - **Calls only.** Reading a symbol without calling it is not recorded;
-  `callers` answers call sites.
+  `callers` answers call sites, and `impact` walks them.
 - **No precision promise.** A call site resolves when the checker can resolve
   it; what was found is reported as found, and anything dynamic is counted as
-  unresolved rather than inferred.
+  unresolved rather than inferred. An empty or shallow `impact` answer is never
+  proof that nothing is affected — `unresolvedSites` is always reported beside
+  it.
 - **Committed history only** for `diff`: `base` and `head` are commits, and
-  uncommitted edits do not appear in the answer.
+  uncommitted edits do not appear in the answer. `impact` answers from the
+  working tree unless `--ref` names a commit, in which case no uncommitted
+  state can enter the answer.
 - **One repository** per invocation, no cross-repository graph, no UI.
 
 ## Development
