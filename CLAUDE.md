@@ -93,7 +93,10 @@ deletes or reads them (landed with glyph v0, GCLI-2):
   changed line ranges.
 - **The command surface and machine contract**: `src/cli.ts` on commander, with
   error types and exit codes in `src/errors.ts` — stdout carries one success
-  envelope, stderr the failure, exit 0/1/2/3.
+  envelope, stderr the failure, and the full frozen exit-code family (0 ok,
+  1 uncaught, 2 usage, 3 not_found, 4 denied, 5 conflict, 6 validation/drift,
+  7 indeterminate), mapped once in `EXIT_CODES` and documented in ADR 0002 and
+  the README.
 - **The local cache**: `src/cache.ts`, under `$GLYPH_CACHE_DIR`, else
   `$XDG_CACHE_HOME/glyph`, else `~/.cache/glyph`; disposable by design.
 
