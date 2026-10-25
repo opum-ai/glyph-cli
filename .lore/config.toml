@@ -31,10 +31,3 @@
 
 [tracker]
 backend = "quest"
-
-[agents]
-# The lore skill ships from the opum-lore Claude Code plugin, not this
-# repository. With this set, lore neither generates nor checks
-# .claude/skills/lore/SKILL.md, and CLAUDE.md's managed nudge block points
-# readers at the plugin instead. See `lore instructions agents` (LCLI-437).
-skill_source = "plugin"
