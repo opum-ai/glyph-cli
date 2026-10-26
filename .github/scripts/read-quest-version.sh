@@ -16,11 +16,24 @@ fail() {
 }
 
 [ -r "$file" ] || fail "cannot read ${file}"
-grep -qxF "$begin" "$file" || fail "managed Quest block begin marker not found"
-grep -qxF "$end" "$file" || fail "managed Quest block end marker not found"
+# A CR before the newline makes every marker line fail an exact match, which
+# would otherwise surface as a missing marker.
+if grep -q "$(printf '\r')" "$file"; then
+  fail "${file} has CRLF line endings; the markers cannot match"
+fi
 
-block="$(sed -n "/^${begin}\$/,/^${end}\$/p" "$file")"
-version="$(printf '%s\n' "$block" | sed -n 's/.*Quest CLI \([^ ]*\).*/\1/p' | head -1)"
+begins="$(grep -cxF "$begin" "$file" || true)"
+ends="$(grep -cxF "$end" "$file" || true)"
+[ "$begins" -eq 1 ] && [ "$ends" -eq 1 ] \
+  || fail "markers: expected exactly one begin and one end marker, found ${begins} begin and ${ends} end"
+begin_line="$(grep -nxF "$begin" "$file" | cut -d: -f1)"
+end_line="$(grep -nxF "$end" "$file" | cut -d: -f1)"
+[ "$begin_line" -lt "$end_line" ] || fail "markers: the end marker comes before the begin marker"
+
+# First digit-led token after 'Quest CLI', so prose such as 'Quest CLI version'
+# can never be the match.
+version="$(awk -v b="$begin_line" -v e="$end_line" \
+  'NR >= b && NR <= e && match($0, /Quest CLI [0-9][^ ]*/) { print substr($0, RSTART + 10, RLENGTH - 10); exit }' "$file")"
 
 [ -n "$version" ] || fail "no 'Quest CLI <version>' line inside the managed Quest block"
 printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' \
