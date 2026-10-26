@@ -21,6 +21,12 @@ name: CI
 # same bytes. ward-cli measured the duplicate run and scoped its trigger the
 # same way (WCLI-57).
 #
+# DEC-240 (GCLI-24): lore and quest install with --ignore-scripts so no
+# dependency lifecycle script runs on a runner; every checkout drops the token
+# (no job here pushes); the Quest version is read by
+# .github/scripts/read-quest-version.sh, only from inside the managed block and
+# only as an exact X.Y.Z; step outputs reach shell steps through env:.
+#
 # Every third-party action is pinned to a full commit SHA, verified against
 # its upstream tag when pinned (GCLI-1). Bump a pin by re-resolving the tag,
 # never by editing the comment alone.
@@ -51,6 +57,9 @@ jobs:
       LORE_VERSION: 0.14.1
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          # No job in this workflow pushes, so none needs the token left on disk (DEC-240).
+          persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24
@@ -59,13 +68,13 @@ jobs:
       - name: Install the pinned Lore CLI
         run: |
           set -euo pipefail
-          npm install --global "@opum-ai/lore@${LORE_VERSION}"
+          npm install -g --ignore-scripts "@opum-ai/lore@${LORE_VERSION}"
           installed="$(lore --version)"
           if [ "$installed" != "$LORE_VERSION" ]; then
             echo "::error::lore installed ${installed}, wanted ${LORE_VERSION}"
             exit 1
           fi
-          echo "Resolved lore version: $installed"
+          echo "Resolved lore version: $installed (npm $(npm --version))"
       - name: Validate OKF documents
         run: lore validate --strict
       - name: Check Lore coherence
@@ -86,6 +95,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          # No job in this workflow pushes, so none needs the token left on disk (DEC-240).
+          persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24
@@ -93,11 +105,7 @@ jobs:
         id: quest
         run: |
           set -euo pipefail
-          version="$(sed -n 's/.*Quest CLI \([0-9][0-9.]*\).*/\1/p' CLAUDE.md | head -1)"
-          if [ -z "$version" ]; then
-            echo "::error file=CLAUDE.md::No 'Quest CLI <version>' line found in the managed Quest block."
-            exit 1
-          fi
+          version="$(bash .github/scripts/read-quest-version.sh CLAUDE.md)"
           echo "Declared Quest version: $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Install the declared Quest CLI
@@ -105,13 +113,13 @@ jobs:
           QUEST_VERSION: ${{ steps.quest.outputs.version }}
         run: |
           set -euo pipefail
-          npm install --global "@opum-ai/quest@${QUEST_VERSION}"
+          npm install -g --ignore-scripts "@opum-ai/quest@${QUEST_VERSION}"
           installed="$(quest --version)"
           if [ "$installed" != "$QUEST_VERSION" ]; then
             echo "::error::quest installed ${installed}, wanted ${QUEST_VERSION}"
             exit 1
           fi
-          echo "Resolved quest version: $installed"
+          echo "Resolved quest version: $installed (npm $(npm --version))"
       # A task id present in both .quest/tasks/ and .quest/completed/ makes
       # every tracker read fail with conflict/5.
       - name: Tracker reads cleanly
@@ -134,6 +142,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          # No job in this workflow pushes, so none needs the token left on disk (DEC-240).
+          persist-credentials: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
