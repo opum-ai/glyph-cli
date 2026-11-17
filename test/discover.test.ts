@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { discoverSources } from "../src/discover.ts";
@@ -34,6 +34,27 @@ describe("source discovery", () => {
 		repo.write("src/fresh.ts", "export const fresh = 1;\n");
 
 		expect(discoverSources(repo.root)).toEqual(["keep.tmp.ts", "nested/public.ts", "src/app.ts", "src/fresh.ts"]);
+	});
+
+	test("this repository's .gitignore keeps DEC-208 review worktrees out of discovery", () => {
+		// Review worktrees under .claude/worktrees/ are local scratch and are never
+		// committed, so the repository ignores that directory and discovery -- which
+		// follows Git -- does not index their copies. The scratch repo carries this
+		// repository's own .gitignore, so removing the ignore line turns this test
+		// red. The unignored copy at the end is the control: exclusion is Git's own
+		// answer, not a hardcoded path.
+		const repo = makeScratchRepo({
+			".gitignore": readFileSync(new URL("../.gitignore", import.meta.url), "utf8"),
+			"src/app.ts": "export const app = 1;\n",
+		});
+		repo.commit("base");
+		repo.write(".claude/worktrees/review-1/src/app.ts", "export const app = 1;\n");
+		repo.write("scratch/other.ts", "export const other = 1;\n");
+
+		expect(discoverSources(repo.root)).toEqual(["scratch/other.ts", "src/app.ts"]);
+
+		repo.write("copy/src/app.ts", "export const app = 1;\n");
+		expect(discoverSources(repo.root)).toEqual(["copy/src/app.ts", "scratch/other.ts", "src/app.ts"]);
 	});
 
 	test("keeps a tracked source even after an ignore pattern matches it", () => {

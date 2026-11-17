@@ -1,5 +1,8 @@
 .claude/handovers/
 .claude/settings.local.json
+# DEC-208 review worktrees are local scratch and are never committed; ignoring
+# them keeps Git (and therefore source discovery) from indexing their copies.
+.claude/worktrees/
 .DS_Store
 node_modules/
 dist/
