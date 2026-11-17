@@ -89,9 +89,11 @@ kind, `impact.result`, with the exit-code family every Glyph command shares.
   are invisible to a `--ref` program, and **in-repo `node_modules` is not read
   from disk** (DEC-216 (a2)): a module that would resolve through the
   checkout's installed dependencies resolves to nothing, and its call sites are
-  counted in `unresolvedSites`. That keeps every in-repo answer exact across
-  machines with different installs and consistent with a cache key that cannot
-  see node_modules content. A tracked `node_modules` is part of the tree and is
+  counted in `unresolvedSites`. That makes the commit's own content authoritative
+  on every machine — a module that would resolve through an in-repo install is
+  unresolved everywhere — and consistent with a cache key that cannot see
+  node_modules content. Inputs the host supplies from outside the root can still
+  move a cold answer; see Consequences. A tracked `node_modules` is part of the tree and is
   served from the tree like any other committed path. Inputs outside the
   repository root are host reads the key cannot see either — see the scoping of
   the identity claim in Consequences. `ts.sys` is the fallback
@@ -128,7 +130,8 @@ exactly as before.
 - A dirty checkout can no longer influence a `--ref` answer, at the cost of
   ignoring uncommitted files (including a locally added source file that is not
   in the commit) under `--ref`.
-- In-repo `node_modules` is never read in `--ref` mode (DEC-216 (a2)).
+- In-repo `node_modules` is never read in `--ref` mode, apart from the running
+  TypeScript package's own library directory (DEC-216 (a2)).
   Dependencies installed in the checkout are not part of the commit, so a
   resolution that would go through them is reported as unresolved instead, and
   a cache entry cannot be influenced by them. The cost is recall: a call whose
@@ -137,10 +140,24 @@ exactly as before.
 - **The identity claim is scoped to the repository root.** `ts.sys` serves the
   paths outside it — a hoisted dependency tree, a parent-directory tsconfig
   reached through `extends`, and the running TypeScript package's library
-  directory — and `computeRefKey` hashes none of them. So two hosts whose
-  outside-root inputs differ can answer the same commit differently on a cold
-  cache, and a warm entry keeps the answer it was built with. Inside the root
-  the tree, and the tsconfig the tree carries, determine the answer.
+  directory — and `computeRefKey` hashes none of them. Neither does it hash the
+  running TypeScript compiler's version, whose checker behaviour reaches beyond
+  its `.d.ts` files, or Glyph's own indexer logic beyond `INDEX_FORMAT` (a code
+  change without a format bump can also serve a stale warm entry). So two hosts
+  whose outside-root inputs or tool versions differ can answer the same commit
+  differently on a cold cache, and a warm entry keeps the answer it was built
+  with. Inside the root the tree, and the tsconfig the tree carries, determine
+  the answer.
+*Corrected 2026-11-17 (GCLI-19).* Earlier versions of this record promised that
+"two machines with different installs answer the same `--ref` identically", and
+stated that in-repo `node_modules` is not read from disk without excepting the
+running TypeScript package's own library directory. Both were too strong, for
+the reasons in the bullet above: an outside-root input — a hoisted dependency
+tree, a parent tsconfig reached through `extends`, the TypeScript package, or a
+different compiler version — can move a cold answer, and only what the commit
+itself carries is authoritative. The scoped wording above replaces the earlier
+sentences; the DEC-216 (a2) design ruling they described is unchanged.
+
 - An empty answer never reads as "no impact": `unresolvedSites` is always
   reported, and the precision caveat is stated in the README and in every human
   answer.

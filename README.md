@@ -203,7 +203,8 @@ on an in-memory compiler host, and the commit's own `tsconfig.json` (with
 anything it extends) supplies the compiler options. Paths inside the repository
 that the tree does not contain are invisible to that program, so an edited,
 added or deleted source file cannot change a `--ref` answer. **In-repo `node_modules` is not read from
-disk either** (DEC-216 (a2)): a module that would resolve through the
+disk either** (DEC-216 (a2)), apart from the running TypeScript package's own
+library directory: a module that would resolve through the
 checkout's installed dependencies resolves to nothing, and its call sites are
 counted in `unresolvedSites`. A tracked `node_modules` is part of the tree and
 is read from the tree.

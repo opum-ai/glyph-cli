@@ -63,7 +63,9 @@ export function computeKey(repoRoot: string, files: string[]): string {
  * the host files Glyph reads outside the repository root — a hoisted dependency
  * tree, a parent tsconfig reached through `extends`, the TypeScript library —
  * which are not hashed here, so a changed one can move a cold answer while a
- * warm entry keeps the old one. The file list is mixed in as well so two
+ * warm entry keeps the old one. Nor is the running TypeScript compiler's
+ * version, whose checker behaviour reaches beyond its `.d.ts` files, or Glyph's
+ * own indexer logic beyond `INDEX_FORMAT`. The file list is mixed in as well so two
  * different trees can never collide even if a format bump ever fails to reach
  * this line. Deliberately not stat-based: a `--ref` answer must not move when
  * the checkout does.

@@ -272,7 +272,9 @@ describe("impact", () => {
 		expect(indexSnapshot(snapshot).symbols.map((entry) => entry.name)).toContain("e");
 	});
 
-	test("a backslash in a committed file name survives the ref snapshot", () => {
+	// Windows cannot hold a file name containing a backslash, and makeScratchRepo's
+	// join would turn this fixture into a directory there, so the case is POSIX-only.
+	test.skipIf(process.platform === "win32")("a backslash in a committed file name survives the ref snapshot", () => {
 		// git ls-tree paths are already POSIX, and a backslash is a legal
 		// character in a POSIX file name: rewriting it would turn one file into a
 		// directory path the tree does not contain. The symbol itself still does

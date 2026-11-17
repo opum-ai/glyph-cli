@@ -12,13 +12,15 @@ import type { GlyphIndex } from "./types.ts";
  * The commit's own files are authoritative. Blobs are listed with
  * `git ls-tree -r` and read with one `git cat-file --batch`, so nothing is
  * taken from the working tree. In-repo `node_modules` is **not** read from
- * disk: a module that would resolve through the checkout's installed
- * dependencies resolves to nothing, and its call sites are counted in
- * `unresolvedSites`. That keeps the answer exact — two machines with different
- * installs cannot answer the same `--ref` differently — and consistent with a
- * cache key that cannot see node_modules content. A tracked `node_modules` is
- * part of the tree, so it is served from the tree like any other committed
- * path.
+ * disk, apart from the running TypeScript package's own library directory: a
+ * module that would resolve through the checkout's installed dependencies
+ * resolves to nothing, and its call sites are counted in `unresolvedSites`.
+ * That makes the commit's own content authoritative on every machine and
+ * consistent with a cache key that cannot see node_modules content. A tracked
+ * `node_modules` is part of the tree, so it is served from the tree like any
+ * other committed path. Inputs read from the host outside the repository root
+ * are not part of that promise: a hoisted dependency tree, a parent tsconfig or
+ * a different TypeScript package can still move a cold answer.
  *
  * `ts.sys` is the fallback only for paths outside the repository root: the
  * TypeScript standard library, a hoisted dependency tree, and a
@@ -60,9 +62,12 @@ export interface TreeSnapshot {
 /**
  * Separator normalisation for a path that may come from the host. Windows
  * `node:path` produces backslashes; on every other platform a backslash is an
- * ordinary character in a file name, and a legal POSIX name containing one --
- * including a path from `git ls-tree`, which is already POSIX -- must not be
- * rewritten into a directory separator.
+ * ordinary character in a file name, so a path from `git ls-tree` -- already
+ * POSIX -- is returned untouched and a legal name containing a backslash is not
+ * turned into a directory separator. On Windows the rewrite still applies to
+ * every input, which is harmless there: a Windows file name cannot contain a
+ * backslash, and the listing and the snapshot share this function, so their
+ * keys stay consistent.
  */
 function posix(path: string): string {
 	return process.platform === "win32" ? path.split("\\").join("/") : path;
