@@ -38,15 +38,43 @@ const budgetRows = (output: { omissions: { source: string; reason: string }[] })
 	output.omissions.filter((row) => row.source === TIME_BUDGET_SOURCE);
 
 describe("the time budget", () => {
-	test("the budget is one named constant, and a run inside it carries no time-budget row", () => {
-		expect(CODE_MAP_TIME_BUDGET_MS).toBeGreaterThan(0);
+	test("the budget is the one named constant DEC-216 (a10) fixed, and a run inside it carries no time-budget row", () => {
+		// 7.0 s = round-up(2 x quest-cli cold p95 3.365 s). Changing it needs a new measurement
+		// and a new record, never an edit alone: this pin is what makes an edit alone fail.
+		expect(CODE_MAP_TIME_BUDGET_MS).toBe(7_000);
 		const root = repoWith(FILES);
 		const output = produceCodeMap({ repositoryPath: root, sourceRef: "base", taskText: TEXT });
 		expect(budgetRows(output)).toEqual([]);
 		expect(output.pointers.map((pointer) => pointer.path)).toContain("src/0-note.ts");
 	});
 
-	test("an index build that spends the budget stops later stages, names the stage, and keeps what it has", () => {
+	test("P1: the unit-boundary check stops after a slow unit, reports time-budget, and keeps what it has", () => {
+		const root = repoWith(FILES);
+		let clock = 0;
+		const output = produceCodeMap({
+			repositoryPath: root,
+			sourceRef: "base",
+			taskText: TEXT,
+			timeBudgetMs: 1_000,
+			now: () => clock,
+			// A slow fake unit: the index load takes five budgets and then finds no index.
+			loadIndex: () => {
+				clock += 5_000;
+				return null;
+			},
+		});
+		const rows = budgetRows(output);
+		expect(rows).toHaveLength(1);
+		expect(rows[0]?.reason).toStartWith("time-budget:");
+		expect(rows[0]?.reason).toContain("symbol index");
+		const paths = output.pointers.map((pointer) => pointer.path);
+		// The named path found before the slow unit is returned; the later grep stage never ran.
+		expect(paths).toEqual(["src/a.ts"]);
+		expect(output.pointers[0]?.reason).toContain("line ranges not read (time-budget)");
+		expect(rows[0]?.reason).toContain("1 without line ranges");
+	});
+
+	test("P2: a forced slow index build overruns, and the overrun IS reported with the elapsed time", () => {
 		const root = repoWith(FILES);
 		let clock = 0;
 		const output = produceCodeMap({
@@ -57,21 +85,18 @@ describe("the time budget", () => {
 			now: () => clock,
 			loadIndex: (path, commit) => {
 				const index = loadRefIndex(path, commit);
-				clock += 5_000; // the build took five times the budget
+				clock += 5_000; // the build took five times the budget and could not be interrupted
 				return index;
 			},
 		});
 		const rows = budgetRows(output);
 		expect(rows).toHaveLength(1);
-		expect(rows[0]?.reason).toContain("time-budget");
 		expect(rows[0]?.reason).toContain("symbol index");
+		expect(rows[0]?.reason).toContain("5000 ms elapsed");
+		// The overrun build's answer is kept: tier 3's files are returned, tier 4 never ran.
 		const paths = output.pointers.map((pointer) => pointer.path);
-		// What was gathered before the stop is returned: the named path and tier 3's files.
 		expect(paths).toEqual(["src/a.ts", "src/barrel.ts", "src/c.ts"]);
-		// Tier 4 never ran, so the grep-only file is absent.
 		expect(paths).not.toContain("src/0-note.ts");
-		// A pointer whose line ranges were not read says so, rather than reading as a whole file.
-		for (const pointer of output.pointers) expect(pointer.reason).toContain("line ranges not read (time-budget)");
 		expect(rows[0]?.reason).toContain("3 without line ranges");
 	});
 
@@ -136,6 +161,19 @@ describe("the time budget", () => {
 		} finally {
 			process.env.PATH = savedPath;
 		}
+	});
+
+	test("P3: a warm run on a real repository (this one) stays well under the budget", () => {
+		const repoRoot = new URL("..", import.meta.url).pathname;
+		const input = { repositoryPath: repoRoot, sourceRef: "HEAD", taskText: "see `produceCodeMap` in src/codemap.ts" };
+		produceCodeMap(input); // primes the index cache
+		const started = performance.now();
+		const output = produceCodeMap(input);
+		const elapsed = performance.now() - started;
+		expect(budgetRows(output)).toEqual([]);
+		expect(output.pointers.length).toBeGreaterThan(0);
+		// Warm glyph-cli measured 0.25 s against 7.0 s; "well under" is half the budget.
+		expect(elapsed).toBeLessThan(CODE_MAP_TIME_BUDGET_MS / 2);
 	});
 
 	test("the budget never changes an answer that finishes inside it", () => {

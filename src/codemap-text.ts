@@ -31,8 +31,9 @@ export const CODE_MAP_MAX_PATH_CANDIDATES = 50;
 /**
  * The wall-time budget of one code-map run, in milliseconds (DEC-216 (a4)(b)): twice
  * the worst measured p95, rounded up to the next half second. Measured 2026-11-17 on
- * glyph d97958f, the worst cell being quest-cli cold at 3.365 s, so 7.0 s. PROPOSED
- * until opum-doc fixes the number in the GCLI-12 record; ADR 0005 cites the fixed one.
+ * glyph d97958f, the worst cell being quest-cli cold at 3.365 s, so 7.0 s. FIXED by
+ * opum-doc DEC-216 (a10); changing it needs a new measurement and a new record, never
+ * an edit alone (ADR 0005).
  */
 export const CODE_MAP_TIME_BUDGET_MS = 7_000;
 /** How much of the task text the extractors read. */

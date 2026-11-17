@@ -348,13 +348,14 @@ export function codeMapPointerLine(pointer: CodeMapPointer): string {
 export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 	const now = input.now ?? (() => performance.now());
 	const budgetMs = input.timeBudgetMs ?? CODE_MAP_TIME_BUDGET_MS;
-	const deadline = now() + budgetMs;
+	const startedAt = now();
+	const deadline = startedAt + budgetMs;
 	assertTaskTextWithinBound(input.taskText);
 	// One cheap read, outside the budget: nothing can be gathered without the commit.
 	const commit = resolveSourceRef(input.repositoryPath, input.sourceRef);
 	activeBudget = { expired: () => now() >= deadline, remaining: () => deadline - now() };
 	try {
-		return buildCodeMap(input, commit, budgetMs);
+		return buildCodeMap(input, commit, budgetMs, () => Math.round(now() - startedAt));
 	} finally {
 		activeBudget = null;
 	}
@@ -366,10 +367,10 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
  * checked between units of work (a named path, the branch diff, the index load, one
  * identifier's grep, one pointer's range reads) and caps every git read at the time
  * left. The one unit it cannot interrupt is the synchronous index build, which a
- * repository far larger than the measured ones could overrun; the omission then
- * names the stage that overran.
+ * repository far larger than the measured ones could overrun (DEC-216 (a10)); the
+ * omission then names the stage that overran and carries the elapsed time.
  */
-function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number): CodeMapOutput {
+function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, elapsedMs: () => number): CodeMapOutput {
 	const text = input.taskText;
 	const omissions: CodeMapOmission[] = [];
 	let stoppedAt: string | undefined;
@@ -625,7 +626,7 @@ function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number): Co
 	if (stoppedAt !== undefined) {
 		omissions.push({
 			source: TIME_BUDGET_SOURCE,
-			reason: `time-budget: the ${budgetMs} ms budget was spent during ${stoppedAt}; the pointers are what was gathered by then${rangesNotRead > 0 ? `, ${rangesNotRead} without line ranges` : ""}`,
+			reason: `time-budget: the ${budgetMs} ms budget was spent during ${stoppedAt}, ${elapsedMs()} ms elapsed when the run stopped; the pointers are what was gathered by then${rangesNotRead > 0 ? `, ${rangesNotRead} without line ranges` : ""}`,
 		});
 	}
 

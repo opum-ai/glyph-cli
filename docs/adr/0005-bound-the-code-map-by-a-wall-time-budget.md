@@ -15,12 +15,10 @@ generated:
 
 ## Status
 
-Proposed. It cites opum-doc DEC-216 (a4)(b), which requires a measured budget that
-opum-doc then fixes in the GCLI-12 record. The number below, 7.0 s, is glyph-cli's
-**proposal** from that measurement; this ADR is accepted, and the constant
-`CODE_MAP_TIME_BUDGET_MS` confirmed or changed, when opum-doc's fixed number is
-recorded here. Implemented under GCLI-38, slice 3 of GCLI-12, after ADR 0002's
-contract and the tier 3 slice (GCLI-37).
+Accepted — opum-doc DEC-216 (a10), 2026-11-17, which fixed the budget at 7.0 s and
+chose the in-process design (option A) for the index build, building on the
+measurement rule of DEC-216 (a4)(b). Implemented under GCLI-38, slice 3 of GCLI-12,
+after ADR 0002's contract and the tier 3 slice (GCLI-37).
 
 ## Context
 
@@ -50,16 +48,17 @@ budget.
 ## Decision
 
 The budget is `budget = round-up(2 x the worst p95)` to the next 0.5 s, which is
-2 x 3.365 = 6.73, so **7.0 s** (proposed), held as the single constant
-`CODE_MAP_TIME_BUDGET_MS`.
+2 x 3.365 = 6.73, so **7.0 s**, held as the single constant
+`CODE_MAP_TIME_BUDGET_MS`. Changing it needs a new measurement and a new record,
+never an edit alone; a test pins the value so an edit alone fails.
 
 Past the budget, `code-map` stops gathering and returns what it has. The deadline is
 checked between units of work: each named path, the branch diff, the symbol index
 load, each identifier's grep, and each pointer's range reads. Every git read is capped
 at the time left, and a read the budget cuts off is a stop, not an error. The result
 carries one omission, source `code-map#time-budget`, whose reason starts
-`time-budget:` and names the stage the budget was spent in and how many pointers
-lack line ranges. A pointer emitted after the deadline skips the git reads that give
+`time-budget:` and names the stage the budget was spent in, the elapsed time when
+the run stopped, and how many pointers lack line ranges. A pointer emitted after the deadline skips the git reads that give
 its ranges and says so in its reason (`line ranges not read (time-budget)`), because
 an empty range list otherwise means the whole file. A run that spends its budget
 before gathering anything returns no pointers and that one omission: it never
@@ -71,13 +70,19 @@ says so.
 
 ## Consequences
 
-- One gap remains. The cold index build is synchronous in-process and cannot be
+- One gap is named. The cold index build is synchronous in-process and cannot be
   interrupted, so a repository far larger than the five measured can overrun the
-  budget inside that one step; the run then stops at the next check and the omission
-  names `symbol index`. Bounding the build itself would need a subprocess or worker,
-  which is not built here.
+  budget inside that one step. The overrun is never silent: the run stops at the next
+  check, the answer built so far is returned, and the omission names `symbol index`
+  and carries the elapsed time, which then exceeds the budget.
+- Reopen condition for option B (a killable subprocess build): a real repository whose
+  cold build alone exceeds the budget. Until one is shown, the in-process design stands.
 - The budget bounds a single run, not a caller's total: a consumer that calls
   `code-map` repeatedly owns its own aggregate budget.
 - The measurement is a snapshot. If the five repositories grow or the machine class
   changes, the number is re-measured and the constant and this ADR move together.
-- The tests inject the clock and use a slow-git shim, so none depends on machine speed.
+- The proof has three parts, each a test: a unit-boundary check stops after a slow
+  fake unit and reports `time-budget` (P1); a forced slow index build overruns and is
+  reported with its elapsed time (P2); a warm run on a real repository stays well
+  under the budget (P3). A pin test holds the constant. The clock is injected and a
+  slow-git shim is used, so none depends on machine speed except P3's wide margin.
