@@ -59,10 +59,14 @@ export function computeKey(repoRoot: string, files: string[]): string {
 
 /**
  * The cache key for an index of one commit's tree. That tree is immutable, so
- * the commit SHA and the index format determine the derived index; the file
- * list is mixed in as well so two different trees can never collide even if a
- * format bump ever fails to reach this line. Deliberately not stat-based: a
- * `--ref` answer must not move when the checkout does.
+ * the commit SHA and the index format determine the derived index apart from
+ * the host files Glyph reads outside the repository root — a hoisted dependency
+ * tree, a parent tsconfig reached through `extends`, the TypeScript library —
+ * which are not hashed here, so a changed one can move a cold answer while a
+ * warm entry keeps the old one. The file list is mixed in as well so two
+ * different trees can never collide even if a format bump ever fails to reach
+ * this line. Deliberately not stat-based: a `--ref` answer must not move when
+ * the checkout does.
  */
 export function computeRefKey(sha: string, files: readonly string[]): string {
 	const hash = createHash("sha1");

@@ -142,7 +142,7 @@ describe("impact", () => {
 		expect(result.cycle).toBe(true);
 	});
 
-	test("a module-scope call site is a terminal caller: symbol null, one-site path, never expanded", () => {
+	test("a module-scope call site is a terminal caller: symbol null, the full path to the target, never expanded", () => {
 		const files: Record<string, string> = {
 			"src/d.ts": "export function d(): number {\n  return 1;\n}\n",
 			"src/c.ts": 'import { d } from "./d";\nexport function c(): number {\n  return d();\n}\n',
@@ -270,6 +270,24 @@ describe("impact", () => {
 		expect(snapshot.files).toContain("src/e.ts");
 		expect(discoverSources(repo.root)).not.toContain("src/e.ts");
 		expect(indexSnapshot(snapshot).symbols.map((entry) => entry.name)).toContain("e");
+	});
+
+	test("a backslash in a committed file name survives the ref snapshot", () => {
+		// git ls-tree paths are already POSIX, and a backslash is a legal
+		// character in a POSIX file name: rewriting it would turn one file into a
+		// directory path the tree does not contain. The symbol itself still does
+		// not enter the index, because TypeScript normalises a backslash to a
+		// separator before it reads the file (GCLI-30); this test pins the
+		// snapshot's honest answer, which is the part this change owns.
+		const repo = makeScratchRepo({
+			...CHAIN,
+			"src/back\\slash.ts": "export function odd(): number {\n  return 4;\n}\n",
+		});
+		const base = repo.commit("base");
+		const snapshot = snapshotAtRef(repo.root, base);
+		expect(snapshot.files).toContain("src/back\\slash.ts");
+		expect(sourceFilesAtRef(repo.root, base)).toContain("src/back\\slash.ts");
+		expect(snapshot.files).not.toContain("src/back/slash.ts");
 	});
 
 	test("the ref cache key's listing is computed without reading blobs and matches the snapshot", () => {

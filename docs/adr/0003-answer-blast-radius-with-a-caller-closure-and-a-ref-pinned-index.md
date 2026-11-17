@@ -89,10 +89,12 @@ kind, `impact.result`, with the exit-code family every Glyph command shares.
   are invisible to a `--ref` program, and **in-repo `node_modules` is not read
   from disk** (DEC-216 (a2)): a module that would resolve through the
   checkout's installed dependencies resolves to nothing, and its call sites are
-  counted in `unresolvedSites`. That keeps the answer exact across machines
-  with different installs and consistent with a cache key that cannot see
-  node_modules content. A tracked `node_modules` is part of the tree and is
-  served from the tree like any other committed path. `ts.sys` is the fallback
+  counted in `unresolvedSites`. That keeps every in-repo answer exact across
+  machines with different installs and consistent with a cache key that cannot
+  see node_modules content. A tracked `node_modules` is part of the tree and is
+  served from the tree like any other committed path. Inputs outside the
+  repository root are host reads the key cannot see either — see the scoping of
+  the identity claim in Consequences. `ts.sys` is the fallback
   only for paths outside the repository root — which is where a hoisted
   dependency tree and a parent-directory tsconfig reached through `extends`
   live — and for the running TypeScript package's own library directory, which
@@ -128,11 +130,17 @@ exactly as before.
   in the commit) under `--ref`.
 - In-repo `node_modules` is never read in `--ref` mode (DEC-216 (a2)).
   Dependencies installed in the checkout are not part of the commit, so a
-  resolution that would go through them is reported as unresolved instead; two
-  machines with different installs answer the same `--ref` identically, and a
-  cache entry cannot be influenced by them. The cost is recall: a call whose
+  resolution that would go through them is reported as unresolved instead, and
+  a cache entry cannot be influenced by them. The cost is recall: a call whose
   resolution needed a dependency's types is counted, not resolved. A tracked
   `node_modules` is read from the tree like any committed path.
+- **The identity claim is scoped to the repository root.** `ts.sys` serves the
+  paths outside it — a hoisted dependency tree, a parent-directory tsconfig
+  reached through `extends`, and the running TypeScript package's library
+  directory — and `computeRefKey` hashes none of them. So two hosts whose
+  outside-root inputs differ can answer the same commit differently on a cold
+  cache, and a warm entry keeps the answer it was built with. Inside the root
+  the tree, and the tsconfig the tree carries, determine the answer.
 - An empty answer never reads as "no impact": `unresolvedSites` is always
   reported, and the precision caveat is stated in the README and in every human
   answer.

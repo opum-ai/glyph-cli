@@ -57,8 +57,15 @@ export interface TreeSnapshot {
 	): string[];
 }
 
+/**
+ * Separator normalisation for a path that may come from the host. Windows
+ * `node:path` produces backslashes; on every other platform a backslash is an
+ * ordinary character in a file name, and a legal POSIX name containing one --
+ * including a path from `git ls-tree`, which is already POSIX -- must not be
+ * rewritten into a directory separator.
+ */
 function posix(path: string): string {
-	return path.split("\\").join("/");
+	return process.platform === "win32" ? path.split("\\").join("/") : path;
 }
 
 /** Agent paths are POSIX; the map is keyed that way. */
