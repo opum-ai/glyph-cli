@@ -15,19 +15,19 @@ import type { GlyphIndex } from "./types.ts";
  * disk, apart from the running TypeScript package's own library directory: a
  * module that would resolve through the checkout's installed dependencies
  * resolves to nothing, and its call sites are counted in `unresolvedSites`.
- * That makes the commit's own content authoritative on every machine and
- * consistent with a cache key that cannot see node_modules content. A tracked
+ * That makes what the commit carries authoritative and consistent with a cache
+ * key that cannot see node_modules content. A tracked
  * `node_modules` is part of the tree, so it is served from the tree like any
- * other committed path. Inputs read from the host outside the repository root
- * are not part of that promise: a hoisted dependency tree, a parent tsconfig or
- * a different TypeScript package can still move a cold answer.
+ * other committed path. Inputs the commit does not carry are not part of that
+ * promise: a hoisted dependency tree, a parent tsconfig, or a different
+ * TypeScript package can still move a cold answer.
  *
- * `ts.sys` is the fallback only for paths outside the repository root: the
- * TypeScript standard library, a hoisted dependency tree, and a
- * parent-directory tsconfig reached through `extends` live there, outside any
- * tree this commit describes. The standard library is also served when the
- * running TypeScript package happens to sit inside the analyzed checkout,
- * because it belongs to the tool rather than to the commit.
+ * `ts.sys` is the fallback for paths the commit does not carry: a hoisted
+ * dependency tree above the root, a parent-directory tsconfig reached through
+ * `extends`, and the running TypeScript package's standard library. That
+ * library is served wherever it sits — inside the analyzed checkout too, when
+ * the package is a dependency of it — because it belongs to the tool rather
+ * than to the commit.
  *
  * Symlinks are not followed here (a tree records the link text, not the
  * target), and submodules are gitlinks, not blobs, so neither enters the file

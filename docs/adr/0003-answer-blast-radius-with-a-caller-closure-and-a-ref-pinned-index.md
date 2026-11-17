@@ -89,20 +89,16 @@ kind, `impact.result`, with the exit-code family every Glyph command shares.
   are invisible to a `--ref` program, and **in-repo `node_modules` is not read
   from disk** (DEC-216 (a2)): a module that would resolve through the
   checkout's installed dependencies resolves to nothing, and its call sites are
-  counted in `unresolvedSites`. That makes the commit's own content authoritative
-  on every machine — a module that would resolve through an in-repo install is
-  unresolved everywhere — and consistent with a cache key that cannot see
-  node_modules content. Inputs the host supplies from outside the root can still
-  move a cold answer; see Consequences. A tracked `node_modules` is part of the tree and is
-  served from the tree like any other committed path. Inputs outside the
-  repository root are host reads the key cannot see either — see the scoping of
-  the identity claim in Consequences. `ts.sys` is the fallback
-  only for paths outside the repository root — which is where a hoisted
-  dependency tree and a parent-directory tsconfig reached through `extends`
-  live — and for the running TypeScript package's own library directory, which
-  belongs to the tool rather than to the commit. Symlink entries and submodule
-  gitlinks are not source files and are skipped. The working tree remains the
-  default for interactive use.
+  counted in `unresolvedSites`. That makes what the commit carries authoritative
+  and consistent with a cache key that cannot see node_modules content. A
+  tracked `node_modules` is part of the tree and is served from the tree like
+  any other committed path. `ts.sys` is the fallback for paths the commit does
+  not carry: a hoisted dependency tree above the root, a parent-directory
+  tsconfig reached through `extends`, and the running TypeScript package's own
+  library directory, wherever that sits. Those host reads are not hashed, so
+  they can still move a cold answer — see Consequences. Symlink entries and
+  submodule gitlinks are not source files and are skipped. The working tree
+  remains the default for interactive use.
 - **The cache is addressed by the commit under `--ref`.** The key is the index
   format plus the commit SHA plus the tree's file list — not file stats — so a
   dirty working tree can neither serve nor overwrite a `--ref` answer. The
@@ -137,26 +133,19 @@ exactly as before.
   a cache entry cannot be influenced by them. The cost is recall: a call whose
   resolution needed a dependency's types is counted, not resolved. A tracked
   `node_modules` is read from the tree like any committed path.
-- **The identity claim is scoped to the repository root.** `ts.sys` serves the
-  paths outside it — a hoisted dependency tree, a parent-directory tsconfig
-  reached through `extends`, and the running TypeScript package's library
-  directory — and `computeRefKey` hashes none of them. Neither does it hash the
-  running TypeScript compiler's version, whose checker behaviour reaches beyond
-  its `.d.ts` files, or Glyph's own indexer logic beyond `INDEX_FORMAT` (a code
-  change without a format bump can also serve a stale warm entry). So two hosts
-  whose outside-root inputs or tool versions differ can answer the same commit
-  differently on a cold cache, and a warm entry keeps the answer it was built
-  with. Inside the root the tree, and the tsconfig the tree carries, determine
-  the answer.
-*Corrected 2026-11-17 (GCLI-19).* Earlier versions of this record promised that
-"two machines with different installs answer the same `--ref` identically", and
-stated that in-repo `node_modules` is not read from disk without excepting the
-running TypeScript package's own library directory. Both were too strong, for
-the reasons in the bullet above: an outside-root input — a hoisted dependency
-tree, a parent tsconfig reached through `extends`, the TypeScript package, or a
-different compiler version — can move a cold answer, and only what the commit
-itself carries is authoritative. The scoped wording above replaces the earlier
-sentences; the DEC-216 (a2) design ruling they described is unchanged.
+- **The identity claim is scoped to what the commit carries.** `computeRefKey`
+  hashes `INDEX_FORMAT`, the commit SHA and the tree's file list, and nothing
+  else. Three kinds of input can therefore move a cold answer without moving the
+  key: host files the commit does not carry — a hoisted dependency tree above
+  the root, a parent-directory tsconfig reached through `extends`, and the
+  running TypeScript package's own library directory, wherever it sits, inside
+  the root included; the running TypeScript compiler's version, whose checker
+  behaviour reaches beyond its `.d.ts` files; and Glyph's own indexer logic
+  beyond `INDEX_FORMAT`, so a code change without a format bump can also serve a
+  stale warm entry. Two hosts whose such inputs or tool versions differ can
+  answer the same commit differently on a cold cache, and a warm entry keeps the
+  answer it was built with. What the commit does carry — its tree and its own
+  tsconfig — determines the rest.
 
 - An empty answer never reads as "no impact": `unresolvedSites` is always
   reported, and the precision caveat is stated in the README and in every human
@@ -166,3 +155,13 @@ sentences; the DEC-216 (a2) design ruling they described is unchanged.
   options) and the `impact` cases in `test/cli.test.ts` (text and JSON,
   `--depth`, `--all`, ref-versus-dirty-tree, ambiguous and unknown symbols,
   invalid depth, byte identity across runs).
+
+*Corrected 2026-11-17 (GCLI-19).* Earlier versions of this record promised that
+"two machines with different installs answer the same `--ref` identically", and
+stated that in-repo `node_modules` is not read from disk without excepting the
+running TypeScript package's own library directory. Both were too strong: an
+input the commit does not carry — a hoisted dependency tree, a parent tsconfig
+reached through `extends`, the TypeScript package wherever it sits, or a
+different compiler version — can move a cold answer, and only what the commit
+carries is authoritative. The scoped wording above replaces the earlier
+sentences; the DEC-216 (a2) design ruling they described is unchanged.

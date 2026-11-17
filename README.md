@@ -209,14 +209,15 @@ checkout's installed dependencies resolves to nothing, and its call sites are
 counted in `unresolvedSites`. A tracked `node_modules` is part of the tree and
 is read from the tree.
 
-Some inputs live outside the commit: a hoisted dependency tree, a parent
-directory's tsconfig reached through `extends`, and the running TypeScript
-package's own library directory. Those are read from the host, and they are not
-part of the cache key. So the exactness promise is scoped to the repository
-root: the commit's tree and its own tsconfig determine an in-repo answer, and a
-dirty checkout cannot influence it, while two hosts can answer the same commit
-differently when a hoisted package, a parent tsconfig or the TypeScript install
-differs — and a warm cache entry keeps the answer it was built with. Symlinks
+Some inputs the commit does not carry are read from the host: a hoisted
+dependency tree, a parent directory's tsconfig reached through `extends`, and
+the running TypeScript package's own library directory, wherever it sits. They
+are not part of the cache key, and neither is the TypeScript compiler's version
+or Glyph's own indexer logic beyond its index format. So the exactness promise
+is scoped to what the commit carries: its tree and its own tsconfig determine
+the answer, and a dirty checkout cannot influence it, while two hosts can answer
+the same commit differently when one of those inputs differs — and a warm cache
+entry keeps the answer it was built with. Symlinks
 and submodules are not source files at a commit and are skipped. The working
 tree remains the default for interactive use.
 
