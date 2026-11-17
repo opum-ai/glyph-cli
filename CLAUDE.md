@@ -95,8 +95,10 @@ deletes or reads them (landed with glyph v0, GCLI-2):
   error types and exit codes in `src/errors.ts` — stdout carries one success
   envelope, stderr the failure, and the full frozen exit-code family (0 ok,
   1 uncaught, 2 usage, 3 not_found, 4 denied, 5 conflict, 6 validation/drift,
-  7 indeterminate), mapped once in `EXIT_CODES` and documented in ADR 0002 and
-  the README.
+  7 indeterminate): `EXIT_CODES` in `src/errors.ts` is the one
+  `GlyphErrorType`-to-code map (2-7), `EXIT_OK` and `EXIT_UNCAUGHT` are the
+  separate 0 and 1, and `exitCodeTaxonomy()` in `src/contract.ts` adds those two
+  to the map. Documented in ADR 0002 and the README.
 - **The local cache**: `src/cache.ts`, under `$GLYPH_CACHE_DIR`, else
   `$XDG_CACHE_HOME/glyph`, else `~/.cache/glyph`; disposable by design.
 
