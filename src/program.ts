@@ -176,7 +176,7 @@ function commandNamesFor(token: string): CommandName[] | undefined {
 	return names.length === 0 ? undefined : names;
 }
 
-/** The global flags, long form. Short flags (-h, -v) also combine: see below. */
+/** The exact global flag tokens. A short cluster is a separate rule: see below. */
 const GLOBAL_FLAGS = new Set(["--json", "--help", "-h", "--version", "-v"]);
 
 export interface ScannedArgs {
@@ -192,20 +192,19 @@ export interface ScannedArgs {
 }
 
 /**
- * Split `-vh`-style short flags, commander's own rule: every character is a
- * short flag of its own. Returns null for anything that is not a cluster of
- * known short flags, so an unknown token still reaches commander as usage.
+ * True for a short cluster commander reads as the version: a single-dash token
+ * longer than two characters whose SECOND character is `v`.
+ *
+ * That is commander's actual rule, measured against 15.0.0 and narrower than it
+ * looks. `-v` is the only short option registered at program level (`.version`
+ * registers it); the help option is built lazily and matched only as an exact
+ * token, so an `h` inside a cluster never means help. The cluster branch splits
+ * only while its leading short is known and the version listener exits before
+ * the rest is read. So `-vh` and `-vx` are the version, while `-hv` and `-hh`
+ * are unknown options — a usage error, not help.
  */
-function combinedShortFlags(arg: string): { help: boolean; version: boolean } | null {
-	if (!arg.startsWith("-") || arg.startsWith("--") || arg.length < 2) return null;
-	let help = false;
-	let version = false;
-	for (const char of arg.slice(1)) {
-		if (char === "h") help = true;
-		else if (char === "v") version = true;
-		else return null;
-	}
-	return { help, version };
+function clusterIsVersion(arg: string): boolean {
+	return arg.startsWith("-") && !arg.startsWith("--") && arg.length > 2 && arg[1] === "v";
 }
 
 /**
@@ -221,7 +220,8 @@ function combinedShortFlags(arg: string): { help: boolean; version: boolean } | 
  *   HEAD` still selects `/dir`, exactly as commander does.
  * - `--` ends the options; everything after it is an operand, so a token there
  *   can name the command even when it begins with `-`.
- * - `-vh`-style clusters are split into their short flags.
+ * - A short cluster means the version only when its second character is `v`;
+ *   every other cluster is an unknown option (see {@link clusterIsVersion}).
  */
 export function scanArgv(argv: string[]): ScannedArgs {
 	let commandToken: string | undefined;
@@ -257,10 +257,8 @@ export function scanArgv(argv: string[]): ScannedArgs {
 			else help = true;
 			continue;
 		}
-		const combined = combinedShortFlags(arg);
-		if (combined !== null) {
-			help ||= combined.help;
-			version ||= combined.version;
+		if (clusterIsVersion(arg)) {
+			version = true;
 			continue;
 		}
 		onlyKnownGlobals = false;

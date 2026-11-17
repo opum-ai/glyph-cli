@@ -251,6 +251,26 @@ describe("cli", () => {
 		expect((JSON.parse(versionAsOperand.stderr) as { error_type: string }).error_type).toBe("not_found");
 	});
 
+	test("only a cluster led by v is a version; every other cluster is unknown", () => {
+		// commander registers -v but not -h as a program option, and splits a
+		// cluster only while its LEADING short is known. So -vx is the version,
+		// while -hv and -hh are unknown options (a usage error, exit 2).
+		const repo = makeScratchRepo({ "src/a.ts": "export function a(): number {\n  return 1;\n}\n" });
+		repo.commit("base");
+		const cache = scratchCacheDir();
+
+		const versionLed = runCli(repo.root, ["-vx", "--json"], cache);
+		expect(versionLed.code).toBe(0);
+		expect((JSON.parse(versionLed.stdout) as { kind: string }).kind).toBe("version.info");
+
+		for (const cluster of ["-hv", "-hh"]) {
+			const unknown = runCli(repo.root, [cluster, "--json"], cache);
+			expect(unknown.code).toBe(2);
+			expect(unknown.stdout).toBe("");
+			expect((JSON.parse(unknown.stderr) as { error_type: string }).error_type).toBe("usage");
+		}
+	});
+
 	test("combined short flags such as -vh take the version under --json", () => {
 		const repo = makeScratchRepo({ "src/a.ts": "export function a(): number {\n  return 1;\n}\n" });
 		repo.commit("base");
