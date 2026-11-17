@@ -17,6 +17,8 @@ import { exitCodeFor, GlyphError, notFoundError, usageError } from "./errors.ts"
 import { parseDiff, repoRootFor, resolveCommit, resolveDiffRefs } from "./git.ts";
 import type { ImpactCaller } from "./impact.ts";
 import { impactOf } from "./impact.ts";
+import { produceCodeMap } from "./codemap.ts";
+import { CODE_MAP_MAX_TASK_TEXT } from "./codemap-text.ts";
 import { buildIndex } from "./indexer.ts";
 import { callersOf, display, resolveSymbol, touchedSymbols } from "./queries.ts";
 import { indexSnapshot, snapshotAtRef, sourceFilesAtRef } from "./snapshot.ts";
@@ -422,6 +424,34 @@ export function buildProgram(scanned: ScannedArgs): Command {
 				}
 				if (touched.symbols.length === 0) lines.push("  (none)");
 				lines.push(indexLine(info));
+				return lines.join("\n");
+			});
+		});
+
+	program
+		.command("code-map")
+		.description("pointers into the code a task concerns; the task text is read from stdin")
+		.option("--source-ref <ref>", "the ref every read resolves against (required)")
+		.action((options: { sourceRef?: string }) => {
+			const context = contextOf(scanned);
+			if (options.sourceRef === undefined || options.sourceRef === "") {
+				throw usageError("code-map needs --source-ref <ref>");
+			}
+			// Task text on stdin, bounded: more than the cap is refused, never truncated.
+			const taskText = readFileSync(0, "utf8");
+			if (taskText.length > CODE_MAP_MAX_TASK_TEXT) {
+				throw usageError(
+					`the task text on stdin is ${taskText.length} characters; the code-map limit is ${CODE_MAP_MAX_TASK_TEXT}`,
+				);
+			}
+			const output = produceCodeMap({ repositoryPath: context.repoRoot, sourceRef: options.sourceRef, taskText });
+			emit(context.json, kindOf("code-map"), output, () => {
+				const lines = [`code map for ${options.sourceRef} — ${output.pointers.length} pointer(s)`];
+				for (const pointer of output.pointers) {
+					const range = pointer.lineRanges.length > 0 ? ` (${pointer.lineRanges.join(", ")})` : "";
+					lines.push(`  ${pointer.path}${range} — ${pointer.reason}`);
+				}
+				for (const omission of output.omissions) lines.push(`  omitted ${omission.source}: ${omission.reason}`);
 				return lines.join("\n");
 			});
 		});

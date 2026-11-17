@@ -1,0 +1,494 @@
+{
+  "pin": "91542f4ccf2da3574f34c2377c6a6e2b3abd1102",
+  "generator": "test/parity/generate-goldens.ts",
+  "fixtures": {
+    "clean": {
+      "sourceRef": "base",
+      "taskText": "Update src/ledger.ts so `buildReport` uses ledgerTotals; see docs/guide.md and docs/missing.md, but not https://example.com/docs/x.",
+      "output": {
+        "pointers": [
+          {
+            "path": "docs/guide.md",
+            "lineRanges": [
+              "line 3"
+            ],
+            "reason": "path named in the task text; matches identifier `buildReport`"
+          },
+          {
+            "path": "src/ledger.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "path named in the task text; matches identifier `ledgerTotals`"
+          },
+          {
+            "path": "src/report.ts",
+            "lineRanges": [
+              "lines 2-3"
+            ],
+            "reason": "changed on this branch against base (3 lines); matches identifier `buildReport`; matches identifier `ledgerTotals`"
+          },
+          {
+            "path": "src/fresh.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "changed on this branch against base (1 line)"
+          }
+        ],
+        "omissions": []
+      }
+    },
+    "rename": {
+      "sourceRef": "base",
+      "taskText": "The `renamedThing` helper moved; check src/new-name.ts and `renamedThing`.",
+      "output": {
+        "pointers": [
+          {
+            "path": "src/new-name.ts",
+            "lineRanges": [
+              "lines 1-33"
+            ],
+            "reason": "changed on this branch against base (33 lines)"
+          },
+          {
+            "path": "src/stays.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "changed on this branch against base (2 lines)"
+          },
+          {
+            "path": "src/old-name.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `renamedThing`"
+          }
+        ],
+        "omissions": []
+      }
+    },
+    "file-cap": {
+      "sourceRef": "base",
+      "taskText": "Touch `alphaWidget`, `betaWidget`, `gammaWidget` and `deltaWidget`.",
+      "output": {
+        "pointers": [
+          {
+            "path": "src/mod01.ts",
+            "lineRanges": [
+              "line 2"
+            ],
+            "reason": "changed on this branch against base (1 line); matches identifier `alphaWidget`"
+          },
+          {
+            "path": "src/mod09.ts",
+            "lineRanges": [
+              "lines 1-2"
+            ],
+            "reason": "matches identifier `alphaWidget`; matches identifier `betaWidget`"
+          },
+          {
+            "path": "src/mod10.ts",
+            "lineRanges": [
+              "lines 1-2"
+            ],
+            "reason": "matches identifier `alphaWidget`; matches identifier `betaWidget`"
+          },
+          {
+            "path": "src/mod17.ts",
+            "lineRanges": [
+              "lines 1-2"
+            ],
+            "reason": "matches identifier `betaWidget`; matches identifier `gammaWidget`"
+          },
+          {
+            "path": "src/mod18.ts",
+            "lineRanges": [
+              "lines 1-2"
+            ],
+            "reason": "matches identifier `betaWidget`; matches identifier `gammaWidget`"
+          },
+          {
+            "path": "src/mod25.ts",
+            "lineRanges": [
+              "lines 1-2"
+            ],
+            "reason": "matches identifier `gammaWidget`; matches identifier `deltaWidget`"
+          },
+          {
+            "path": "src/mod26.ts",
+            "lineRanges": [
+              "lines 1-2"
+            ],
+            "reason": "matches identifier `gammaWidget`; matches identifier `deltaWidget`"
+          },
+          {
+            "path": "src/mod02.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `alphaWidget`"
+          },
+          {
+            "path": "src/mod03.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `alphaWidget`"
+          },
+          {
+            "path": "src/mod04.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `alphaWidget`"
+          },
+          {
+            "path": "src/mod05.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `alphaWidget`"
+          },
+          {
+            "path": "src/mod06.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `alphaWidget`"
+          },
+          {
+            "path": "src/mod07.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `alphaWidget`"
+          },
+          {
+            "path": "src/mod08.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `alphaWidget`"
+          },
+          {
+            "path": "src/mod11.ts",
+            "lineRanges": [
+              "line 2"
+            ],
+            "reason": "matches identifier `betaWidget`"
+          },
+          {
+            "path": "src/mod12.ts",
+            "lineRanges": [
+              "line 2"
+            ],
+            "reason": "matches identifier `betaWidget`"
+          },
+          {
+            "path": "src/mod13.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `betaWidget`"
+          },
+          {
+            "path": "src/mod14.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `betaWidget`"
+          },
+          {
+            "path": "src/mod15.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `betaWidget`"
+          },
+          {
+            "path": "src/mod16.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `betaWidget`"
+          }
+        ],
+        "omissions": [
+          {
+            "source": "code-map#read-bounds",
+            "reason": "identifier `alphaWidget` matched 12 files; the read bound records 10"
+          },
+          {
+            "source": "code-map#read-bounds",
+            "reason": "identifier `betaWidget` matched 12 files; the read bound records 10"
+          },
+          {
+            "source": "code-map#read-bounds",
+            "reason": "identifier `gammaWidget` matched 12 files; the read bound records 10"
+          },
+          {
+            "source": "code-map#file-cap",
+            "reason": "10 more over the code-map file cap of 20"
+          }
+        ]
+      }
+    },
+    "token-cap": {
+      "sourceRef": "base",
+      "taskText": "Look at `longPathMarkerA` and `longPathMarkerB` everywhere.",
+      "output": {
+        "pointers": [
+          {
+            "path": "note.txt",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "changed on this branch against base (1 line)"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f01.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerA`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f02.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerA`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f03.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerA`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f04.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerA`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f05.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerA`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f06.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerA`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f07.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerA`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f08.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerA`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f09.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerA`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f10.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerA`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f11.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerB`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f12.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerB`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f13.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerB`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f14.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerB`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f15.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerB`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f16.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerB`"
+          },
+          {
+            "path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f17.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `longPathMarkerB`"
+          }
+        ],
+        "omissions": [
+          {
+            "source": "code-map:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f18.ts",
+            "reason": "over the code-map token cap: 1920 of 2000 tokens already chosen"
+          },
+          {
+            "source": "code-map:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f19.ts",
+            "reason": "over the code-map token cap: 1920 of 2000 tokens already chosen"
+          },
+          {
+            "source": "code-map:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/f20.ts",
+            "reason": "over the code-map token cap: 1920 of 2000 tokens already chosen"
+          }
+        ]
+      }
+    },
+    "special-paths": {
+      "sourceRef": "base",
+      "taskText": "Check `specialIdent`, in src/café.ts and b/x.ts and .quest/tasks/T.json.",
+      "output": {
+        "pointers": [
+          {
+            "path": "b/x.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "path named in the task text; changed on this branch against base (2 lines)"
+          },
+          {
+            "path": "src/café.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "changed on this branch against base (2 lines)"
+          },
+          {
+            "path": "\"src/caf\\303\\251.ts\"",
+            "lineRanges": [],
+            "reason": "matches identifier `specialIdent`"
+          }
+        ],
+        "omissions": []
+      }
+    },
+    "ranges": {
+      "sourceRef": "base",
+      "taskText": "Search `manyHits` and fix src/branchy.ts.",
+      "output": {
+        "pointers": [
+          {
+            "path": "src/branchy.ts",
+            "lineRanges": [
+              "line 3",
+              "line 10",
+              "line 17",
+              "line 24",
+              "line 31",
+              "+2 more ranges"
+            ],
+            "reason": "path named in the task text; changed on this branch against base (14 lines)"
+          },
+          {
+            "path": "src/hits.ts",
+            "lineRanges": [
+              "line 2",
+              "line 5",
+              "line 9",
+              "line 14",
+              "line 20",
+              "+3 more ranges"
+            ],
+            "reason": "matches identifier `manyHits`"
+          }
+        ],
+        "omissions": []
+      }
+    },
+    "no-branch-change": {
+      "sourceRef": "base",
+      "taskText": "Find `quietName` and `quietName` again, also src/quiet.ts.",
+      "output": {
+        "pointers": [
+          {
+            "path": "src/quiet.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "path named in the task text; matches identifier `quietName`"
+          },
+          {
+            "path": "src/other.ts",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "matches identifier `quietName`"
+          }
+        ],
+        "omissions": []
+      }
+    },
+    "extractor-quirks": {
+      "sourceRef": "base",
+      "taskText": "Read ../src/a.ts, then buildReport and `ledgerTotals`; call buildReport. See https://host.com:8080/a/b and a/../b.",
+      "output": {
+        "pointers": [
+          {
+            "path": "src/a.ts",
+            "lineRanges": [
+              "line 2"
+            ],
+            "reason": "path named in the task text; changed on this branch against base (2 lines); matches identifier `ledgerTotals`; matches identifier `buildReport`"
+          },
+          {
+            "path": "8080/a/b",
+            "lineRanges": [
+              "line 1"
+            ],
+            "reason": "path named in the task text; matches identifier `ledgerTotals`"
+          }
+        ],
+        "omissions": []
+      }
+    }
+  }
+}

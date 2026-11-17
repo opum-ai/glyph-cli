@@ -15,10 +15,12 @@ interface CliResult {
 	stderr: string;
 }
 
-function runCli(cwd: string, args: string[], cacheDir: string): CliResult {
+function runCli(cwd: string, args: string[], cacheDir: string, stdin?: string): CliResult {
 	const proc = Bun.spawnSync(["bun", "run", CLI, ...args], {
 		cwd,
 		env: { ...process.env, GLYPH_CACHE_DIR: cacheDir },
+		// A closed stdin unless a test feeds one: `code-map` reads the task text there.
+		stdin: stdin === undefined ? "ignore" : Buffer.from(stdin),
 		stdout: "pipe",
 		stderr: "pipe",
 	});
@@ -85,6 +87,7 @@ describe("cli", () => {
 			"cache clear",
 			"cache path",
 			"callers",
+			"code-map",
 			"diff",
 			"help",
 			"impact",
@@ -591,10 +594,15 @@ describe("cli", () => {
 		);
 		repo.commit("tweak");
 
-		const cases: Array<{ args: string[]; kind: string }> = [
+		const cases: Array<{ args: string[]; kind: string; stdin?: string }> = [
 			{ args: ["--json", "callers", "helper"], kind: kindOf("callers") },
 			{ args: ["--json", "impact", "helper"], kind: kindOf("impact") },
 			{ args: ["--json", "diff", base, "HEAD"], kind: kindOf("diff") },
+			{
+				args: ["--json", "code-map", "--source-ref", "HEAD"],
+				kind: kindOf("code-map"),
+				stdin: "look at src/util.ts and `helper`",
+			},
 			{ args: ["--json", "cache", "path"], kind: kindOf("cache path") },
 			{ args: ["--json", "cache", "clear"], kind: kindOf("cache clear") },
 			{ args: ["--json", "help"], kind: kindOf("help") },
@@ -606,8 +614,8 @@ describe("cli", () => {
 			{ args: ["--json"], kind: globalKindOf("help") },
 		];
 
-		for (const { args, kind } of cases) {
-			const result = runCli(repo.root, args, cache);
+		for (const { args, kind, stdin } of cases) {
+			const result = runCli(repo.root, args, cache, stdin);
 			expect(result.code).toBe(0);
 			const envelope = JSON.parse(result.stdout) as Record<string, unknown>;
 			expect(Object.keys(envelope)).toEqual(["schemaVersion", "kind", "data", "principal"]);
@@ -619,6 +627,93 @@ describe("cli", () => {
 		// result kind cannot be added without an end-to-end case.
 		expect(new Set(cases.map((entry) => entry.kind))).toEqual(new Set(allResultKinds()));
 	}, 20_000);
+
+	describe("code-map", () => {
+		const CODE_MAP_FILES = {
+			"src/report.ts": "export function buildReport() {\n  return 1;\n}\n",
+			"src/other.ts": "export const other = 2;\n",
+		};
+
+		interface CodeMapEnvelope {
+			kind: string;
+			data: { pointers: { path: string; lineRanges: string[]; reason: string }[]; omissions: unknown[] };
+			principal: null;
+		}
+
+		test("emits the seam's {pointers, omissions} as data under code-map.result, and nothing else", () => {
+			const repo = makeScratchRepo(CODE_MAP_FILES);
+			repo.commit("base");
+			const cache = scratchCacheDir();
+			const result = runCli(
+				repo.root,
+				["--json", "code-map", "--source-ref", "HEAD"],
+				cache,
+				"fix `buildReport` in src/other.ts",
+			);
+			expect(result.code).toBe(0);
+			expect(result.stderr).toBe("");
+			const envelope = JSON.parse(result.stdout) as CodeMapEnvelope;
+			expect(Object.keys(envelope)).toEqual(["schemaVersion", "kind", "data", "principal"]);
+			expect(envelope.kind).toBe("code-map.result");
+			expect(Object.keys(envelope.data)).toEqual(["pointers", "omissions"]);
+			expect(envelope.data.pointers.map((pointer) => pointer.path)).toEqual(["src/other.ts", "src/report.ts"]);
+			expect(envelope.data.pointers[0]?.reason).toBe("path named in the task text");
+			expect(envelope.data.omissions).toEqual([]);
+		});
+
+		test("the same repository state, source ref and task text give byte-identical output, with no cache involved", () => {
+			const repo = makeScratchRepo(CODE_MAP_FILES);
+			repo.commit("base");
+			const args = ["--json", "code-map", "--source-ref", "HEAD"];
+			const first = runCli(repo.root, args, scratchCacheDir(), "see `buildReport`");
+			const second = runCli(repo.root, args, scratchCacheDir(), "see `buildReport`");
+			expect(second.stdout).toBe(first.stdout);
+		});
+
+		test("human output lists the pointers and omissions", () => {
+			const repo = makeScratchRepo(CODE_MAP_FILES);
+			repo.commit("base");
+			const result = runCli(repo.root, ["code-map", "--source-ref", "HEAD"], scratchCacheDir(), "see `buildReport`");
+			expect(result.code).toBe(0);
+			expect(result.stdout).toContain("code map for HEAD");
+			expect(result.stdout).toContain("src/report.ts (line 1)");
+		});
+
+		test("task text over 20,000 characters is a usage error, never a silent truncation; exactly 20,000 is accepted", () => {
+			const repo = makeScratchRepo(CODE_MAP_FILES);
+			repo.commit("base");
+			const cache = scratchCacheDir();
+			const over = runCli(repo.root, ["--json", "code-map", "--source-ref", "HEAD"], cache, "x".repeat(20_001));
+			expect(over.code).toBe(2);
+			expect(over.stdout).toBe("");
+			const error = JSON.parse(over.stderr) as { error_type: string; message: string };
+			expect(error.error_type).toBe("usage");
+			expect(error.message).toContain("20001");
+			const exact = runCli(repo.root, ["--json", "code-map", "--source-ref", "HEAD"], cache, "x".repeat(20_000));
+			expect(exact.code).toBe(0);
+		});
+
+		test("a missing --source-ref is a usage error, and an unresolvable one is not_found", () => {
+			const repo = makeScratchRepo(CODE_MAP_FILES);
+			repo.commit("base");
+			const cache = scratchCacheDir();
+			const missing = runCli(repo.root, ["--json", "code-map"], cache, "text");
+			expect(missing.code).toBe(2);
+			expect(missing.stdout).toBe("");
+			expect(JSON.parse(missing.stderr).error_type).toBe("usage");
+			const unknown = runCli(repo.root, ["--json", "code-map", "--source-ref", "no-such-ref"], cache, "text");
+			expect(unknown.code).toBe(3);
+			expect(unknown.stdout).toBe("");
+			expect(JSON.parse(unknown.stderr).error_type).toBe("not_found");
+		});
+
+		test("a ref that starts with a dash is data, not an option", () => {
+			const repo = makeScratchRepo(CODE_MAP_FILES);
+			repo.commit("base");
+			const result = runCli(repo.root, ["--json", "code-map", "--source-ref=--all"], scratchCacheDir(), "text");
+			expect(result.code).toBe(3);
+		});
+	});
 
 	test("-v is the shorthand and -V is not a version flag", () => {
 		const repo = makeScratchRepo(FILES);
