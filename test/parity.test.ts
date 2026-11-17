@@ -154,8 +154,14 @@ describe("byte parity with the deterministic producer", () => {
 				const output = produceCodeMap({ repositoryPath: root, sourceRef, taskText, symbols: false });
 				expect(JSON.stringify(output, null, 2)).toBe(JSON.stringify(goldens.fixtures[fixture.name]?.output, null, 2));
 				// Tier 3 on: the same bytes under the hostile config as under the plain one.
+				// Each run builds its own index (a cache dir per run), so the build itself is compared.
+				const freshCache = (): void => {
+					process.env.GLYPH_CACHE_DIR = mkdtempSync(join(tmpdir(), "glyph-hostile-cache-"));
+				};
+				freshCache();
 				const hostileOn = JSON.stringify(produceCodeMap({ repositoryPath: root, sourceRef, taskText }));
 				withPlainConfig(() => {
+					freshCache();
 					expect(hostileOn).toBe(JSON.stringify(produceCodeMap({ repositoryPath: root, sourceRef, taskText })));
 				});
 			}

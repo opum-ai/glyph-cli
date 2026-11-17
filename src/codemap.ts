@@ -5,6 +5,7 @@ import {
 	CODE_MAP_MAX_PATH_CANDIDATES,
 	CODE_MAP_MAX_RANGES_PER_POINTER,
 	CODE_MAP_MAX_TASK_TEXT,
+	CODE_MAP_TIME_BUDGET_MS,
 	CODE_MAP_MAX_TOKENS,
 	collectIdentifiers,
 	estimateTokens,
@@ -16,6 +17,7 @@ import {
 	parseNumstat,
 	pathsNamedIn,
 	READ_BOUND_SOURCE,
+	TIME_BUDGET_SOURCE,
 } from "./codemap-text.ts";
 import { loadRefIndex, symbolHits } from "./codemap-tier3.ts";
 import { GlyphError, indeterminateError, notFoundError, usageError } from "./errors.ts";
@@ -64,7 +66,21 @@ export interface CodeMapInput {
 	symbols?: boolean;
 	/** Where tier 3 gets the commit's index; a seam for tests. Null means no index. */
 	loadIndex?: (repositoryPath: string, commit: string) => GlyphIndex | null;
+	/** The wall-time budget in ms; defaults to CODE_MAP_TIME_BUDGET_MS. A seam for tests. */
+	timeBudgetMs?: number;
+	/** The clock, in ms; defaults to `performance.now`. A seam for tests. */
+	now?: () => number;
 }
+
+/** Thrown from inside a git read that ran out of budget; caught at the stage that issued it. */
+class BudgetExpired extends Error {}
+
+/** The run's deadline. One is active for the length of one `produceCodeMap` call. */
+interface Budget {
+	expired(): boolean;
+	remaining(): number;
+}
+let activeBudget: Budget | null = null;
 
 const GIT_TIMEOUT_MS = 15_000;
 const GIT_MAX_BUFFER = 32 * 1024 * 1024;
@@ -130,21 +146,26 @@ interface GitOutcome {
  * indeterminate, never an empty answer.
  */
 function git(repositoryPath: string, args: readonly string[]): GitOutcome {
+	// A git read never outlives the run's budget: when the time left is shorter than
+	// git's own timeout, the budget is what cut the read off, and that is not a failure.
+	const left = activeBudget === null ? Number.POSITIVE_INFINITY : activeBudget.remaining();
+	const budgeted = left < GIT_TIMEOUT_MS;
 	try {
 		const proc = Bun.spawnSync(["git", "--literal-pathspecs", ...args], {
 			cwd: repositoryPath,
 			env: { ...process.env, NO_COLOR: "1" },
 			stdout: "pipe",
 			stderr: "pipe",
-			timeout: GIT_TIMEOUT_MS,
+			timeout: budgeted ? Math.max(1, Math.ceil(left)) : GIT_TIMEOUT_MS,
 			maxBuffer: GIT_MAX_BUFFER,
 		});
 		if (proc.exitCode === null) {
+			if (budgeted) throw new BudgetExpired();
 			throw indeterminateError(`git ${args[0] ?? ""} did not report an exit status (timeout or signal)`);
 		}
 		return { status: proc.exitCode, stdout: proc.stdout.toString(), stderr: proc.stderr.toString() };
 	} catch (error) {
-		if (error instanceof GlyphError) throw error;
+		if (error instanceof GlyphError || error instanceof BudgetExpired) throw error;
 		throw indeterminateError(`git could not start in ${repositoryPath}: ${(error as Error).message}`);
 	}
 }
@@ -325,10 +346,48 @@ export function codeMapPointerLine(pointer: CodeMapPointer): string {
 
 /** The code map: named paths, changed files, symbols resolved through the index, identifier matches. */
 export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
+	const now = input.now ?? (() => performance.now());
+	const budgetMs = input.timeBudgetMs ?? CODE_MAP_TIME_BUDGET_MS;
+	const deadline = now() + budgetMs;
 	assertTaskTextWithinBound(input.taskText);
+	// One cheap read, outside the budget: nothing can be gathered without the commit.
 	const commit = resolveSourceRef(input.repositoryPath, input.sourceRef);
+	activeBudget = { expired: () => now() >= deadline, remaining: () => deadline - now() };
+	try {
+		return buildCodeMap(input, commit, budgetMs);
+	} finally {
+		activeBudget = null;
+	}
+}
+
+/**
+ * DEC-216 (a4)(b): past the budget the run stops gathering and returns what it has,
+ * with a `time-budget` omission naming the stage it stopped in. The deadline is
+ * checked between units of work (a named path, the branch diff, the index load, one
+ * identifier's grep, one pointer's range reads) and caps every git read at the time
+ * left. The one unit it cannot interrupt is the synchronous index build, which a
+ * repository far larger than the measured ones could overrun; the omission then
+ * names the stage that overran.
+ */
+function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number): CodeMapOutput {
 	const text = input.taskText;
 	const omissions: CodeMapOmission[] = [];
+	let stoppedAt: string | undefined;
+	let rangesNotRead = 0;
+	const spent = (stage: string): boolean => {
+		if (stoppedAt !== undefined) return true;
+		if (activeBudget?.expired() === true) stoppedAt = stage;
+		return stoppedAt !== undefined;
+	};
+	const guarded = (stage: string, run: () => void): void => {
+		if (spent(stage)) return;
+		try {
+			run();
+		} catch (error) {
+			if (!(error instanceof BudgetExpired)) throw error;
+			stoppedAt ??= stage;
+		}
+	};
 
 	const candidates = new Map<string, Candidate>();
 	const add = (candidate: {
@@ -379,13 +438,19 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 		});
 	}
 	for (const path of namedPaths.slice(0, CODE_MAP_MAX_PATH_CANDIDATES)) {
-		if (!isBlobAt(input.repositoryPath, commit, path)) continue;
-		add({ path, kind: "task-text-path", detail: "path named in the task text" });
+		guarded("named paths", () => {
+			if (isBlobAt(input.repositoryPath, commit, path)) {
+				add({ path, kind: "task-text-path", detail: "path named in the task text" });
+			}
+		});
 	}
 
 	// Tier 2: files this branch changed against the source ref. The diff's ranges
 	// are fetched later, for the files that survive the cap only.
-	const change = branchChange(input.repositoryPath, commit);
+	let change: BranchChange = { base: undefined, files: new Map() };
+	guarded("branch diff", () => {
+		change = branchChange(input.repositoryPath, commit);
+	});
 	for (const [path, changedLines] of change.files) {
 		add({
 			path,
@@ -401,7 +466,7 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 	// failing index is a missing tier, never a failed run: the fallback is a true
 	// control, so the output is then the deterministic producer's.
 	const identifiers = collectIdentifiers(text);
-	if (input.symbols !== false) {
+	if (input.symbols !== false && !spent("symbol index")) {
 		// Only the LOADER is fallible by design (git, the compiler, the cache). A defect in
 		// the pure resolution below is a bug, and surfaces rather than reverting silently.
 		let index: GlyphIndex | null = null;
@@ -410,6 +475,8 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 		} catch {
 			index = null;
 		}
+		// The build cannot be interrupted, so the stage that spent the budget is named here.
+		spent("symbol index");
 		const hits = index === null ? [] : symbolHits(index, identifiers.slice(0, CODE_MAP_MAX_IDENTIFIERS));
 		for (const hit of hits) {
 			add({ path: hit.path, kind: "symbol", detail: hit.detail, distance: hit.distance, line: hit.line });
@@ -426,16 +493,18 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 		});
 	}
 	for (const identifier of identifiers.slice(0, CODE_MAP_MAX_IDENTIFIERS)) {
-		const matches = grepFiles(input.repositoryPath, commit, identifier);
-		if (matches.length > CODE_MAP_MAX_FILES_PER_IDENTIFIER) {
-			omissions.push({
-				source: READ_BOUND_SOURCE,
-				reason: `identifier \`${identifier}\` matched ${matches.length} files; the read bound records ${CODE_MAP_MAX_FILES_PER_IDENTIFIER}`,
-			});
-		}
-		for (const path of matches.slice(0, CODE_MAP_MAX_FILES_PER_IDENTIFIER)) {
-			add({ path, kind: "identifier", detail: `matches identifier \`${identifier}\``, score: 1, identifier });
-		}
+		guarded("identifier grep", () => {
+			const matches = grepFiles(input.repositoryPath, commit, identifier);
+			if (matches.length > CODE_MAP_MAX_FILES_PER_IDENTIFIER) {
+				omissions.push({
+					source: READ_BOUND_SOURCE,
+					reason: `identifier \`${identifier}\` matched ${matches.length} files; the read bound records ${CODE_MAP_MAX_FILES_PER_IDENTIFIER}`,
+				});
+			}
+			for (const path of matches.slice(0, CODE_MAP_MAX_FILES_PER_IDENTIFIER)) {
+				add({ path, kind: "identifier", detail: `matches identifier \`${identifier}\``, score: 1, identifier });
+			}
+		});
 	}
 
 	// The identifier score is the count of DISTINCT identifiers a file matched.
@@ -445,8 +514,8 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 		}
 	}
 
-	// Rank: by source (paths, then branch, then identifiers), then the best
-	// relevance score, then path. A total order over immutable inputs is what
+	// Rank: by source (named paths, changed files, symbols, then identifiers), then the
+	// best relevance score, then path. A total order over immutable inputs is what
 	// makes the list stable.
 	// Within the symbol tier a declaring file (distance 0) precedes a referencing
 	// one (distance 1); every tier then breaks ties by score and path.
@@ -475,19 +544,28 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 		// Ranges are only worth a git call for a file that will be emitted. A branch
 		// diff's are HEAD's line numbers and a grep's are the source commit's, so a
 		// file the branch changed carries its diff ranges alone.
-		const branchRanges =
-			candidate.fromBranch && change.base !== undefined
-				? diffRanges(input.repositoryPath, change.base, candidate.path)
-				: undefined;
-		const ranges =
-			branchRanges !== undefined
-				? branchRanges
-				: mergeRanges([
-						...candidate.symbolRanges,
-						...candidate.identifiers.flatMap((identifier) =>
-							grepLines(input.repositoryPath, commit, identifier, candidate.path),
-						),
-					]);
+		let ranges: Array<[number, number]> = mergeRanges(candidate.symbolRanges);
+		let rangesRead = false;
+		guarded("line ranges", () => {
+			const branchRanges =
+				candidate.fromBranch && change.base !== undefined
+					? diffRanges(input.repositoryPath, change.base, candidate.path)
+					: undefined;
+			ranges =
+				branchRanges !== undefined
+					? branchRanges
+					: mergeRanges([
+							...candidate.symbolRanges,
+							...candidate.identifiers.flatMap((identifier) =>
+								grepLines(input.repositoryPath, commit, identifier, candidate.path),
+							),
+						]);
+			rangesRead = true;
+		});
+		// Past the budget a pointer is still returned, without the git reads that would
+		// have given its line ranges; its reason says so, since an empty range list
+		// otherwise means the whole file.
+		if (!rangesRead) rangesNotRead += 1;
 		const shown = ranges.slice(0, CODE_MAP_MAX_RANGES_PER_POINTER).map(formatRange);
 		if (ranges.length > CODE_MAP_MAX_RANGES_PER_POINTER) {
 			shown.push(`+${ranges.length - CODE_MAP_MAX_RANGES_PER_POINTER} more ranges`);
@@ -496,7 +574,9 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 		const pointer: CodeMapPointer = {
 			path: candidate.path,
 			lineRanges: shown,
-			reason: [...candidate.reasons.values()].map((entry) => entry.detail).join("; "),
+			reason:
+				[...candidate.reasons.values()].map((entry) => entry.detail).join("; ") +
+				(rangesRead ? "" : "; line ranges not read (time-budget)"),
 		};
 		const cost = estimateTokens(codeMapPointerLine(pointer));
 		// An over-budget pointer is SKIPPED, not fatal to the list, and the skip is
@@ -539,6 +619,13 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 		omissions.push({
 			source: FILE_CAP_SOURCE,
 			reason: `${overFileCap - displaced} more over the code-map file cap of ${CODE_MAP_MAX_FILES}`,
+		});
+	}
+
+	if (stoppedAt !== undefined) {
+		omissions.push({
+			source: TIME_BUDGET_SOURCE,
+			reason: `time-budget: the ${budgetMs} ms budget was spent during ${stoppedAt}; the pointers are what was gathered by then${rangesNotRead > 0 ? `, ${rangesNotRead} without line ranges` : ""}`,
 		});
 	}
 

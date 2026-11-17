@@ -680,6 +680,8 @@ describe("cli", () => {
 			expect(miss.code).toBe(0);
 			// The symbol tier is in play: the declaring file carries its symbol reason.
 			expect(miss.stdout).toContain("declares symbol");
+			// The miss wrote an index, so the second run was a hit and not a second miss.
+			expect([...new Bun.Glob("**/*.json").scanSync(cache)].length).toBeGreaterThan(0);
 			expect(hit.stdout).toBe(miss.stdout);
 		});
 

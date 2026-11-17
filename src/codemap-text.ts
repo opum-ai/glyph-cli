@@ -28,6 +28,13 @@ export const CODE_MAP_MAX_FILES_PER_IDENTIFIER = 10;
 export const CODE_MAP_MAX_RANGES_PER_POINTER = 5;
 /** How many path-shaped tokens one task text may try to resolve. */
 export const CODE_MAP_MAX_PATH_CANDIDATES = 50;
+/**
+ * The wall-time budget of one code-map run, in milliseconds (DEC-216 (a4)(b)): twice
+ * the worst measured p95, rounded up to the next half second. Measured 2026-11-17 on
+ * glyph d97958f, the worst cell being quest-cli cold at 3.365 s, so 7.0 s. PROPOSED
+ * until opum-doc fixes the number in the GCLI-12 record; ADR 0005 cites the fixed one.
+ */
+export const CODE_MAP_TIME_BUDGET_MS = 7_000;
 /** How much of the task text the extractors read. */
 export const CODE_MAP_MAX_TASK_TEXT = 20_000;
 
@@ -40,6 +47,7 @@ export const CODE_MAP_MAX_TASK_TEXT = 20_000;
  */
 export const READ_BOUND_SOURCE = "code-map#read-bounds";
 export const FILE_CAP_SOURCE = "code-map#file-cap";
+export const TIME_BUDGET_SOURCE = "code-map#time-budget";
 
 /** Path prefixes that are never code: product storage and VCS metadata. */
 export const NON_CODE_PREFIXES: readonly string[] = [".quest/", ".lore/", ".git/", "node_modules/"];
