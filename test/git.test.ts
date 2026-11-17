@@ -27,6 +27,25 @@ describe("git", () => {
 		expect(changes).toEqual([{ file: "src/b.ts", ranges: [], wholeFile: true }]);
 	});
 
+	test("unquotes the C-quoted paths git emits under the default core.quotePath", () => {
+		// `git diff` quotes a path with a non-ASCII, backslash or control byte;
+		// without decoding it, the header names no file the index knows and the
+		// symbols in such a file drop out of `diff` silently.
+		const repo = makeScratchRepo({ "src/plain.ts": "export const a = 1;\n" });
+		const base = repo.commit("base");
+		repo.write("src/café.ts", "export const cafe = 1;\n");
+		repo.write("src/back\\slash.ts", "export const backslash = 1;\n");
+		repo.write("src/ctrl\ttab.ts", "export const tab = 1;\n");
+		const head = repo.commit("add odd names");
+		const changes = parseDiff(repo.root, base, head);
+		expect(changes.map((change) => change.file).sort()).toEqual([
+			"src/back\\slash.ts",
+			"src/café.ts",
+			"src/ctrl\ttab.ts",
+		]);
+		expect(changes.every((change) => change.wholeFile)).toBe(true);
+	});
+
 	test("a deleted file contributes no new-side ranges", () => {
 		const repo = makeScratchRepo({ "src/a.ts": "export const a = 1;\n" });
 		const base = repo.commit("base");
