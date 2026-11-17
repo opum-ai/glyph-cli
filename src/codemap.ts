@@ -248,7 +248,9 @@ function diffRanges(repositoryPath: string, base: string, path: string): Array<[
  * (`"src/caf\303\251.ts"`). That string is emitted as a pointer path with
  * `lineRanges: []` (a whole file) for a file that does not exist; it takes a
  * file-cap slot and token budget, and the real `src/café.ts` loses the
- * identifier evidence the quoted entry absorbed.
+ * identifier evidence the quoted entry absorbed. Tier 3 reads paths from the
+ * index, unquoted, so its real `src/café.ts` and tier 4's quoted entry are
+ * different strings and cannot dedup.
  */
 const GREP_PINS = ["-c", "core.quotepath=true"] as const;
 
@@ -321,7 +323,7 @@ export function codeMapPointerLine(pointer: CodeMapPointer): string {
 	return `${pointer.path}${range} — ${pointer.reason}`;
 }
 
-/** Tiers 1, 2 and 4 of the code map: named paths, changed files, identifier matches. */
+/** The code map: named paths, changed files, symbols resolved through the index, identifier matches. */
 export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 	assertTaskTextWithinBound(input.taskText);
 	const commit = resolveSourceRef(input.repositoryPath, input.sourceRef);
@@ -400,13 +402,15 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 	// control, so the output is then the deterministic producer's.
 	const identifiers = collectIdentifiers(text);
 	if (input.symbols !== false) {
-		let hits: ReturnType<typeof symbolHits> = [];
+		// Only the LOADER is fallible by design (git, the compiler, the cache). A defect in
+		// the pure resolution below is a bug, and surfaces rather than reverting silently.
+		let index: GlyphIndex | null = null;
 		try {
-			const index = (input.loadIndex ?? loadRefIndex)(input.repositoryPath, commit);
-			if (index !== null) hits = symbolHits(index, identifiers.slice(0, CODE_MAP_MAX_IDENTIFIERS));
+			index = (input.loadIndex ?? loadRefIndex)(input.repositoryPath, commit);
 		} catch {
-			hits = [];
+			index = null;
 		}
+		const hits = index === null ? [] : symbolHits(index, identifiers.slice(0, CODE_MAP_MAX_IDENTIFIERS));
 		for (const hit of hits) {
 			add({ path: hit.path, kind: "symbol", detail: hit.detail, distance: hit.distance, line: hit.line });
 		}
@@ -510,7 +514,10 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 	// A file that tier 3 pushed out of the cap is named, not only counted: it was in
 	// the first CODE_MAP_MAX_FILES of the ranking without tier 3 and is not in the
 	// emitted list. A file already named for the token cap keeps that row; the
-	// rest are the usual one summary row.
+	// rest are the usual one summary row. Edge: the comparison is the first
+	// CODE_MAP_MAX_FILES of the ranking without tier 3 and ignores the token cap,
+	// so a file that would itself have been token-skipped without tier 3 is still
+	// named as displaced when tier 3 pushes it past the file cap.
 	const accountedFor = new Set([
 		...pointers.map((pointer) => pointer.path),
 		...omissions.map((omission) => omission.source.replace(/^code-map:/, "")),

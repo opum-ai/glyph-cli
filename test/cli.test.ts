@@ -661,13 +661,26 @@ describe("cli", () => {
 			expect(envelope.data.omissions).toEqual([]);
 		});
 
-		test("the same repository state, source ref and task text give byte-identical output, with no cache involved", () => {
+		test("the same repository state, source ref and task text give byte-identical output on a fresh cache each run", () => {
 			const repo = makeScratchRepo(CODE_MAP_FILES);
 			repo.commit("base");
 			const args = ["--json", "code-map", "--source-ref", "HEAD"];
 			const first = runCli(repo.root, args, scratchCacheDir(), "see `buildReport`");
 			const second = runCli(repo.root, args, scratchCacheDir(), "see `buildReport`");
 			expect(second.stdout).toBe(first.stdout);
+		});
+
+		test("a cache hit on the same cache directory gives the bytes of the miss, with tier 3 on", () => {
+			const repo = makeScratchRepo(CODE_MAP_FILES);
+			repo.commit("base");
+			const cache = scratchCacheDir();
+			const args = ["--json", "code-map", "--source-ref", "HEAD"];
+			const miss = runCli(repo.root, args, cache, "see `buildReport`");
+			const hit = runCli(repo.root, args, cache, "see `buildReport`");
+			expect(miss.code).toBe(0);
+			// The symbol tier is in play: the declaring file carries its symbol reason.
+			expect(miss.stdout).toContain("declares symbol");
+			expect(hit.stdout).toBe(miss.stdout);
 		});
 
 		test("human output lists the pointers and omissions", () => {

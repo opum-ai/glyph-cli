@@ -71,6 +71,19 @@ describe("tier 3: symbols resolved through the index", () => {
 		expect(reason).toBe("declares symbol `buildReport` (function); matches identifier `buildReport`");
 	});
 
+	test("exactly one file found by two tiers appears once, and the other files once each", () => {
+		// decl.ts: declared (tier 3, one hit) and grep-matched (tier 4). user.ts: tier 3 only, one hit
+		// (an import through the alias, never naming soloThing). note.ts: grep only.
+		const root = repoWith({
+			"src/decl.ts": "export function soloThing() {\n  return 1;\n}\nexport { soloThing as aliased };\n",
+			"src/user.ts": 'import { aliased } from "./decl";\nexport type T = typeof aliased;\n',
+			"src/note.ts": "// soloThing is described here\nexport const note = 1;\n",
+		});
+		const output = produce(root, "fix `soloThing`");
+		expect(pathsOf(output)).toEqual(["src/decl.ts", "src/user.ts", "src/note.ts"]);
+		expect(output.pointers[0]?.reason).toBe("declares symbol `soloThing` (function); matches identifier `soloThing`");
+	});
+
 	test("impact is depth 1: a caller of a caller is not a tier-3 file", () => {
 		const root = repoWith({
 			...ALIAS,

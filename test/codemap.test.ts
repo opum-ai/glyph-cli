@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -12,6 +12,11 @@ import { FIXTURES, makeFixtureRepo } from "./parity/fixtures.ts";
  * ranking, the caps and what the omissions name. Byte parity with opum-cli is in
  * parity.test.ts.
  */
+
+beforeAll(() => {
+	// Tier 3 builds an index cache; keep it out of the user's ~/.cache/glyph.
+	process.env.GLYPH_CACHE_DIR = mkdtempSync(join(tmpdir(), "glyph-codemap-cache-"));
+});
 
 function produce(name: string) {
 	const fixture = FIXTURES.find((candidate) => candidate.name === name);
