@@ -679,7 +679,7 @@ describe("cli", () => {
 			expect(result.stdout).toContain("src/report.ts (line 1)");
 		});
 
-		test("task text over 20,000 characters is a usage error, never a silent truncation; exactly 20,000 is accepted", () => {
+		test("task text over 20,000 UTF-16 code units is a usage error, never a silent truncation; exactly 20,000 is accepted", () => {
 			const repo = makeScratchRepo(CODE_MAP_FILES);
 			repo.commit("base");
 			const cache = scratchCacheDir();

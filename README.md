@@ -282,7 +282,8 @@ tree remains the default for interactive use.
 `diff` will require `--ref` (DEC-216 Q4). Making an existing command's surface
 change is out of this slice, so that requirement is recorded in ADR 0003 and
 deferred. The code-map seam shipped as `glyph code-map --source-ref <ref>`, which
-names its ref explicitly and never reads the working tree's history by default.
+names its ref explicitly and never reads uncommitted changes (tier 2 does read
+`HEAD`, implicitly, to take the branch's own diff).
 
 ## The cache
 
