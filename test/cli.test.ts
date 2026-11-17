@@ -140,6 +140,26 @@ describe("cli", () => {
 		expect(cleared.stdout).toContain("cleared");
 	});
 
+	test("diff reports symbols in a non-ASCII-named file", () => {
+		// The header carries the C-quoted path, so this answers empty until
+		// parseDiff decodes it back to the name the index holds.
+		const repo = makeScratchRepo({ "src/café.ts": "export function a(): number {\n  return 1;\n}\n" });
+		const cache = scratchCacheDir();
+		const base = repo.commit("base");
+		repo.write("src/café.ts", "export function a(): number {\n  return 2;\n}\n");
+		repo.commit("tweak a non-ASCII-named file");
+
+		const diff = runCli(repo.root, ["--json", "diff", base, "HEAD"], cache);
+		expect(diff.code).toBe(0);
+		const envelope = JSON.parse(diff.stdout) as {
+			kind: string;
+			data: { symbols: { name: string }[]; filesChanged: number };
+		};
+		expect(envelope.kind).toBe("diff.result");
+		expect(envelope.data.symbols.map((symbol) => symbol.name)).toEqual(["a"]);
+		expect(envelope.data.filesChanged).toBe(1);
+	});
+
 	const IMPACT_FILES = {
 		"src/d.ts": "export function d(): number {\n  return 1;\n}\n",
 		"src/c.ts": 'import { d } from "./d";\nexport function c(): number {\n  return d();\n}\n',

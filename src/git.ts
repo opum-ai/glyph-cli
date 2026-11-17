@@ -152,6 +152,66 @@ export function readBlobs(repoRoot: string, objectIds: readonly string[]): Map<s
 	return contents;
 }
 
+const C_ESCAPES: Record<string, number> = {
+	a: 0x07,
+	b: 0x08,
+	f: 0x0c,
+	n: 0x0a,
+	r: 0x0d,
+	t: 0x09,
+	v: 0x0b,
+	"\\": 0x5c,
+	'"': 0x22,
+};
+
+/**
+ * Undo git's C-style path quoting in a diff header.
+ *
+ * Under the default `core.quotePath`, `git diff` wraps a path that contains a
+ * double quote, a backslash, a control byte or any non-ASCII byte in double
+ * quotes and escapes the offending bytes (`\t`, `\\`, `\303\251`, ...). A
+ * quoted header has to be decoded back to the real path before it can name a
+ * file the index knows; otherwise every symbol in such a file drops out of
+ * `diff` silently. An unquoted header is returned unchanged, and an escape
+ * this decoder does not recognise leaves the whole header as it was rather
+ * than corrupting it.
+ */
+export function unquoteGitPath(path: string): string {
+	if (path.length < 2 || !path.startsWith('"') || !path.endsWith('"')) return path;
+	const inner = path.slice(1, -1);
+	const bytes: number[] = [];
+	const encoder = new TextEncoder();
+	let index = 0;
+	while (index < inner.length) {
+		const char = inner[index];
+		if (char === undefined) break;
+		if (char !== "\\") {
+			const literal = String.fromCodePoint(inner.codePointAt(index) ?? 0);
+			bytes.push(...encoder.encode(literal));
+			index += literal.length;
+			continue;
+		}
+		const escaped = inner[index + 1];
+		if (escaped === undefined) return path;
+		const simple = C_ESCAPES[escaped];
+		if (simple !== undefined) {
+			bytes.push(simple);
+			index += 2;
+			continue;
+		}
+		let end = index + 1;
+		while (end < inner.length && end <= index + 3) {
+			const digit = inner[end];
+			if (digit === undefined || digit < "0" || digit > "7") break;
+			end += 1;
+		}
+		if (end === index + 1) return path; // An escape git never emits: leave the header alone.
+		bytes.push(Number.parseInt(inner.slice(index + 1, end), 8) & 0xff);
+		index = end;
+	}
+	return new TextDecoder().decode(Uint8Array.from(bytes));
+}
+
 /**
  * Parse `git diff --unified=0` into per-file changed line ranges on the NEW
  * side, because symbols are attributed from the working tree's source.
@@ -163,6 +223,9 @@ export function readBlobs(repoRoot: string, objectIds: readonly string[]): Map<s
  *   this, deleting a call would report that nothing was touched.
  * - `+++ /dev/null` marks a deleted file, which contributes no new-side ranges
  *   and is skipped.
+ * - The `+++` path is run through {@link unquoteGitPath}: git C-quotes any name
+ *   with a non-ASCII, backslash or control byte, and the quoted form names no
+ *   file the index built from the tree.
  */
 export function parseDiff(repoRoot: string, baseSha: string, headSha: string): FileChange[] {
 	const result = gitRun(repoRoot, ["diff", "--unified=0", "--no-color", "--no-ext-diff", baseSha, headSha, "--"]);
@@ -179,11 +242,11 @@ export function parseDiff(repoRoot: string, baseSha: string, headSha: string): F
 
 	for (const line of result.stdout.split("\n")) {
 		if (line.startsWith("--- ")) {
-			pendingOldIsNull = line.slice(4).trim() === "/dev/null";
+			pendingOldIsNull = unquoteGitPath(line.slice(4).trim()) === "/dev/null";
 			continue;
 		}
 		if (line.startsWith("+++ ")) {
-			const target = line.slice(4).trim();
+			const target = unquoteGitPath(line.slice(4).trim());
 			if (target === "/dev/null") {
 				current = null; // Deleted file: nothing on the new side to attribute.
 				pendingOldIsNull = false;
