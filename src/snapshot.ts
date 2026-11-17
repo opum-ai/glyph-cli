@@ -13,18 +13,19 @@ import type { GlyphIndex } from "./types.ts";
  * `git ls-tree -r` and read with one `git cat-file --batch`, so nothing is
  * taken from the working tree. In-repo `node_modules` is **not** read from
  * disk, apart from the running TypeScript package's own library directory: a
- * module that would resolve through the checkout's installed dependencies
- * resolves to nothing, and its call sites are counted in `unresolvedSites`.
- * That makes what the commit carries authoritative and consistent with a cache
- * key that cannot see node_modules content. A tracked
+ * module that would resolve through the checkout's installed dependencies is
+ * not resolved through that install, and its call sites are counted in
+ * `unresolvedSites`. That makes what the commit carries authoritative and
+ * consistent with a cache key that cannot see node_modules content. A tracked
  * `node_modules` is part of the tree, so it is served from the tree like any
  * other committed path. Inputs the commit does not carry are not part of that
  * promise: a hoisted dependency tree, a parent tsconfig, or a different
  * TypeScript package can still move a cold answer.
  *
- * `ts.sys` is the fallback for paths the commit does not carry: a hoisted
- * dependency tree above the root, a parent-directory tsconfig reached through
- * `extends`, and the running TypeScript package's standard library. That
+ * `ts.sys` is the fallback for three kinds of path the commit does not carry:
+ * a hoisted dependency tree above the root, a parent-directory tsconfig
+ * reached through `extends`, and the running TypeScript package's standard
+ * library. That
  * library is served wherever it sits — inside the analyzed checkout too, when
  * the package is a dependency of it — because it belongs to the tool rather
  * than to the commit.
