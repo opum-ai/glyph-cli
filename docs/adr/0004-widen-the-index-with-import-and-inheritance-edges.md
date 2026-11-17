@@ -18,7 +18,8 @@ generated:
 
 Accepted — opum-doc DEC-216 (a3), 2026-11-17 14:10Z, option A refined, which
 settled the query semantics DEC-216 Q3 left open ("the query semantics for the
-added edges are not yet named by a design record"). Implemented under GCLI-11,
+added edges are not yet named by a design record"), as refined by DEC-216 (a5),
+2026-11-17, which ruled the five cases (a3) left undecided. Implemented under GCLI-11,
 slice 3 of the four DEC-216 slices. It builds on ADR 0003's impact walk and
 changes no existing call or `new` answer. DEC-216 Q3's scope stands:
 read/write reference edges stay out.
@@ -58,11 +59,20 @@ use the binding.
   `typeOnly: false`.
 - Namespace imports (`import * as x`) and side-effect imports (`import "./m"`)
   bind no single symbol. They are **module edges**: `calleeId` is null and
-  `moduleTarget` names the target file. When impact starts from any symbol
-  declared in module `M`, every namespace or side-effect importer of `M` is a
-  depth-1 terminal. This is conservative on purpose. `export * from "./m"` and
-  `export * as ns from "./m"` bind no single symbol either and are recorded the
-  same way.
+  `moduleTarget` names the target file. Per DEC-216 (a5), when the walk reaches
+  an **exported** symbol declared in module `M` at depth `k` (the start symbol
+  included, at `k = 0`), every namespace or side-effect importer of `M` is a
+  terminal at depth `k + 1`, each importer once at its shortest depth.
+  Non-exported symbols do not trigger it, because a namespace binding can only
+  reach exports. If `M.f` calls the changed `g`, then `ns.f()` in another module
+  is affected. `export * from "./m"` and `export * as ns from "./m"` bind no
+  single symbol either and are recorded the same way, so they follow the same
+  rule; importers through the barrel by name already resolve to the original
+  declarations.
+- `import x = require("m")` is resolved statically like an import (DEC-216
+  (a5)): through the checker to the declaration it aliases (an `export =`
+  target) as a symbol edge, or, when it aliases the whole module, as a module
+  edge. Dynamic `require()` and `import()` calls stay counted and unfollowed.
 
 **Inheritance edges.**
 
@@ -115,14 +125,22 @@ two shapes, so a later slice that changes the index bumps it again.
   module and not the declarations using the binding, impact does not say which
   function in the importing module is affected; reading that is a reference edge,
   which stays out of scope.
-- **The module-edge rule applies to the symbol impact starts from.** A namespace
-  or side-effect importer of `M` is a depth-1 terminal of the starting symbol when
-  it is declared in `M`; it is not re-attached to every symbol the walk later
-  reaches inside `M`.
+- **Module edges are coarse, and flood to the bound.** A namespace or side-effect
+  importer is reported for every exported symbol the walk reaches in its module,
+  including importers that never touch that symbol. The flooding is bounded by
+  the depth bound and the exact truncation counts, and limited to exports, so
+  barrels stay readable (DEC-216 (a5), item 1).
+- **An anonymous or otherwise unindexed declaration is an unresolved import.**
+  A binding the checker resolves to a declaration the symbol table does not
+  carry, for example an anonymous `export default function () {}`, is counted
+  under `unresolvedByKind.import` and no module edge is guessed for it. Indexing
+  anonymous default exports as symbols is not part of this decision; it becomes
+  its own task only if it shows up on a real repository (DEC-216 (a5), item 4).
+- **Class-expression heritage.** For `const C = class extends A {}` the
+  dependent is the enclosing declaration (the variable symbol `C`), and module
+  scope when there is none (DEC-216 (a5), item 5).
 - **Override propagation is not in v1.** A changed method does not reach the
   methods that override it; the class does reach its subclasses.
-- **`import x = require("m")` counts as dynamic.** It is a `require`, and is
-  counted, not followed.
 - **Existing answers are unchanged.** The call and `new` answers over the same
   repository are the ones ADR 0003 produced; impact answers now also list the
   import and heritage terminals beside them, so `total`, `unexplored` and the

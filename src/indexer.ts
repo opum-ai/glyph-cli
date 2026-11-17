@@ -110,12 +110,39 @@ function spanStart(sourceFile: ts.SourceFile, node: ts.Node): number {
 	return first.pos;
 }
 
+/** The symbols the module exports, aliases (`export { x }`, re-exports) resolved to their targets. */
+function exportedSymbols(sourceFile: ts.SourceFile, checker: ts.TypeChecker): Set<ts.Symbol> {
+	const result = new Set<ts.Symbol>();
+	const moduleSymbol = checker.getSymbolAtLocation(sourceFile);
+	if (moduleSymbol === undefined) return result;
+	for (const exported of checker.getExportsOfModule(moduleSymbol)) {
+		result.add(exported);
+		if ((exported.flags & ts.SymbolFlags.Alias) !== 0) result.add(checker.getAliasedSymbol(exported));
+	}
+	return result;
+}
+
+/** Is the top-level declaration holding `node` exported? Declarations inside a function never are. */
+function isExportedDeclaration(node: ts.Node, exported: Set<ts.Symbol>, checker: ts.TypeChecker): boolean {
+	let top: ts.Node = node;
+	while (top.parent !== undefined && !ts.isSourceFile(top.parent)) top = top.parent;
+	const names: ts.Node[] = ts.isVariableStatement(top)
+		? top.declarationList.declarations.map((declaration) => declaration.name)
+		: [declarationName(top)].filter((name): name is ts.Identifier => name !== null);
+	return names.some((name) => {
+		const symbol = checker.getSymbolAtLocation(name);
+		return symbol !== undefined && exported.has(symbol);
+	});
+}
+
 function collectSymbols(
 	sourceFile: ts.SourceFile,
 	file: string,
 	symbols: SymbolEntry[],
 	entries: Map<ts.Node, SymbolEntry>,
+	checker: ts.TypeChecker,
 ): void {
+	const exported = exportedSymbols(sourceFile, checker);
 	const containers: string[] = [];
 	let functionDepth = 0;
 
@@ -142,6 +169,7 @@ function collectSymbols(
 				line: nameAt.line + 1,
 				column: nameAt.character + 1,
 				endLine: endAt.line + 1,
+				exported: functionDepth === 0 && isExportedDeclaration(node, exported, checker),
 			};
 			symbols.push(entry);
 			entries.set(node, entry);
@@ -266,6 +294,27 @@ function recordImport(ctx: EdgeContext, sourceFile: ts.SourceFile, file: string,
 	}
 }
 
+/**
+ * `import x = require("m")` is resolved statically, like an import: through the
+ * checker to the declaration it aliases (an `export =` target), or, when it
+ * aliases the whole module, as a module edge (DEC-216 (a5)). Dynamic `require()`
+ * calls are not this: they stay counted and unfollowed.
+ */
+function recordImportEquals(
+	ctx: EdgeContext,
+	sourceFile: ts.SourceFile,
+	file: string,
+	node: ts.ImportEqualsDeclaration,
+): void {
+	const reference = node.moduleReference;
+	if (!ts.isExternalModuleReference(reference) || !ts.isStringLiteral(reference.expression)) return;
+	if (resolveEntry(ctx, node.name) !== null) {
+		recordBinding(ctx, sourceFile, file, node.name, node.name, node.isTypeOnly);
+		return;
+	}
+	recordModuleEdge(ctx, sourceFile, file, node.name, reference.expression, node.isTypeOnly);
+}
+
 /** `export { x } from` and `export * from` are import edges whose dependent is the barrel module. */
 function recordReExport(ctx: EdgeContext, sourceFile: ts.SourceFile, file: string, node: ts.ExportDeclaration): void {
 	const specifier = node.moduleSpecifier;
@@ -288,7 +337,13 @@ function recordHeritage(
 	node: ts.ClassLikeDeclaration | ts.InterfaceDeclaration,
 	frame: SymbolEntry | null,
 ): void {
-	const carrier = ctx.entries.get(node) ?? frame;
+	// A class expression bound to a variable or property is carried by that symbol.
+	const parent = node.parent;
+	const bound =
+		(ts.isVariableDeclaration(parent) || ts.isPropertyDeclaration(parent)) && parent.initializer === node
+			? (ctx.entries.get(parent) ?? null)
+			: null;
+	const carrier = ctx.entries.get(node) ?? bound ?? frame;
 	for (const clause of node.heritageClauses ?? []) {
 		const kind = clause.token === ts.SyntaxKind.ImplementsKeyword ? "implements" : "extends";
 		for (const type of clause.types) {
@@ -325,9 +380,8 @@ function collectSites(sourceFile: ts.SourceFile, file: string, ctx: EdgeContext)
 		}
 		if (ts.isImportDeclaration(node)) recordImport(ctx, sourceFile, file, node);
 		else if (ts.isExportDeclaration(node)) recordReExport(ctx, sourceFile, file, node);
-		else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
-			ctx.unresolved.dynamic += 1; // `import x = require("m")` is a require.
-		} else if (ts.isClassDeclaration(node) || ts.isClassExpression(node) || ts.isInterfaceDeclaration(node)) {
+		else if (ts.isImportEqualsDeclaration(node)) recordImportEquals(ctx, sourceFile, file, node);
+		else if (ts.isClassDeclaration(node) || ts.isClassExpression(node) || ts.isInterfaceDeclaration(node)) {
 			recordHeritage(ctx, sourceFile, file, node, frame);
 		}
 		if (ts.isCallExpression(node) || ts.isNewExpression(node)) {
@@ -393,7 +447,7 @@ export function indexProgram(repoRoot: string, files: string[], program: ts.Prog
 		const sourceFile = program.getSourceFile(join(repoRoot, file));
 		if (sourceFile === undefined) continue;
 		sources.push({ sourceFile, file });
-		collectSymbols(sourceFile, file, symbols, entries);
+		collectSymbols(sourceFile, file, symbols, entries, checker);
 	}
 
 	const ctx: EdgeContext = {

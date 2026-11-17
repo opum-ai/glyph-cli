@@ -32,6 +32,12 @@ export interface SymbolEntry {
 	column: number;
 	/** 1-based; the declaration's last line. */
 	endLine: number;
+	/**
+	 * True when a namespace binding (`import * as ns from`) can reach this symbol:
+	 * a module-level declaration the module exports, or a member of one. Local and
+	 * non-exported declarations are false (DEC-216 (a5)).
+	 */
+	exported: boolean;
 }
 
 /**

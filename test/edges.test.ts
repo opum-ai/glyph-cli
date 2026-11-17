@@ -258,3 +258,119 @@ describe("inheritance edges", () => {
 		expect(index.unresolvedSites).toBe(4);
 	});
 });
+
+describe("DEC-216 (a5) refinements", () => {
+	test("a namespace importer is reached through a call chain into an exported symbol of its module", () => {
+		const index = indexOf({
+			"src/g.ts": "export function g(): number {\n  return 1;\n}\n",
+			// `f` is exported and calls `g`, so `ns.f()` elsewhere is affected by a change to `g`.
+			"src/m.ts": 'import { g } from "./g";\nexport function f(): number {\n  return g();\n}\n',
+			"src/ns.ts": 'import * as m from "./m";\nexport const v = m;\n',
+			"src/side.ts": 'import "./m";\n',
+		});
+		const result = impactOf(index, symbolOf(index, "g"), 5);
+		// f is depth 1 and exported, so each importer of its module is a terminal at depth 2.
+		const deep = result.callers.filter((caller) => caller.depth === 2);
+		expect(shape(deep)).toEqual([
+			["src/ns.ts", 2, "import"],
+			["src/side.ts", 2, "import"],
+		]);
+		expect(deep[0]?.path.map((edge) => edge.kind)).toEqual(["import", "call"]);
+		// An exported start symbol reaches them at k + 1 = 1, each importer once.
+		expect(shape(impactOf(index, symbolOf(index, "f"), 5).callers)).toEqual([
+			["src/ns.ts", 1, "import"],
+			["src/side.ts", 1, "import"],
+		]);
+	});
+
+	test("a namespace importer is NOT reached through a chain that stays in non-exported symbols", () => {
+		const index = indexOf({
+			"src/m.ts":
+				"function g(): number {\n  return 1;\n}\nfunction h(): number {\n  return g();\n}\nexport const unrelated = 1;\n",
+			"src/ns.ts": 'import * as m from "./m";\nexport const v = m;\n',
+		});
+		const result = impactOf(index, symbolOf(index, "g"), 5);
+		expect(result.callers.map((caller) => caller.symbol?.name)).toEqual(["h"]);
+		expect(symbolOf(index, "g").exported).toBe(false);
+		expect(symbolOf(index, "h").exported).toBe(false);
+		expect(symbolOf(index, "unrelated").exported).toBe(true);
+	});
+
+	test("a member of an exported class is exported, a local in an exported function is not, and `export { x }` counts", () => {
+		const index = indexOf({
+			"src/m.ts":
+				"export class K {\n  go(): void {}\n}\nfunction outer(): void {\n  function inner(): void {}\n  inner();\n}\nfunction late(): void {}\nexport { late, outer };\n",
+		});
+		const flag = (name: string, container?: string): boolean => symbolOf(index, name, container).exported;
+		expect(flag("K")).toBe(true);
+		expect(flag("go", "K")).toBe(true);
+		expect(flag("late")).toBe(true);
+		expect(flag("outer")).toBe(true);
+		expect(flag("inner")).toBe(false);
+	});
+
+	test("export * and export * as ns are module edges that follow the restricted rule; by-name importers resolve to the original", () => {
+		const index = indexOf({
+			"src/m.ts": M,
+			"src/star.ts": 'export * from "./m";\n',
+			"src/nsx.ts": 'export * as inner from "./m";\n',
+			"src/use.ts": 'import { a } from "./star";\nexport const v = a;\n',
+		});
+		const moduleEdges = index.sites.filter((site) => site.calleeId === null);
+		expect(moduleEdges.map((site) => [site.file, site.moduleTarget])).toEqual([
+			["src/nsx.ts", "src/m.ts"],
+			["src/star.ts", "src/m.ts"],
+		]);
+		const a = symbolOf(index, "a");
+		expect(index.sites.find((site) => site.file === "src/use.ts")?.calleeId).toBe(a.id);
+		expect(shape(impactOf(index, a, 5).callers)).toEqual([
+			["src/nsx.ts", 1, "import"],
+			["src/star.ts", 1, "import"],
+			["src/use.ts", 1, "import"],
+		]);
+	});
+
+	test("import x = require(m) is resolved statically, like an import, and dynamic require() stays counted", () => {
+		const index = indexOf({
+			"src/m.ts": "function a(): number {\n  return 1;\n}\nexport = a;\n",
+			"src/n.ts": "export function z(): number {\n  return 2;\n}\n",
+			"src/use.ts":
+				'import x = require("./m");\nimport * as only from "./n";\nimport y = require("./n");\nimport q = require("no-such-package");\nexport const v = [x, y, q, only];\nrequire("./m");\n',
+		});
+		const imports = sitesOfKind(index, "import");
+		const a = symbolOf(index, "a");
+		// `export =` target: a symbol edge, aliasing included. Whole module: a module edge.
+		expect(imports.map((site) => [site.line, site.calleeId, site.moduleTarget])).toEqual([
+			[1, a.id, undefined],
+			[2, null, "src/n.ts"],
+			[3, null, "src/n.ts"],
+		]);
+		expect(index.unresolvedByKind).toEqual({ call: 0, import: 1, extends: 0, implements: 0, dynamic: 1 });
+	});
+
+	test("an import of a declaration missing from the symbol table is an unresolved import, with no guessed module edge", () => {
+		const index = indexOf({
+			"src/m.ts": "export default function () {}\n",
+			"src/use.ts": 'import d from "./m";\nexport const v = d;\n',
+		});
+		expect(index.sites.filter((site) => site.kind === "import")).toEqual([]);
+		expect(index.unresolvedByKind.import).toBe(1);
+		expect(index.unresolvedSites).toBe(1);
+	});
+
+	test("a class expression's heritage edge is carried by the variable it is bound to, or module scope", () => {
+		const index = indexOf({
+			"src/base.ts": "export class Base {}\n",
+			"src/use.ts":
+				'import { Base } from "./base";\nexport const Bound = class extends Base {};\nexport function make() {\n  return class extends Base {};\n}\nconsole.log(class extends Base {});\n',
+		});
+		const edges = sitesOfKind(index, "extends");
+		const bound = symbolOf(index, "Bound");
+		const make = symbolOf(index, "make");
+		expect(edges.map((site) => [site.line, site.callerId])).toEqual([
+			[2, bound.id],
+			[4, make.id],
+			[6, null],
+		]);
+	});
+});

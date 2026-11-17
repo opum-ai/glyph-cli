@@ -30,9 +30,9 @@ import type { GlyphIndex, SiteEntry, SymbolEntry } from "./types.ts";
  * is module scope (`callerId` null), so it is a terminal exactly like a
  * module-scope call; an `extends`/`implements` edge has the subclass or
  * implementer as its caller, so the walk continues from it over every kind. A
- * namespace or side-effect import binds no symbol: it is a depth-1 terminal of
- * any symbol impact STARTS from in the imported module (not of every symbol the
- * walk later reaches there). A changed method never fans out to overriding
+ * namespace or side-effect import binds no symbol: it is a terminal one hop
+ * beyond every EXPORTED symbol of the imported module the walk reaches, the
+ * start included (DEC-216 (a5)), because a namespace binding reaches only exports. A changed method never fans out to overriding
  * methods in v1; that limitation is named in ADR 0004 and the README.
  */
 
@@ -218,7 +218,11 @@ export function impactOf(index: GlyphIndex, symbol: SymbolEntry, depthBound: num
 		const current = discovered.get(id);
 		if (current === undefined) continue;
 		const incoming = reverse.get(id) ?? [];
-		const sites = id === target ? [...incoming, ...(byModule.get(symbol.file) ?? [])].sort(position) : incoming;
+		// A namespace or side-effect importer of M reaches only M's exports (DEC-216
+		// (a5)): every exported symbol the walk reaches, the start included, makes
+		// those importers terminals one hop further out.
+		const moduleSites = current.symbol?.exported === true ? (byModule.get(current.symbol.file) ?? []) : [];
+		const sites = moduleSites.length > 0 ? [...incoming, ...moduleSites].sort(position) : incoming;
 		for (const site of sites) {
 			const edge: ImpactEdge = {
 				file: site.file,

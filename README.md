@@ -86,8 +86,10 @@ index: 4 files, 4 symbols, 6 sites (cache hit)
   module-scope terminal at depth 1 with `symbol: null`, never expanded. A
   re-export is an import edge with the barrel as the dependent. `import type`
   is recorded with `typeOnly: true`. A namespace import, a side-effect import or
-  `export *` binds no single symbol: it is a depth-1 terminal of any symbol
-  impact starts from in the imported module, carrying `moduleTarget`.
+  `export *` binds no single symbol: it carries `moduleTarget`, and is a
+  terminal one hop beyond every **exported** symbol of the imported module the
+  walk reaches (the start included), never beyond a non-exported one.
+  `import x = require("m")` resolves like a static import.
 - `class B extends A`, `class C implements I` and `interface J extends I` are
   edges from the subclass or implementer, so a changed class or interface
   reaches them at depth + 1 and the walk continues over every edge kind. A
