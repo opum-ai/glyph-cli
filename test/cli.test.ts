@@ -202,6 +202,64 @@ describe("cli", () => {
 		expect((JSON.parse(equalsMissing.stderr) as { error_type: string }).error_type).toBe("not_found");
 	});
 
+	test("a program-level --repo after a subcommand option still selects the repository", () => {
+		// `--ref` is an impact option; commander consumes nothing for it at program
+		// level, so the --repo that follows it still names the repository. A
+		// scanner that skips --ref's next token analyzes the cwd instead: a wrong
+		// repository and a success-path regression.
+		const repo = makeScratchRepo({ "src/a.ts": "export function a(): number {\n  return 1;\n}\n" });
+		repo.commit("base");
+		const cache = scratchCacheDir();
+		const elsewhere = mkdtempSync(join(tmpdir(), "glyph-elsewhere-"));
+		const result = runCli(elsewhere, ["impact", "a", "--ref", "--repo", repo.root, "HEAD"], cache);
+		expect(result.code).toBe(0);
+		expect(result.stdout.startsWith("impact of a")).toBe(true);
+	});
+
+	test("a --json after a callers option is still a program flag", () => {
+		const repo = makeScratchRepo({ "src/a.ts": "export function a(): number {\n  return 1;\n}\n" });
+		repo.commit("base");
+		const cache = scratchCacheDir();
+		const result = runCli(repo.root, ["callers", "--file", "--json", "src", "a"], cache);
+		expect(result.code).toBe(0);
+		expect((JSON.parse(result.stdout) as { kind: string }).kind).toBe("callers.result");
+	});
+
+	test("--json with a -v after a subcommand option answers a version envelope", () => {
+		const repo = makeScratchRepo({ "src/a.ts": "export function a(): number {\n  return 1;\n}\n" });
+		repo.commit("base");
+		const cache = scratchCacheDir();
+		const result = runCli(repo.root, ["--json", "impact", "a", "--depth", "-v"], cache);
+		expect(result.code).toBe(0);
+		expect((JSON.parse(result.stdout) as { kind: string }).kind).toBe("version.info");
+	});
+
+	test("options stop at --, so a token after it is an operand rather than a flag", () => {
+		const repo = makeScratchRepo({ "src/a.ts": "export function a(): number {\n  return 1;\n}\n" });
+		repo.commit("base");
+		const cache = scratchCacheDir();
+
+		// `--json` is the symbol name commander sees, not the program flag.
+		const asOperand = runCli(repo.root, ["callers", "--", "--json"], cache);
+		expect(asOperand.code).toBe(3);
+		expect(asOperand.stderr.startsWith("glyph: ")).toBe(true);
+
+		// `-v` is the symbol name too, and --json still wraps the not-found.
+		const versionAsOperand = runCli(repo.root, ["--json", "callers", "--", "-v"], cache);
+		expect(versionAsOperand.code).toBe(3);
+		expect(versionAsOperand.stdout).toBe("");
+		expect((JSON.parse(versionAsOperand.stderr) as { error_type: string }).error_type).toBe("not_found");
+	});
+
+	test("combined short flags such as -vh take the version under --json", () => {
+		const repo = makeScratchRepo({ "src/a.ts": "export function a(): number {\n  return 1;\n}\n" });
+		repo.commit("base");
+		const cache = scratchCacheDir();
+		const result = runCli(repo.root, ["-vh", "--json"], cache);
+		expect(result.code).toBe(0);
+		expect((JSON.parse(result.stdout) as { kind: string }).kind).toBe("version.info");
+	});
+
 	const IMPACT_FILES = {
 		"src/d.ts": "export function d(): number {\n  return 1;\n}\n",
 		"src/c.ts": 'import { d } from "./d";\nexport function c(): number {\n  return d();\n}\n',

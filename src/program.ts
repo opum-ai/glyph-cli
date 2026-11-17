@@ -176,10 +176,7 @@ function commandNamesFor(token: string): CommandName[] | undefined {
 	return names.length === 0 ? undefined : names;
 }
 
-/** Options that take a value: `--name value` and `--name=value` are both allowed. */
-const VALUE_TAKING = new Set(["--repo", "--file", "--depth", "--ref"]);
-
-/** The options that are flags rather than values, among the global vocabulary. */
+/** The global flags, long form. Short flags (-h, -v) also combine: see below. */
 const GLOBAL_FLAGS = new Set(["--json", "--help", "-h", "--version", "-v"]);
 
 export interface ScannedArgs {
@@ -195,16 +192,36 @@ export interface ScannedArgs {
 }
 
 /**
+ * Split `-vh`-style short flags, commander's own rule: every character is a
+ * short flag of its own. Returns null for anything that is not a cluster of
+ * known short flags, so an unknown token still reaches commander as usage.
+ */
+function combinedShortFlags(arg: string): { help: boolean; version: boolean } | null {
+	if (!arg.startsWith("-") || arg.startsWith("--") || arg.length < 2) return null;
+	let help = false;
+	let version = false;
+	for (const char of arg.slice(1)) {
+		if (char === "h") help = true;
+		else if (char === "v") version = true;
+		else return null;
+	}
+	return { help, version };
+}
+
+/**
  * ONE scanner for the option vocabulary, shared by the pre-scan decisions and
  * the command context, so `--repo` and `--json` read identically everywhere.
  *
- * It follows commander's own rule: a `--repo` takes the NEXT TOKEN as its
- * value even when that token begins with `-`. So in `glyph --repo --json
- * callers x` the repository is a directory literally named `--json` and the
- * output mode is text; the pre-scan used to read `--json` as the flag and wrap
- * only the failure in an envelope, which is the disagreement this scanner
- * removes. The command-specific value options are skipped for the same reason:
- * their value is never a command token or a flag.
+ * It follows commander's own rules, which are narrower than they look:
+ * - Only `--repo` takes a value, and it takes the NEXT TOKEN even when that
+ *   token begins with `-`. In `glyph --repo --json callers x` the repository is
+ *   a directory literally named `--json` and the output mode is text.
+ * - A command's own value options (`--file`, `--depth`, `--ref`) are UNKNOWN at
+ *   program level, so they consume nothing here: `impact x --ref --repo /dir
+ *   HEAD` still selects `/dir`, exactly as commander does.
+ * - `--` ends the options; everything after it is an operand, so a token there
+ *   can name the command even when it begins with `-`.
+ * - `-vh`-style clusters are split into their short flags.
  */
 export function scanArgv(argv: string[]): ScannedArgs {
 	let commandToken: string | undefined;
@@ -213,18 +230,24 @@ export function scanArgv(argv: string[]): ScannedArgs {
 	let help = false;
 	let version = false;
 	let onlyKnownGlobals = true;
+	let optionsEnded = false;
 	for (let index = 0; index < argv.length; index += 1) {
 		const arg = argv[index];
 		if (arg === undefined) continue;
+		if (optionsEnded) {
+			onlyKnownGlobals = false;
+			if (commandToken === undefined) commandToken = arg;
+			continue;
+		}
+		if (arg === "--") {
+			optionsEnded = true;
+			continue;
+		}
 		const equals = arg.startsWith("--") ? arg.indexOf("=") : -1;
 		const name = equals === -1 ? arg : arg.slice(0, equals);
-		if (VALUE_TAKING.has(name)) {
-			if (name === "--repo") {
-				repo = equals === -1 ? argv[index + 1] : arg.slice(equals + 1);
-				if (repo === undefined) onlyKnownGlobals = false;
-			} else {
-				onlyKnownGlobals = false;
-			}
+		if (name === "--repo") {
+			repo = equals === -1 ? argv[index + 1] : arg.slice(equals + 1);
+			if (repo === undefined) onlyKnownGlobals = false;
 			if (equals === -1) index += 1;
 			continue;
 		}
@@ -232,6 +255,12 @@ export function scanArgv(argv: string[]): ScannedArgs {
 			if (arg === "--json") json = true;
 			else if (arg === "--version" || arg === "-v") version = true;
 			else help = true;
+			continue;
+		}
+		const combined = combinedShortFlags(arg);
+		if (combined !== null) {
+			help ||= combined.help;
+			version ||= combined.version;
 			continue;
 		}
 		onlyKnownGlobals = false;
