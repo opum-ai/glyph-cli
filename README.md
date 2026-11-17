@@ -140,6 +140,13 @@ $ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref
 - The output is bounded to 20 files and 2,000 tokens (`ceil(length / 4)`), and
   every candidate or read bound it drops is named in `omissions`. The same
   repository state, source ref and task text give byte-identical output.
+- A run has a wall-time budget of 7.0 s (`CODE_MAP_TIME_BUDGET_MS`, measured and
+  fixed under DEC-216 (a4)(b) and (a10), ADR 0005). Past it the run stops gathering and returns
+  what it has, with one omission whose source is `code-map#time-budget` and whose
+  reason starts `time-budget:` and names the stage and the elapsed time; a pointer emitted after the
+  deadline says its line ranges were not read. An answer inside the budget is
+  unchanged. The one step the budget cannot interrupt is the cold index build; an
+  overrun there is reported the same way, never silently.
 - Task text over 20,000 UTF-16 code units (JavaScript's string length, so an
   emoji counts as two and `é` as one) is a **usage error**, never a silent
   truncation. A missing `--source-ref` is a usage error too.
