@@ -62,6 +62,13 @@ describe("tier 3: symbols resolved through the index", () => {
 		expect(named[0]).toBe("src/0-note.ts");
 	});
 
+	test("distance is never emitted as a score: a tier-3 pointer carries only path, lineRanges and reason", () => {
+		const output = produce(repoWith(ALIAS), "fix `buildReport`");
+		const symbolPointers = output.pointers.filter((pointer) => pointer.reason.includes("symbol `buildReport`"));
+		expect(symbolPointers.length).toBeGreaterThan(1);
+		for (const pointer of output.pointers) expect(Object.keys(pointer)).toEqual(["path", "lineRanges", "reason"]);
+	});
+
 	test("a file found in several tiers appears once, at its highest tier, with every reason", () => {
 		const root = repoWith(ALIAS);
 		const paths = pathsOf(produce(root, "fix `buildReport`"));
