@@ -7,7 +7,7 @@
  */
 
 /** Bumped when the index shape changes; part of every cache key. */
-export const INDEX_FORMAT = 1;
+export const INDEX_FORMAT = 2;
 
 export type SymbolKind = "function" | "method" | "property" | "class" | "interface" | "type" | "enum" | "variable";
 
@@ -32,25 +32,59 @@ export interface SymbolEntry {
 	column: number;
 	/** 1-based; the declaration's last line. */
 	endLine: number;
+	/**
+	 * True when a namespace binding (`import * as ns from`) can reach this symbol:
+	 * a module-level declaration the module exports, or a member of one. Local and
+	 * non-exported declarations are false (DEC-216 (a5)).
+	 */
+	exported: boolean;
 }
 
 /**
- * One call site, resolved through the type checker to the declaration it
- * invokes. `reference` sites (reading a symbol without calling it) are not
- * recorded in v0 — the index answers "what calls this symbol" as call sites,
- * which is the query the ADR names (see README's limits section).
+ * One edge of the index, beside the symbol table. `call` and `new` are resolved
+ * call sites; `import` is an import or re-export binding; `extends` and
+ * `implements` are heritage clauses (DEC-216 (a3)). `reference` sites (reading
+ * a symbol without calling it) are still not recorded: read/write reference
+ * edges stay out of scope, which is why an import's dependent is the importing
+ * module and not the declarations that use the binding.
  */
-export type SiteKind = "call" | "new";
+export type SiteKind = "call" | "new" | "import" | "extends" | "implements";
+
+/** The kinds `glyph callers` reports: invocations, never the structural edges. */
+export const CALL_KINDS: readonly SiteKind[] = ["call", "new"];
 
 export interface SiteEntry {
-	/** The `SymbolEntry.id` this site invokes. */
-	calleeId: string;
-	/** The enclosing declaration at the call site, or null at module scope. */
+	/**
+	 * The `SymbolEntry.id` this site targets. Null only for a module edge (a
+	 * namespace import, a side-effect import or `export *`), which binds no
+	 * single symbol and carries `moduleTarget` instead.
+	 */
+	calleeId: string | null;
+	/**
+	 * The enclosing declaration at the site, or null at module scope. An import
+	 * or re-export is always module scope; an `extends`/`implements` edge's
+	 * caller is the declaration that carries the heritage clause.
+	 */
 	callerId: string | null;
 	file: string;
 	line: number;
 	column: number;
 	kind: SiteKind;
+	/** Import sites only: the binding is `import type` or a type-only specifier. */
+	typeOnly?: boolean;
+	/** Module edges only: the repository-relative file the specifier resolves to. */
+	moduleTarget?: string;
+}
+
+/** Sites that did not resolve in-repo, by the kind that is blind. */
+export interface UnresolvedByKind {
+	/** Call and `new` sites, which share one counter. */
+	call: number;
+	import: number;
+	extends: number;
+	implements: number;
+	/** Dynamic `import()` and `require()`: out of scope for resolution, still counted. */
+	dynamic: number;
 }
 
 export interface GlyphIndex {
@@ -60,8 +94,9 @@ export interface GlyphIndex {
 	files: string[];
 	symbols: SymbolEntry[];
 	sites: SiteEntry[];
-	/** Call-shaped sites whose callee resolved outside the repository (or not at all). */
+	/** Every site that did not resolve in-repo: the sum of `unresolvedByKind`. */
 	unresolvedSites: number;
+	unresolvedByKind: UnresolvedByKind;
 }
 
 /** Summary of the index source, carried in every query result. */

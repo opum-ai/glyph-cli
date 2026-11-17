@@ -17,9 +17,24 @@ const CHAIN: Record<string, string> = {
 	"src/a.ts": 'import { b } from "./b";\nexport function a(): number {\n  return b();\n}\n',
 };
 
-function indexOf(files: Record<string, string>): GlyphIndex {
+/** The full index: every edge kind, as `glyph impact` walks it. */
+function fullIndexOf(files: Record<string, string>): GlyphIndex {
 	const repo = makeScratchRepo(files);
 	return buildIndex(repo.root, discoverSources(repo.root));
+}
+
+/**
+ * The v0 call graph: only `call` and `new` sites. The tests below that pin the
+ * call walk run over this view, which is how "existing call and new answers are
+ * unchanged" (GCLI-11) is proven: the same fixtures and assertions as before the
+ * import and heritage edges existed, answered by the widened walk.
+ */
+function callsOnly(index: GlyphIndex): GlyphIndex {
+	return { ...index, sites: index.sites.filter((site) => site.kind === "call" || site.kind === "new") };
+}
+
+function indexOf(files: Record<string, string>): GlyphIndex {
+	return callsOnly(fullIndexOf(files));
 }
 
 function symbolOf(index: GlyphIndex, name: string): SymbolEntry {
@@ -236,13 +251,13 @@ describe("impact", () => {
 	test("the ref-pinned index ignores a dirty checkout, while the working tree does not", () => {
 		const repo = makeScratchRepo(CHAIN);
 		const base = repo.commit("base");
-		const before = indexSnapshot(snapshotAtRef(repo.root, base));
+		const before = callsOnly(indexSnapshot(snapshotAtRef(repo.root, base)));
 
 		repo.write(
 			"src/a.ts",
 			'import { b } from "./b";\nimport { d } from "./d";\nexport function a(): number {\n  return b() + d();\n}\n',
 		);
-		const after = indexSnapshot(snapshotAtRef(repo.root, base));
+		const after = callsOnly(indexSnapshot(snapshotAtRef(repo.root, base)));
 		const refD = symbolOf(after, "d");
 		expect(impactOf(after, refD, 5).callers.map((caller) => [caller.symbol?.name ?? null, caller.depth])).toEqual([
 			["c", 1],
@@ -251,7 +266,7 @@ describe("impact", () => {
 		]);
 		expect(impactOf(after, refD, 5)).toEqual(impactOf(before, symbolOf(before, "d"), 5));
 
-		const working = buildIndex(repo.root, discoverSources(repo.root));
+		const working = callsOnly(buildIndex(repo.root, discoverSources(repo.root)));
 		const workingD = symbolOf(working, "d");
 		expect(impactOf(working, workingD, 5).callers.map((caller) => [caller.symbol?.name ?? null, caller.depth])).toEqual(
 			[

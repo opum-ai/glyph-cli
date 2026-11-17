@@ -24,6 +24,16 @@ import type { GlyphIndex, SiteEntry, SymbolEntry } from "./types.ts";
  * reported at its true depth with `symbol: null` and the full path of edges
  * down to the target, never expanded, so impact's depth-1 set is a superset of
  * `callers`.
+ *
+ * Under DEC-216 (a3) the walk is still one breadth-first search, now over the
+ * union of `call`, `new`, `import`, `extends` and `implements` sites. An import
+ * is module scope (`callerId` null), so it is a terminal exactly like a
+ * module-scope call; an `extends`/`implements` edge has the subclass or
+ * implementer as its caller, so the walk continues from it over every kind. A
+ * namespace or side-effect import binds no symbol: it is a terminal one hop
+ * beyond every EXPORTED symbol of the imported module the walk reaches, the
+ * start included (DEC-216 (a5)), because a namespace binding reaches only exports. A changed method never fans out to overriding
+ * methods in v1; that limitation is named in ADR 0004 and the README.
  */
 
 /** One edge of a reported shortest path, carrying the call site that forms it. */
@@ -33,7 +43,12 @@ export interface ImpactEdge {
 	column: number;
 	kind: SiteEntry["kind"];
 	callerId: string | null;
+	/** The symbol this hop lands on; for a module edge, the symbol impact is walking from. */
 	calleeId: string;
+	/** Import hops only. */
+	typeOnly?: boolean;
+	/** Module-edge hops only: the file the namespace or side-effect import resolves to. */
+	moduleTarget?: string;
 }
 
 export interface ImpactCaller {
@@ -179,12 +194,17 @@ export function impactOf(index: GlyphIndex, symbol: SymbolEntry, depthBound: num
 	const target = symbol.id;
 	const byId = new Map(index.symbols.map((entry) => [entry.id, entry]));
 	const reverse = new Map<string, SiteEntry[]>();
+	/** Module edges, keyed by the file they target. */
+	const byModule = new Map<string, SiteEntry[]>();
 	for (const site of index.sites) {
-		const list = reverse.get(site.calleeId);
-		if (list === undefined) reverse.set(site.calleeId, [site]);
+		const [map, key] = site.calleeId !== null ? [reverse, site.calleeId] : [byModule, site.moduleTarget];
+		if (key === undefined) continue;
+		const list = map.get(key);
+		if (list === undefined) map.set(key, [site]);
 		else list.push(site);
 	}
 	for (const list of reverse.values()) list.sort(position);
+	for (const list of byModule.values()) list.sort(position);
 
 	const discovered = new Map<string, Discovery>();
 	discovered.set(target, { symbol, depth: 0, nodes: [target], edges: [] });
@@ -197,15 +217,23 @@ export function impactOf(index: GlyphIndex, symbol: SymbolEntry, depthBound: num
 		if (id === undefined) break;
 		const current = discovered.get(id);
 		if (current === undefined) continue;
-		for (const site of reverse.get(id) ?? []) {
+		const incoming = reverse.get(id) ?? [];
+		// A namespace or side-effect importer of M reaches only M's exports (DEC-216
+		// (a5)): every exported symbol the walk reaches, the start included, makes
+		// those importers terminals one hop further out.
+		const moduleSites = current.symbol?.exported === true ? (byModule.get(current.symbol.file) ?? []) : [];
+		const sites = moduleSites.length > 0 ? [...incoming, ...moduleSites].sort(position) : incoming;
+		for (const site of sites) {
 			const edge: ImpactEdge = {
 				file: site.file,
 				line: site.line,
 				column: site.column,
 				kind: site.kind,
 				callerId: site.callerId,
-				calleeId: site.calleeId,
+				calleeId: site.calleeId ?? id,
 			};
+			if (site.typeOnly !== undefined) edge.typeOnly = site.typeOnly;
+			if (site.moduleTarget !== undefined) edge.moduleTarget = site.moduleTarget;
 			const edges = [edge, ...current.edges];
 			if (site.callerId === null) {
 				const key = moduleKey(site);
@@ -242,7 +270,8 @@ export function impactOf(index: GlyphIndex, symbol: SymbolEntry, depthBound: num
 	const ids = [...discovered.keys()];
 	const callers = new Map<string, string[]>(ids.map((id) => [id, []]));
 	for (const site of index.sites) {
-		if (site.callerId === null || !callers.has(site.callerId) || !discovered.has(site.calleeId)) continue;
+		if (site.callerId === null || site.calleeId === null || !callers.has(site.callerId)) continue;
+		if (!discovered.has(site.calleeId)) continue;
 		(callers.get(site.callerId) ?? []).push(site.calleeId);
 	}
 	const cyclic = cyclicSymbols(ids, callers);
