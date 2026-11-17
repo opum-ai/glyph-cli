@@ -114,6 +114,36 @@ reports the method, not also every class containing it. Changed ranges come
 from `git diff --unified=0`, and a deletion-only hunk is attributed at the
 line where the deletion happened.
 
+### `glyph code-map --source-ref <ref>`
+
+Pointers into the code a task concerns, as opum-cli's `CodeMapProducer` seam
+consumes them: `{ pointers, omissions }`, emitted as `data` under the kind
+`code-map.result`. The task text is read from **stdin**; `--source-ref` names the
+ref every read resolves against and the ref the branch's own diff is taken
+against (`--repo` and `--json` are the usual globals).
+
+```console
+$ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref origin/dev
+```
+
+- Tiers, in rank order, are named paths that exist at the ref, files the branch
+  changed against it, and files `git grep` finds for the task text's distinctive
+  identifiers (backticked tokens, CamelCase and dotted names). A path found by
+  more than one tier keeps its best; ties break by score, then path. A pointer is
+  a path, line ranges and one line of reason, never a file body.
+- The output is bounded to 20 files and 2,000 tokens (`ceil(length / 4)`), and
+  every candidate or read bound it drops is named in `omissions`. The same
+  repository state, source ref and task text give byte-identical output.
+- Task text over 20,000 UTF-16 code units (JavaScript's string length, so an
+  emoji counts as two and `é` as one) is a **usage error**, never a silent
+  truncation. A missing `--source-ref` is a usage error too.
+- Exit codes are 0, 1, 2, 3 and 7: a `--source-ref` that does not resolve is
+  `not_found`, and a failed or timed-out git read is `indeterminate`.
+- This is a port of opum-cli's deterministic producer (pinned in
+  `src/codemap-text.ts`), checked byte for byte against goldens that script
+  `test/parity/generate-goldens.ts` generates by running that producer. Tier 3, the
+  symbols resolved through the index, and the time budget are later slices.
+
 ### `glyph cache path` | `glyph cache clear`
 
 Show or clear this repository's local cache directory.
@@ -142,7 +172,7 @@ envelope:
   both envelopes. It is `null` until an identity is populated; omitting it is
   non-conformance, not an equivalent variant.
 - **Kinds are dotted `command.payload`** (`callers.result`, `impact.result`,
-  `diff.result`, `cache.path`, `cache.clear`, `help.manifest`), plus
+  `diff.result`, `code-map.result`, `cache.path`, `cache.clear`, `help.manifest`), plus
   `version.info` and `help.usage` for the global `--version` and `--help`
   results. They are a registry, not a convention: handlers read their kind from
   it, `glyph help --json` publishes it, a test walks the registered commander
@@ -249,9 +279,10 @@ entry keeps the answer it was built with. Symlinks
 and submodules are not source files at a commit and are skipped. The working
 tree remains the default for interactive use.
 
-`diff` and the code-map seam will require `--ref` (DEC-216 Q4). Making an
-existing command's surface change is out of this slice, so that requirement is
-recorded in ADR 0003 and deferred to the seam's own slice.
+`diff` will require `--ref` (DEC-216 Q4). Making an existing command's surface
+change is out of this slice, so that requirement is recorded in ADR 0003 and
+deferred. The code-map seam shipped as `glyph code-map --source-ref <ref>`, which
+names its ref explicitly and never reads the working tree's history by default.
 
 ## The cache
 

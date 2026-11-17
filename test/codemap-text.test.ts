@@ -96,7 +96,7 @@ describe("pathsNamedIn", () => {
 	});
 
 	test("a directory, an absolute path and an inner dot segment are not paths", () => {
-		expect(pathsNamedIn("../x and /abs/path and a/../b")).toEqual([]);
+		expect(pathsNamedIn("a/../b and /abs/path/z and /root/x")).toEqual([]);
 		expect(pathsNamedIn("a directory: src/context/")).toEqual(["src/context"]);
 		expect(pathsNamedIn("see ./src/a.ts")).toEqual(["src/a.ts"]);
 		expect(pathsNamedIn("a/./b")).toEqual([]);

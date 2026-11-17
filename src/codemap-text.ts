@@ -81,7 +81,9 @@ export function pathsNamedIn(text: string): string[] {
 		if (before.includes("//") || (before.endsWith("/") && !before.endsWith("./"))) continue;
 		// Trailing sentence punctuation is not part of the path. The pattern can
 		// only end a match in `.` from this set (the rest are never matched), so the
-		// other guards are dead code kept for parity.
+		// other characters here are dead code kept for parity. So are the guards just
+		// below: a match cannot start with `/`, contain `://` (no `:`), or trim to
+		// empty (it starts with a letter, digit, `_` or `@`).
 		while (token.length > 0 && ".,;:!?)]}'\"".includes(token.at(-1) ?? "")) {
 			token = token.slice(0, -1);
 		}
@@ -107,8 +109,9 @@ export function pathsNamedIn(text: string): string[] {
  *
  * The bare-token regexes run over bounded tokens, but the `pathsNamedIn` pass this
  * function starts with runs its pattern over the WHOLE text and is quadratic in
- * a long unbroken run. A backticked token is filtered hard — no whitespace, no path separator, no leading dash — because a
- * flag or a phrase greps half the repository. A token that is part of a path the
+ * a long unbroken run. A backticked token is filtered hard — no whitespace, no
+ * path separator, no leading dash — because a flag or a phrase greps half the
+ * repository. A token that is part of a path the
  * text already names is dropped too: `alpha.ts` inside `src/alpha.ts` would grep
  * every mention of the suffix and duplicate the path pointer.
  */

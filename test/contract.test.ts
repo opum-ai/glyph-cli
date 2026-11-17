@@ -28,6 +28,7 @@ const GOLDEN_KINDS: Record<string, string> = {
 	callers: "callers.result",
 	impact: "impact.result",
 	diff: "diff.result",
+	"code-map": "code-map.result",
 	"cache path": "cache.path",
 	"cache clear": "cache.clear",
 	help: "help.manifest",
