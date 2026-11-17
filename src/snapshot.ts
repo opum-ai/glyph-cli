@@ -22,12 +22,11 @@ import type { GlyphIndex } from "./types.ts";
  * promise: a hoisted dependency tree, a parent tsconfig, or a different
  * TypeScript package can still move a cold answer.
  *
- * `ts.sys` is the fallback for three kinds of path the commit does not carry:
- * a hoisted dependency tree above the root, a parent-directory tsconfig
- * reached through `extends`, and the running TypeScript package's standard
- * library. That
- * library is served wherever it sits — inside the analyzed checkout too, when
- * the package is a dependency of it — because it belongs to the tool rather
+ * `ts.sys` is the fallback for any path outside the repository root — a hoisted
+ * dependency tree or a parent-directory tsconfig reached through `extends`, for
+ * example — and for the running TypeScript package's own library directory,
+ * wherever it sits. The library is served inside the analyzed checkout too,
+ * when the package is a dependency of it, because it belongs to the tool rather
  * than to the commit.
  *
  * Symlinks are not followed here (a tree records the link text, not the

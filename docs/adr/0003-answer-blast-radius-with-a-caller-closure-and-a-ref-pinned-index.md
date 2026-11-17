@@ -89,17 +89,16 @@ kind, `impact.result`, with the exit-code family every Glyph command shares.
   are invisible to a `--ref` program, and **in-repo `node_modules` is not read
   from disk** (DEC-216 (a2)): a module that would resolve through the
   checkout's installed dependencies is not resolved through that install, and
-  its call sites are counted in `unresolvedSites`. That makes what the commit carries authoritative
-  and consistent with a cache key that cannot see node_modules content. A
-  tracked `node_modules` is part of the tree and is served from the tree like
-  any other committed path. `ts.sys` is the fallback for three kinds of path
-  the commit does not carry: a hoisted dependency tree above the root, a
-  parent-directory tsconfig reached through `extends`, and the running
-  TypeScript package's own library directory, wherever that sits. Those host
-  reads are not hashed, so they can still move a cold answer — see
-  Consequences. Symlink entries and submodule gitlinks are not source files and
-  are skipped. The working tree
-  remains the default for interactive use.
+  its call sites are counted in `unresolvedSites`. That makes what the commit
+  carries authoritative and consistent with a cache key that cannot see
+  node_modules content. A tracked `node_modules` is part of the tree and is
+  served from the tree like any other committed path. `ts.sys` is the fallback
+  for any path outside the repository root — a hoisted dependency tree or a
+  parent-directory tsconfig reached through `extends`, for example — and for
+  the running TypeScript package's own library directory, wherever it sits.
+  Those host reads are not hashed, so they can still move a cold answer — see
+  Consequences. Symlink entries and submodule gitlinks are not source files
+  and are skipped. The working tree remains the default for interactive use.
 - **The cache is addressed by the commit under `--ref`.** The key is the index
   format plus the commit SHA plus the tree's file list — not file stats — so a
   dirty working tree can neither serve nor overwrite a `--ref` answer. The
@@ -137,15 +136,15 @@ exactly as before.
 - **The identity claim is scoped to what the commit carries.** `computeRefKey`
   hashes `INDEX_FORMAT`, the commit SHA and the tree's file list, and nothing
   else. Three kinds of input can therefore move a cold answer without moving the
-  key: host files the commit does not carry — a hoisted dependency tree above
-  the root, a parent-directory tsconfig reached through `extends`, and the
-  running TypeScript package's own library directory, wherever it sits, inside
-  the root included; the running TypeScript compiler's version, whose checker
-  behaviour reaches beyond its `.d.ts` files; and Glyph's own indexer logic
-  beyond `INDEX_FORMAT`, so a code change without a format bump can also serve a
-  stale warm entry. Two hosts whose such inputs or tool versions differ can
-  answer the same commit differently on a cold cache, and a warm entry keeps the
-  answer it was built with. What the commit does carry — its tree and its own
+  key: host files the commit does not carry, such as a hoisted dependency tree
+  above the root, a parent-directory tsconfig reached through `extends`, or any
+  other path outside the root, and the running TypeScript package's own library
+  directory, wherever it sits, inside the root included; the running TypeScript
+  compiler's version, whose checker behaviour reaches beyond its `.d.ts` files;
+  and Glyph's own indexer logic beyond `INDEX_FORMAT`, so a code change without
+  a format bump can also serve a stale warm entry. Two hosts whose such inputs
+  or tool versions differ can answer the same commit differently on a cold
+  cache, and a warm entry keeps the answer it was built with. What the commit does carry — its tree and its own
   tsconfig — determines the rest.
 - An empty answer never reads as "no impact": `unresolvedSites` is always
   reported, and the precision caveat is stated in the README and in every human
