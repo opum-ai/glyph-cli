@@ -95,7 +95,7 @@ describe("pathsNamedIn", () => {
 		expect(pathsNamedIn("No paths here, just prose.")).toEqual([]);
 	});
 
-	test("a directory, ../, an absolute path and dot segments are not paths", () => {
+	test("a directory, an absolute path and an inner dot segment are not paths", () => {
 		expect(pathsNamedIn("../x and /abs/path and a/../b")).toEqual([]);
 		expect(pathsNamedIn("a directory: src/context/")).toEqual(["src/context"]);
 		expect(pathsNamedIn("see ./src/a.ts")).toEqual(["src/a.ts"]);
@@ -123,7 +123,22 @@ describe("pathsNamedIn", () => {
 		expect(pathsNamedIn(".quest/tasks/A.json")).toEqual(["quest/tasks/A.json"]);
 	});
 
-	test("trailing sentence punctuation and closing brackets are trimmed", () => {
+	test("a leading ../ does not drop the path: the match starts at the first letter, as in the producer", () => {
+		// Parity quirk, pinned. The `before` text is `../`, which ends with `./`, so
+		// the path is kept as `src/a.ts` rather than dropped as a parent reference.
+		expect(pathsNamedIn("../src/a.ts")).toEqual(["src/a.ts"]);
+		expect(pathsNamedIn("see ../src/a.ts now")).toEqual(["src/a.ts"]);
+	});
+
+	test("a URL with a port keeps the part after the colon, as in the producer", () => {
+		// Parity quirk, pinned: `https://host.com:8080/a/b` yields `8080/a/b`.
+		expect(pathsNamedIn("https://host.com:8080/a/b")).toEqual(["8080/a/b"]);
+	});
+
+	test("only a trailing full stop is ever trimmed; brackets and quotes never reach the match", () => {
+		// The pattern cannot match `)`, `]`, `}`, `'`, `"`, `,`, `;`, `:`, `!` or `?`, so
+		// the trim loop's other guards are dead code kept for parity.
+		expect(pathsNamedIn("src/a.ts.")).toEqual(["src/a.ts"]);
 		expect(pathsNamedIn("(see src/a.ts), and 'src/b.ts'! then src/c.ts?")).toEqual([
 			"src/a.ts",
 			"src/b.ts",
@@ -160,18 +175,48 @@ describe("collectIdentifiers and distinctiveIdentifiers", () => {
 		]);
 	});
 
-	test("order is first appearance, repeats collapse, and the distinct list is capped at 12 while the full list is not", () => {
+	test("every backticked token precedes every bare one, each group in first-appearance order", () => {
+		// Parity quirk, pinned: the backtick pass runs before the bare-token pass, so a
+		// later backticked name outranks an earlier bare one. That order decides which
+		// 12 survive the cap.
+		expect(distinctiveIdentifiers("buildReport and `ledgerTotals`")).toEqual(["ledgerTotals", "buildReport"]);
+		expect(distinctiveIdentifiers("`b4ck` bareCase `other1` anotherCase")).toEqual([
+			"b4ck",
+			"other1",
+			"bareCase",
+			"anotherCase",
+		]);
+	});
+
+	test("repeats collapse and the distinct list is capped at 12 while the full list is not", () => {
 		const names = Array.from({ length: 15 }, (_, index) => `thing${String.fromCharCode(65 + index)}Name`);
 		const text = `${names.join(" ")} ${names[0]}`;
 		expect(collectIdentifiers(text)).toEqual(names);
 		expect(distinctiveIdentifiers(text)).toEqual(names.slice(0, CODE_MAP_MAX_IDENTIFIERS));
 	});
 
+	test("the cap keeps backticked names over earlier bare ones", () => {
+		const bare = Array.from({ length: 12 }, (_, index) => `bare${String.fromCharCode(65 + index)}Name`);
+		const kept = distinctiveIdentifiers(`${bare.join(" ")} \`lastTicked\``);
+		expect(kept[0]).toBe("lastTicked");
+		expect(kept).toHaveLength(CODE_MAP_MAX_IDENTIFIERS);
+		expect(kept).not.toContain(bare[11]);
+	});
+
+	test("a sentence-final full stop defeats a bare name, as in the producer", () => {
+		// Parity quirk, pinned: the token is `buildReport.`, which is neither CamelCase
+		// nor dotted, so nothing is taken.
+		expect(distinctiveIdentifiers("call buildReport.")).toEqual([]);
+		expect(distinctiveIdentifiers("call buildReport, now")).toEqual(["buildReport"]);
+	});
+
 	test("a long unbroken run neither matches nor runs away, at the size of the producer's task-text bound", () => {
 		// The producer slices the task text to CODE_MAP_MAX_TASK_TEXT before it
 		// extracts, so that is the largest input these functions ever see. The
-		// extractors are quadratic in an unbroken run: about 0.2 s per call at this
-		// size, which the time budget (GCLI-38) must account for.
+		// extractors are quadratic in an unbroken run (the pathsNamedIn pattern over
+		// the whole text): about 0.2 s per call at this size, which the time budget
+		// (GCLI-38) must account for. That cost is a measurement, not a pinned
+		// behaviour: a linear rewrite would return the same bytes.
 		const run = "A".repeat(CODE_MAP_MAX_TASK_TEXT);
 		expect(distinctiveIdentifiers(`before ${run} after`)).toEqual([]);
 	});
@@ -185,6 +230,14 @@ describe("parseNumstat", () => {
 				["img.png", 0],
 			]),
 		);
+	});
+
+	test("a rename entry would be recorded under an empty path, which the producer never sees: it passes --no-renames", () => {
+		// `git diff -z --numstat` renders a rename as `N\tM\t\0old\0new\0`. The producer
+		// pins `--no-renames` (its DIFF_PINS), so a rename arrives as a delete plus an
+		// add and this shape does not occur. Ported as is; GCLI-41 must pass the same
+		// pins and its goldens cover a renamed file.
+		expect(parseNumstat("2\t3\t\0old.ts\0new.ts\0")).toEqual(new Map([["", 5]]));
 	});
 
 	test("ignores an empty entry and a malformed one, and keeps a path with a tab in its tail", () => {

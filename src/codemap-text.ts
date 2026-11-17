@@ -62,8 +62,11 @@ export function estimateTokens(text: string): number {
  * segments. Existence at the source ref is checked by the caller, so a false
  * positive here costs one git read and cannot reach the pack.
  *
- * `./src/a.ts` is accepted as `src/a.ts`. A URL, an absolute path, and any token
- * containing a `.` or `..` segment are not repo paths and are dropped.
+ * `./src/a.ts` is accepted as `src/a.ts`. A URL host, an absolute path and a
+ * token with an INNER `.` or `..` segment (`a/../b`) are dropped. A LEADING `../`
+ * is not: the match starts at the first letter after it, so `../src/a.ts` yields
+ * `src/a.ts`, exactly as in the producer (pinned as a parity quirk, not a fix).
+ * The same pattern ends a `https://host:8080/a/b` match at `8080/a/b`.
  */
 export function pathsNamedIn(text: string): string[] {
 	const found: string[] = [];
@@ -76,7 +79,9 @@ export function pathsNamedIn(text: string): string[] {
 		// slash that is allowed.
 		const before = text.slice(Math.max(0, (match.index ?? 0) - 3), match.index ?? 0);
 		if (before.includes("//") || (before.endsWith("/") && !before.endsWith("./"))) continue;
-		// Trailing sentence punctuation is not part of the path.
+		// Trailing sentence punctuation is not part of the path. The pattern can
+		// only end a match in `.` from this set (the rest are never matched), so the
+		// other guards are dead code kept for parity.
 		while (token.length > 0 && ".,;:!?)]}'\"".includes(token.at(-1) ?? "")) {
 			token = token.slice(0, -1);
 		}
@@ -93,14 +98,16 @@ export function pathsNamedIn(text: string): string[] {
 }
 
 /**
- * The identifiers worth grepping for, in order of first appearance, deduplicated,
- * BEFORE the cap. The producer slices it so it can report the identifiers its
+ * The identifiers worth grepping for, deduplicated, BEFORE the cap. The order is
+ * every backticked token first, then every bare CamelCase or dotted token, each
+ * group in order of first appearance; that order decides which 12 survive the
+ * cap. The producer slices it so it can report the identifiers its
  * read bound left out. Three shapes: backticked tokens, CamelCase names and
  * dotted names.
  *
- * The text is tokenized first and every candidate is bounded, so a long unbroken
- * run cannot make a regex backtrack quadratically. A backticked token is
- * filtered hard — no whitespace, no path separator, no leading dash — because a
+ * The bare-token regexes run over bounded tokens, but the `pathsNamedIn` pass this
+ * function starts with runs its pattern over the WHOLE text and is quadratic in
+ * a long unbroken run. A backticked token is filtered hard — no whitespace, no path separator, no leading dash — because a
  * flag or a phrase greps half the repository. A token that is part of a path the
  * text already names is dropped too: `alpha.ts` inside `src/alpha.ts` would grep
  * every mention of the suffix and duplicate the path pointer.
