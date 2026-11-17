@@ -374,3 +374,52 @@ describe("DEC-216 (a5) refinements", () => {
 		]);
 	});
 });
+
+describe("review of #73 (glyph-cli-review-73 at db3611c)", () => {
+	test("an `export =` target missing from the symbol table is an unresolved import, not a guessed module edge", () => {
+		const index = indexOf({
+			"src/m.ts": "export = { k: 1 };\n",
+			"src/use.ts": 'import x = require("./m");\nexport const v = x;\n',
+		});
+		expect(sitesOfKind(index, "import")).toEqual([]);
+		expect(index.unresolvedByKind.import).toBe(1);
+		expect(index.unresolvedSites).toBe(1);
+	});
+
+	test("each namespace importer appears once, at its shortest depth, however many exported symbols reach its module", () => {
+		const index = indexOf({
+			"src/m.ts": "export function g(): number {\n  return 1;\n}\nexport function f(): number {\n  return g();\n}\n",
+			"src/ns.ts": 'import * as m from "./m";\nexport const v = m;\n',
+		});
+		const result = impactOf(index, symbolOf(index, "g"), 5);
+		// g (exported, k = 0) reaches ns at depth 1; f (exported, depth 1) would reach it at depth 2.
+		const importer = result.callers.filter((caller) => caller.path[0]?.file === "src/ns.ts");
+		expect(importer).toHaveLength(1);
+		expect(importer[0]?.depth).toBe(1);
+		expect(result.total).toBe(2);
+	});
+
+	test("export default function and export default class are exported", () => {
+		const index = indexOf({
+			"src/fn.ts": "export default function run(): number {\n  return 1;\n}\n",
+			"src/cls.ts": "export default class Thing {\n  go(): void {}\n}\n",
+		});
+		expect(symbolOf(index, "run").exported).toBe(true);
+		expect(symbolOf(index, "Thing").exported).toBe(true);
+		expect(symbolOf(index, "go", "Thing").exported).toBe(true);
+	});
+
+	test("the item-1 trigger fires from an exported class's method", () => {
+		const index = indexOf({
+			"src/m.ts":
+				"function g(): number {\n  return 1;\n}\nexport class K {\n  go(): number {\n    return g();\n  }\n}\n",
+			"src/ns.ts": 'import * as m from "./m";\nexport const v = m;\n',
+		});
+		const result = impactOf(index, symbolOf(index, "g"), 5);
+		expect(shape(result.callers)).toEqual([
+			["src/m.ts", 1, "call"],
+			["src/ns.ts", 2, "import"],
+		]);
+		expect(result.callers[0]?.symbol?.name).toBe("go");
+	});
+});

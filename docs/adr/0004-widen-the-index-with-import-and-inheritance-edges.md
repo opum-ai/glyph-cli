@@ -141,7 +141,28 @@ two shapes, so a later slice that changes the index bumps it again.
   scope when there is none (DEC-216 (a5), item 5).
 - **Override propagation is not in v1.** A changed method does not reach the
   methods that override it; the class does reach its subclasses.
-- **Existing answers are unchanged.** The call and `new` answers over the same
-  repository are the ones ADR 0003 produced; impact answers now also list the
-  import and heritage terminals beside them, so `total`, `unexplored` and the
-  per-depth counts grow by exactly those entries.
+- **Existing call and `new` answers are unchanged, but the envelope's other
+  fields move.** The call and `new` entries over the same repository are the ones
+  ADR 0003 produced, and `callers` still lists call and `new` sites only. Impact
+  answers now also list the import and heritage terminals beside them, so the
+  consumer-visible fields that change are:
+  - `total`, `unexplored` and the per-depth counts, by exactly those entries;
+  - `resolvedSites` in the impact envelope and `index.sites`, which now count
+    import and heritage sites as well as calls (the three-hop chain fixture goes
+    from 3 to 6);
+  - `truncated`, which can flip at the same depth bound, because the added
+    terminals count toward what lies beyond it;
+  - for a class or interface start, heritage edges add callers that can shorten a
+    caller's depth and change the path chosen for it.
+  A consumer that pins this contract must read these as the new baseline.
+- **A namespace importer of a barrel is not a terminal of the original symbol.**
+  `import * as b from "./barrel"`, where the barrel re-exports `m`'s `a`, never
+  becomes a terminal of `a`, because the module-edge trigger keys on the file
+  that declares the exported symbol. That is a gap in the (a5) rule, not a bug in
+  the walk; it is routed to opum-doc and not decided here.
+- **`import {} from "./m"` is not recorded.** An import with an empty named list
+  binds nothing and is not a module edge today; whether it should be one is
+  routed to opum-doc, and its current behaviour is left as is.
+- **`import x = require("m")` of an unindexed `export =` target is unresolved.**
+  `export = { k: 1 }`, or an anonymous function or class, is counted under
+  `unresolvedByKind.import`; only an alias of the whole module is a module edge.

@@ -312,6 +312,21 @@ function recordImportEquals(
 		recordBinding(ctx, sourceFile, file, node.name, node.name, node.isTypeOnly);
 		return;
 	}
+	// Decide by what the alias IS. Only an alias of the whole module is a module
+	// edge; an `export =` target missing from the symbol table (`export = { k: 1 }`,
+	// an anonymous function or class) is an unresolved import, with no guessed
+	// edge (DEC-216 (a5), item 4).
+	let aliased = ctx.checker.getSymbolAtLocation(node.name);
+	if (aliased !== undefined && (aliased.flags & ts.SymbolFlags.Alias) !== 0) {
+		aliased = ctx.checker.getAliasedSymbol(aliased);
+	}
+	const isModule =
+		aliased !== undefined &&
+		((aliased.flags & ts.SymbolFlags.ValueModule) !== 0 || (aliased.declarations ?? []).some(ts.isSourceFile));
+	if (!isModule) {
+		ctx.unresolved.import += 1;
+		return;
+	}
 	recordModuleEdge(ctx, sourceFile, file, node.name, reference.expression, node.isTypeOnly);
 }
 
