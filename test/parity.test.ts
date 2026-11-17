@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { beforeAll, describe, expect, test } from "bun:test";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { produceCodeMap } from "../src/codemap.ts";
@@ -16,6 +16,11 @@ import { type GoldenFile, GOLDENS_PATH, OPUM_CLI_SHA } from "./parity/generate-g
  * test runs the same fixtures through glyph's port and compares BYTES. It never
  * touches opum-cli: glyph's CI has no cross-repository dependency.
  */
+
+beforeAll(() => {
+	// Tier 3 builds an index cache; keep it out of the user's ~/.cache/glyph.
+	process.env.GLYPH_CACHE_DIR = mkdtempSync(join(tmpdir(), "glyph-parity-cache-"));
+});
 
 const goldens = JSON.parse(readFileSync(GOLDENS_PATH, "utf8")) as GoldenFile;
 
@@ -48,8 +53,26 @@ describe("byte parity with the deterministic producer", () => {
 	for (const fixture of FIXTURES) {
 		test(`${fixture.name}: glyph's output is byte-identical to the producer's golden`, () => {
 			const { root, taskText, sourceRef } = builtFixture(fixture.name);
-			const output = produceCodeMap({ repositoryPath: root, sourceRef, taskText });
+			const output = produceCodeMap({ repositoryPath: root, sourceRef, taskText, symbols: false });
 			expect(JSON.stringify(output, null, 2)).toBe(JSON.stringify(goldens.fixtures[fixture.name]?.output, null, 2));
+		});
+	}
+
+	for (const [label, loadIndex] of [
+		[
+			"a throwing index loader",
+			() => {
+				throw new Error("index exploded");
+			},
+		],
+		["an absent index", () => null],
+	] as const) {
+		test(`the fallback is a true control: ${label} gives the producer's golden bytes with tier 3 on`, () => {
+			for (const fixture of FIXTURES) {
+				const { root, taskText, sourceRef } = builtFixture(fixture.name);
+				const output = produceCodeMap({ repositoryPath: root, sourceRef, taskText, loadIndex });
+				expect(JSON.stringify(output, null, 2)).toBe(JSON.stringify(goldens.fixtures[fixture.name]?.output, null, 2));
+			}
 		});
 	}
 
@@ -85,6 +108,16 @@ describe("byte parity with the deterministic producer", () => {
 		).toBe(false);
 	});
 
+	test("the golden fixtures name no symbol their index declares only by name, but tier 3 still adds files to `clean`", () => {
+		// Tier 3 is the one tier the producer lacks, so the parity runs above switch it off:
+		// with it on, `clean` (a task naming `buildReport`, a declared function) gains
+		// symbol pointers. That is the difference, not a parity break.
+		const { root, taskText, sourceRef } = builtFixture("clean");
+		const off = JSON.stringify(produceCodeMap({ repositoryPath: root, sourceRef, taskText, symbols: false }));
+		const on = JSON.stringify(produceCodeMap({ repositoryPath: root, sourceRef, taskText }));
+		expect(on).not.toBe(off);
+	});
+
 	test("output does not depend on the caller's git config: a hostile global config gives the same bytes", () => {
 		// quotepath=false would unquote the non-ASCII grep path, color.ui and color.grep
 		// would put ANSI codes into the paths, and the diff.* and grep.* settings would
@@ -101,13 +134,30 @@ describe("byte parity with the deterministic producer", () => {
 			].join("\n"),
 		);
 		const saved = { global: process.env.GIT_CONFIG_GLOBAL, system: process.env.GIT_CONFIG_NOSYSTEM };
+		const withPlainConfig = (run: () => void): void => {
+			process.env.GIT_CONFIG_GLOBAL = "/dev/null";
+			try {
+				run();
+			} finally {
+				process.env.GIT_CONFIG_GLOBAL = config;
+			}
+		};
 		try {
+			// Positive control: the hostile environment is in force, so the equal bytes below
+			// were produced under it and not under git's defaults.
+			process.env.GIT_CONFIG_GLOBAL = config;
+			process.env.GIT_CONFIG_NOSYSTEM = "1";
+			const quotepath = spawnSync("git", ["config", "core.quotepath"], { encoding: "utf8", env: { ...process.env } });
+			expect(quotepath.stdout.trim()).toBe("false");
 			for (const fixture of FIXTURES) {
 				const { root, taskText, sourceRef } = builtFixture(fixture.name);
-				process.env.GIT_CONFIG_GLOBAL = config;
-				process.env.GIT_CONFIG_NOSYSTEM = "1";
-				const output = produceCodeMap({ repositoryPath: root, sourceRef, taskText });
+				const output = produceCodeMap({ repositoryPath: root, sourceRef, taskText, symbols: false });
 				expect(JSON.stringify(output, null, 2)).toBe(JSON.stringify(goldens.fixtures[fixture.name]?.output, null, 2));
+				// Tier 3 on: the same bytes under the hostile config as under the plain one.
+				const hostileOn = JSON.stringify(produceCodeMap({ repositoryPath: root, sourceRef, taskText }));
+				withPlainConfig(() => {
+					expect(hostileOn).toBe(JSON.stringify(produceCodeMap({ repositoryPath: root, sourceRef, taskText })));
+				});
 			}
 		} finally {
 			for (const [name, value] of [
@@ -122,8 +172,8 @@ describe("byte parity with the deterministic producer", () => {
 
 	test("the same repository state and task text yield byte-identical output twice", () => {
 		const { root, taskText, sourceRef } = builtFixture("clean");
-		const first = JSON.stringify(produceCodeMap({ repositoryPath: root, sourceRef, taskText }));
-		const second = JSON.stringify(produceCodeMap({ repositoryPath: root, sourceRef, taskText }));
+		const first = JSON.stringify(produceCodeMap({ repositoryPath: root, sourceRef, taskText, symbols: false }));
+		const second = JSON.stringify(produceCodeMap({ repositoryPath: root, sourceRef, taskText, symbols: false }));
 		expect(second).toBe(first);
 	});
 });

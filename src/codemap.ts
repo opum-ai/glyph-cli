@@ -17,7 +17,9 @@ import {
 	pathsNamedIn,
 	READ_BOUND_SOURCE,
 } from "./codemap-text.ts";
+import { loadRefIndex, symbolHits } from "./codemap-tier3.ts";
 import { GlyphError, indeterminateError, notFoundError, usageError } from "./errors.ts";
+import type { GlyphIndex } from "./types.ts";
 
 /**
  * `glyph code-map`: the CodeMapProducer seam's `{ pointers, omissions }`.
@@ -25,8 +27,10 @@ import { GlyphError, indeterminateError, notFoundError, usageError } from "./err
  * Tiers 1, 2 and 4 of DEC-216 (a4) are a port of opum-cli's deterministic
  * producer (`src/context/code-map.ts`, pinned in `codemap-text.ts`): named
  * paths, files the branch changed, and `git grep -l` for the task text's
- * distinctive identifiers. Tier 3 (symbols resolved through the index) is
- * GCLI-37. The output is POINTERS, never file bodies, bounded to
+ * distinctive identifiers. Tier 3 (`codemap-tier3.ts`, GCLI-37) sits between
+ * the second and the last: symbols the text names, resolved through the index.
+ * With the index absent or failing, tier 3 contributes nothing and the output
+ * is the producer's, byte for byte. The output is POINTERS, never file bodies, bounded to
  * CODE_MAP_MAX_FILES files and CODE_MAP_MAX_TOKENS tokens, deduplicated by path
  * and ranked by a total order, so the same task text, source ref and repository
  * state give byte-identical output.
@@ -56,6 +60,10 @@ export interface CodeMapInput {
 	/** The ref every read resolves against, and the ref the branch's own diff is taken against. */
 	sourceRef: string;
 	taskText: string;
+	/** Tier 3 on (the default) or off. Off is the deterministic producer's output exactly. */
+	symbols?: boolean;
+	/** Where tier 3 gets the commit's index; a seam for tests. Null means no index. */
+	loadIndex?: (repositoryPath: string, commit: string) => GlyphIndex | null;
 }
 
 const GIT_TIMEOUT_MS = 15_000;
@@ -78,20 +86,29 @@ export const DIFF_PINS = [
 	"--inter-hunk-context=0",
 ] as const;
 
-type SourceKind = "task-text-path" | "changed-on-branch" | "identifier";
+type SourceKind = "task-text-path" | "changed-on-branch" | "symbol" | "identifier";
 
+/** DEC-216 (a4)(c): glyph's symbol tier sits above the git-grep tier. */
 const SOURCE_RANK: Readonly<Record<SourceKind, number>> = {
 	"task-text-path": 0,
 	"changed-on-branch": 1,
-	identifier: 2,
+	symbol: 2,
+	identifier: 3,
 };
+const SYMBOL_RANK = SOURCE_RANK.symbol;
 
 interface Candidate {
 	path: string;
 	/** The best (lowest) rank any source gave this path. */
 	rank: number;
+	/** The rank without tier 3, or undefined for a file only tier 3 found: what displacement is measured against. */
+	baseRank: number | undefined;
 	/** The best score any source gave it: churn, or identifiers matched. */
 	score: number;
+	/** Tier 3 only: 0 when a named symbol is declared here, 1 when one is referenced. */
+	distance: number;
+	/** Tier 3's own line ranges, from the index at the source commit. */
+	symbolRanges: Array<[number, number]>;
 	/** Why this path is here, keyed by kind and detail so repeats collapse. */
 	reasons: Map<string, { kind: SourceKind; detail: string }>;
 	/** Changed on the branch, so the diff carries its ranges. */
@@ -231,7 +248,9 @@ function diffRanges(repositoryPath: string, base: string, path: string): Array<[
  * (`"src/caf\303\251.ts"`). That string is emitted as a pointer path with
  * `lineRanges: []` (a whole file) for a file that does not exist; it takes a
  * file-cap slot and token budget, and the real `src/café.ts` loses the
- * identifier evidence the quoted entry absorbed.
+ * identifier evidence the quoted entry absorbed. Tier 3 reads paths from the
+ * index, unquoted, so its real `src/café.ts` and tier 4's quoted entry are
+ * different strings and cannot dedup.
  */
 const GREP_PINS = ["-c", "core.quotepath=true"] as const;
 
@@ -304,7 +323,7 @@ export function codeMapPointerLine(pointer: CodeMapPointer): string {
 	return `${pointer.path}${range} — ${pointer.reason}`;
 }
 
-/** Tiers 1, 2 and 4 of the code map: named paths, changed files, identifier matches. */
+/** The code map: named paths, changed files, symbols resolved through the index, identifier matches. */
 export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 	assertTaskTextWithinBound(input.taskText);
 	const commit = resolveSourceRef(input.repositoryPath, input.sourceRef);
@@ -319,18 +338,28 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 		score?: number;
 		fromBranch?: boolean;
 		identifier?: string;
+		distance?: number;
+		line?: number;
 	}): void => {
 		if (isNonCodePath(candidate.path)) return;
 		const existing = candidates.get(candidate.path);
 		const target: Candidate = existing ?? {
 			path: candidate.path,
 			rank: SOURCE_RANK[candidate.kind],
+			baseRank: undefined,
 			score: 0,
+			distance: Number.POSITIVE_INFINITY,
+			symbolRanges: [],
 			reasons: new Map(),
 			fromBranch: false,
 			identifiers: [],
 		};
 		target.rank = Math.min(target.rank, SOURCE_RANK[candidate.kind]);
+		if (candidate.kind !== "symbol") {
+			target.baseRank = Math.min(target.baseRank ?? SOURCE_RANK[candidate.kind], SOURCE_RANK[candidate.kind]);
+		}
+		if (candidate.distance !== undefined) target.distance = Math.min(target.distance, candidate.distance);
+		if (candidate.line !== undefined) target.symbolRanges.push([candidate.line, candidate.line]);
 		target.score = Math.max(target.score, candidate.score ?? 0);
 		target.fromBranch ||= candidate.fromBranch === true;
 		if (candidate.identifier !== undefined) target.identifiers.push(candidate.identifier);
@@ -367,10 +396,29 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 		});
 	}
 
+	// Tier 3: the symbols the text names (the producer's own identifier extraction,
+	// matched by exact name), resolved through the commit's index. An absent or
+	// failing index is a missing tier, never a failed run: the fallback is a true
+	// control, so the output is then the deterministic producer's.
+	const identifiers = collectIdentifiers(text);
+	if (input.symbols !== false) {
+		// Only the LOADER is fallible by design (git, the compiler, the cache). A defect in
+		// the pure resolution below is a bug, and surfaces rather than reverting silently.
+		let index: GlyphIndex | null = null;
+		try {
+			index = (input.loadIndex ?? loadRefIndex)(input.repositoryPath, commit);
+		} catch {
+			index = null;
+		}
+		const hits = index === null ? [] : symbolHits(index, identifiers.slice(0, CODE_MAP_MAX_IDENTIFIERS));
+		for (const hit of hits) {
+			add({ path: hit.path, kind: "symbol", detail: hit.detail, distance: hit.distance, line: hit.line });
+		}
+	}
+
 	// Tier 4: distinctive identifiers, `git grep -l` at the source ref, capped per
 	// identifier so one common name cannot fill the whole map. Both read bounds
 	// are reported: the identifier cap and the per-identifier file cap.
-	const identifiers = collectIdentifiers(text);
 	if (identifiers.length > CODE_MAP_MAX_IDENTIFIERS) {
 		omissions.push({
 			source: READ_BOUND_SOURCE,
@@ -400,11 +448,17 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 	// Rank: by source (paths, then branch, then identifiers), then the best
 	// relevance score, then path. A total order over immutable inputs is what
 	// makes the list stable.
-	const ranked = [...candidates.values()].sort((left, right) => {
-		if (left.rank !== right.rank) return left.rank - right.rank;
+	// Within the symbol tier a declaring file (distance 0) precedes a referencing
+	// one (distance 1); every tier then breaks ties by score and path.
+	const order = (rankOf: (c: Candidate) => number) => (left: Candidate, right: Candidate) => {
+		const leftRank = rankOf(left);
+		const rightRank = rankOf(right);
+		if (leftRank !== rightRank) return leftRank - rightRank;
+		if (leftRank === SYMBOL_RANK && left.distance !== right.distance) return left.distance - right.distance;
 		if (left.score !== right.score) return right.score - left.score;
 		return left.path < right.path ? -1 : left.path > right.path ? 1 : 0;
-	});
+	};
+	const ranked = [...candidates.values()].sort(order((candidate) => candidate.rank));
 
 	const pointers: CodeMapPointer[] = [];
 	let tokens = 0;
@@ -428,11 +482,12 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 		const ranges =
 			branchRanges !== undefined
 				? branchRanges
-				: mergeRanges(
-						candidate.identifiers.flatMap((identifier) =>
+				: mergeRanges([
+						...candidate.symbolRanges,
+						...candidate.identifiers.flatMap((identifier) =>
 							grepLines(input.repositoryPath, commit, identifier, candidate.path),
 						),
-					);
+					]);
 		const shown = ranges.slice(0, CODE_MAP_MAX_RANGES_PER_POINTER).map(formatRange);
 		if (ranges.length > CODE_MAP_MAX_RANGES_PER_POINTER) {
 			shown.push(`+${ranges.length - CODE_MAP_MAX_RANGES_PER_POINTER} more ranges`);
@@ -456,10 +511,34 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 		tokens += cost;
 		pointers.push(pointer);
 	}
-	if (overFileCap > 0) {
+	// A file that tier 3 pushed out of the cap is named, not only counted: it was in
+	// the first CODE_MAP_MAX_FILES of the ranking without tier 3 and is not in the
+	// emitted list. A file already named for the token cap keeps that row; the
+	// rest are the usual one summary row. Edge: the comparison is the first
+	// CODE_MAP_MAX_FILES of the ranking without tier 3 and ignores the token cap,
+	// so a file that would itself have been token-skipped without tier 3 is still
+	// named as displaced when tier 3 pushes it past the file cap.
+	const accountedFor = new Set([
+		...pointers.map((pointer) => pointer.path),
+		...omissions.map((omission) => omission.source.replace(/^code-map:/, "")),
+	]);
+	const withoutSymbols = [...candidates.values()]
+		.filter((candidate) => candidate.baseRank !== undefined)
+		.sort(order((candidate) => candidate.baseRank ?? SYMBOL_RANK))
+		.slice(0, CODE_MAP_MAX_FILES);
+	let displaced = 0;
+	for (const candidate of withoutSymbols) {
+		if (accountedFor.has(candidate.path)) continue;
+		displaced += 1;
+		omissions.push({
+			source: `code-map:${candidate.path}`,
+			reason: `displaced by symbol pointers at the code-map file cap of ${CODE_MAP_MAX_FILES}`,
+		});
+	}
+	if (overFileCap - displaced > 0) {
 		omissions.push({
 			source: FILE_CAP_SOURCE,
-			reason: `${overFileCap} more over the code-map file cap of ${CODE_MAP_MAX_FILES}`,
+			reason: `${overFileCap - displaced} more over the code-map file cap of ${CODE_MAP_MAX_FILES}`,
 		});
 	}
 

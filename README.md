@@ -127,9 +127,15 @@ $ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref
 ```
 
 - Tiers, in rank order, are named paths that exist at the ref, files the branch
-  changed against it, and files `git grep` finds for the task text's distinctive
-  identifiers (backticked tokens, CamelCase and dotted names). A path found by
-  more than one tier keeps its best; ties break by score, then path. A pointer is
+  changed against it, symbols the task text names (exact name, every matching
+  symbol), resolved through the ref's index to the files that declare them and,
+  one call-graph hop out, the files that reference them, and files `git grep`
+  finds for the task text's distinctive identifiers (backticked tokens, CamelCase
+  and dotted names). The symbol tier sits above `git grep`; within it a declaring
+  file precedes a referencing one. A path found by more than one tier keeps its
+  best; ties break by score, then path. A file the symbol tier pushes out of the
+  20-file cap is named in `omissions`. With the index absent or failing the
+  symbol tier is empty and the output is the deterministic producer's. A pointer is
   a path, line ranges and one line of reason, never a file body.
 - The output is bounded to 20 files and 2,000 tokens (`ceil(length / 4)`), and
   every candidate or read bound it drops is named in `omissions`. The same
@@ -141,8 +147,10 @@ $ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref
   `not_found`, and a failed or timed-out git read is `indeterminate`.
 - This is a port of opum-cli's deterministic producer (pinned in
   `src/codemap-text.ts`), checked byte for byte against goldens that script
-  `test/parity/generate-goldens.ts` generates by running that producer. Tier 3, the
-  symbols resolved through the index, and the time budget are later slices.
+  `test/parity/generate-goldens.ts` generates by running that producer. That parity
+  covers the deterministic tiers (named paths, changed files, identifiers), run with
+  the symbol tier off or unavailable; the CLI's default output adds the symbol tier.
+  The time budget is a later slice.
 
 ### `glyph cache path` | `glyph cache clear`
 
@@ -282,7 +290,8 @@ tree remains the default for interactive use.
 `diff` will require `--ref` (DEC-216 Q4). Making an existing command's surface
 change is out of this slice, so that requirement is recorded in ADR 0003 and
 deferred. The code-map seam shipped as `glyph code-map --source-ref <ref>`, which
-names its ref explicitly and never reads the working tree's history by default.
+names its ref explicitly and never reads uncommitted changes (tier 2 does read
+`HEAD`, implicitly, to take the branch's own diff).
 
 ## The cache
 
