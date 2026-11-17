@@ -57,11 +57,15 @@ never an edit alone; a test pins the value so an edit alone fails.
 
 Past the budget, `code-map` stops gathering and returns what it has. The deadline is
 checked between units of work: each named path, the branch diff, the symbol index
-load, each identifier's grep, and each pointer's range reads. Every git read is capped
-at the time left, and a read the budget cuts off is a stop, not an error. The result
+load, each identifier's grep, and each pointer's range reads. Every git read the run
+makes is capped at the time left: the source-ref read, the index load's `ls-tree` and
+`cat-file`, and each grep and diff. A read the budget cuts off, with the budget really
+spent, is a stop, not an error; a read that dies for another reason (a signal, a
+buffer overflow) is still an indeterminate error, exit 7. A budget spent in the
+source-ref read returns no pointers and a row naming `source ref`. The result
 carries one omission, source `code-map#time-budget`, whose reason starts
 `time-budget:` and names the stage the budget was spent in, the elapsed time when
-the run stopped, and how many pointers lack line ranges. A pointer emitted after the deadline skips the git reads that give
+the run stopped (read at the stop, not at the return), and how many pointers lack line ranges. A pointer emitted after the deadline skips the git reads that give
 its ranges and says so in its reason (`line ranges not read (time-budget)`), because
 an empty range list otherwise means the whole file. A run that spends its budget
 before gathering anything returns no pointers and that one omission: it never

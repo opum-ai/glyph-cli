@@ -21,6 +21,7 @@ import {
 } from "./codemap-text.ts";
 import { loadRefIndex, symbolHits } from "./codemap-tier3.ts";
 import { GlyphError, indeterminateError, notFoundError, usageError } from "./errors.ts";
+import { BudgetExpired, currentGitBudget, setGitBudget, spawnLimits, stopIfBudgetSpent } from "./git.ts";
 import type { GlyphIndex } from "./types.ts";
 
 /**
@@ -71,16 +72,6 @@ export interface CodeMapInput {
 	/** The clock, in ms; defaults to `performance.now`. A seam for tests. */
 	now?: () => number;
 }
-
-/** Thrown from inside a git read that ran out of budget; caught at the stage that issued it. */
-class BudgetExpired extends Error {}
-
-/** The run's deadline. One is active for the length of one `produceCodeMap` call. */
-interface Budget {
-	expired(): boolean;
-	remaining(): number;
-}
-let activeBudget: Budget | null = null;
 
 const GIT_TIMEOUT_MS = 15_000;
 const GIT_MAX_BUFFER = 32 * 1024 * 1024;
@@ -147,20 +138,20 @@ interface GitOutcome {
  */
 function git(repositoryPath: string, args: readonly string[]): GitOutcome {
 	// A git read never outlives the run's budget: when the time left is shorter than
-	// git's own timeout, the budget is what cut the read off, and that is not a failure.
-	const left = activeBudget === null ? Number.POSITIVE_INFINITY : activeBudget.remaining();
-	const budgeted = left < GIT_TIMEOUT_MS;
+	// git's own timeout, the budget cut it off. That is a stop only if the budget really
+	// ran out; a read that died for another reason (a signal, a buffer overflow) is a failure.
+	const { timeout, budgeted } = spawnLimits(GIT_TIMEOUT_MS);
 	try {
 		const proc = Bun.spawnSync(["git", "--literal-pathspecs", ...args], {
 			cwd: repositoryPath,
 			env: { ...process.env, NO_COLOR: "1" },
 			stdout: "pipe",
 			stderr: "pipe",
-			timeout: budgeted ? Math.max(1, Math.ceil(left)) : GIT_TIMEOUT_MS,
+			timeout,
 			maxBuffer: GIT_MAX_BUFFER,
 		});
 		if (proc.exitCode === null) {
-			if (budgeted) throw new BudgetExpired();
+			stopIfBudgetSpent(budgeted);
 			throw indeterminateError(`git ${args[0] ?? ""} did not report an exit status (timeout or signal)`);
 		}
 		return { status: proc.exitCode, stdout: proc.stdout.toString(), stderr: proc.stderr.toString() };
@@ -351,14 +342,29 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 	const startedAt = now();
 	const deadline = startedAt + budgetMs;
 	assertTaskTextWithinBound(input.taskText);
-	// One cheap read, outside the budget: nothing can be gathered without the commit.
-	const commit = resolveSourceRef(input.repositoryPath, input.sourceRef);
-	activeBudget = { expired: () => now() >= deadline, remaining: () => deadline - now() };
+	// The budget covers every git read from the first one, the source ref's included.
+	setGitBudget({ expired: () => now() >= deadline, remaining: () => deadline - now() });
+	const elapsedMs = (): number => Math.round(now() - startedAt);
 	try {
-		return buildCodeMap(input, commit, budgetMs, () => Math.round(now() - startedAt));
+		let commit: string;
+		try {
+			commit = resolveSourceRef(input.repositoryPath, input.sourceRef);
+		} catch (error) {
+			if (!(error instanceof BudgetExpired)) throw error;
+			// Nothing can be gathered without the commit: no pointers, and the row says why.
+			return { pointers: [], omissions: [timeBudgetRow(budgetMs, "source ref", elapsedMs(), 0)] };
+		}
+		return buildCodeMap(input, commit, budgetMs, elapsedMs);
 	} finally {
-		activeBudget = null;
+		setGitBudget(null);
 	}
+}
+
+function timeBudgetRow(budgetMs: number, stage: string, elapsedMs: number, rangesNotRead: number): CodeMapOmission {
+	return {
+		source: TIME_BUDGET_SOURCE,
+		reason: `time-budget: the ${budgetMs} ms budget was spent during ${stage}, ${elapsedMs} ms elapsed when the run stopped; the pointers are what was gathered by then${rangesNotRead > 0 ? `, ${rangesNotRead} without line ranges` : ""}`,
+	};
 }
 
 /**
@@ -374,10 +380,17 @@ function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, ela
 	const text = input.taskText;
 	const omissions: CodeMapOmission[] = [];
 	let stoppedAt: string | undefined;
+	let stoppedElapsedMs = 0;
 	let rangesNotRead = 0;
+	// The elapsed time is read when the run stops, so the row says when it stopped.
+	const stop = (stage: string): void => {
+		if (stoppedAt !== undefined) return;
+		stoppedAt = stage;
+		stoppedElapsedMs = elapsedMs();
+	};
 	const spent = (stage: string): boolean => {
 		if (stoppedAt !== undefined) return true;
-		if (activeBudget?.expired() === true) stoppedAt = stage;
+		if (currentGitBudget()?.expired() === true) stop(stage);
 		return stoppedAt !== undefined;
 	};
 	const guarded = (stage: string, run: () => void): void => {
@@ -386,7 +399,7 @@ function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, ela
 			run();
 		} catch (error) {
 			if (!(error instanceof BudgetExpired)) throw error;
-			stoppedAt ??= stage;
+			stop(stage);
 		}
 	};
 
@@ -473,7 +486,9 @@ function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, ela
 		let index: GlyphIndex | null = null;
 		try {
 			index = (input.loadIndex ?? loadRefIndex)(input.repositoryPath, commit);
-		} catch {
+		} catch (error) {
+			// A git read the budget cut off (ls-tree, cat-file) is a stop at this stage.
+			if (error instanceof BudgetExpired) stop("symbol index");
 			index = null;
 		}
 		// The build cannot be interrupted, so the stage that spent the budget is named here.
@@ -545,7 +560,10 @@ function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, ela
 		// Ranges are only worth a git call for a file that will be emitted. A branch
 		// diff's are HEAD's line numbers and a grep's are the source commit's, so a
 		// file the branch changed carries its diff ranges alone.
-		let ranges: Array<[number, number]> = mergeRanges(candidate.symbolRanges);
+		// Past the budget a file the branch changed carries NO ranges: the source commit's
+		// symbol lines are not its diff's (HEAD's) line numbers.
+		let ranges: Array<[number, number]> =
+			candidate.fromBranch && change.base !== undefined ? [] : mergeRanges(candidate.symbolRanges);
 		let rangesRead = false;
 		guarded("line ranges", () => {
 			const branchRanges =
@@ -624,10 +642,7 @@ function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, ela
 	}
 
 	if (stoppedAt !== undefined) {
-		omissions.push({
-			source: TIME_BUDGET_SOURCE,
-			reason: `time-budget: the ${budgetMs} ms budget was spent during ${stoppedAt}, ${elapsedMs()} ms elapsed when the run stopped; the pointers are what was gathered by then${rangesNotRead > 0 ? `, ${rangesNotRead} without line ranges` : ""}`,
-		});
+		omissions.push(timeBudgetRow(budgetMs, stoppedAt, stoppedElapsedMs, rangesNotRead));
 	}
 
 	return { pointers, omissions };

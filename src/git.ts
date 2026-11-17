@@ -15,14 +15,57 @@ export interface GitResult {
 	stderr: string;
 }
 
+/**
+ * The wall-time budget of one run, shared by every git read it makes (GCLI-38,
+ * DEC-216 (a10)): the code map sets it for the length of one call, and each read
+ * below is then capped at the time left. Unset, a read is limited as it always was.
+ */
+export interface GitBudget {
+	expired(): boolean;
+	remaining(): number;
+}
+
+/** Thrown by a git read that the run's budget cut off, never by a read that merely failed. */
+export class BudgetExpired extends Error {}
+
+let activeBudget: GitBudget | null = null;
+
+export function setGitBudget(budget: GitBudget | null): void {
+	activeBudget = budget;
+}
+
+export function currentGitBudget(): GitBudget | null {
+	return activeBudget;
+}
+
+/**
+ * The timeout for one spawn: the caller's ceiling, or the time left when that is
+ * shorter. `budgeted` says the budget, not the ceiling, set it, so a read killed at
+ * its limit can be told from one that died for another reason.
+ */
+export function spawnLimits(ceilingMs?: number): { timeout: number | undefined; budgeted: boolean } {
+	if (activeBudget === null) return { timeout: ceilingMs, budgeted: false };
+	const left = activeBudget.remaining();
+	if (ceilingMs !== undefined && left >= ceilingMs) return { timeout: ceilingMs, budgeted: false };
+	return { timeout: Math.max(1, Math.ceil(left)), budgeted: true };
+}
+
+/** A read that ended without an exit status is a budget stop only if the budget really ran out. */
+export function stopIfBudgetSpent(budgeted: boolean): void {
+	if (budgeted && activeBudget?.expired() === true) throw new BudgetExpired();
+}
+
 export function gitRun(repoRoot: string, args: string[]): GitResult {
+	const { timeout, budgeted } = spawnLimits();
 	const proc = Bun.spawnSync(["git", "-C", repoRoot, ...args], {
 		// A fixed locale keeps discovery's "not a git repository" test
 		// independent of the caller's environment.
 		env: { ...process.env, LC_ALL: "C" },
 		stdout: "pipe",
 		stderr: "pipe",
+		...(timeout === undefined ? {} : { timeout }),
 	});
+	if (proc.exitCode === null) stopIfBudgetSpent(budgeted);
 	return {
 		code: proc.exitCode,
 		stdout: proc.stdout.toString(),
@@ -114,12 +157,15 @@ export function listTree(repoRoot: string, sha: string): TreeEntry[] {
 export function readBlobs(repoRoot: string, objectIds: readonly string[]): Map<string, string> {
 	const contents = new Map<string, string>();
 	if (objectIds.length === 0) return contents;
+	const { timeout, budgeted } = spawnLimits();
 	const proc = Bun.spawnSync(["git", "-C", repoRoot, "cat-file", "--batch"], {
 		env: { ...process.env, LC_ALL: "C" },
 		stdin: new TextEncoder().encode(`${objectIds.join("\n")}\n`),
 		stdout: "pipe",
 		stderr: "pipe",
+		...(timeout === undefined ? {} : { timeout }),
 	});
+	if (proc.exitCode === null) stopIfBudgetSpent(budgeted);
 	if (proc.exitCode !== 0) {
 		throw indeterminateError(
 			`git cat-file failed for ${objectIds.length} object(s): ${proc.stderr.toString().trim() || "unknown error"}`,
