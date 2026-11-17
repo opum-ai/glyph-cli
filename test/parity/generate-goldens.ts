@@ -52,6 +52,10 @@ async function main(): Promise<void> {
 		};
 	};
 	const producer = new DeterministicCodeMapProducer();
+	// The producer runs git with the caller's environment. Pin it away from the
+	// caller's own git config so the goldens do not depend on whoever regenerates them.
+	process.env.GIT_CONFIG_GLOBAL = "/dev/null";
+	process.env.GIT_CONFIG_NOSYSTEM = "1";
 
 	const fixtures: GoldenFile["fixtures"] = {};
 	for (const fixture of FIXTURES) {

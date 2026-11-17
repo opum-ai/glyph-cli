@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { codeMapPointerLine, DIFF_PINS, produceCodeMap } from "../src/codemap.ts";
+import { codeMapPointerLine, produceCodeMap } from "../src/codemap.ts";
 import { CODE_MAP_MAX_FILES, CODE_MAP_MAX_TOKENS, estimateTokens } from "../src/codemap-text.ts";
 import { GlyphError } from "../src/errors.ts";
 import { FIXTURES, makeFixtureRepo } from "./parity/fixtures.ts";
@@ -104,17 +104,6 @@ describe("caps and omissions", () => {
 });
 
 describe("the reads", () => {
-	test("every diff is pinned against the user's git config, renames included", () => {
-		expect([...DIFF_PINS]).toEqual([
-			"--no-ext-diff",
-			"--no-textconv",
-			"--no-renames",
-			"--diff-algorithm=myers",
-			"--no-indent-heuristic",
-			"--inter-hunk-context=0",
-		]);
-	});
-
 	test("a source ref that does not resolve is not_found, and a ref starting with a dash is data", () => {
 		const { root } = produce("clean");
 		for (const ref of ["no-such-ref", "--all"]) {
@@ -128,11 +117,26 @@ describe("the reads", () => {
 		}
 	});
 
-	test("the task text is bounded before it is read: only the first 20,000 characters count", () => {
+	test("task text over 20,000 UTF-16 code units is a usage error, never a silent truncation", () => {
 		const { root } = produce("clean");
-		const padding = " ".repeat(20_000);
-		const output = produceCodeMap({ repositoryPath: root, sourceRef: "base", taskText: `${padding}src/ledger.ts` });
-		expect(output.pointers.map((pointer) => pointer.path)).not.toContain("docs/guide.md");
-		expect(output.pointers.every((pointer) => pointer.reason !== "path named in the task text")).toBe(true);
+		const attempt = (taskText: string) => () => produceCodeMap({ repositoryPath: root, sourceRef: "base", taskText });
+		expect(attempt("x".repeat(20_000))).not.toThrow();
+		expect(attempt("x".repeat(20_001))).toThrow(/20001 UTF-16 code units/);
+		try {
+			attempt("x".repeat(20_001))();
+		} catch (error) {
+			expect(error).toBeInstanceOf(GlyphError);
+			expect((error as GlyphError).errorType).toBe("usage");
+		}
+	});
+
+	test("the bound counts code units, as the producer does: 20,000 \u00e9 pass, an astral character counts as two", () => {
+		const { root } = produce("clean");
+		const attempt = (taskText: string) => () => produceCodeMap({ repositoryPath: root, sourceRef: "base", taskText });
+		// \u00e9 is one code unit but two UTF-8 bytes: 20,000 of them are within the bound.
+		expect(attempt("\u00e9".repeat(20_000))).not.toThrow();
+		// An emoji is two code units: 19,998 + 2 = 20,000 passes, 19,999 + 2 = 20,001 does not.
+		expect(attempt(`${"x".repeat(19_998)}\u{1F600}`)).not.toThrow();
+		expect(attempt(`${"x".repeat(19_999)}\u{1F600}`)).toThrow(/20001 UTF-16 code units/);
 	});
 });

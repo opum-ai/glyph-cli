@@ -17,7 +17,7 @@ import {
 	pathsNamedIn,
 	READ_BOUND_SOURCE,
 } from "./codemap-text.ts";
-import { GlyphError, indeterminateError, notFoundError } from "./errors.ts";
+import { GlyphError, indeterminateError, notFoundError, usageError } from "./errors.ts";
 
 /**
  * `glyph code-map`: the CodeMapProducer seam's `{ pointers, omissions }`.
@@ -220,11 +220,27 @@ function diffRanges(repositoryPath: string, base: string, path: string): Array<[
 }
 
 /**
+ * Config pins for the two `git grep` reads, so their output never depends on the
+ * caller's git config: `core.quotepath=true` is git's own default and what the
+ * producer's goldens were made under, and `--no-color` keeps `color.ui=always`
+ * out of the paths.
+ *
+ * Producer quirk, ported for parity and pinned by a golden (GCLI-41): the
+ * producer does NOT set `core.quotepath=false` on its grep reads, unlike its
+ * diff reads, so a non-ASCII path found by identifier comes back quoted
+ * (`"src/caf\303\251.ts"`). That string is emitted as a pointer path with
+ * `lineRanges: []` (a whole file) for a file that does not exist; it takes a
+ * file-cap slot and token budget, and the real `src/café.ts` loses the
+ * identifier evidence the quoted entry absorbed.
+ */
+const GREP_PINS = ["-c", "core.quotepath=true"] as const;
+
+/**
  * `git grep -l` at the source commit: every file containing the literal token,
  * before the per-identifier read bound. The caller slices and reports the bound.
  */
 function grepFiles(repositoryPath: string, commit: string, identifier: string): string[] {
-	const result = git(repositoryPath, ["grep", "-l", "-F", "-e", identifier, commit, "--"]);
+	const result = git(repositoryPath, [...GREP_PINS, "grep", "--no-color", "-l", "-F", "-e", identifier, commit, "--"]);
 	// 1 is "no matches", which is an answer; anything else is a broken read.
 	if (result.status === 1) return [];
 	if (result.status !== 0) throw failed(`git grep failed for \`${identifier}\``, result);
@@ -240,7 +256,18 @@ function grepFiles(repositoryPath: string, commit: string, identifier: string): 
 
 /** The line numbers a literal identifier occupies in one file at the source commit. */
 function grepLines(repositoryPath: string, commit: string, identifier: string, path: string): Array<[number, number]> {
-	const result = git(repositoryPath, ["grep", "-n", "-F", "-e", identifier, commit, "--", path]);
+	const result = git(repositoryPath, [
+		...GREP_PINS,
+		"grep",
+		"--no-color",
+		"-n",
+		"-F",
+		"-e",
+		identifier,
+		commit,
+		"--",
+		path,
+	]);
 	if (result.status === 1) return [];
 	if (result.status !== 0) throw failed(`git grep -n failed for \`${identifier}\` in ${path}`, result);
 	const prefix = `${commit}:${path}:`;
@@ -257,6 +284,20 @@ function grepLines(repositoryPath: string, commit: string, identifier: string, p
 	return mergeRanges(lines);
 }
 
+/**
+ * DEC-216 (a7): task text over the bound is a usage error, never a silent
+ * truncation. The bound is the producer's `.length` measure, UTF-16 code units,
+ * kept for parity: an astral character (an emoji) counts as two, a BMP character
+ * such as `é` as one regardless of its UTF-8 size.
+ */
+export function assertTaskTextWithinBound(taskText: string): void {
+	if (taskText.length > CODE_MAP_MAX_TASK_TEXT) {
+		throw usageError(
+			`the task text is ${taskText.length} UTF-16 code units (JavaScript string length); the code-map limit is ${CODE_MAP_MAX_TASK_TEXT} code units`,
+		);
+	}
+}
+
 /** The pointer's line in the pack body and in its token measure. */
 export function codeMapPointerLine(pointer: CodeMapPointer): string {
 	const range = pointer.lineRanges.length > 0 ? ` (${pointer.lineRanges.join(", ")})` : "";
@@ -265,8 +306,9 @@ export function codeMapPointerLine(pointer: CodeMapPointer): string {
 
 /** Tiers 1, 2 and 4 of the code map: named paths, changed files, identifier matches. */
 export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
+	assertTaskTextWithinBound(input.taskText);
 	const commit = resolveSourceRef(input.repositoryPath, input.sourceRef);
-	const text = input.taskText.slice(0, CODE_MAP_MAX_TASK_TEXT);
+	const text = input.taskText;
 	const omissions: CodeMapOmission[] = [];
 
 	const candidates = new Map<string, Candidate>();

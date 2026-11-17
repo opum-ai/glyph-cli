@@ -18,7 +18,6 @@ import { parseDiff, repoRootFor, resolveCommit, resolveDiffRefs } from "./git.ts
 import type { ImpactCaller } from "./impact.ts";
 import { impactOf } from "./impact.ts";
 import { produceCodeMap } from "./codemap.ts";
-import { CODE_MAP_MAX_TASK_TEXT } from "./codemap-text.ts";
 import { buildIndex } from "./indexer.ts";
 import { callersOf, display, resolveSymbol, touchedSymbols } from "./queries.ts";
 import { indexSnapshot, snapshotAtRef, sourceFilesAtRef } from "./snapshot.ts";
@@ -437,13 +436,9 @@ export function buildProgram(scanned: ScannedArgs): Command {
 			if (options.sourceRef === undefined || options.sourceRef === "") {
 				throw usageError("code-map needs --source-ref <ref>");
 			}
-			// Task text on stdin, bounded: more than the cap is refused, never truncated.
+			// Task text on stdin. The bound is enforced by produceCodeMap, which refuses
+			// text over the limit rather than truncating it.
 			const taskText = readFileSync(0, "utf8");
-			if (taskText.length > CODE_MAP_MAX_TASK_TEXT) {
-				throw usageError(
-					`the task text on stdin is ${taskText.length} characters; the code-map limit is ${CODE_MAP_MAX_TASK_TEXT}`,
-				);
-			}
 			const output = produceCodeMap({ repositoryPath: context.repoRoot, sourceRef: options.sourceRef, taskText });
 			emit(context.json, kindOf("code-map"), output, () => {
 				const lines = [`code map for ${options.sourceRef} — ${output.pointers.length} pointer(s)`];

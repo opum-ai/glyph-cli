@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { mkdirSync, mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { produceCodeMap } from "../src/codemap.ts";
@@ -83,6 +83,41 @@ describe("byte parity with the deterministic producer", () => {
 		expect(
 			special.pointers.some((pointer) => pointer.path.startsWith(".quest/") || pointer.path.startsWith(".lore/")),
 		).toBe(false);
+	});
+
+	test("output does not depend on the caller's git config: a hostile global config gives the same bytes", () => {
+		// quotepath=false would unquote the non-ASCII grep path, color.ui and color.grep
+		// would put ANSI codes into the paths, and the diff.* and grep.* settings would
+		// move hunk boundaries and line numbers if the reads did not pin them.
+		const config = join(mkdtempSync(join(tmpdir(), "glyph-hostile-")), "gitconfig");
+		writeFileSync(
+			config,
+			[
+				"[core]\n\tquotepath = false",
+				"[color]\n\tui = always\n\tgrep = always",
+				"[diff]\n\talgorithm = patience\n\tindentHeuristic = true\n\tinterHunkContext = 5",
+				"[grep]\n\tlineNumber = false\n\tfullName = true",
+				"",
+			].join("\n"),
+		);
+		const saved = { global: process.env.GIT_CONFIG_GLOBAL, system: process.env.GIT_CONFIG_NOSYSTEM };
+		try {
+			for (const fixture of FIXTURES) {
+				const { root, taskText, sourceRef } = builtFixture(fixture.name);
+				process.env.GIT_CONFIG_GLOBAL = config;
+				process.env.GIT_CONFIG_NOSYSTEM = "1";
+				const output = produceCodeMap({ repositoryPath: root, sourceRef, taskText });
+				expect(JSON.stringify(output, null, 2)).toBe(JSON.stringify(goldens.fixtures[fixture.name]?.output, null, 2));
+			}
+		} finally {
+			for (const [name, value] of [
+				["GIT_CONFIG_GLOBAL", saved.global],
+				["GIT_CONFIG_NOSYSTEM", saved.system],
+			] as const) {
+				if (value === undefined) delete process.env[name];
+				else process.env[name] = value;
+			}
+		}
 	});
 
 	test("the same repository state and task text yield byte-identical output twice", () => {
