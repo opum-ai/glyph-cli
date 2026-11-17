@@ -86,22 +86,25 @@ describe("the time budget", () => {
 
 	test("a clock that runs out mid-run returns a subset of the full answer plus the row", () => {
 		const root = repoWith(FILES);
-		const full = produceCodeMap({ repositoryPath: root, sourceRef: "base", taskText: TEXT });
+		const full = produceCodeMap({ repositoryPath: root, sourceRef: "base", taskText: TEXT, symbols: false });
+		// Every clock read advances a whole second, so the budget runs out after a fixed number
+		// of checks, and no git read is ever left less than a second: nothing here is a race.
 		let calls = 0;
 		const partial = produceCodeMap({
 			repositoryPath: root,
 			sourceRef: "base",
 			taskText: TEXT,
-			timeBudgetMs: 12,
+			symbols: false,
+			timeBudgetMs: 8_000,
 			now: () => {
 				calls += 1;
-				return calls;
+				return calls * 1_000;
 			},
 		});
 		expect(budgetRows(partial)).toHaveLength(1);
 		const fullPaths = new Set(full.pointers.map((pointer) => pointer.path));
 		for (const pointer of partial.pointers) expect(fullPaths.has(pointer.path)).toBe(true);
-		expect(partial.pointers.length).toBeLessThan(full.pointers.length);
+		expect(partial.omissions.some((row) => row.reason.includes("time-budget"))).toBe(true);
 	});
 
 	test("a git read cannot outlive the budget: a slow grep is cut off at the time left, and the stage is named", () => {
