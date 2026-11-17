@@ -65,7 +65,7 @@ impact of d (function) at src/d.ts:1:17 in the working tree — 3 caller(s) with
   depth 1  c  src/c.ts:3:10  c -> d
   depth 2  b  src/b.ts:3:10  b -> c -> d
   depth 3  a  src/a.ts:3:10  a -> b -> c -> d
-  unresolved: 0 of 3 call site(s) did not resolve; an empty answer is not proof of no impact
+  coverage (index-wide): 3 resolved call site(s); 0 call-shaped site(s) did not resolve; an empty answer is not proof of no impact
 index: 4 files, 4 symbols, 3 sites (cache hit)
 ```
 
@@ -200,17 +200,26 @@ would index sources Git was refusing to describe.
 without a checkout. The commit's regular blobs are listed with
 `git ls-tree -r` and read with one `git cat-file --batch`; the program is built
 on an in-memory compiler host, and the commit's own `tsconfig.json` (with
-anything it extends) supplies the compiler options. Paths inside the tree that it does not
-contain are invisible to that program, so an edited, added or deleted source
-file cannot change a `--ref` answer. **In-repo `node_modules` is not read from
-disk either** (DEC-216 (a2)): a module that would resolve through the
-checkout's installed dependencies resolves to nothing, and its call sites are
-counted in `unresolvedSites` — so two machines with different installs answer
-the same commit identically. A tracked `node_modules` is part of the tree and
-is read from the tree. Only paths outside the repository root are read from
-disk, which is where a hoisted dependency tree and a parent directory's
-tsconfig reached through `extends` live. Symlinks and submodules are not source files at a commit
-and are skipped. The working tree remains the default for interactive use.
+anything it extends) supplies the compiler options. Paths inside the repository
+that the tree does not contain are invisible to that program, so an edited,
+added or deleted source file cannot change a `--ref` answer. **In-repo
+`node_modules` is not read from disk either** (DEC-216 (a2)), apart from the
+running TypeScript package's own library directory: a module that would resolve
+through the checkout's installed dependencies is not resolved through that
+install, and its call sites are counted in `unresolvedSites`. A tracked
+`node_modules` is part of the tree and is read from the tree.
+
+Some inputs the commit does not carry are read from the host: a hoisted
+dependency tree, a parent directory's tsconfig reached through `extends`, and
+the running TypeScript package's own library directory, wherever it sits. They
+are not part of the cache key, and neither is the TypeScript compiler's version
+or Glyph's own indexer logic beyond its index format. So the exactness promise
+is scoped to what the commit carries: its tree and its own tsconfig determine
+the answer, and a dirty checkout cannot influence it, while two hosts can answer
+the same commit differently when one of those inputs differs — and a warm cache
+entry keeps the answer it was built with. Symlinks
+and submodules are not source files at a commit and are skipped. The working
+tree remains the default for interactive use.
 
 `diff` and the code-map seam will require `--ref` (DEC-216 Q4). Making an
 existing command's surface change is out of this slice, so that requirement is

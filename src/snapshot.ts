@@ -12,20 +12,22 @@ import type { GlyphIndex } from "./types.ts";
  * The commit's own files are authoritative. Blobs are listed with
  * `git ls-tree -r` and read with one `git cat-file --batch`, so nothing is
  * taken from the working tree. In-repo `node_modules` is **not** read from
- * disk: a module that would resolve through the checkout's installed
- * dependencies resolves to nothing, and its call sites are counted in
- * `unresolvedSites`. That keeps the answer exact — two machines with different
- * installs cannot answer the same `--ref` differently — and consistent with a
- * cache key that cannot see node_modules content. A tracked `node_modules` is
- * part of the tree, so it is served from the tree like any other committed
- * path.
+ * disk, apart from the running TypeScript package's own library directory: a
+ * module that would resolve through the checkout's installed dependencies is
+ * not resolved through that install, and its call sites are counted in
+ * `unresolvedSites`. That makes what the commit carries authoritative and
+ * consistent with a cache key that cannot see node_modules content. A tracked
+ * `node_modules` is part of the tree, so it is served from the tree like any
+ * other committed path. Inputs the commit does not carry are not part of that
+ * promise: a hoisted dependency tree, a parent tsconfig, or a different
+ * TypeScript package can still move a cold answer.
  *
- * `ts.sys` is the fallback only for paths outside the repository root: the
- * TypeScript standard library, a hoisted dependency tree, and a
- * parent-directory tsconfig reached through `extends` live there, outside any
- * tree this commit describes. The standard library is also served when the
- * running TypeScript package happens to sit inside the analyzed checkout,
- * because it belongs to the tool rather than to the commit.
+ * `ts.sys` is the fallback for any path outside the repository root — a hoisted
+ * dependency tree or a parent-directory tsconfig reached through `extends`, for
+ * example — and for the running TypeScript package's own library directory,
+ * wherever it sits. The library is served inside the analyzed checkout too,
+ * when the package is a dependency of it, because it belongs to the tool rather
+ * than to the commit.
  *
  * Symlinks are not followed here (a tree records the link text, not the
  * target), and submodules are gitlinks, not blobs, so neither enters the file
@@ -57,8 +59,18 @@ export interface TreeSnapshot {
 	): string[];
 }
 
+/**
+ * Separator normalisation for a path that may come from the host. Windows
+ * `node:path` produces backslashes; on every other platform a backslash is an
+ * ordinary character in a file name, so a path from `git ls-tree` -- already
+ * POSIX -- is returned untouched and a legal name containing a backslash is not
+ * turned into a directory separator. On Windows the rewrite still applies to
+ * every input, which is harmless there: a Windows file name cannot contain a
+ * backslash, and the listing and the snapshot share this function, so their
+ * keys stay consistent.
+ */
 function posix(path: string): string {
-	return path.split("\\").join("/");
+	return process.platform === "win32" ? path.split("\\").join("/") : path;
 }
 
 /** Agent paths are POSIX; the map is keyed that way. */

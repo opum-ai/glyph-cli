@@ -20,9 +20,10 @@ import type { GlyphIndex, SiteEntry, SymbolEntry } from "./types.ts";
  * caller is marked `cycle: true` when it can reach itself through the target.
  *
  * A call site at module scope has no enclosing declaration (`callerId` is
- * null). Per DEC-216 (a1) it is a terminal caller: reported at its depth with
- * `symbol: null` and a one-site path, never expanded, so impact's depth-1 set
- * is a superset of `callers`.
+ * null). Per DEC-216 (a1), as amended by (a2), it is a terminal caller:
+ * reported at its true depth with `symbol: null` and the full path of edges
+ * down to the target, never expanded, so impact's depth-1 set is a superset of
+ * `callers`.
  */
 
 /** One edge of a reported shortest path, carrying the call site that forms it. */
