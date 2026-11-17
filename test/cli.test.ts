@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { allResultKinds, globalKindOf, kindOf } from "../src/contract.ts";
-import { repoRootFor } from "../src/git.ts";
+import { gitRun, repoRootFor } from "../src/git.ts";
 import { makeScratchRepo, scratchCacheDir } from "./helpers.ts";
 
 const CLI = new URL("../src/cli.ts", import.meta.url).pathname;
@@ -158,6 +158,48 @@ describe("cli", () => {
 		expect(envelope.kind).toBe("diff.result");
 		expect(envelope.data.symbols.map((symbol) => symbol.name)).toEqual(["a"]);
 		expect(envelope.data.filesChanged).toBe(1);
+	});
+
+	test("--repo and --json agree between the pre-scan and commander on both paths", () => {
+		// commander takes the token after --repo as its value even when the token
+		// starts with '-', so this invocation names a directory literally called
+		// `--json` and is NOT a JSON invocation. The pre-scan used to read --json
+		// as the flag and wrap only the failure, so success spoke text and failure
+		// spoke an envelope; one scanner makes both paths agree.
+		const repo = makeScratchRepo({ "src/a.ts": "export function a(): number {\n  return 1;\n}\n" });
+		repo.commit("base");
+		const dashy = join(repo.root, "--json");
+		mkdirSync(dashy, { recursive: true });
+		writeFileSync(join(dashy, "a.ts"), "export function a(): number {\n  return 1;\n}\n");
+		gitRun(dashy, ["init", "-q"]);
+		gitRun(dashy, ["config", "user.email", "test@opum.test"]);
+		gitRun(dashy, ["config", "user.name", "glyph test"]);
+		gitRun(dashy, ["add", "-A"]);
+		gitRun(dashy, ["commit", "-qm", "base"]);
+		const cache = scratchCacheDir();
+
+		// `--repo --json`: text on the success path...
+		const ok = runCli(repo.root, ["--repo", "--json", "callers", "a"], cache);
+		expect(ok.code).toBe(0);
+		expect(ok.stdout.startsWith("callers of a")).toBe(true);
+		expect(() => JSON.parse(ok.stdout)).toThrow();
+
+		// ...and text on the failure path, not an envelope.
+		const missing = runCli(repo.root, ["--repo", "--json", "callers", "nope"], cache);
+		expect(missing.code).toBe(3);
+		expect(missing.stdout).toBe("");
+		expect(missing.stderr.startsWith("glyph: ")).toBe(true);
+		expect(() => JSON.parse(missing.stderr)).toThrow();
+
+		// `--repo=<dir>` is the documented form: an envelope on both paths.
+		const equalsOk = runCli(repo.root, [`--repo=${dashy}`, "--json", "callers", "a"], cache);
+		expect(equalsOk.code).toBe(0);
+		expect((JSON.parse(equalsOk.stdout) as { kind: string }).kind).toBe("callers.result");
+
+		const equalsMissing = runCli(repo.root, [`--repo=${dashy}`, "--json", "callers", "nope"], cache);
+		expect(equalsMissing.code).toBe(3);
+		expect(equalsMissing.stdout).toBe("");
+		expect((JSON.parse(equalsMissing.stderr) as { error_type: string }).error_type).toBe("not_found");
 	});
 
 	const IMPACT_FILES = {

@@ -15,7 +15,7 @@ import {
 	validateResultKinds,
 } from "../src/contract.ts";
 import { EXIT_CODES, exitCodeFor, GlyphError, type GlyphErrorType } from "../src/errors.ts";
-import { buildProgram } from "../src/program.ts";
+import { buildProgram, scanArgv } from "../src/program.ts";
 
 /**
  * Hand-transcribed from each command handler's own emitted kind, as the
@@ -58,7 +58,7 @@ describe("command contract", () => {
 	});
 
 	test("every registered commander command has a registry entry, and every entry a command", () => {
-		const program = buildProgram();
+		const program = buildProgram(scanArgv([]));
 		const names = program.commands.flatMap((command) =>
 			command.name() === "cache" ? ["cache path", "cache clear"] : [command.name()],
 		);

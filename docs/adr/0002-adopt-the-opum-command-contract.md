@@ -105,10 +105,10 @@ rather than a silent walk.
   behavior rather than an unstated regression. Submodules and nested
   repositories are not traversed, because `git ls-files` does not descend into
   them; symlinks that resolve to files are followed.
-- Glyph produces `usage` and `not_found` from its commands, and `indeterminate`
-  when Git refuses; `denied`, `conflict`, `validation` and `drift` are mapped
-  and published so the first command that needs one uses the fleet vocabulary
-  rather than inventing a second.
+- Glyph produces `usage`, `not_found` and `uncaught` from its commands, and
+  `indeterminate` when Git refuses; `denied`, `conflict`, `validation` and
+  `drift` are mapped and published so the first command that needs one uses the
+  fleet vocabulary rather than inventing a second.
 - Publishing the package, and any population of `principal` with a real value,
   remain outside this record. The latter requires an amendment to the shared
   contract first.

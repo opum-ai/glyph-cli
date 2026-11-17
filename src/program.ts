@@ -58,11 +58,6 @@ interface Context {
 	json: boolean;
 }
 
-interface GlobalOptions {
-	repo?: string;
-	json?: boolean;
-}
-
 function readVersion(): string {
 	try {
 		const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version?: string };
@@ -72,10 +67,9 @@ function readVersion(): string {
 	}
 }
 
-function contextOf(program: Command): Context {
-	const options = program.opts<GlobalOptions>();
-	const dir = resolve(options.repo ?? process.cwd());
-	return { repoRoot: repoRootFor(dir) ?? dir, json: options.json === true };
+function contextOf(scanned: ScannedArgs): Context {
+	const dir = resolve(scanned.repo ?? process.cwd());
+	return { repoRoot: repoRootFor(dir) ?? dir, json: scanned.json };
 }
 
 interface LoadedIndex {
@@ -182,46 +176,68 @@ function commandNamesFor(token: string): CommandName[] | undefined {
 	return names.length === 0 ? undefined : names;
 }
 
-/** The first bare token, skipping the value of `--repo` and its `--repo=` form. */
-function firstCommandToken(argv: string[]): string | undefined {
-	for (let index = 0; index < argv.length; index += 1) {
-		const arg = argv[index];
-		if (arg === "--repo") {
-			index += 1;
-			continue;
-		}
-		if (arg === undefined || arg.startsWith("-")) continue;
-		return arg;
-	}
-	return undefined;
-}
+/** Options that take a value: `--name value` and `--name=value` are both allowed. */
+const VALUE_TAKING = new Set(["--repo", "--file", "--depth", "--ref"]);
 
-function wantsHelp(argv: string[]): boolean {
-	return argv.includes("--help") || argv.includes("-h");
-}
+/** The options that are flags rather than values, among the global vocabulary. */
+const GLOBAL_FLAGS = new Set(["--json", "--help", "-h", "--version", "-v"]);
 
-function wantsVersion(argv: string[]): boolean {
-	return argv.includes("--version") || argv.includes("-v");
+export interface ScannedArgs {
+	/** The first bare token: the command the user asked for, if any. */
+	commandToken?: string;
+	/** The directory `--repo <dir>` or `--repo=<dir>` names, if either is present. */
+	repo?: string;
+	json: boolean;
+	help: boolean;
+	version: boolean;
+	/** True when every argument is a known global flag or such a flag's value. */
+	onlyKnownGlobals: boolean;
 }
 
 /**
- * True when every argument is a known global flag (or `--repo`'s value). A
- * bare invocation with an unknown option such as `-V` must reach commander so
- * it reports usage, rather than being swallowed as "no command".
+ * ONE scanner for the option vocabulary, shared by the pre-scan decisions and
+ * the command context, so `--repo` and `--json` read identically everywhere.
+ *
+ * It follows commander's own rule: a `--repo` takes the NEXT TOKEN as its
+ * value even when that token begins with `-`. So in `glyph --repo --json
+ * callers x` the repository is a directory literally named `--json` and the
+ * output mode is text; the pre-scan used to read `--json` as the flag and wrap
+ * only the failure in an envelope, which is the disagreement this scanner
+ * removes. The command-specific value options are skipped for the same reason:
+ * their value is never a command token or a flag.
  */
-function onlyKnownGlobalOptions(argv: string[]): boolean {
+export function scanArgv(argv: string[]): ScannedArgs {
+	let commandToken: string | undefined;
+	let repo: string | undefined;
+	let json = false;
+	let help = false;
+	let version = false;
+	let onlyKnownGlobals = true;
 	for (let index = 0; index < argv.length; index += 1) {
 		const arg = argv[index];
-		if (arg === "--json" || arg === "--version" || arg === "-v" || arg === "--help" || arg === "-h") continue;
-		if (arg === "--repo") {
-			index += 1;
-			if (index >= argv.length) return false;
+		if (arg === undefined) continue;
+		const equals = arg.startsWith("--") ? arg.indexOf("=") : -1;
+		const name = equals === -1 ? arg : arg.slice(0, equals);
+		if (VALUE_TAKING.has(name)) {
+			if (name === "--repo") {
+				repo = equals === -1 ? argv[index + 1] : arg.slice(equals + 1);
+				if (repo === undefined) onlyKnownGlobals = false;
+			} else {
+				onlyKnownGlobals = false;
+			}
+			if (equals === -1) index += 1;
 			continue;
 		}
-		if (arg?.startsWith("--repo=")) continue;
-		return false;
+		if (GLOBAL_FLAGS.has(arg)) {
+			if (arg === "--json") json = true;
+			else if (arg === "--version" || arg === "-v") version = true;
+			else help = true;
+			continue;
+		}
+		onlyKnownGlobals = false;
+		if (!arg.startsWith("-") && commandToken === undefined) commandToken = arg;
 	}
-	return true;
+	return { commandToken, repo, json, help, version, onlyKnownGlobals };
 }
 
 function writeError(json: boolean, errorType: EnvelopeErrorType, message: string): void {
@@ -232,7 +248,7 @@ function writeError(json: boolean, errorType: EnvelopeErrorType, message: string
 	}
 }
 
-export function buildProgram(): Command {
+export function buildProgram(scanned: ScannedArgs): Command {
 	const program = new Command();
 	program
 		.name("glyph")
@@ -252,7 +268,7 @@ export function buildProgram(): Command {
 		.description("what calls this symbol")
 		.option("--file <pattern>", "narrow to symbols whose file path contains <pattern>")
 		.action((name: string, options: { file?: string }) => {
-			const context = contextOf(program);
+			const context = contextOf(scanned);
 			const { index, info } = loadIndex(context);
 			const symbol = resolveSymbol(index, name, options.file);
 			const callers = callersOf(index, symbol);
@@ -301,7 +317,7 @@ export function buildProgram(): Command {
 		.option("--ref <ref>", "index that commit's tree instead of the working tree")
 		.action((name: string, options: { depth?: string; all?: boolean; ref?: string }) => {
 			const depth = depthOf(options.depth, options.all === true);
-			const context = contextOf(program);
+			const context = contextOf(scanned);
 			const { index, info, ref } = loadIndex(context, options.ref);
 			const symbol = resolveSymbol(index, name, undefined, "impact has no file filter, so the name must be unique");
 			const result = impactOf(index, symbol, depth);
@@ -351,7 +367,7 @@ export function buildProgram(): Command {
 		.command("diff <base> [head]")
 		.description("which symbols the diff between base and head (default HEAD) touches")
 		.action((base: string, head: string | undefined) => {
-			const context = contextOf(program);
+			const context = contextOf(scanned);
 			const { index, info } = loadIndex(context);
 			const resolved = resolveDiffRefs(context.repoRoot, base, head ?? "HEAD");
 			const changes = parseDiff(context.repoRoot, resolved.baseSha, resolved.headSha);
@@ -382,7 +398,7 @@ export function buildProgram(): Command {
 		.command("cache <action>")
 		.description("show or clear this repository's local cache (action: path | clear)")
 		.action((action: string) => {
-			const context = contextOf(program);
+			const context = contextOf(scanned);
 			if (action === "path") {
 				const path = cacheDir(context.repoRoot);
 				emit(context.json, kindOf("cache path"), { repo: context.repoRoot, path }, () => path);
@@ -405,7 +421,7 @@ export function buildProgram(): Command {
 		.command("help [command]")
 		.description("show help, or under --json the machine-readable command manifest")
 		.action((commandName: string | undefined) => {
-			const context = contextOf(program);
+			const context = contextOf(scanned);
 			const names = commandName === undefined ? undefined : commandNamesFor(commandName);
 			if (commandName !== undefined && names === undefined) throw usageError(`unknown command '${commandName}'`);
 			if (context.json) {
@@ -433,18 +449,18 @@ export function buildProgram(): Command {
  * so `version.info` and `help.usage` stay.
  */
 export async function run(argv: string[]): Promise<number> {
-	const program = buildProgram();
-	const json = argv.includes("--json");
+	const scanned = scanArgv(argv);
+	const program = buildProgram(scanned);
+	const { json } = scanned;
+	const token = scanned.commandToken;
 
 	try {
-		if (json && wantsVersion(argv)) {
+		if (json && scanned.version) {
 			emit(true, globalKindOf("version"), { version: readVersion() }, () => "");
 			return 0;
 		}
 
-		const token = firstCommandToken(argv);
-
-		if (wantsHelp(argv)) {
+		if (scanned.help) {
 			if (json && token === undefined) {
 				emit(true, globalKindOf("help"), { usage: program.helpInformation() }, () => "");
 				return 0;
@@ -461,7 +477,7 @@ export async function run(argv: string[]): Promise<number> {
 
 		// A bare invocation answers help, like the reference implementation, rather
 		// than throwing commander's "(outputHelp)" as a usage error.
-		if (token === undefined && !wantsVersion(argv) && !wantsHelp(argv) && onlyKnownGlobalOptions(argv)) {
+		if (token === undefined && !scanned.version && !scanned.help && scanned.onlyKnownGlobals) {
 			emit(json, globalKindOf("help"), { usage: program.helpInformation() }, () => program.helpInformation().trimEnd());
 			return 0;
 		}
@@ -469,7 +485,9 @@ export async function run(argv: string[]): Promise<number> {
 		await program.parseAsync(argv, { from: "user" });
 		return 0;
 	} catch (error) {
-		const errorJson = program.opts<GlobalOptions>().json === true || json;
+		// The scanner, not a second reading of argv, decides the output mode, so a
+		// failure speaks in the same mode the success path would have.
+		const errorJson = scanned.json;
 		if (error instanceof CommanderError) {
 			if (error.exitCode === 0) return 0; // Text help or version already printed.
 			const usage = usageError(error.message);
