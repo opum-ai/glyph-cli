@@ -25,7 +25,7 @@ describe("indexer", () => {
 				'import { helper as h } from "./util";\n\nexport function main(): number {\n  return h(1) + h(2);\n}\n',
 		});
 		const mainId = symbolId(index, "main");
-		const sites = index.sites.filter((site) => site.calleeId === symbolId(index, "helper"));
+		const sites = index.sites.filter((site) => site.calleeId === symbolId(index, "helper") && site.kind === "call");
 		expect(sites.length).toBe(2);
 		expect(sites.every((site) => site.kind === "call")).toBe(true);
 		expect(sites.every((site) => site.callerId === mainId)).toBe(true);
@@ -38,7 +38,9 @@ describe("indexer", () => {
 			"src/main.ts":
 				'import { helper } from "./util";\n\nexport const topWrapper = () => helper(1);\n\nexport function outer(): number {\n  const local = () => helper(2);\n  return local();\n}\n',
 		});
-		const helperSites = index.sites.filter((site) => site.calleeId === symbolId(index, "helper"));
+		const helperSites = index.sites.filter(
+			(site) => site.calleeId === symbolId(index, "helper") && site.kind === "call",
+		);
 		expect(helperSites.map((site) => site.callerId)).toEqual([symbolId(index, "topWrapper"), symbolId(index, "outer")]);
 
 		// The local arrow is deliberately not a symbol, and the call of `local()`

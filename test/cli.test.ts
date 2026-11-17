@@ -293,19 +293,27 @@ describe("cli", () => {
 			symbol: { name: string };
 			ref: { ref: string; sha: string } | null;
 			depth: { bound: number | null; all: boolean };
-			callers: { symbol: { name: string } | null; depth: number; path: { file: string; line: number }[] }[];
+			callers: {
+				symbol: { name: string } | null;
+				depth: number;
+				path: { file: string; line: number; kind: string }[];
+			}[];
 			cycle: boolean;
 			truncated: boolean;
 			unexplored: number;
 			total: number;
 			resolvedSites: number;
 			unresolvedSites: number;
+			unresolvedByKind: { call: number; import: number; extends: number; implements: number; dynamic: number };
 			index: { cache: string };
 		};
 	}
 
+	/** The call/new answer: every caller whose own first hop is not an import terminal. */
 	function triples(envelope: ImpactEnvelope): Array<[string | null, number]> {
-		return envelope.data.callers.map((caller) => [caller.symbol?.name ?? null, caller.depth]);
+		return envelope.data.callers
+			.filter((caller) => caller.path[0]?.kind !== "import")
+			.map((caller) => [caller.symbol?.name ?? null, caller.depth]);
 	}
 
 	/** The `cache` field is the one documented difference between two runs. */
@@ -332,13 +340,27 @@ describe("cli", () => {
 			["b", 2],
 			["a", 3],
 		]);
-		expect(envelope.data.callers[2]?.path.map((edge) => edge.file)).toEqual(["src/a.ts", "src/b.ts", "src/c.ts"]);
+		const a = envelope.data.callers.find((caller) => caller.symbol?.name === "a");
+		expect(a?.path.map((edge) => edge.file)).toEqual(["src/a.ts", "src/b.ts", "src/c.ts"]);
 		expect(envelope.data.truncated).toBe(false);
 		expect(envelope.data.cycle).toBe(false);
-		// The index holds exactly the three cross-file calls of this fixture; the
-		// values are asserted, not merely their presence.
-		expect(envelope.data.resolvedSites).toBe(3);
+		// The index holds exactly the three cross-file calls of this fixture and the
+		// three imports that carry them (DEC-216 (a3)); the values are asserted, not
+		// merely their presence. Each import is also a module-scope terminal of the
+		// symbol it binds, one per depth beside the call answer.
+		expect(envelope.data.resolvedSites).toBe(6);
 		expect(envelope.data.unresolvedSites).toBe(0);
+		expect(envelope.data.unresolvedByKind).toEqual({ call: 0, import: 0, extends: 0, implements: 0, dynamic: 0 });
+		expect(
+			envelope.data.callers.map((caller) => [caller.symbol?.name ?? null, caller.depth, caller.path[0]?.kind]),
+		).toEqual([
+			[null, 1, "import"],
+			["c", 1, "call"],
+			[null, 2, "import"],
+			["b", 2, "call"],
+			[null, 3, "import"],
+			["a", 3, "call"],
+		]);
 		expect(envelope.data.index.cache).toBe("miss");
 
 		// Same state twice: the second run is a cache hit and the answer is
@@ -371,11 +393,14 @@ describe("cli", () => {
 		const one = JSON.parse(bounded.stdout) as ImpactEnvelope;
 		expect(triples(one)).toEqual([["c", 1]]);
 		expect(one.data.truncated).toBe(true);
-		expect(one.data.unexplored).toBe(2);
+		// Three import terminals sit beside the three calls: six found, two shown.
+		expect(one.data.unexplored).toBe(4);
+		expect(one.data.total).toBe(6);
 
 		const unbounded = runCli(repo.root, ["--json", "impact", "d", "--all"], cache);
 		const all = JSON.parse(unbounded.stdout) as ImpactEnvelope;
 		expect(triples(all)).toHaveLength(3);
+		expect(all.data.callers).toHaveLength(6);
 		expect(all.data.truncated).toBe(false);
 		expect(all.data.unexplored).toBe(0);
 		expect(all.data.depth).toEqual({ bound: null, all: true });
@@ -394,14 +419,17 @@ describe("cli", () => {
 		const dflt = runCli(repo.root, ["--json", "impact", "f8"], cache);
 		const defaultEnvelope = JSON.parse(dflt.stdout) as ImpactEnvelope;
 		expect(defaultEnvelope.data.depth).toEqual({ bound: 5, all: false });
-		expect(defaultEnvelope.data.callers).toHaveLength(5);
+		// Seven callers and seven import terminals, one pair per depth.
+		expect(triples(defaultEnvelope)).toHaveLength(5);
+		expect(defaultEnvelope.data.callers).toHaveLength(10);
 		expect(defaultEnvelope.data.truncated).toBe(true);
-		expect(defaultEnvelope.data.unexplored).toBe(2);
-		expect(defaultEnvelope.data.total).toBe(7);
+		expect(defaultEnvelope.data.unexplored).toBe(4);
+		expect(defaultEnvelope.data.total).toBe(14);
 
 		const all = runCli(repo.root, ["--json", "impact", "f8", "--all"], cache);
 		const allEnvelope = JSON.parse(all.stdout) as ImpactEnvelope;
-		expect(allEnvelope.data.callers).toHaveLength(7);
+		expect(triples(allEnvelope)).toHaveLength(7);
+		expect(allEnvelope.data.callers).toHaveLength(14);
 		expect(allEnvelope.data.truncated).toBe(false);
 		expect(allEnvelope.data.unexplored).toBe(0);
 	});
@@ -493,13 +521,14 @@ describe("cli", () => {
 		expect(ref.code).toBe(0);
 		const refEnvelope = JSON.parse(ref.stdout) as ImpactEnvelope;
 		expect(refEnvelope.data.resolvedSites).toBe(0);
-		expect(refEnvelope.data.unresolvedSites).toBe(1);
+		expect(refEnvelope.data.unresolvedSites).toBe(2);
+		expect(refEnvelope.data.unresolvedByKind).toMatchObject({ call: 1, import: 1 });
 
 		// The same dirty tree does change the working-tree answer, which is why the
 		// ref answer must not read it.
 		const working = runCli(repo.root, ["--json", "impact", "app"], scratchCacheDir());
 		const workingEnvelope = JSON.parse(working.stdout) as ImpactEnvelope;
-		expect(workingEnvelope.data.resolvedSites).toBe(1);
+		expect(workingEnvelope.data.resolvedSites).toBe(2);
 		expect(workingEnvelope.data.unresolvedSites).toBe(0);
 	});
 

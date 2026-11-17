@@ -20,7 +20,7 @@ import { impactOf } from "./impact.ts";
 import { buildIndex } from "./indexer.ts";
 import { callersOf, display, resolveSymbol, touchedSymbols } from "./queries.ts";
 import { indexSnapshot, snapshotAtRef, sourceFilesAtRef } from "./snapshot.ts";
-import type { GlyphIndex, IndexInfo, SymbolEntry } from "./types.ts";
+import type { GlyphIndex, IndexInfo, SymbolEntry, UnresolvedByKind } from "./types.ts";
 
 /**
  * Glyph's command surface and machine contract.
@@ -130,6 +130,10 @@ function emit(json: boolean, kind: string, data: unknown, renderHuman: () => str
 
 function indexLine(info: IndexInfo): string {
 	return `index: ${info.files} files, ${info.symbols} symbols, ${info.sites} sites (cache ${info.cache})`;
+}
+
+function unresolvedLine(by: UnresolvedByKind): string {
+	return `call ${by.call}, import ${by.import}, extends ${by.extends}, implements ${by.implements}, dynamic ${by.dynamic}`;
 }
 
 function shortSha(sha: string): string {
@@ -360,6 +364,7 @@ export function buildProgram(scanned: ScannedArgs): Command {
 				total: result.total,
 				resolvedSites: index.sites.length,
 				unresolvedSites: index.unresolvedSites,
+				unresolvedByKind: index.unresolvedByKind,
 				totals: { callers: result.callers.length, byDepth: byDepth(result.callers) },
 				index: info,
 			};
@@ -383,7 +388,7 @@ export function buildProgram(scanned: ScannedArgs): Command {
 					lines.push("  cycle: at least one symbol in this closure (this symbol included) sits on a call cycle");
 				}
 				lines.push(
-					`  coverage (index-wide): ${index.sites.length} resolved call site(s); ${index.unresolvedSites} call-shaped site(s) did not resolve; an empty answer is not proof of no impact`,
+					`  coverage (index-wide): ${index.sites.length} resolved site(s); ${index.unresolvedSites} did not resolve (${unresolvedLine(index.unresolvedByKind)}); an empty answer is not proof of no impact`,
 				);
 				lines.push(indexLine(info));
 				return lines.join("\n");

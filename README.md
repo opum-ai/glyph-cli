@@ -53,20 +53,24 @@ index: 13 files, 81 symbols, 139 sites (cache miss)
 ### `glyph impact <name>`
 
 Every caller a change to this symbol can reach — the transitive reverse closure
-of the call graph. Each caller appears once, at its shortest depth (direct
+over call, `new`, import, `extends` and `implements` edges (ADR 0004). Each caller appears once, at its shortest depth (direct
 callers are depth 1), with one shortest path to the target and the call sites
 on that path. When several shortest paths exist, a total order — the path
 string, then the call site's file, line and column — picks one, so the answer
-is deterministic.
+is deterministic. The `module scope` rows at each depth are the import
+terminals (see below): the importing module, not a function in it.
 
 ```console
 $ bun run glyph impact d
-impact of d (function) at src/d.ts:1:17 in the working tree — 3 caller(s) within depth 5 (3 found, cache hit)
+impact of d (function) at src/d.ts:1:17 in the working tree — 6 caller(s) within depth 5 (6 found, cache hit)
+  depth 1  module scope  src/c.ts:1:10  module scope -> d
   depth 1  c  src/c.ts:3:10  c -> d
+  depth 2  module scope  src/b.ts:1:10  module scope -> c -> d
   depth 2  b  src/b.ts:3:10  b -> c -> d
+  depth 3  module scope  src/a.ts:1:10  module scope -> b -> c -> d
   depth 3  a  src/a.ts:3:10  a -> b -> c -> d
-  coverage (index-wide): 3 resolved call site(s); 0 call-shaped site(s) did not resolve; an empty answer is not proof of no impact
-index: 4 files, 4 symbols, 3 sites (cache hit)
+  coverage (index-wide): 6 resolved site(s); 0 did not resolve (call 0, import 0, extends 0, implements 0, dynamic 0); an empty answer is not proof of no impact
+index: 4 files, 4 symbols, 6 sites (cache hit)
 ```
 
 - The default depth is 5. `--depth <n>` reports fewer hops and `--all` runs the
@@ -77,12 +81,28 @@ index: 4 files, 4 symbols, 3 sites (cache hit)
 - A call site at module scope has no enclosing declaration. It is reported as a
   terminal caller with `symbol: null` and is never expanded, so the depth-1
   answer is a superset of `callers` (DEC-216 (a1)).
+- An import is an edge to the symbol the binding resolves to, through alias and
+  re-export chains, and its dependent is the importing **module**: a
+  module-scope terminal at depth 1 with `symbol: null`, never expanded. A
+  re-export is an import edge with the barrel as the dependent. `import type`
+  is recorded with `typeOnly: true`. A namespace import, a side-effect import or
+  `export *` binds no single symbol: it is a depth-1 terminal of any symbol
+  impact starts from in the imported module, carrying `moduleTarget`.
+- `class B extends A`, `class C implements I` and `interface J extends I` are
+  edges from the subclass or implementer, so a changed class or interface
+  reaches them at depth + 1 and the walk continues over every edge kind. A
+  changed **method** does not reach an overriding method in v1 (a named limit,
+  below). Each hop of a path carries its `kind`; `callers` still lists call and
+  `new` sites only.
 - `--ref <ref>` answers from that commit's tree instead of the working tree;
   see [Answering against a commit](#answering-against-a-commit).
-- The envelope carries `resolvedSites` and `unresolvedSites`, the index's
-  call-site counts, because an empty or shallow answer is not proof of no
-  impact: calls that resolve outside the repository, dynamic dispatch and
-  reflection are counted as unresolved and never guessed at.
+- The envelope carries `resolvedSites`, `unresolvedSites` and
+  `unresolvedByKind` (`call`, `import`, `extends`, `implements`, `dynamic`),
+  the index's site counts, because an empty or shallow answer is not proof of
+  no impact: calls, imports and heritage clauses that resolve outside the
+  repository, dynamic dispatch and reflection are counted as unresolved and
+  never guessed at, and `import()`/`require()` are counted as `dynamic` and not
+  followed.
 
 ### `glyph diff <base> [head]`
 
@@ -193,6 +213,12 @@ would index sources Git was refusing to describe.
   `helper`, not to the letters at the call site. A callee that resolves
   nowhere — a dynamic `x[key]()`, a function from a dependency — is counted
   in `unresolvedSites` and never guessed.
+- **Import and re-export edges** bind the declaration an imported name resolves
+  to, with the importing module as the dependent; namespace, side-effect and
+  `export *` edges name a target file instead of a symbol. **Heritage edges**
+  (`extends`, `implements`) run from the declaration carrying the clause to its
+  target. A specifier or heritage target outside the repository is counted
+  under its own kind in `unresolvedByKind`.
 
 ## Answering against a commit
 
@@ -240,8 +266,13 @@ revisions of a repository are retained.
 
 ## Limits (v0)
 
-- **Calls only.** Reading a symbol without calling it is not recorded;
-  `callers` answers call sites, and `impact` walks them.
+- **Calls, imports and heritage; no reads.** Reading a symbol without calling
+  it is not recorded. `callers` answers call sites; `impact` also walks import,
+  re-export, `extends` and `implements` edges (ADR 0004), and an import's
+  dependent is the importing module, not the function that uses the binding.
+- **No override propagation.** A changed method does not reach a method that
+  overrides it; the class does reach its subclasses. Calls through a subclass
+  to an inherited method already resolve to the base method.
 - **No precision promise.** A call site resolves when the checker can resolve
   it; what was found is reported as found, and anything dynamic is counted as
   unresolved rather than inferred. An empty or shallow `impact` answer is never
