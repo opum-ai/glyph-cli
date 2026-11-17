@@ -39,11 +39,14 @@ cell, cold (empty cache per run) and warm (one primed cache). Seconds, p50 / p95
 | glyph-cli | 0.485 / 0.531 / 0.531 | 0.231 / 0.252 / 0.252 |
 | opum-desktop | 0.919 / 1.273 / 1.273 | 0.273 / 0.357 / 0.357 |
 
-With ten runs the p95 is the nearest rank and equals the maximum. The task text per
-repository was synthetic (six exported names and one source path). The worst p95 is
-quest-cli cold, 3.365 s. The producer's extractors are quadratic in one long unbroken
-token (GCLI-40): about 0.2 to 0.4 s at the 20,000-unit task-text cap, small against the
-budget.
+Caveats, in opum-doc's own words (DEC-216 (a10)): "n=10 so p95 is the nearest rank, the
+task texts are synthetic, opum-desktop's HEAD moved during its cell, and the GCLI-40
+quadratic adds about 0.2–0.4 s at 20,000 characters".
+
+glyph-cli's explanation, not part of the ruling: with ten runs the p95 equals the maximum
+in every cell; the synthetic text per repository was six exported names and one source
+path; the GCLI-40 cost is the producer's extractors on one long unbroken token, small
+against the budget. The worst p95 is quest-cli cold, 3.365 s.
 
 ## Decision
 
@@ -86,3 +89,25 @@ says so.
   reported with its elapsed time (P2); a warm run on a real repository stays well
   under the budget (P3). A pin test holds the constant. The clock is injected and a
   slow-git shim is used, so none depends on machine speed except P3's wide margin.
+
+## Addendum, 2026-11-17: warm runs on the five repositories, on the final build
+
+DEC-216 (a10)'s proof clause is "Warm runs on the five repositories stay well under
+budget". The table above was taken before the budget code existed, so the warm cells
+were measured again, read-only, on the final build: Apple M4, macOS 27.0.1, glyph
+a8c992a6768ee9bb76cd0c3e802a7ec209bcebd6, `glyph code-map --source-ref HEAD` after one
+uncounted priming run, 10 timed runs per repository. The run aborts if any run carries a
+`code-map#time-budget` omission; none did, on any of the 50 runs. Seconds, p50 / p95 / max:
+
+| repository (HEAD) | warm |
+|---|---|
+| opum-cli (8b901ae) | 0.339 / 0.368 / 0.368 |
+| lore-cli (f3398b05) | 0.349 / 0.359 / 0.359 |
+| quest-cli (78492f2f) | 1.831 / 1.979 / 1.979 |
+| glyph-cli (a8c992a) | 0.213 / 0.215 / 0.215 |
+| opum-desktop (2d87cf8) | 0.257 / 0.261 / 0.261 |
+
+The worst warm p95 is quest-cli at 1.979 s, 28% of the 7.0 s budget. The same caveats
+apply: n=10, synthetic task texts, and opum-desktop's HEAD moved again since the first
+measurement (it read 2d87cf8 for this one). The glyph-cli task text differs from the
+first measurement because that repository's own symbols changed.
