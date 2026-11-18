@@ -115,8 +115,8 @@ rather than a silent walk.
 
 ## Amendment, 2026-11-18 (GCLI-34)
 
-The Consequences bullet above says the whole 0-7 exit-code family sits "in one
-frozen `EXIT_CODES` map". The family is whole and frozen, but the map is not
+The Decision bullet above ("The full exit-code family is mapped") says the whole
+0-7 family sits "in one frozen `EXIT_CODES` map". The family is whole and frozen, but the map is not
 one: `EXIT_CODES` in `src/errors.ts` is the one `GlyphErrorType`-to-code map
 and covers codes 2-7 only. `EXIT_OK` (0) and `EXIT_UNCAUGHT` (1) are separate
 constants beside it, and `exitCodeTaxonomy()` in `src/contract.ts` combines the
