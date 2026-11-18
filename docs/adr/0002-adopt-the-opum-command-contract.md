@@ -112,3 +112,13 @@ rather than a silent walk.
 - Publishing the package, and any population of `principal` with a real value,
   remain outside this record. The latter requires an amendment to the shared
   contract first.
+
+## Amendment, 2026-11-18 (GCLI-34)
+
+The Consequences bullet above says the whole 0-7 exit-code family sits "in one
+frozen `EXIT_CODES` map". The family is whole and frozen, but the map is not
+one: `EXIT_CODES` in `src/errors.ts` is the one `GlyphErrorType`-to-code map
+and covers codes 2-7 only. `EXIT_OK` (0) and `EXIT_UNCAUGHT` (1) are separate
+constants beside it, and `exitCodeTaxonomy()` in `src/contract.ts` combines the
+three into the published `ok`, `uncaught` and error-type taxonomy. The decision
+and the code values are unchanged; the body text above is left as written.
