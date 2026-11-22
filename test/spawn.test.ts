@@ -49,7 +49,13 @@ describe("spawnResult", () => {
 	});
 
 	test("a buffer overflow is reported, not thrown", () => {
-		const result = run('process.stdout.write("x".repeat(100000))', { maxBuffer: 100 });
+		// Keep writing until the helper kills the child. A single write races the
+		// kill (on Linux CI the child can finish first and exit 0); a writer that
+		// only stops on its own after 3 s makes a missing limit fail loudly.
+		const result = run(
+			'const t = setInterval(() => process.stdout.write("x".repeat(1000)), 2); setTimeout(() => { clearInterval(t); process.exit(0); }, 3000)',
+			{ maxBuffer: 100 },
+		);
 		expect(result.status).toBeNull();
 		expect(result.timedOut).toBe(false);
 	});
