@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { produceCodeMap } from "../src/codemap.ts";
+import { codeMapTruncated, produceCodeMap } from "../src/codemap.ts";
 import {
 	buildManifest,
 	itemKindOf,
@@ -370,6 +370,9 @@ describe("--stream (contract §1a)", () => {
 		});
 		// The fixture really exercises the token cap, so the assertion is not vacuous.
 		expect(output.omissions.some((row) => row.reason.includes("token cap"))).toBe(true);
+		// A token-cap cut is NOT budget truncation: `truncated` stays false, which
+		// is the narrow meaning DEC-299 and section 1a give the field.
+		expect(codeMapTruncated(output)).toBe(false);
 		expect(output.pointers.length).toBeGreaterThan(0);
 		expect(output.pointers.length).toBeLessThan(10);
 		expect(collected).toEqual(output.pointers.map((pointer) => pointer.path));
