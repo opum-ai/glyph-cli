@@ -72,6 +72,12 @@ export interface CodeMapInput {
 	timeBudgetMs?: number;
 	/** The clock, in ms; defaults to `performance.now`. A seam for tests. */
 	now?: () => number;
+	/**
+	 * Streaming seam (`--stream`): called with each pointer as it is chosen,
+	 * before `produceCodeMap` returns. The complete `{pointers, omissions}` is
+	 * still returned, so the batch answer is unchanged when this is absent.
+	 */
+	onPointer?: (pointer: CodeMapPointer) => void;
 }
 
 const GIT_TIMEOUT_MS = 15_000;
@@ -346,10 +352,33 @@ export function codeMapPointerLine(pointer: CodeMapPointer): string {
 	return `${pointer.path}${range} — ${pointer.reason}`;
 }
 
+/**
+ * True when ADR 0005's wall-time budget stopped the run, i.e. the output carries
+ * a `code-map#time-budget` omission. This is deliberately NOT a general "the map
+ * is complete" flag: the file cap, token cap, read bounds and symbol
+ * displacement are each named in `omissions` and leave this false. The name
+ * `truncated` is the one section 1a's code-map clause and DEC-299 use for the
+ * budget, so the field keeps that name and this narrower meaning.
+ */
+export function codeMapTruncated(output: CodeMapOutput): boolean {
+	return output.omissions.some((omission) => omission.source === TIME_BUDGET_SOURCE);
+}
+
+let testTimeBudgetMs: number | null = null;
+
+/**
+ * Test-only seam: pin the code-map budget for a test entry point. Nothing in the
+ * shipped CLI calls this, so `null` (the default constant) is what production
+ * uses; `test/support/stream-entry.ts` is the only caller.
+ */
+export function setCodeMapTimeBudgetForTests(ms: number | null): void {
+	testTimeBudgetMs = ms;
+}
+
 /** The code map: named paths, changed files, symbols resolved through the index, identifier matches. */
 export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 	const now = input.now ?? (() => performance.now());
-	const budgetMs = input.timeBudgetMs ?? CODE_MAP_TIME_BUDGET_MS;
+	const budgetMs = input.timeBudgetMs ?? testTimeBudgetMs ?? CODE_MAP_TIME_BUDGET_MS;
 	const startedAt = now();
 	const deadline = startedAt + budgetMs;
 	assertTaskTextWithinBound(input.taskText);
@@ -620,6 +649,7 @@ function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, ela
 		}
 		tokens += cost;
 		pointers.push(pointer);
+		input.onPointer?.(pointer);
 	}
 	// A file that tier 3 pushed out of the cap is named, not only counted: it was in
 	// the first CODE_MAP_MAX_FILES of the ranking without tier 3 and is not in the

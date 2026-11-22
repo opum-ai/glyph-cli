@@ -57,6 +57,13 @@ export interface FlagSpec {
  */
 export type CommandName = "callers" | "impact" | "diff" | "code-map" | "cache path" | "cache clear" | "help";
 
+/**
+ * The commands whose answer is a long list, and which therefore declare
+ * `--stream` (opum-doc contract §1a, DEC-299). A command not in this set must
+ * reject `--stream` as a usage error rather than ignore it.
+ */
+export type StreamingCommandName = "callers" | "impact" | "code-map";
+
 export interface CommandSpec {
 	/** The invocation a caller writes, e.g. `callers` or `cache clear`. */
 	name: CommandName;
@@ -76,7 +83,14 @@ export const COMMANDS: readonly CommandSpec[] = Object.freeze([
 		name: "callers",
 		summary: "What calls this symbol",
 		args: "<name>",
-		flags: [{ name: "file", takesValue: true, summary: "narrow to symbols whose file path contains <pattern>" }],
+		flags: [
+			{ name: "file", takesValue: true, summary: "narrow to symbols whose file path contains <pattern>" },
+			{
+				name: "stream",
+				takesValue: false,
+				summary: "stream the answer as NDJSON: one item per line, then the result (implies --json)",
+			},
+		],
 		kind: "callers.result",
 		exitCodes: [0, 1, 2, 3, 7],
 		examples: ["glyph callers buildReport", "glyph callers parseDiff --file src/git.ts"],
@@ -89,6 +103,11 @@ export const COMMANDS: readonly CommandSpec[] = Object.freeze([
 			{ name: "depth", takesValue: true, summary: "how many hops to report (default: 5)" },
 			{ name: "all", takesValue: false, summary: "report the full closure instead of a depth" },
 			{ name: "ref", takesValue: true, summary: "index that commit's tree instead of the working tree" },
+			{
+				name: "stream",
+				takesValue: false,
+				summary: "stream the answer as NDJSON: one item per line, then the result (implies --json)",
+			},
 		],
 		kind: "impact.result",
 		exitCodes: [0, 1, 2, 3, 7],
@@ -111,7 +130,14 @@ export const COMMANDS: readonly CommandSpec[] = Object.freeze([
 		name: "code-map",
 		summary: "Pointers into the code a task concerns, as the CodeMapProducer seam's {pointers, omissions}",
 		args: "",
-		flags: [{ name: "source-ref", takesValue: true, summary: "the ref every read resolves against (required)" }],
+		flags: [
+			{ name: "source-ref", takesValue: true, summary: "the ref every read resolves against (required)" },
+			{
+				name: "stream",
+				takesValue: false,
+				summary: "stream the answer as NDJSON: one item per line, then the result (implies --json)",
+			},
+		],
 		kind: "code-map.result",
 		exitCodes: [0, 1, 2, 3, 7],
 		examples: ["echo 'fix `buildReport` in src/report.ts' | glyph code-map --source-ref origin/dev"],
@@ -148,6 +174,31 @@ export const COMMANDS: readonly CommandSpec[] = Object.freeze([
 export interface GlobalFlagSpec extends FlagSpec {
 	/** Present when the flag itself produces a JSON result under `--json`. */
 	kind?: string;
+}
+
+/** The streaming commands, read from the live registry rather than listed twice. */
+export const STREAMING_COMMANDS: readonly StreamingCommandName[] = Object.freeze(
+	COMMANDS.filter((command) => command.flags.some((flag) => flag.name === "stream")).map(
+		(command) => command.name as StreamingCommandName,
+	),
+);
+
+/** True when `name` declares `--stream` in the registry (`help --json` publishes it). */
+export function supportsStream(name: CommandName): name is StreamingCommandName {
+	return (STREAMING_COMMANDS as readonly CommandName[]).includes(name);
+}
+
+/**
+ * The item kind a streaming command emits before its result line: `<command>.item`.
+ * Derived from the command's own token, so it cannot drift from the result kind.
+ */
+export function itemKindOf(name: StreamingCommandName): string {
+	return `${name}.item`;
+}
+
+/** Every `<command>.item` kind a streaming command can emit (additive under §1a). */
+export function streamItemKinds(): string[] {
+	return STREAMING_COMMANDS.map(itemKindOf);
 }
 
 /**
@@ -205,6 +256,8 @@ export interface Manifest {
 		flags: FlagSpec[];
 		json: true;
 		kind: string;
+		/** Streaming commands only: the kind their item lines carry (contract §1a). */
+		itemKind?: string;
 		exitCodes: number[];
 		examples: string[];
 	}>;
@@ -222,16 +275,22 @@ export function buildManifest(commandNames?: readonly CommandName[]): Manifest {
 		schemaVersion: SCHEMA_VERSION,
 		exitCodes: exitCodeTaxonomy(),
 		globalFlags: GLOBAL_FLAGS.map((flag) => ({ ...flag })),
-		commands: commands.map((command) => ({
-			name: command.name,
-			summary: command.summary,
-			args: command.args,
-			flags: command.flags,
-			json: true,
-			kind: command.kind,
-			exitCodes: command.exitCodes,
-			examples: command.examples,
-		})),
+		commands: commands.map((command) => {
+			// `itemKind` is published only for a command that declares `--stream`, so
+			// the kind registry and the flag cannot disagree.
+			const itemKind = supportsStream(command.name) ? itemKindOf(command.name) : undefined;
+			return {
+				name: command.name,
+				summary: command.summary,
+				args: command.args,
+				flags: command.flags,
+				json: true,
+				kind: command.kind,
+				...(itemKind === undefined ? {} : { itemKind }),
+				exitCodes: command.exitCodes,
+				examples: command.examples,
+			};
+		}),
 	};
 }
 

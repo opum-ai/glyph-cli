@@ -157,7 +157,6 @@ $ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref
   `test/parity/generate-goldens.ts` generates by running that producer. That parity
   covers the deterministic tiers (named paths, changed files, identifiers), run with
   the symbol tier off or unavailable; the CLI's default output adds the symbol tier.
-  The time budget is a later slice.
 
 ### `glyph cache path` | `glyph cache clear`
 
@@ -168,6 +167,44 @@ Show or clear this repository's local cache directory.
 Emit the live command manifest — every command's dotted `kind`, its flags and
 exit codes, and the frozen exit-code taxonomy. The manifest is built from the
 same registry the commands use, so it cannot drift from the handlers.
+
+## Streaming (`--stream`)
+
+`callers`, `impact` and `code-map` accept `--stream`, the opt-in NDJSON variant
+of `--json` (Opum command contract §1a, DEC-299; the design is
+[ADR 0006](docs/adr/0006-stream-the-long-answers-as-ndjson.md)). It lets an
+agent act on early items as they are produced. The index build still precedes
+the first item, so a cold cache sees no earlier first line than the batch form,
+and `impact` emits only once its walk completes (its `cycle` flags are decided
+after the search); `callers` and `code-map` stream while they work.
+
+- `--stream` implies `--json`. Combining it with `--plain` is a usage error
+  (exit 2), and so is passing it to a command that does not declare it.
+- stdout carries one compact success envelope per line, each newline-terminated
+  and flushed when written, with `principal` last. Item lines carry
+  `<command>.item` (published as `itemKind` in `help --json`); exactly one
+  `<command>.result` line ends the stream and carries the batch data with the
+  item list replaced by `itemCount`. For `code-map`, `truncated` is true only
+  when ADR 0005's wall-time budget stopped the run; file-cap, token-cap,
+  read-bound and displacement cuts are named in `omissions` instead.
+- Exit 0 means the command issued its result line to stdout. Completeness is the
+  last line plus the exit code: a consumer treats a stream with no result line,
+  or a non-zero exit, as incomplete, whatever items arrived. A failure
+  mid-stream leaves no result line, writes the ordinary error envelope to
+  stderr and exits with the mapped non-zero code. A consumer that stops reading
+  early (`… --stream | head -1`) naturally sees no result line and must treat
+  what it read as incomplete.
+- The item multiset equals the plain `--json` answer, and order may differ
+  because items are emitted as they are found. `callers` and `code-map` emit
+  each item as it is produced; `impact` emits once its walk completes, because
+  a caller's `cycle` flag is decided after the breadth-first search.
+
+```console
+$ glyph callers helper --stream
+{"schemaVersion":1,"kind":"callers.item","data":{"file":"src/main.ts","line":3,"column":10,"kind":"call","caller":{"id":"src/main.ts:2:17","name":"main","container":null,"kind":"function","file":"src/main.ts","line":2}},"principal":null}
+{"schemaVersion":1,"kind":"callers.item","data":{"file":"src/other.ts","line":3,"column":10,"kind":"call","caller":{"id":"src/other.ts:2:17","name":"other","container":null,"kind":"function","file":"src/other.ts","line":2}},"principal":null}
+{"schemaVersion":1,"kind":"callers.result","data":{"symbol":{"id":"src/util.ts:1:17","name":"helper","container":null,"kind":"function","file":"src/util.ts","startLine":1,"line":1,"column":17,"endLine":3,"exported":true},"totals":{"callers":2,"files":2},"index":{"cache":"miss","files":3,"symbols":3,"sites":4},"itemCount":2},"principal":null}
+```
 
 ## The machine contract
 
