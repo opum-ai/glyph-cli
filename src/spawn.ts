@@ -20,8 +20,11 @@ import { spawnSync } from "node:child_process";
  *   ENOENT and EACCES (the command could not start) and E2BIG, EMFILE and any
  *   other exec-level error, so a broken environment is reported as such rather
  *   than as an empty read. A timeout and a buffer overflow are different: the
- *   child DID run, so they return `status: null` with `timedOut` set (timeout)
- *   or neither set (buffer overflow), for the caller to classify.
+ *   child DID run, but Node kills it in both cases, so `status` is null and
+ *   `signal` is SIGTERM for both. Only `timedOut` tells them apart: true for a
+ *   timeout, false for a buffer overflow (whose error code is ENOBUFS). The
+ *   caller classifies on `timedOut`, never on `signal` alone. Measured under
+ *   node 24.22.2 in `scripts/node-spawn-check.mjs`.
  */
 
 /** One run's limits, in Node's own vocabulary. */
@@ -39,6 +42,7 @@ export interface SpawnResult {
 	status: number | null;
 	stdout: Buffer;
 	stderr: Buffer;
+	/** The signal that ended the child, or null. SIGTERM for a timeout or a buffer overflow. */
 	signal: string | null;
 	/** True when Node killed the child at `timeout`. */
 	timedOut: boolean;

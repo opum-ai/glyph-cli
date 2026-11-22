@@ -18,9 +18,11 @@ name: Release
 # bytes the tag names.
 #
 # Both release jobs run on GitHub-hosted ubuntu-24.04 (F3): the tarball is
-# built, verified and published on the same runner class, so the bytes npm
-# receives were produced by this workflow rather than on a different runner.
-# npm's provenance attestation covers the PUBLISH step and the published bytes;
+# built and verified by the Package job on the same runner class that publishes
+# it, and the Publish job binds the downloaded bytes to that verification by
+# digest (the Package job's output, which did not travel in the artifact) rather
+# than trusting a file that happens to be named the same. npm's provenance
+# attestation covers the PUBLISH step and the published bytes;
 # it is not a build attestation. ci.yml's own jobs stay on the existing
 # [self-hosted, Linux, ARM64] group.
 #
@@ -34,10 +36,10 @@ name: Release
 # A dispatch with `publish` left at false does NOT publish. It builds, packs and
 # verifies exactly as ci.yml's Package job does, then runs `npm publish
 # --dry-run --provenance` in the OIDC job. npm may SKIP the attestation on a dry
-# run, so the dry run exercises the command, the npm version and the OIDC job
-# but does not itself produce or display a provenance attestation; a real
-# `publish: true` dispatch is what attaches provenance. AC7 stays open until
-# such a dispatch has a recorded run id.
+# run, so the dry run exercises the command and the pinned npm version but NOT
+# the attestation: it neither produces provenance nor proves the OIDC exchange
+# works. A real `publish: true` dispatch is what attaches provenance and shows
+# the OIDC line. AC7 stays open until such a dispatch has a recorded run id.
 #
 # DEC-240 terms carried here: every install is --ignore-scripts (`bun install`
 # from the exact versions in bun.lock, `npm install -g --ignore-scripts npm` at
@@ -75,6 +77,13 @@ jobs:
     name: Package
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # The verified tarball's name and digest, written from the file this job
+    # checked. The Publish job compares the downloaded artifact against these,
+    # so the bytes it publishes are bound to this job's verification and not to
+    # a sums file that travelled with them (GCLI-47 N1).
+    outputs:
+      tarball: ${{ steps.record.outputs.tarball }}
+      sha256: ${{ steps.record.outputs.sha256 }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
@@ -105,20 +114,23 @@ jobs:
           echo "Pinned Quest version: ${version}"
       # ONE pack. --out-dir writes the tarball the gate just verified into
       # release/, and this step uploads exactly that file. Nothing downstream
-      # re-packs or rebuilds, so the published bytes are the tested bytes.
+      # re-packs or rebuilds, and the Publish job binds the downloaded bytes to
+      # the digest recorded below, so the published bytes are the tested bytes.
       - name: Pack, verify and keep the release tarball
         run: node scripts/check-package.mjs --out-dir release
-      # The digest is recorded beside the tarball and carried in the same
-      # artifact; the publish job verifies it before npm sees the bytes.
-      - name: Record the tarball digest
+      # ONE tarball, asserted, and its digest written from the verified file as
+      # a JOB OUTPUT. A sums file stored beside the tarball would travel in the
+      # same artifact and prove only transfer integrity; a job output did not
+      # travel with the bytes (GCLI-47 N1).
+      - name: Record the tarball digest as a job output
+        id: record
         run: |
           set -euo pipefail
-          cd release
-          sha256sum ./*.tgz | tee SHA256SUMS
+          node scripts/verify-release-tarball.mjs record release >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: glyph-npm-tarball
-          path: release/*
+          path: release/*.tgz
           if-no-files-found: error
 
   # Runs only when the dispatch names a v* tag. With publish=false it is a dry
@@ -160,6 +172,7 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /scripts/check-release-tag.mjs
+            /scripts/verify-release-tarball.mjs
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: glyph-npm-tarball
@@ -197,28 +210,36 @@ jobs:
           ' "$version"
       # F4: the bytes about to be published are the ones the Package job
       # recorded and verified, not merely a file that happens to be named the
-      # same. sha256sum -c fails on a mismatch.
-      - name: Verify the downloaded tarball's sha256
+      # same. The expected digest is that job's OUTPUT, which did not travel in
+      # the artifact; a sums file downloaded beside the tarball would prove only
+      # transfer integrity. The step also asserts exactly one .tgz and exports
+      # its path, so the tag check and the publish step below act on this exact
+      # file. Both values arrive through env: (DEC-240).
+      - name: Verify the downloaded tarball against the Package job's digest
+        id: verify
+        env:
+          EXPECTED_SHA256: ${{ needs.package.outputs.sha256 }}
+          EXPECTED_TARBALL: ${{ needs.package.outputs.tarball }}
         run: |
           set -euo pipefail
-          cd release
-          sha256sum -c SHA256SUMS
+          tarball="$(node scripts/verify-release-tarball.mjs verify release "$EXPECTED_SHA256" "$EXPECTED_TARBALL")"
+          echo "tarball=${tarball}" >> "$GITHUB_OUTPUT"
       # H1: the ref guard above only proves a v* tag. This proves the tag names
       # the version INSIDE the tarball about to be published. GITHUB_REF_NAME
       # arrives through env: (DEC-240), never interpolated into run:.
       - name: Assert the tag matches the packed version
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
+          RELEASE_TARBALL: ${{ steps.verify.outputs.tarball }}
         run: |
           set -euo pipefail
-          tarball="$(ls release/*.tgz)"
-          test -n "$tarball"
-          RELEASE_TARBALL="$tarball" node scripts/check-release-tag.mjs
+          test -n "$RELEASE_TARBALL"
+          node scripts/check-release-tag.mjs
       # One command for both routes. `DRY` reaches the shell through env: (the
-      # value is an input, never a step output), and the tarball is the exact
-      # artifact the package job verified and this job downloaded. NODE_AUTH_TOKEN
-      # is unset so a dead or wrongly-scoped token cannot silently become the
-      # fallback identity for a failed OIDC exchange.
+      # value is an input, never a step output), and RELEASE_TARBALL is the
+      # exact path the verify step checked against the Package job's digest.
+      # NODE_AUTH_TOKEN is unset so a dead or wrongly-scoped token cannot
+      # silently become the fallback identity for a failed OIDC exchange.
       #
       # A `--dry-run` may skip the attestation; a real `publish: true` dispatch
       # is what attaches provenance. Do not read a green dry run as proof of it.
@@ -228,15 +249,16 @@ jobs:
           # '' as falsy, so `a && '' || '--dry-run'` would ALWAYS choose the dry
           # run, even with publish=true (quest-cli's ' ' arm exists for this).
           DRY: ${{ inputs.publish == true && 'publish' || '--dry-run' }}
+          # The exact file the verify step checked (DEC-240: through env, not run:).
+          RELEASE_TARBALL: ${{ steps.verify.outputs.tarball }}
         run: |
           set -euo pipefail
           unset NODE_AUTH_TOKEN
-          tarball="$(ls release/*.tgz)"
-          test -n "$tarball"
+          test -n "$RELEASE_TARBALL"
           case "${DRY:-}" in
             "publish") dry_flag=() ;;
             "--dry-run") dry_flag=(--dry-run) ;;
             *) echo "::error::DRY must be 'publish' or '--dry-run', got '${DRY}'"; exit 2 ;;
           esac
-          echo "Publishing $tarball (${DRY})"
-          npm publish "$tarball" --provenance --access public --registry=https://registry.npmjs.org/ "${dry_flag[@]}"
+          echo "Publishing $RELEASE_TARBALL (${DRY})"
+          npm publish "$RELEASE_TARBALL" --provenance --access public --registry=https://registry.npmjs.org/ "${dry_flag[@]}"

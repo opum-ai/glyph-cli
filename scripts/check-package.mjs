@@ -212,10 +212,14 @@ function verifyPackagedTarball(tarball) {
 	const installedBin = join(installDir, "node_modules", "@opum-ai", "glyph", "dist", "glyph.js");
 	must(existsSync(installedBin), `installed ${label} has no ${installedBin}`);
 	const installedSource = readFileSync(installedBin, "utf8");
-	// A bare specifier is the spelling-independent evidence that a dependency
-	// stayed external. It catches an inlined dependency even when Bun's bundled
-	// form emits no absolute __dirname (commander is a case: bundling it leaves
-	// no baked path at all).
+	// The installed bundle must still import the dependency as a bare specifier:
+	// an inlined dependency leaves no `from "x"` / `require("x")` pointing at it.
+	// That bare specifier is the direct evidence it stayed external, and it still
+	// catches inlining where Bun's bundled form emits no absolute __dirname
+	// (commander is a case: bundling it leaves no baked path at all). The regex
+	// recognizes exactly the two spellings Bun emits for an external import, so
+	// the baked-path check below is kept as the second, independently-shaped
+	// witness for a bundle that does bake a path.
 	const importsBare = (specifier) =>
 		new RegExp(`\\bfrom\\s+["']${specifier}["']|\\brequire\\(\\s*["']${specifier}["']\\s*\\)`).test(installedSource);
 	must(
@@ -227,7 +231,9 @@ function verifyPackagedTarball(tarball) {
 		`installed ${label} does not import "commander" as a bare specifier: it was bundled instead of kept external`,
 	);
 	console.log(`  ${label}: typescript and commander are imported as bare specifiers`);
-	// Keep the baked-path check as the second, spelling-specific witness.
+	// The baked-path check is the second witness: it only fires for a bundle
+	// that bakes an absolute path, which is why it is narrower than the
+	// bare-specifier check above.
 	must(
 		!/__dirname\s*=\s*["']\//.test(installedSource),
 		`installed ${label} bakes an absolute __dirname: a dependency was bundled instead of kept external`,
@@ -444,8 +450,13 @@ function main() {
 		negativeError = error;
 	}
 	must(negativeError !== undefined, "negative control failed: the gate accepted a real tarball with dist removed");
+	// Match the CONTENTS-check message precisely. A loose /dist\/glyph\.js/
+	// matches four rejections (the contents check, the tar read, the shebang and
+	// the missing installed file), so deleting the contents check would leave
+	// this control green on the next one. This string is thrown by exactly the
+	// contents check above (GCLI-47 N2).
 	must(
-		/dist\/glyph\.js/.test(negativeError.message),
+		negativeError.message.includes("does not contain dist/glyph.js"),
 		`negative control failed: the gate rejected the tarball for an unexpected reason: ${negativeError.message}`,
 	);
 	console.log(`negative control: the gate rejected a dist-less copy of the real tarball (${negativeError.message})`);
