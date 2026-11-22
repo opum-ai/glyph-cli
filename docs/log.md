@@ -38,3 +38,7 @@
 - 2026-11-17T08:41:54-06:00 f1a0a0c61fc7d7e6b805cf3e5d609e67b94e16aa feat(GCLI-11): import and implements/extends edges; impact walks them (DEC-216 (a3)) (#73)
 - 2026-11-17T11:42:36-06:00 e0807cdf7531d133195a32fa095285f8a7f254bf feat(GCLI-38): code-map time budget, ADR 0005 (#86)
 - 2026-11-18T08:13:51-06:00 ec15ad45a79adf97d2e7db3d3ff60a9e7ddb403f docs(GCLI-34): amend ADR 0002 on the exit-code map wording (#90)
+- 2026-11-22T15:58:37-06:00 7d250015e161ab03dfe0486e4e11cb8c661b7a34 feat(GCLI-46): ship a Node >=24 bundle and prepare the release route
+- 2026-11-22T16:14:02-06:00 94e1d25910f105b3160a5e1dfa6fe5652252d2c7 fix(GCLI-46): correct the release workflow route
+- 2026-11-22T16:27:35-06:00 8cba4c26f801934b3d60ff0c3e50630ab9a2132b fix(GCLI-46): fix release workspace order and harden provenance checks
+- 2026-11-22T16:33:18-06:00 79c0d49788293eebeb92a810acd38461e4207c04 feat(GCLI-45): stream callers, impact and code-map (DEC-299) (#95)

@@ -301,6 +301,66 @@ function verifyPackagedTarball(tarball) {
 			console.log(`  ${label}: ${invocation.argv.join(" ")}: exit 0, JSON envelope`);
 		}
 	}
+	// Streaming commands (contract §1a): the manifest publishes `itemKind` and a
+	// `stream` flag for exactly the same commands. Run each under node and
+	// assert NDJSON: every line is an envelope, item lines carry itemKind, the
+	// last line is the result kind, and its itemCount matches the item lines.
+	const streamCommands = manifest.commands.filter((command) => {
+		const hasStreamFlag = Array.isArray(command.flags) && command.flags.some((flag) => flag.name === "stream");
+		const hasItemKind = typeof command.itemKind === "string";
+		must(
+			hasStreamFlag === hasItemKind,
+			`manifest command "${command.name}": stream flag=${hasStreamFlag} but itemKind=${JSON.stringify(command.itemKind)}; both must agree`,
+		);
+		return hasStreamFlag;
+	});
+	must(
+		streamCommands.length > 0,
+		"help --json advertised no streaming command: the stream coverage check read nothing",
+	);
+	for (const command of streamCommands) {
+		const primary = invocations.get(command.name)?.[0];
+		must(primary !== undefined, `streaming command "${command.name}" has no base invocation in the gate`);
+		const result = runInstalledGlyph(installedBin, fixture.repo, [...primary.argv, "--stream"], {
+			stdin: primary.stdin,
+			cacheDir,
+		});
+		must(
+			result.status === 0,
+			`installed glyph ${primary.argv.join(" ")} --stream exited ${result.status}: ${(result.stderr ?? "").slice(0, 600)}`,
+		);
+		const lines = (result.stdout ?? "").split("\n").filter((line) => line.trim() !== "");
+		must(lines.length > 0, `installed glyph ${command.name} --stream wrote no lines`);
+		const parsed = lines.map((line, index) => {
+			let envelope;
+			try {
+				envelope = JSON.parse(line);
+			} catch {
+				throw new Error(
+					`installed glyph ${command.name} --stream line ${index + 1} is not JSON: ${line.slice(0, 200)}`,
+				);
+			}
+			must(
+				envelope.schemaVersion === 1 && "principal" in envelope,
+				`installed glyph ${command.name} --stream line ${index + 1} is not an envelope`,
+			);
+			return envelope;
+		});
+		const last = parsed[parsed.length - 1];
+		must(last.kind === command.kind, `stream result kind ${last.kind} does not match manifest kind ${command.kind}`);
+		const items = parsed.slice(0, -1);
+		for (const item of items) {
+			must(
+				item.kind === command.itemKind,
+				`stream item kind ${item.kind} does not match manifest itemKind ${command.itemKind}`,
+			);
+		}
+		must(
+			typeof last.data?.itemCount === "number" && last.data.itemCount === items.length,
+			`stream result itemCount ${last.data?.itemCount} does not equal ${items.length} item line(s)`,
+		);
+		console.log(`  ${label}: ${primary.argv.join(" ")} --stream: ${items.length} item line(s), result ${command.kind}`);
+	}
 	for (const name of invocations.keys()) {
 		must(
 			advertised.includes(name),
