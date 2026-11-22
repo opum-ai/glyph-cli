@@ -256,6 +256,8 @@ export interface Manifest {
 		flags: FlagSpec[];
 		json: true;
 		kind: string;
+		/** Streaming commands only: the kind their item lines carry (contract §1a). */
+		itemKind?: string;
 		exitCodes: number[];
 		examples: string[];
 	}>;
@@ -273,16 +275,22 @@ export function buildManifest(commandNames?: readonly CommandName[]): Manifest {
 		schemaVersion: SCHEMA_VERSION,
 		exitCodes: exitCodeTaxonomy(),
 		globalFlags: GLOBAL_FLAGS.map((flag) => ({ ...flag })),
-		commands: commands.map((command) => ({
-			name: command.name,
-			summary: command.summary,
-			args: command.args,
-			flags: command.flags,
-			json: true,
-			kind: command.kind,
-			exitCodes: command.exitCodes,
-			examples: command.examples,
-		})),
+		commands: commands.map((command) => {
+			// `itemKind` is published only for a command that declares `--stream`, so
+			// the kind registry and the flag cannot disagree.
+			const itemKind = supportsStream(command.name) ? itemKindOf(command.name) : undefined;
+			return {
+				name: command.name,
+				summary: command.summary,
+				args: command.args,
+				flags: command.flags,
+				json: true,
+				kind: command.kind,
+				...(itemKind === undefined ? {} : { itemKind }),
+				exitCodes: command.exitCodes,
+				examples: command.examples,
+			};
+		}),
 	};
 }
 

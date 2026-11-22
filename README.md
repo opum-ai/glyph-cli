@@ -173,19 +173,28 @@ same registry the commands use, so it cannot drift from the handlers.
 
 `callers`, `impact` and `code-map` accept `--stream`, the opt-in NDJSON variant
 of `--json` (Opum command contract §1a, DEC-299; the design is
-[ADR 0006](docs/adr/0006-stream-the-long-answers-as-ndjson.md)). It is for an
-agent that can act on early items before the whole answer is computed.
+[ADR 0006](docs/adr/0006-stream-the-long-answers-as-ndjson.md)). It lets an
+agent act on early items as they are produced. The index build still precedes
+the first item, so a cold cache sees no earlier first line than the batch form,
+and `impact` emits only once its walk completes (its `cycle` flags are decided
+after the search); `callers` and `code-map` stream while they work.
 
 - `--stream` implies `--json`. Combining it with `--plain` is a usage error
   (exit 2), and so is passing it to a command that does not declare it.
 - stdout carries one compact success envelope per line, each newline-terminated
   and flushed when written, with `principal` last. Item lines carry
-  `<command>.item`; exactly one `<command>.result` line ends the stream and
-  carries the batch data with the item list replaced by `itemCount` (and, for
-  `code-map`, `truncated` from ADR 0005's wall-time budget).
-- Exit 0 means the result line was written. A failure mid-stream leaves no
-  result line, writes the ordinary error envelope to stderr and exits with the
-  mapped code; a consumer treats a stream with no result line as incomplete.
+  `<command>.item` (published as `itemKind` in `help --json`); exactly one
+  `<command>.result` line ends the stream and carries the batch data with the
+  item list replaced by `itemCount`. For `code-map`, `truncated` is true only
+  when ADR 0005's wall-time budget stopped the run; file-cap, token-cap,
+  read-bound and displacement cuts are named in `omissions` instead.
+- Exit 0 means the command wrote its result line to stdout. Completeness is the
+  last line plus the exit code: a consumer treats a stream with no result line,
+  or a non-zero exit, as incomplete, whatever items arrived. A failure
+  mid-stream leaves no result line, writes the ordinary error envelope to
+  stderr and exits with the mapped non-zero code. A consumer that stops reading
+  early (`… --stream | head -1`) naturally sees no result line and must treat
+  what it read as incomplete.
 - The item multiset equals the plain `--json` answer, and order may differ
   because items are emitted as they are found. `callers` and `code-map` emit
   each item as it is produced; `impact` emits once its walk completes, because

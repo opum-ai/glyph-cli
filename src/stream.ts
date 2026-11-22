@@ -14,21 +14,31 @@
 
 import { type CodeMapOutput, codeMapTruncated } from "./codemap.ts";
 import { successEnvelope } from "./contract.ts";
-import { indeterminateError } from "./errors.ts";
+
+/** One write the writer is about to make or has just made. */
+export interface StreamWriteEvent {
+	kind: "item" | "result";
+	/** Item lines written before this write (for `result`, the final count). */
+	itemCount: number;
+}
 
 /**
- * Test-only fault-injection seams. Both are read only when a stream writer is
- * created, so neither can affect a non-streaming invocation.
- *
- * - `GLYPH_TEST_STREAM_FAIL_AFTER=n` throws a classified `indeterminate`
- *   failure once `n` item lines have been written, proving the mid-stream
- *   failure clause (no result line, error envelope on stderr, mapped exit 7).
- * - `GLYPH_TEST_STREAM_PAUSE_AFTER_MS=n` sleeps for `n` ms after the first
- *   item line, so a test can read that line from a pipe while the process is
- *   provably still alive — the per-line flush proof.
+ * A test-only hook around each write. Nothing in the shipped CLI installs one,
+ * so this is inert in production: no environment variable is read and no sleep
+ * happens unless `test/support/stream-entry.ts` — a test entry point, not the
+ * published `src/cli.ts` — installs a hook and then calls `run()`.
  */
-export const STREAM_FAIL_AFTER_ENV = "GLYPH_TEST_STREAM_FAIL_AFTER";
-export const STREAM_PAUSE_AFTER_ENV = "GLYPH_TEST_STREAM_PAUSE_AFTER_MS";
+export interface StreamFaultHook {
+	beforeWrite?: (event: StreamWriteEvent) => void;
+	afterWrite?: (event: StreamWriteEvent) => void;
+}
+
+let streamFaultHook: StreamFaultHook | null = null;
+
+/** Test-only seam: install (or clear) the write hook. Inert unless a test entry calls it. */
+export function setStreamFaultHook(hook: StreamFaultHook | null): void {
+	streamFaultHook = hook;
+}
 
 export interface StreamWriter {
 	/** Write one `<command>.item` line now. */
@@ -44,48 +54,28 @@ export function streamLine(kind: string, data: unknown): string {
 	return `${JSON.stringify(successEnvelope(kind, data))}\n`;
 }
 
-function integerFromEnv(name: string): number | null {
-	const raw = process.env[name];
-	if (raw === undefined || !/^[0-9]+$/.test(raw)) return null;
-	return Number.parseInt(raw, 10);
-}
-
-/** A synchronous sleep, so the flush test can hold the child open without a runtime API bet. */
-function sleepSync(ms: number): void {
-	if (ms <= 0) return;
-	Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-}
-
 /**
  * A writer for one streaming invocation. Each `item` call writes and flushes a
  * whole line immediately; the process is never asked to buffer the list.
  */
 export function createStreamWriter(): StreamWriter {
-	const failAfter = integerFromEnv(STREAM_FAIL_AFTER_ENV);
-	const pauseAfter = integerFromEnv(STREAM_PAUSE_AFTER_ENV);
 	let count = 0;
-	const faultCheck = (): void => {
-		if (failAfter !== null && count >= failAfter) {
-			throw indeterminateError(
-				`forced mid-stream failure after ${count} item line(s) (test injection, ${STREAM_FAIL_AFTER_ENV})`,
-			);
-		}
-	};
 	return {
 		get itemCount(): number {
 			return count;
 		},
 		item(kind: string, data: unknown): void {
-			faultCheck();
+			streamFaultHook?.beforeWrite?.({ kind: "item", itemCount: count });
 			process.stdout.write(streamLine(kind, data));
 			count += 1;
-			if (pauseAfter !== null && count === 1) sleepSync(pauseAfter);
+			streamFaultHook?.afterWrite?.({ kind: "item", itemCount: count });
 		},
 		result(kind: string, data: unknown): void {
-			// Checked here too, so a one-item answer cannot slip a result line out
-			// past an injected failure.
-			faultCheck();
+			// The hook fires here too, so a one-item answer cannot slip a result line
+			// out past an injected failure.
+			streamFaultHook?.beforeWrite?.({ kind: "result", itemCount: count });
 			process.stdout.write(streamLine(kind, data));
+			streamFaultHook?.afterWrite?.({ kind: "result", itemCount: count });
 		},
 	};
 }

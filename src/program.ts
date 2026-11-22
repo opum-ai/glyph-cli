@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { Command, CommanderError } from "commander";
+import { Command, CommanderError, Option } from "commander";
 import { cacheDir, clearCache, computeKey, computeRefKey, readCachedIndex, writeCachedIndex } from "./cache.ts";
 import {
 	buildManifest,
@@ -400,6 +400,12 @@ export function buildProgram(scanned: ScannedArgs): Command {
 		.version(readVersion(), "-v, --version")
 		.option("--repo <dir>", "repository directory to analyze (default: current directory)")
 		.option("--json", "emit the machine-readable JSON envelope")
+		// Registered at program level, hidden, so commander extracts it wherever it
+		// appears — exactly as it does `--json` — instead of letting a value option
+		// such as `--file` swallow it. The guard in run() rejects it on any command
+		// that does not declare it; the visible per-command options below carry it
+		// in each streaming command's own help.
+		.addOption(new Option("--stream").hideHelp())
 		.exitOverride()
 		.configureOutput({ writeErr: () => {} }) // Errors are re-printed by the single handler in run().
 		.helpCommand(false); // `help` is a real command below, so `--json` reaches it.

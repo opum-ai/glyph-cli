@@ -9,19 +9,14 @@ import {
 	streamItemKinds,
 	validateResultKinds,
 } from "../src/contract.ts";
-import {
-	checkStreamStdout,
-	codeMapStreamResultData,
-	STREAM_FAIL_AFTER_ENV,
-	STREAM_PAUSE_AFTER_ENV,
-	streamLine,
-	type StreamSpec,
-} from "../src/stream.ts";
+import { checkStreamStdout, codeMapStreamResultData, streamLine, type StreamSpec } from "../src/stream.ts";
 import { makeScratchRepo, scratchCacheDir, type ScratchRepo } from "./helpers.ts";
 import { STREAM_BATCH_GOLDENS } from "./stream-goldens.ts";
 import { STREAM_BATCH_INVOCATIONS, STREAM_CODEMAP_TASK, STREAM_FIXTURE_FILES } from "./stream-fixtures.ts";
 
 const CLI = new URL("../src/cli.ts", import.meta.url).pathname;
+/** The test-only entry point that installs the fault hook; the shipped CLI does not. */
+const TEST_ENTRY = new URL("./support/stream-entry.ts", import.meta.url).pathname;
 
 interface CliResult {
 	code: number;
@@ -50,6 +45,24 @@ function fixture(): ScratchRepo {
 	const repo = makeScratchRepo(STREAM_FIXTURE_FILES);
 	repo.commit("base");
 	return repo;
+}
+
+/** Spawn the test-only entry point, which installs the stream hook from env. */
+function runEntry(
+	cwd: string,
+	args: string[],
+	cacheDir: string,
+	stdin?: string,
+	env?: Record<string, string>,
+): CliResult {
+	const proc = Bun.spawnSync(["bun", "run", TEST_ENTRY, ...args], {
+		cwd,
+		env: { ...process.env, GLYPH_CACHE_DIR: cacheDir, ...env },
+		stdin: stdin === undefined ? "ignore" : Buffer.from(stdin),
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+	return { code: proc.exitCode, stdout: proc.stdout.toString(), stderr: proc.stderr.toString() };
 }
 
 interface Envelope {
@@ -106,6 +119,24 @@ describe("--stream (contract §1a)", () => {
 		expect(streamItemKinds().length).toBe(3);
 		expect(validateResultKinds(streamItemKinds())).toEqual([]);
 		for (const name of STREAMING) expect(itemKindOf(name)).toBe(`${name}.item`);
+
+		// The manifest publishes each streaming command's itemKind, and no other
+		// command has one, so `help --json` carries the item kinds (finding 4).
+		const published = manifest.commands
+			.filter((command) => command.itemKind !== undefined)
+			.map((command) => command.itemKind)
+			.sort();
+		expect(published).toEqual(["callers.item", "code-map.item", "impact.item"]);
+		expect(manifest.commands.map((command) => command.itemKind).filter((kind) => kind === undefined)).toHaveLength(
+			manifest.commands.length - 3,
+		);
+		for (const command of manifest.commands) {
+			if (STREAMING.includes(command.name as (typeof STREAMING)[number])) {
+				expect(command.itemKind, command.name).toBe(`${command.name}.item`);
+			} else {
+				expect(Object.hasOwn(command, "itemKind"), command.name).toBe(false);
+			}
+		}
 	});
 
 	test("--stream on a command that does not declare it exits 2 with a usage envelope", () => {
@@ -137,6 +168,37 @@ describe("--stream (contract §1a)", () => {
 			expect(error.error_type, name).toBe("usage");
 			expect(error.principal, name).toBeNull();
 		}
+	});
+
+	test("--stream is rejected with --version, --help and a bare invocation", () => {
+		const repo = fixture();
+		const cases: Array<[string, string[]]> = [
+			["--version", ["--version", "--stream"]],
+			["--help", ["--help", "--stream"]],
+			["command --help", ["callers", "helper", "--stream", "--help"]],
+			["bare", ["--stream"]],
+		];
+		for (const [label, args] of cases) {
+			const result = runCli(repo.root, args, scratchCacheDir());
+			expect(result.code, label).toBe(2);
+			expect(result.stdout, label).toBe("");
+			const error = JSON.parse(result.stderr) as { error_type: string; principal: null };
+			expect(error.error_type, label).toBe("usage");
+			expect(error.principal, label).toBeNull();
+		}
+	});
+
+	test("a --stream after --file is parsed as the flag, not swallowed as --file's value", () => {
+		const repo = fixture();
+		// `--stream` is registered at program level (hidden) as `--json` is, so
+		// commander extracts it and `--file` is left without a value: a usage error,
+		// not a batch query whose file pattern is the literal string `--stream`.
+		const result = runCli(repo.root, ["callers", "helper", "--file", "--stream"], scratchCacheDir());
+		expect(result.code).toBe(2);
+		expect(result.stdout).toBe("");
+		const error = JSON.parse(result.stderr) as { error_type: string; principal: null };
+		expect(error.error_type).toBe("usage");
+		expect(error.principal).toBeNull();
 	});
 
 	test("every stdout line is a compact, newline-terminated §2 envelope with principal last", () => {
@@ -212,13 +274,15 @@ describe("--stream (contract §1a)", () => {
 		const repo = fixture();
 		for (const name of STREAMING) {
 			const spec = SPECS[name];
-			const failed = runCli(repo.root, spec.stream, scratchCacheDir(), spec.stdin, {
-				[STREAM_FAIL_AFTER_ENV]: "1",
+			const failed = runEntry(repo.root, spec.stream, scratchCacheDir(), spec.stdin, {
+				GLYPH_TEST_STREAM_FAIL_AFTER: "1",
 			});
 			expect(failed.code, name).toBe(7);
 			const lines = envelopes(failed.stdout);
-			expect(lines.length, name).toBeGreaterThanOrEqual(1);
-			for (const line of lines) expect(line.kind, name).toBe(spec.itemKind);
+			// Exactly one item line: a command that swallowed the item error and kept
+			// emitting would produce more, so this catches the swallowing case.
+			expect(lines.length, name).toBe(1);
+			expect(lines[0]?.kind, name).toBe(spec.itemKind);
 			expect(
 				lines.some((line) => line.kind === spec.resultKind),
 				name,
@@ -267,6 +331,48 @@ describe("--stream (contract §1a)", () => {
 		const streamedResult = streamedLines[streamedLines.length - 1];
 		expect(streamedResult?.kind).toBe(kindOf("code-map"));
 		expect(streamedResult?.data.truncated).toBe(false);
+
+		// The CLI path with a pinned zero budget: ADR 0005 stops the run and the
+		// result line says truncated true. The budget override is a test-entry seam.
+		const tinyCli = runEntry(
+			repo.root,
+			["code-map", "--source-ref", "HEAD", "--stream"],
+			scratchCacheDir(),
+			STREAM_CODEMAP_TASK,
+			{ GLYPH_TEST_CODE_MAP_TIME_BUDGET_MS: "0" },
+		);
+		expect(tinyCli.code).toBe(0);
+		const tinyLines = envelopes(tinyCli.stdout);
+		const tinyResult = tinyLines[tinyLines.length - 1];
+		expect(tinyResult?.kind).toBe(kindOf("code-map"));
+		expect(tinyResult?.data.truncated).toBe(true);
+	});
+
+	test("code-map's onPointer fires exactly for the pointers the token cap keeps", () => {
+		// Twelve long identifiers matched by ten files make the pointer reasons large
+		// enough that the 2,000-token cap drops the tail; the stream seam must see
+		// exactly what the batch answer returns, no more.
+		const ids = Array.from({ length: 12 }, (_, index) => `identifier${index}${"x".repeat(40)}`);
+		const files: Record<string, string> = {};
+		for (let file = 0; file < 10; file += 1) {
+			files[`src/file-${String(file).padStart(2, "0")}.ts`] =
+				`// ${ids.join(" ")}\nexport const value${file} = ${file};\n`;
+		}
+		const repo = makeScratchRepo(files);
+		repo.commit("base");
+		const taskText = `fix ${ids.map((id) => `\`${id}\``).join(" ")}`;
+		const collected: string[] = [];
+		const output = produceCodeMap({
+			repositoryPath: repo.root,
+			sourceRef: "HEAD",
+			taskText,
+			onPointer: (pointer) => collected.push(pointer.path),
+		});
+		// The fixture really exercises the token cap, so the assertion is not vacuous.
+		expect(output.omissions.some((row) => row.reason.includes("token cap"))).toBe(true);
+		expect(output.pointers.length).toBeGreaterThan(0);
+		expect(output.pointers.length).toBeLessThan(10);
+		expect(collected).toEqual(output.pointers.map((pointer) => pointer.path));
 	});
 
 	test("a run without --stream emits exactly the pre-stream golden bytes", () => {
@@ -304,25 +410,36 @@ describe("--stream (contract §1a)", () => {
 
 	test("the flush proof: an item line is readable from the pipe while the child is still alive", async () => {
 		const repo = fixture();
-		const proc = Bun.spawn(["bun", "run", CLI, "callers", "helper", "--stream"], {
+		const proc = Bun.spawn(["bun", "run", TEST_ENTRY, "callers", "helper", "--stream"], {
 			cwd: repo.root,
-			env: { ...process.env, GLYPH_CACHE_DIR: scratchCacheDir(), [STREAM_PAUSE_AFTER_ENV]: "400" },
+			env: {
+				...process.env,
+				GLYPH_CACHE_DIR: scratchCacheDir(),
+				// Long enough that a writer which buffered until the result line would
+				// produce nothing before the read deadline below.
+				GLYPH_TEST_STREAM_PAUSE_AFTER_MS: "1500",
+			},
 			stdin: "ignore",
 			stdout: "pipe",
 			stderr: "pipe",
 		});
 		const reader = proc.stdout.getReader();
+		const started = performance.now();
+		// A flushed writer yields the first line in milliseconds, well inside this
+		// deadline; a writer that buffered until the result line cannot beat it.
+		const firstRead = await Promise.race([
+			reader.read().then((result) => result),
+			new Promise<null>((resolve) => setTimeout(() => resolve(null), 800)),
+		]);
+		const elapsedMs = performance.now() - started;
+		expect(firstRead).not.toBeNull();
 		const decoder = new TextDecoder();
-		let buffer = "";
-		while (!buffer.includes("\n")) {
-			const { value, done } = await reader.read();
-			if (done || value === undefined) break;
-			buffer += decoder.decode(value, { stream: true });
-		}
+		const buffer = firstRead !== null && firstRead.value !== undefined ? decoder.decode(firstRead.value) : "";
 		const firstLine = buffer.slice(0, buffer.indexOf("\n"));
 		expect(firstLine).toContain(`"kind":"${itemKindOf("callers")}"`);
-		// The child is sleeping after the first item, so seeing it here proves the
-		// line was flushed when written rather than buffered until exit.
+		// The child is still sleeping after the first item, and the line arrived
+		// before that sleep ended: it was flushed when written, not buffered.
+		expect(elapsedMs).toBeLessThan(800);
 		expect(proc.exitCode).toBeNull();
 		await proc.exited;
 		expect(proc.exitCode).toBe(0);
