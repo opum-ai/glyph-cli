@@ -1,0 +1,242 @@
+name: Release
+
+# WRITTEN BUT NEVER RUN OR ENABLED BY THIS SLICE (GCLI-46).
+#
+# This is the release-readiness route for glyph 0.1.0 (DEC-299 items 2 and 3),
+# recorded here and not dispatched: the npmjs.com Trusted Publisher
+# configuration, the first `npm publish`, and flipping the repository public
+# are operator tier-3 steps. Protecting the `release` environment and the v*
+# tag is likewise a repo-admin step outside this workflow.
+#
+# Route, and why it is this one. lore-cli and quest-cli both publish by npm
+# OIDC Trusted Publishing, human-triggered by `workflow_dispatch` against a v*
+# tag with a `publish` input defaulting to false — neither fires on a tag push.
+# DEC-240 fixes the CI hardening terms but no trigger; the leader's ruling on
+# GCLI-46 therefore follows that precedent rather than inventing a tag-push
+# trigger. `tag-driven` here means the run is dispatched against the release
+# tag and the publish job refuses any other ref: the bytes published are the
+# bytes the tag names.
+#
+# Both release jobs run on GitHub-hosted ubuntu-24.04 (F3): the tarball is
+# built, verified and published on the same runner class, so the bytes npm
+# receives were produced by this workflow rather than on a different runner.
+# npm's provenance attestation covers the PUBLISH step and the published bytes;
+# it is not a build attestation. ci.yml's own jobs stay on the existing
+# [self-hosted, Linux, ARM64] group.
+#
+# One caveat from the precedent, recorded rather than glossed over: quest-cli's
+# own release.yml had never succeeded, and its working publish was a local
+# script. What this workflow borrows from quest is the dispatch/OIDC SHAPE; what
+# it borrows from lore is a job that has actually published. For that reason a
+# dispatch with `publish` false is the rehearsal path, and the first real
+# publish remains an operator step.
+#
+# A dispatch with `publish` left at false does NOT publish. It builds, packs and
+# verifies exactly as ci.yml's Package job does, then runs `npm publish
+# --dry-run --provenance` in the OIDC job. npm may SKIP the attestation on a dry
+# run, so the dry run exercises the command, the npm version and the OIDC job
+# but does not itself produce or display a provenance attestation; a real
+# `publish: true` dispatch is what attaches provenance. AC7 stays open until
+# such a dispatch has a recorded run id.
+#
+# DEC-240 terms carried here: every install is --ignore-scripts (`bun install`
+# from the exact versions in bun.lock, `npm install -g --ignore-scripts npm` at
+# an exact version for the OIDC floor), every checkout drops the token, step
+# values reach a shell through env: rather than `run:` interpolation, and the
+# Quest version is read only by .github/scripts/read-quest-version.sh from
+# inside CLAUDE.md's managed block and only as an exact X.Y.Z.
+#
+# actionlint is run locally, and by ci.yml's Package job when the runner carries
+# it; it is not a guaranteed CI gate here.
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Actually publish. Leave false for a dry run that does not publish."
+        type: boolean
+        default: false
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Always runs. This is the rehearsal: build, pack, install, and run every
+  # advertised command under node; the tarball it verifies is the artifact the
+  # publish job receives.
+  #
+  # GitHub-hosted, like the publish job: the bytes provenanced at publish time
+  # must be the bytes THIS workflow built and verified, not bytes built on a
+  # different runner class (F3). Provenance attests the publish step; running
+  # the build here keeps the whole tarball's production chain on the same
+  # GitHub-hosted class. ci.yml's Package job stays on the existing
+  # [self-hosted, Linux, ARM64] group.
+  package:
+    name: Package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          # The publish job holds id-token: write; no checkout anywhere keeps a token on disk (DEC-240).
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+      # Exact versions come from bun.lock; --ignore-scripts keeps every
+      # dependency lifecycle script off the runner (DEC-240).
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          echo "Resolved bun version: $(bun --version)"
+          echo "Resolved node version: $(node --version), npm $(npm --version)"
+          bun install --frozen-lockfile --ignore-scripts
+      # DEC-240: the Quest pin is read inside the managed markers, as an exact
+      # X.Y.Z, by the same script the Tracker integrity job uses. This is a
+      # read-only record of the pin the release was cut under; nothing installs
+      # a floating Quest.
+      - name: Record the exact Quest pin (DEC-240)
+        run: |
+          set -euo pipefail
+          version="$(bash .github/scripts/read-quest-version.sh CLAUDE.md)"
+          echo "Pinned Quest version: ${version}"
+      # ONE pack. --out-dir writes the tarball the gate just verified into
+      # release/, and this step uploads exactly that file. Nothing downstream
+      # re-packs or rebuilds, so the published bytes are the tested bytes.
+      - name: Pack, verify and keep the release tarball
+        run: node scripts/check-package.mjs --out-dir release
+      # The digest is recorded beside the tarball and carried in the same
+      # artifact; the publish job verifies it before npm sees the bytes.
+      - name: Record the tarball digest
+        run: |
+          set -euo pipefail
+          cd release
+          sha256sum ./*.tgz | tee SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: glyph-npm-tarball
+          path: release/*
+          if-no-files-found: error
+
+  # Runs only when the dispatch names a v* tag. With publish=false it is a dry
+  # run (`npm publish --dry-run --provenance`); with publish=true it publishes.
+  # Keeping one job for both is quest-cli's shape: a rehearsal exercises the
+  # same OIDC path, npm version and command a real release does.
+  publish:
+    name: Publish (npm, OIDC trusted publishing)
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/v')
+    # GitHub-hosted on purpose. npm Trusted Publishing and provenance are
+    # documented for GitHub-hosted runners; lore-cli uses ubuntu-latest and
+    # quest-cli ubuntu-24.04. This repository's self-hosted ARM64 group carries
+    # the build jobs in ci.yml, not the OIDC publish.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # An out-of-file gate on top of the ref guard: npm Trusted Publishing
+    # matches the repository, workflow filename and this environment. The
+    # operator must configure the same environment in the npmjs.com Trusted
+    # Publisher entry, and should protect it (and the v* tag) in repo settings.
+    environment: release
+    permissions:
+      contents: read
+      # Scoped to this job only; the workflow-level block above stays
+      # contents: read. This is what mints the short-lived OIDC token npm
+      # exchanges for a provenance attestation.
+      id-token: write
+    steps:
+      # ORDER IS LOAD-BEARING (F1). actions/checkout's prepareExistingDirectory
+      # removes/recreates the workspace when the directory has no .git
+      # (confirmed in src/git-directory-helper.ts at the pinned SHA), so a
+      # download written before this step would be deleted. Check out first.
+      # The checkout is sparse: this job needs only the tag checker, and it
+      # keeps persist-credentials false.
+      - name: Check out the release-tag check only
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/check-release-tag.mjs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: glyph-npm-tarball
+          path: release
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm >= 11.5.1. THIS IS AN EXACT PIN, not ^11:
+      # this is the only job with id-token: write, so an unpinned global install
+      # would run whatever npm ships with publish capability the moment it
+      # lands. The floor is still asserted below, because a version string is
+      # not proof the code carries OIDC.
+      - name: Upgrade npm to meet the OIDC trusted-publishing floor
+        run: npm install -g --ignore-scripts npm@11.21.3
+      # Assert the floor rather than assume the upgrade took. An npm below it
+      # does not announce itself: it simply never attempts OIDC and falls back
+      # to token auth, which surfaces as an opaque registry error.
+      - name: Assert the npm OIDC floor
+        run: |
+          set -euo pipefail
+          version="$(npm --version)"
+          echo "npm ${version}, node $(node --version)"
+          # The ${...} below is a JavaScript template literal for node -e, not shell interpolation.
+          # shellcheck disable=SC2016
+          node -e '
+            const [major, minor, patch] = process.argv[1].split("-")[0].split(".").map(Number);
+            const ok =
+              major > 11 ||
+              (major === 11 && (minor > 5 || (minor === 5 && patch >= 1)));
+            if (!ok) {
+              console.error(`npm ${process.argv[1]} is older than the 11.5.1 trusted-publishing floor`);
+              process.exit(1);
+            }
+          ' "$version"
+      # F4: the bytes about to be published are the ones the Package job
+      # recorded and verified, not merely a file that happens to be named the
+      # same. sha256sum -c fails on a mismatch.
+      - name: Verify the downloaded tarball's sha256
+        run: |
+          set -euo pipefail
+          cd release
+          sha256sum -c SHA256SUMS
+      # H1: the ref guard above only proves a v* tag. This proves the tag names
+      # the version INSIDE the tarball about to be published. GITHUB_REF_NAME
+      # arrives through env: (DEC-240), never interpolated into run:.
+      - name: Assert the tag matches the packed version
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          tarball="$(ls release/*.tgz)"
+          test -n "$tarball"
+          RELEASE_TARBALL="$tarball" node scripts/check-release-tag.mjs
+      # One command for both routes. `DRY` reaches the shell through env: (the
+      # value is an input, never a step output), and the tarball is the exact
+      # artifact the package job verified and this job downloaded. NODE_AUTH_TOKEN
+      # is unset so a dead or wrongly-scoped token cannot silently become the
+      # fallback identity for a failed OIDC exchange.
+      #
+      # A `--dry-run` may skip the attestation; a real `publish: true` dispatch
+      # is what attaches provenance. Do not read a green dry run as proof of it.
+      - name: Publish (dry run unless publish is true)
+        env:
+          # Both arms are non-empty strings on purpose: GitHub expressions treat
+          # '' as falsy, so `a && '' || '--dry-run'` would ALWAYS choose the dry
+          # run, even with publish=true (quest-cli's ' ' arm exists for this).
+          DRY: ${{ inputs.publish == true && 'publish' || '--dry-run' }}
+        run: |
+          set -euo pipefail
+          unset NODE_AUTH_TOKEN
+          tarball="$(ls release/*.tgz)"
+          test -n "$tarball"
+          case "${DRY:-}" in
+            "publish") dry_flag=() ;;
+            "--dry-run") dry_flag=(--dry-run) ;;
+            *) echo "::error::DRY must be 'publish' or '--dry-run', got '${DRY}'"; exit 2 ;;
+          esac
+          echo "Publishing $tarball (${DRY})"
+          npm publish "$tarball" --provenance --access public --registry=https://registry.npmjs.org/ "${dry_flag[@]}"

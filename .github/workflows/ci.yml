@@ -162,3 +162,57 @@ jobs:
         run: bun run format:check
       - name: Test
         run: bun run test
+
+  # The artifact consumers install runs on Node, not Bun (DEC-299 item 2,
+  # GCLI-46). This job proves the thing npm will serve: pack through the
+  # prepack wiring, install the tarball into an empty directory with
+  # --ignore-scripts (DEC-240), and run glyph under node for every command the
+  # manifest advertises — the list comes from help --json, so a new command
+  # with no coverage fails the job. It also runs a negative control: a copy of
+  # the REAL tarball with dist removed is re-packed, installed, and must be
+  # REJECTED by the gate's contents check.
+  #
+  # It is a NEW job with a NEW name on purpose: Docs, Tracker integrity and
+  # Check are required contexts on dev, and renaming one means editing the
+  # ruleset in the same change. Adding a job does not. This job is NOT a
+  # required context yet: appending `Package` to the dev ruleset, after its
+  # first green run on the gated ref, is a separate step the orchestrator
+  # routes. This change does not touch any ruleset.
+  package:
+    name: Package
+    runs-on: [self-hosted, Linux, ARM64]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          # No job in this workflow pushes, so none needs the token left on disk (DEC-240).
+          persist-credentials: false
+      # Bun builds the bundle; Node runs it. Both are needed here.
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          echo "Resolved bun version: $(bun --version)"
+          echo "Resolved node version: $(node --version), npm $(npm --version)"
+          bun install --frozen-lockfile --ignore-scripts
+      # actionlint is not guaranteed on the runner. Run it when present and say
+      # so when it is not, rather than failing a job the workflow cannot fix.
+      - name: Lint workflow files when actionlint is available
+        run: |
+          set -euo pipefail
+          if command -v actionlint >/dev/null 2>&1; then
+            actionlint
+            echo "actionlint clean"
+          else
+            echo "actionlint is not installed on this runner; workflow syntax is not gated in CI"
+          fi
+      # One assertion per concern, inside the script, so a red names what broke:
+      # manifest shape, tarball contents, every advertised command under node,
+      # and the dist-less negative control.
+      - name: Pack, install and run every command under node
+        run: node scripts/check-package.mjs

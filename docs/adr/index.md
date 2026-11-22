@@ -7,4 +7,5 @@
 - [Widen the index with import and inheritance edges](0004-widen-the-index-with-import-and-inheritance-edges.md)
 - [Bound the code map by a wall-time budget](0005-bound-the-code-map-by-a-wall-time-budget.md)
 - [Stream the long answers as NDJSON](0006-stream-the-long-answers-as-ndjson.md)
+- [Ship one Node bundle with TypeScript and Commander external](0007-ship-a-node-bundle-with-typescript-and-commander-external.md)
 <!-- lore:index:end -->
