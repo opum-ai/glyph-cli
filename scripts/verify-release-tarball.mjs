@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 /*
  * Bind the bytes the Publish job uploads to the tarball the Package job
@@ -71,7 +71,11 @@ if (mode === "record") {
 		fail("usage: verify-release-tarball.mjs verify <dir> <expected-sha256> <expected-name>");
 	}
 	const name = onlyTarball(dir);
-	const tarball = join(dir, name);
+	// ABSOLUTE on purpose. The publish step feeds this path to `npm publish`,
+	// which only treats an argument as a file when it starts with `.`, `/` or
+	// `~/`; a bare `release/x.tgz` is first tested as GitHub user/repo shorthand.
+	// resolve() makes a relative <dir> absolute (GCLI-47 review finding 1).
+	const tarball = resolve(dir, name);
 	if (name !== expectedName) {
 		fail(`${tarball} is named ${name}, but the Package job recorded ${expectedName}`);
 	}

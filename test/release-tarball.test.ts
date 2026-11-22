@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -69,6 +69,23 @@ describe("verify-release-tarball", () => {
 		const result = run(["verify", dir, sha256("bytes"), "other.tgz"]);
 		expect(result.status).toBe(1);
 		expect(result.stderr).toContain("is named glyph.tgz, but the Package job recorded other.tgz");
+	});
+
+	test("prints an absolute path even when given a relative dir", () => {
+		// `npm publish` treats an argument as a file only when it starts with
+		// `.`, `/` or `~/`; a bare `release/x.tgz` is tested as GitHub shorthand
+		// first. The workflow passes `release` (relative), so the script must
+		// resolve it or the publish step receives a path npm misreads.
+		const dir = dirWith({ "glyph.tgz": "bytes" });
+		const result = spawnSync(process.execPath, [script, "verify", basename(dir), sha256("bytes"), "glyph.tgz"], {
+			cwd: dirname(dir),
+			encoding: "utf8",
+		});
+		expect(result.status).toBe(0);
+		// Absolute, and pointing at the same file. Compare through realpath:
+		// macOS hands the child cwd as /private/var while mkdtemp returned /var.
+		expect(isAbsolute(result.stdout.trim())).toBe(true);
+		expect(realpathSync(result.stdout.trim())).toBe(realpathSync(join(dir, "glyph.tgz")));
 	});
 
 	test("record emits tarball and sha256 for exactly one tarball", () => {
