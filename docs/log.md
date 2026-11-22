@@ -33,3 +33,8 @@
 - 2026-10-20T18:57:25-05:00 f1942deb638537c474aac2c980e61aeaf3435e2e docs(GCLI-9): record opum-doc ruling A on the help/version kinds
 - 2026-10-20T19:13:27-05:00 7cf3d4bc66288f8fa91f272c9bf1f37495b3fe38 feat(GCLI-9): conform to the Opum command contract (#34)
 - 2026-10-21T12:35:20-05:00 77505f81bc861d3c52d1b1cc6aa890ef08e6fb39 feat(GCLI-10): add glyph impact, a transitive caller closure with --ref (#38)
+- 2026-11-16T23:49:11-06:00 90ae20e0c3bf2a612fe213219aa6d951e76e9803 fix(GCLI-13): read --repo and --json through one argument scanner (#64)
+- 2026-11-17T00:45:54-06:00 1f234747dbff52112788ecec5e97ab4fe2456471 docs(GCLI-19): correct the ref promises, the impact transcript and a mangled path (#68)
+- 2026-11-17T08:41:54-06:00 f1a0a0c61fc7d7e6b805cf3e5d609e67b94e16aa feat(GCLI-11): import and implements/extends edges; impact walks them (DEC-216 (a3)) (#73)
+- 2026-11-17T11:42:36-06:00 e0807cdf7531d133195a32fa095285f8a7f254bf feat(GCLI-38): code-map time budget, ADR 0005 (#86)
+- 2026-11-18T08:13:51-06:00 ec15ad45a79adf97d2e7db3d3ff60a9e7ddb403f docs(GCLI-34): amend ADR 0002 on the exit-code map wording (#90)

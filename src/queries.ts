@@ -55,13 +55,23 @@ export function display(symbol: SymbolEntry): string {
 	return symbol.container === null ? symbol.name : `${symbol.container}.${symbol.name}`;
 }
 
+/**
+ * Every caller of `symbol`, in `index.sites` order, as a generator: the
+ * streaming form emits each site as it is found rather than after a full sort.
+ * The multiset is exactly {@link callersOf}'s; only the order differs, because
+ * `--stream` fixes no order (§1a rule 6).
+ */
+export function* callerSites(index: GlyphIndex, symbol: SymbolEntry): Generator<CallerSite> {
+	const byId = new Map(index.symbols.map((entry) => [entry.id, entry]));
+	for (const site of index.sites) {
+		if (site.calleeId !== symbol.id || !CALL_KINDS.includes(site.kind)) continue;
+		yield { ...site, caller: site.callerId !== null ? (byId.get(site.callerId) ?? null) : null };
+	}
+}
+
 /** Call and `new` sites only: `callers` answers "what invokes this", never imports or heritage edges. */
 export function callersOf(index: GlyphIndex, symbol: SymbolEntry): CallerSite[] {
-	const byId = new Map(index.symbols.map((entry) => [entry.id, entry]));
-	return index.sites
-		.filter((site) => site.calleeId === symbol.id && CALL_KINDS.includes(site.kind))
-		.map((site): CallerSite => ({ ...site, caller: site.callerId !== null ? (byId.get(site.callerId) ?? null) : null }))
-		.sort(byPosition);
+	return [...callerSites(index, symbol)].sort(byPosition);
 }
 
 export interface TouchedResult {
