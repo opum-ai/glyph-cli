@@ -173,7 +173,10 @@ jobs:
   #
   # It is a NEW job with a NEW name on purpose: Docs, Tracker integrity and
   # Check are required contexts on dev, and renaming one means editing the
-  # ruleset in the same change. Adding a job does not.
+  # ruleset in the same change. Adding a job does not. This job is NOT a
+  # required context yet: appending `Package` to the dev ruleset, after its
+  # first green run on the gated ref, is a separate step the orchestrator
+  # routes. This change does not touch any ruleset.
   package:
     name: Package
     runs-on: [self-hosted, Linux, ARM64]
@@ -195,7 +198,18 @@ jobs:
           set -euo pipefail
           echo "Resolved bun version: $(bun --version)"
           echo "Resolved node version: $(node --version), npm $(npm --version)"
-          bun install --frozen-lockfile
+          bun install --frozen-lockfile --ignore-scripts
+      # actionlint is not guaranteed on the runner. Run it when present and say
+      # so when it is not, rather than failing a job the workflow cannot fix.
+      - name: Lint workflow files when actionlint is available
+        run: |
+          set -euo pipefail
+          if command -v actionlint >/dev/null 2>&1; then
+            actionlint
+            echo "actionlint clean"
+          else
+            echo "actionlint is not installed on this runner; workflow syntax is not gated in CI"
+          fi
       # One assertion per concern, inside the script, so a red names what broke:
       # manifest shape, tarball contents, every advertised command under node,
       # and the dist-less negative control.

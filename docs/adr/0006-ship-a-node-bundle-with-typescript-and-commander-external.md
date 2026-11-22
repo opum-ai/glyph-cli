@@ -9,17 +9,20 @@ tags:
 summary: glyph ships as one bundled dist/glyph.js for Node >=24, with typescript and commander left external as runtime dependencies because the indexer reads TypeScript's own library files from disk.
 generated:
   by: lore/0.14.1
-  at: 2026-11-22T21:58:30.000Z
+  at: 2026-11-22T22:10:28.000Z
 ---
 
 # Ship one Node bundle with TypeScript and Commander external
 
 ## Status
 
-Accepted — opum-doc DEC-299 items 2 and 3 (glyph 0.1.0 targets Node >= 24 like
-lore and quest: one bundled `dist/glyph.js` with a Node shebang). Implemented
-under GCLI-46. This slice keeps `private: true` and version `0.0.0`; the release
-change that flips them is separate.
+Accepted — opum-doc DEC-299 items 2 and 3 and DEC-299 (a1): glyph 0.1.0 targets
+Node >= 24 like lore and quest (one bundled `dist/glyph.js` with a Node
+shebang), and external TypeScript is accepted only on (a1)'s condition — the
+packed tarball, installed into a clean directory, runs every command under node
+with TypeScript's library resolution working. Implemented under GCLI-46. This
+slice keeps `private: true` and version `0.0.0`; the release change that flips
+them is separate.
 
 ## Context
 
@@ -45,7 +48,9 @@ does not exist there.
 - The shipped source has no `Bun.*` global: `src/git.ts` and `src/codemap.ts`
   spawn git through one helper (`src/spawn.ts`) over
   `node:child_process.spawnSync`, preserving stdout bytes, exit codes, stdin,
-  the timeout, and the max-buffer limit.
+  the timeout, and the max-buffer limit, and rethrowing spawn failures (ENOENT,
+  EACCES, E2BIG, EMFILE and any other exec-level error) while reporting a
+  timeout or buffer overflow as a result for the caller to classify.
 
 ## Why the two externals
 
@@ -56,15 +61,16 @@ that same package location. Bundling `typescript` moves that location into
 `dist/glyph.js`'s directory, where no library exists: the compiler loses its
 built-in types, and the `--ref` snapshot host serves no library at all.
 
-Measured 2026-11-22 under node 24.22.2, with Bun 1.3.14 building. A probe prints
-`ts.getDefaultLibFilePath({})`, whether that file exists, and how many `lib.*.d.ts`
-files a `ts.createProgram` over a small source loads:
+Measured 2026-11-22 under node 24.22.2, built with Bun 1.4.2 (the
+`.bun-version` pin). The probe compiles a small source that uses `Array`,
+`Promise` and `.map`, and reports `ts.getDefaultLibFilePath({})`, whether that
+file exists, the `lib.*.d.ts` files loaded, and `getPreEmitDiagnostics`:
 
 | build | `lib.d.ts` path present | lib files | diagnostics |
 |---|---|---|---|
-| all inlined, on the build machine | yes | 50 | 0 |
-| all inlined, build-time path absent (consumer shape) | no | 0 | 10 |
-| TypeScript external, installed as a dependency | yes | 50 | 0 |
+| all inlined, on the build machine | yes | 86 | 0 |
+| all inlined, build-time path absent (consumer shape) | no | 0 | 12 |
+| TypeScript external, installed as a dependency | yes | 86 | 0 |
 
 The all-inlined bundle carries the building checkout's absolute path into the
 output (`var __dirname = "<build checkout>/node_modules/typescript/lib"`). That
@@ -85,8 +91,31 @@ the dependency classification unchanged.
 ## Consequences
 
 - The published tarball requires `typescript` and `commander` from the registry;
-  `npm install` supplies them. `scripts/check-package.mjs` installs the tarball
-  into an empty directory with `--ignore-scripts` and runs every manifest command
-  under node, so a broken external or a missing bundle fails CI.
-- A tarball packed without `dist` fails the same gate's negative control.
+  `npm install` supplies them.
+- (a1)'s condition is enforced, not assumed. `scripts/check-package.mjs` packs
+  the tarball, installs it into a clean directory with `--ignore-scripts`, and
+  copies `scripts/lib-probe.mjs` into that install so the probe's
+  `import "typescript"` resolves to the INSTALLED dependency. The probe requires
+  the default lib file to exist, a non-zero count of `lib.*.d.ts` files, and zero
+  `getPreEmitDiagnostics`; the gate also runs every manifest command under node,
+  including `impact --ref` (the git cat-file/stdin path). It rejects an installed
+  `dist/glyph.js` containing a baked absolute `__dirname`/`__filename`, the
+  signature of an inlined dependency. Dropping `--external typescript` turns the
+  gate red.
+- A real tarball with `dist` removed is re-packed, installed, and asserted to
+  fail that same gate — the negative control is the gate rejecting it, not a
+  missing file.
 - The build reads `bun` from `.bun-version`; consumers only need Node >= 24.
+
+## Release route
+
+The publish route follows lore-cli's working OIDC job and quest-cli's
+dispatch/OIDC shape: `workflow_dispatch` against a `v*` tag, a `publish` input
+defaulting to false, npm OIDC Trusted Publishing with `environment: release` and
+a job-scoped `id-token: write`, an exact npm pin above the asserted 11.5.1
+floor, and provenance from a GitHub-hosted runner. quest-cli's own release.yml
+had never succeeded and its working publish was a local script, so the workflow
+keeps a dry-run rehearsal path and treats a real publish as an operator step. A
+dry run may skip the attestation and does not prove provenance; only a recorded
+`publish: true` dispatch shows it. actionlint checks the workflow locally and in
+ci.yml when the runner carries it, not as a guaranteed CI gate.
