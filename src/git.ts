@@ -1,16 +1,18 @@
 import { indeterminateError, notFoundError } from "./errors.ts";
+import { spawnResult } from "./spawn.ts";
 
 /**
  * The small slice of git Glyph needs: the repository root, resolved SHAs for
  * the diff query, and the diff's changed line ranges.
  *
- * `git` is invoked through Bun.spawnSync with an explicit `-C <root>`; every
- * function here fails closed with a typed error rather than printing git's
- * stderr into a result.
+ * `git` is invoked through `spawnResult` (one wrapper over Node's spawnSync)
+ * with an explicit `-C <root>`; every function here fails closed with a typed
+ * error rather than printing git's stderr into a result.
  */
 
 export interface GitResult {
-	code: number;
+	/** The exit code, or null when the read never reported one (signal, timeout). */
+	code: number | null;
 	stdout: string;
 	stderr: string;
 }
@@ -57,17 +59,15 @@ export function stopIfBudgetSpent(budgeted: boolean): void {
 
 export function gitRun(repoRoot: string, args: string[]): GitResult {
 	const { timeout, budgeted } = spawnLimits();
-	const proc = Bun.spawnSync(["git", "-C", repoRoot, ...args], {
+	const proc = spawnResult("git", ["-C", repoRoot, ...args], {
 		// A fixed locale keeps discovery's "not a git repository" test
 		// independent of the caller's environment.
 		env: { ...process.env, LC_ALL: "C" },
-		stdout: "pipe",
-		stderr: "pipe",
 		...(timeout === undefined ? {} : { timeout }),
 	});
-	if (proc.exitCode === null) stopIfBudgetSpent(budgeted);
+	if (proc.status === null) stopIfBudgetSpent(budgeted);
 	return {
-		code: proc.exitCode,
+		code: proc.status,
 		stdout: proc.stdout.toString(),
 		stderr: proc.stderr.toString(),
 	};
@@ -158,15 +158,13 @@ export function readBlobs(repoRoot: string, objectIds: readonly string[]): Map<s
 	const contents = new Map<string, string>();
 	if (objectIds.length === 0) return contents;
 	const { timeout, budgeted } = spawnLimits();
-	const proc = Bun.spawnSync(["git", "-C", repoRoot, "cat-file", "--batch"], {
+	const proc = spawnResult("git", ["-C", repoRoot, "cat-file", "--batch"], {
 		env: { ...process.env, LC_ALL: "C" },
-		stdin: new TextEncoder().encode(`${objectIds.join("\n")}\n`),
-		stdout: "pipe",
-		stderr: "pipe",
+		input: new TextEncoder().encode(`${objectIds.join("\n")}\n`),
 		...(timeout === undefined ? {} : { timeout }),
 	});
-	if (proc.exitCode === null) stopIfBudgetSpent(budgeted);
-	if (proc.exitCode !== 0) {
+	if (proc.status === null) stopIfBudgetSpent(budgeted);
+	if (proc.status !== 0) {
 		throw indeterminateError(
 			`git cat-file failed for ${objectIds.length} object(s): ${proc.stderr.toString().trim() || "unknown error"}`,
 		);

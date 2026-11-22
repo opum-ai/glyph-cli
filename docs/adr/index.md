@@ -6,4 +6,5 @@
 - [Answer blast radius with a caller closure and a ref-pinned index](0003-answer-blast-radius-with-a-caller-closure-and-a-ref-pinned-index.md)
 - [Widen the index with import and inheritance edges](0004-widen-the-index-with-import-and-inheritance-edges.md)
 - [Bound the code map by a wall-time budget](0005-bound-the-code-map-by-a-wall-time-budget.md)
+- [Ship one Node bundle with TypeScript and Commander external](0006-ship-a-node-bundle-with-typescript-and-commander-external.md)
 <!-- lore:index:end -->

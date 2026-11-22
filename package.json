@@ -5,9 +5,17 @@
 	"license": "MIT",
 	"author": "Opum AI",
 	"type": "module",
+	"bin": {
+		"glyph": "dist/glyph.js"
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
 	"packageManager": "bun@1.4.2",
 	"engines": {
-		"bun": ">=1.4.2"
+		"node": ">=24"
 	},
 	"private": true,
 	"homepage": "https://glyphgraph.dev",
@@ -29,6 +37,9 @@
 	},
 	"scripts": {
 		"glyph": "bun run src/cli.ts",
+		"build": "node scripts/build.mjs",
+		"prepack": "npm run build",
+		"check:package": "node scripts/check-package.mjs",
 		"typecheck": "tsc --noEmit",
 		"lint": "biome lint src test",
 		"format": "biome format --write .",

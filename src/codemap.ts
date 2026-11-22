@@ -22,6 +22,7 @@ import {
 import { loadRefIndex, symbolHits } from "./codemap-tier3.ts";
 import { GlyphError, indeterminateError, notFoundError, usageError } from "./errors.ts";
 import { BudgetExpired, currentGitBudget, setGitBudget, spawnLimits, stopIfBudgetSpent } from "./git.ts";
+import { spawnResult } from "./spawn.ts";
 import type { GlyphIndex } from "./types.ts";
 
 /**
@@ -142,19 +143,17 @@ function git(repositoryPath: string, args: readonly string[]): GitOutcome {
 	// ran out; a read that died for another reason (a signal, a buffer overflow) is a failure.
 	const { timeout, budgeted } = spawnLimits(GIT_TIMEOUT_MS);
 	try {
-		const proc = Bun.spawnSync(["git", "--literal-pathspecs", ...args], {
+		const proc = spawnResult("git", ["--literal-pathspecs", ...args], {
 			cwd: repositoryPath,
 			env: { ...process.env, NO_COLOR: "1" },
-			stdout: "pipe",
-			stderr: "pipe",
 			timeout,
 			maxBuffer: GIT_MAX_BUFFER,
 		});
-		if (proc.exitCode === null) {
+		if (proc.status === null) {
 			stopIfBudgetSpent(budgeted);
 			throw indeterminateError(`git ${args[0] ?? ""} did not report an exit status (timeout or signal)`);
 		}
-		return { status: proc.exitCode, stdout: proc.stdout.toString(), stderr: proc.stderr.toString() };
+		return { status: proc.status, stdout: proc.stdout.toString(), stderr: proc.stderr.toString() };
 	} catch (error) {
 		if (error instanceof GlyphError || error instanceof BudgetExpired) throw error;
 		throw indeterminateError(`git could not start in ${repositoryPath}: ${(error as Error).message}`);
