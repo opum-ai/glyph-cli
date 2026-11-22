@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -46,5 +47,16 @@ describe("the shipped package manifest", () => {
 		const dist = fileURLToPath(new URL("../dist/glyph.js", import.meta.url));
 		if (!existsSync(dist)) return; // The Check job does not build; the Package job proves this artifact.
 		expect(readFileSync(dist, "utf8").split("\n")[0]).toBe("#!/usr/bin/env node");
+	});
+
+	// tsconfig's `types: ["bun"]` still offers the Bun global to every source
+	// file, so a Bun.* regression would typecheck. This guard is cheap and runs
+	// in the Check job; the Package job proves the artifact itself.
+	test("no shipped source references a Bun global", () => {
+		const srcDir = fileURLToPath(new URL("../src/", import.meta.url));
+		const offenders = (readdirSync(srcDir, { recursive: true }) as string[])
+			.filter((name) => name.endsWith(".ts"))
+			.filter((name) => /\bBun\./.test(readFileSync(join(srcDir, name), "utf8")));
+		expect(offenders).toEqual([]);
 	});
 });

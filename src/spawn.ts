@@ -10,19 +10,18 @@ import { spawnSync } from "node:child_process";
  * they relied on:
  *
  * - `stdout` and `stderr` are the child's raw bytes, decoded by the caller.
- * - `status` is the exit code, or null when the child never reported one (a
- *   timeout, a signal, a spawn failure) — the callers treat null as a failed
- *   read, never as success.
+ * - `status` is the exit code, or null when the child never reported one. The
+ *   callers treat null as a failed read, never as success, and read `timedOut`
+ *   and `signal` to say which kind of failure it was.
  * - `input` feeds stdin; `timeout` kills the child at the limit; `maxBuffer`
  *   caps how much output is captured. The default is generous (1 GiB) because
  *   `git ls-tree` and `git cat-file --batch` can print a whole tree.
- * - A child that cannot start at all (ENOENT, EACCES) throws, which is what
- *   Bun's `spawnSync` did; a timeout and a buffer overflow return `status: null`
- *   instead, because those are reads the caller must classify (a budget stop
- *   versus an indeterminate repository) rather than failed spawns.
- *
- * `timedOut` distinguishes the timeout case from a signal or a buffer overflow
- * without the caller re-reading `error.code`.
+ * - A spawn FAILURE throws, which is what Bun's `spawnSync` did. That includes
+ *   ENOENT and EACCES (the command could not start) and E2BIG, EMFILE and any
+ *   other exec-level error, so a broken environment is reported as such rather
+ *   than as an empty read. A timeout and a buffer overflow are different: the
+ *   child DID run, so they return `status: null` with `timedOut` set (timeout)
+ *   or neither set (buffer overflow), for the caller to classify.
  */
 
 /** One run's limits, in Node's own vocabulary. */
@@ -48,6 +47,24 @@ export interface SpawnResult {
 /** Bun captured up to 1 GiB by default; Node's own default is 1 MiB, too small for a tree. */
 const DEFAULT_MAX_BUFFER = 1024 * 1024 * 1024;
 
+/**
+ * Codes that describe a child that ran but did not finish normally, so the
+ * caller (not this helper) decides what they mean. Everything else is a spawn
+ * failure and throws.
+ */
+function isResultErrorCode(code: string | undefined): boolean {
+	return code === "ETIMEDOUT" || code === "ENOBUFS" || code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER";
+}
+
+/**
+ * True when the error means the child never ran. Exported so the unit test can
+ * pin the classification for E2BIG, EMFILE and the codes Node actually emits
+ * without having to provoke each one.
+ */
+export function isSpawnFailure(error: { code?: string } | undefined): boolean {
+	return error !== undefined && !isResultErrorCode(error.code);
+}
+
 export function spawnResult(command: string, args: readonly string[], options: SpawnOptions = {}): SpawnResult {
 	const result = spawnSync(command, [...args], {
 		cwd: options.cwd,
@@ -58,11 +75,7 @@ export function spawnResult(command: string, args: readonly string[], options: S
 		stdio: ["pipe", "pipe", "pipe"],
 	});
 	const error = result.error as (Error & { code?: string }) | undefined;
-	if (error !== undefined && (error.code === "ENOENT" || error.code === "EACCES")) {
-		// The command could not be started. Bun threw here, and the callers rely
-		// on that distinction: codemap names it "git could not start".
-		throw error;
-	}
+	if (isSpawnFailure(error)) throw error;
 	return {
 		status: result.status,
 		stdout: result.stdout ?? Buffer.alloc(0),

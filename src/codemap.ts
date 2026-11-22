@@ -151,7 +151,8 @@ function git(repositoryPath: string, args: readonly string[]): GitOutcome {
 		});
 		if (proc.status === null) {
 			stopIfBudgetSpent(budgeted);
-			throw indeterminateError(`git ${args[0] ?? ""} did not report an exit status (timeout or signal)`);
+			const why = proc.timedOut ? "timeout" : proc.signal === null ? "no exit status" : `signal ${proc.signal}`;
+			throw indeterminateError(`git ${args[0] ?? ""} did not report an exit status (${why})`);
 		}
 		return { status: proc.status, stdout: proc.stdout.toString(), stderr: proc.stderr.toString() };
 	} catch (error) {
