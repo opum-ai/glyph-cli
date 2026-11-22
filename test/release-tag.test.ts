@@ -5,7 +5,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** `scripts/check-release-tag.mjs` refuses a tag that is not "v" + the packed version. */
+/**
+ * `scripts/check-release-tag.mjs` refuses a tag that is not "v" + the packed
+ * version.
+ *
+ * These tests run under `bun test`, so `process.execPath` and
+ * `node:child_process` are Bun's implementations. The script itself runs with
+ * the `node` binary in the release workflow; it uses only node built-ins, so
+ * the two exercise the same logic.
+ */
 const script = fileURLToPath(new URL("../scripts/check-release-tag.mjs", import.meta.url));
 
 function tarballWithVersion(version: string): string {

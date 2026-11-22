@@ -162,6 +162,13 @@ jobs:
         run: bun run format:check
       - name: Test
         run: bun run test
+      # The buffer-overflow test raced on the Linux runner once (#96): a single
+      # write could finish before the kill. It is race-free now, but a timing
+      # race can reappear only under repetition, so run the spawn suite many
+      # times here rather than once (GCLI-47 N6). --rerun-each is the flag in
+      # the pinned Bun 1.4.2; it re-runs each test file N times.
+      - name: Repeat the spawn suite to catch timing races
+        run: bun test test/spawn.test.ts --rerun-each 20
 
   # The artifact consumers install runs on Node, not Bun (DEC-299 item 2,
   # GCLI-46). This job proves the thing npm will serve: pack through the

@@ -33,14 +33,21 @@ const overflow = spawnSync(node, ["-e", "process.stdout.write('x'.repeat(100000)
 	maxBuffer: 100,
 	stdio: ["pipe", "pipe", "pipe"],
 });
+// Node KILLS the child when captured output exceeds maxBuffer: status is null
+// and signal is SIGTERM, the same signal a timeout sends. `timedOut` is false
+// (the error code is ENOBUFS, not ETIMEDOUT), and that flag — not the signal —
+// is what distinguishes an overflow from a timeout. Measured on node 24.22.2.
 must(
 	overflow.status === null && overflow.error?.code === "ENOBUFS",
 	`maxBuffer: status=${overflow.status} code=${overflow.error?.code}`,
 );
+if (process.platform !== "win32") {
+	must(overflow.signal === "SIGTERM", `maxBuffer: expected signal SIGTERM, got ${overflow.signal}`);
+}
 
 if (process.platform !== "win32") {
 	const e2big = spawnSync("/bin/echo", ["x".repeat(2 * 1024 * 1024)], { stdio: ["pipe", "pipe", "pipe"] });
 	must(e2big.error?.code === "E2BIG", `E2BIG: code=${e2big.error?.code}`);
 }
 
-console.log("timeout, maxBuffer and E2BIG classified under node");
+console.log(`timeout, maxBuffer (signal ${overflow.signal ?? "none"}) and E2BIG classified under node`);

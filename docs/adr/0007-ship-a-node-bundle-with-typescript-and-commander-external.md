@@ -106,13 +106,24 @@ the dependency classification unchanged.
   its shim. Measured 2026-11-22: dropping `--external typescript` fails the
   typescript bare-specifier check; dropping `--external commander` fails the
   commander one (commander bundles with no baked path at all).
-- Both release-workflow jobs run on GitHub-hosted `ubuntu-24.04`, so the tarball
-  is built, verified and published on the same runner class. npm provenance
-  attests the PUBLISH step and the published bytes, not the build; ci.yml's jobs
-  stay on the existing `[self-hosted, Linux, ARM64]` group.
+- Both release-workflow jobs run on GitHub-hosted `ubuntu-24.04`: the Package
+  job builds the tarball, runs `scripts/check-package.mjs` on it, and records
+  its name and sha256 as job outputs; the Publish job refuses to publish unless
+  the single tarball it downloads hashes to that recorded digest. The bytes npm
+  receives are bound to the gate's verification by that digest, not by a sums
+  file carried in the same artifact (such a file proves only transfer
+  integrity). npm provenance attests the PUBLISH step and the published bytes,
+  not the build; ci.yml's jobs stay on the existing
+  `[self-hosted, Linux, ARM64]` group.
 - `test/spawn.test.ts` runs under Bun's `node:child_process`; the Node
   implementation is checked by `scripts/node-spawn-check.mjs`, which the
-  packaging gate runs with the `node` binary (timeout, maxBuffer, E2BIG).
+  packaging gate runs with the `node` binary (timeout, maxBuffer — including the
+  SIGTERM Node sends on overflow — and E2BIG). The Check job re-runs the spawn
+  suite with `--rerun-each 20`: the one flaky run that slipped through was a
+  single-write timing race (measured 1 completion in 100 local iterations), so a
+  single pass does not reliably catch it, while the write-until-killed child in
+  the current test is deterministic (50 reruns, 400/400 green locally, GCLI-47
+  N6).
 - A real tarball with `dist` removed is re-packed, installed, and asserted to
   fail that same gate — the negative control is the gate rejecting it for naming
   `dist/glyph.js`, not a missing file.
@@ -124,12 +135,15 @@ The publish route follows lore-cli's working OIDC job and quest-cli's
 dispatch/OIDC shape: `workflow_dispatch` against a `v*` tag, a `publish` input
 defaulting to false, npm OIDC Trusted Publishing with `environment: release` and
 a job-scoped `id-token: write`, an exact npm pin above the asserted 11.5.1
-floor, and both release jobs on GitHub-hosted `ubuntu-24.04` — the tarball is
-built and verified on the same runner class that publishes it, while provenance
-itself attests the publish step and the published bytes, not the build.
-quest-cli's own release.yml
-had never succeeded and its working publish was a local script, so the workflow
-keeps a dry-run rehearsal path and treats a real publish as an operator step. A
-dry run may skip the attestation and does not prove provenance; only a recorded
-`publish: true` dispatch shows it. actionlint checks the workflow locally and in
-ci.yml when the runner carries it, not as a guaranteed CI gate.
+floor, and both release jobs on GitHub-hosted `ubuntu-24.04`. The Package job
+builds and verifies the tarball and exports its sha256; the Publish job compares
+the single downloaded tarball against that digest before it publishes, so the
+bytes it uploads are bound to the gate's verification on the same runner class.
+Provenance itself attests the publish step and the published bytes, not the
+build. quest-cli's own release.yml had never succeeded and its working publish
+was a local script, so the workflow keeps a dry-run rehearsal path and treats a
+real publish as an operator step. A dry run exercises the command and the pinned
+npm version but may skip the attestation: it neither produces provenance nor
+proves the OIDC exchange works, and only a recorded `publish: true` dispatch
+shows it. actionlint checks the workflow locally and in ci.yml when the runner
+carries it, not as a guaranteed CI gate.
