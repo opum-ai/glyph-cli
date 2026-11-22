@@ -34,9 +34,14 @@ const pauseAfterMs = args.includes("code-map")
 	: Math.min(integerFromEnv("GLYPH_TEST_STREAM_PAUSE_AFTER_MS") ?? 0, 2_000);
 
 if (failAfter !== null || (pauseAfterMs ?? 0) > 0) {
+	// Throw ONCE. An item-only swallow (a command that catches the item error and
+	// keeps emitting) then continues past it, so a test demanding exactly one item
+	// line sees the extra lines rather than a second injected throw.
+	let thrown = false;
 	setStreamFaultHook({
 		beforeWrite(event) {
-			if (failAfter !== null && event.itemCount >= failAfter) {
+			if (failAfter !== null && !thrown && event.itemCount >= failAfter) {
+				thrown = true;
 				throw indeterminateError(`forced mid-stream failure after ${event.itemCount} item line(s) (test injection)`);
 			}
 		},

@@ -157,7 +157,6 @@ $ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref
   `test/parity/generate-goldens.ts` generates by running that producer. That parity
   covers the deterministic tiers (named paths, changed files, identifiers), run with
   the symbol tier off or unavailable; the CLI's default output adds the symbol tier.
-  The time budget is a later slice.
 
 ### `glyph cache path` | `glyph cache clear`
 
@@ -188,7 +187,7 @@ after the search); `callers` and `code-map` stream while they work.
   item list replaced by `itemCount`. For `code-map`, `truncated` is true only
   when ADR 0005's wall-time budget stopped the run; file-cap, token-cap,
   read-bound and displacement cuts are named in `omissions` instead.
-- Exit 0 means the command wrote its result line to stdout. Completeness is the
+- Exit 0 means the command issued its result line to stdout. Completeness is the
   last line plus the exit code: a consumer treats a stream with no result line,
   or a non-zero exit, as incomplete, whatever items arrived. A failure
   mid-stream leaves no result line, writes the ordinary error envelope to

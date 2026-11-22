@@ -71,8 +71,8 @@ export function createStreamWriter(): StreamWriter {
 			streamFaultHook?.afterWrite?.({ kind: "item", itemCount: count });
 		},
 		result(kind: string, data: unknown): void {
-			// The hook fires here too, so a one-item answer cannot slip a result line
-			// out past an injected failure.
+			// The hook fires here too, so for a one-item answer the injected throw
+			// lands before the result line and it cannot slip out.
 			streamFaultHook?.beforeWrite?.({ kind: "result", itemCount: count });
 			process.stdout.write(streamLine(kind, data));
 			streamFaultHook?.afterWrite?.({ kind: "result", itemCount: count });
@@ -82,8 +82,8 @@ export function createStreamWriter(): StreamWriter {
 
 /**
  * A command's streamed result-line data: the batch data with the item list
- * removed and `itemCount` added last. Extra budget/truncation fields, when a
- * command has them, stay in place (code-map's `truncated` is supplied here).
+ * removed and `itemCount` added last. `callers` and `impact` use this; `code-map`
+ * uses {@link codeMapStreamResultData}, which also carries its budget field.
  */
 export function streamResultData(
 	batch: Record<string, unknown>,

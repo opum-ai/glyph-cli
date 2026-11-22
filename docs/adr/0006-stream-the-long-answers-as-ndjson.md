@@ -68,11 +68,11 @@ that name rather than claiming general completeness. Item kinds are derived as
 `<command>.item`, and `glyph help --json` publishes each streaming command's
 `itemKind` beside its result `kind`.
 
-**Completeness and failure.** Exit 0 happens only after the command wrote the
+**Completeness and failure.** Exit 0 happens only after the command issued the
 result line to stdout. A consumer treats a stream with no result line, or a
 non-zero exit, as incomplete, whatever items arrived — including when the
 consumer itself stops reading early (`… --stream | head -1`), where the producer
-can legitimately exit 0 after writing the answer and the consumer naturally
+can legitimately exit 0 after issuing the answer and the consumer naturally
 never sees the result line. A failure mid-stream stops stdout at the throw;
 `run()`'s single handler writes the section 5 error envelope to stderr and
 returns the mapped exit code. The fault-injection and pause hooks are installed

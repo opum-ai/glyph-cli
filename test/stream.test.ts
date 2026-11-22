@@ -176,6 +176,10 @@ describe("--stream (contract §1a)", () => {
 			["--version", ["--version", "--stream"]],
 			["--help", ["--help", "--stream"]],
 			["command --help", ["callers", "helper", "--stream", "--help"]],
+			// Exercises program.ts's `|| scanned.version` branch: a streaming
+			// command token is present, but --version still rejects --stream.
+			["command --version", ["callers", "helper", "--stream", "--version"]],
+			["version before command", ["--version", "callers", "helper", "--stream"]],
 			["bare", ["--stream"]],
 		];
 		for (const [label, args] of cases) {
@@ -292,6 +296,27 @@ describe("--stream (contract §1a)", () => {
 			expect(error.principal, name).toBeNull();
 			expect(error.message).toContain("forced mid-stream failure");
 		}
+	});
+
+	test("a one-item answer cannot slip a result line past the injected failure", () => {
+		// One call site means exactly one item. The injected throw lands on the
+		// result write, after that item, proving the result() hook catches the
+		// one-item case the stream.ts comment describes.
+		const repo = makeScratchRepo({
+			"src/util.ts": "export function solo(): number {\n  return 1;\n}\n",
+			"src/main.ts": 'import { solo } from "./util";\nexport function main(): number {\n  return solo();\n}\n',
+		});
+		repo.commit("base");
+		const failed = runEntry(repo.root, ["callers", "solo", "--stream"], scratchCacheDir(), undefined, {
+			GLYPH_TEST_STREAM_FAIL_AFTER: "1",
+		});
+		expect(failed.code).toBe(7);
+		const lines = envelopes(failed.stdout);
+		expect(lines).toHaveLength(1);
+		expect(lines[0]?.kind).toBe(itemKindOf("callers"));
+		expect(lines.some((line) => line.kind === kindOf("callers"))).toBe(false);
+		const error = JSON.parse(failed.stderr) as { error_type: string };
+		expect(error.error_type).toBe("indeterminate");
 	});
 
 	test("code-map keeps ADR 0005's wall-time budget, and the result line says whether it truncated", () => {
@@ -413,38 +438,51 @@ describe("--stream (contract §1a)", () => {
 
 	test("the flush proof: an item line is readable from the pipe while the child is still alive", async () => {
 		const repo = fixture();
+		const pauseMs = 1500;
 		const proc = Bun.spawn(["bun", "run", TEST_ENTRY, "callers", "helper", "--stream"], {
 			cwd: repo.root,
 			env: {
 				...process.env,
 				GLYPH_CACHE_DIR: scratchCacheDir(),
-				// Long enough that a writer which buffered until the result line would
-				// produce nothing before the read deadline below.
-				GLYPH_TEST_STREAM_PAUSE_AFTER_MS: "1500",
+				GLYPH_TEST_STREAM_PAUSE_AFTER_MS: String(pauseMs),
 			},
 			stdin: "ignore",
 			stdout: "pipe",
 			stderr: "pipe",
 		});
 		const reader = proc.stdout.getReader();
-		const started = performance.now();
-		// A flushed writer yields the first line in milliseconds, well inside this
-		// deadline; a writer that buffered until the result line cannot beat it.
-		const firstRead = await Promise.race([
-			reader.read().then((result) => result),
-			new Promise<null>((resolve) => setTimeout(() => resolve(null), 800)),
-		]);
-		const elapsedMs = performance.now() - started;
-		expect(firstRead).not.toBeNull();
 		const decoder = new TextDecoder();
-		const buffer = firstRead !== null && firstRead.value !== undefined ? decoder.decode(firstRead.value) : "";
-		const firstLine = buffer.slice(0, buffer.indexOf("\n"));
+		let buffer = "";
+		const timedOut = Symbol("timeout");
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		// A generous overall bound. Bun startup, loading TypeScript and a cold
+		// createProgram all happen before the first item and are not the property
+		// under test; the pause is the only thing this test measures.
+		const deadline = new Promise<typeof timedOut>((resolve) => {
+			timer = setTimeout(() => resolve(timedOut), 30_000);
+		});
+		const firstLine = await Promise.race([
+			(async () => {
+				while (!buffer.includes("\n")) {
+					const { value, done } = await reader.read();
+					if (done || value === undefined) return null;
+					buffer += decoder.decode(value, { stream: true });
+				}
+				return buffer.slice(0, buffer.indexOf("\n"));
+			})(),
+			deadline,
+		]);
+		clearTimeout(timer);
+		if (typeof firstLine !== "string") throw new Error(`no item line arrived: ${String(firstLine)}`);
+		const arrivedAt = performance.now();
 		expect(firstLine).toContain(`"kind":"${itemKindOf("callers")}"`);
-		// The child is still sleeping after the first item, and the line arrived
-		// before that sleep ended: it was flushed when written, not buffered.
-		expect(elapsedMs).toBeLessThan(800);
+		// The child is still in its post-first-item pause when the line arrives.
 		expect(proc.exitCode).toBeNull();
 		await proc.exited;
+		// A flushed writer arrives before the pause and the child lives another
+		// ~pauseMs afterwards. A writer that buffered until the result line would
+		// write the first line only at the end, so it could not stay alive.
+		expect(performance.now() - arrivedAt).toBeGreaterThanOrEqual(1000);
 		expect(proc.exitCode).toBe(0);
 	});
 
