@@ -132,6 +132,16 @@ interface GitOutcome {
 }
 
 /**
+ * Why a git read reported no exit status: the parenthetical in the
+ * indeterminate error below. Exported so the three cases can be asserted
+ * without provoking a real timeout or signal.
+ */
+export function noExitStatusReason(timedOut: boolean, signal: string | null): string {
+	if (timedOut) return "timeout";
+	return signal === null ? "no exit status" : `signal ${signal}`;
+}
+
+/**
  * `--literal-pathspecs` is on every invocation: a task text, a filename or an
  * identifier is data, and no part of it may be re-read by git as a glob or as an
  * option. A read that cannot report a status (a timeout, a failed spawn) is
@@ -151,8 +161,9 @@ function git(repositoryPath: string, args: readonly string[]): GitOutcome {
 		});
 		if (proc.status === null) {
 			stopIfBudgetSpent(budgeted);
-			const why = proc.timedOut ? "timeout" : proc.signal === null ? "no exit status" : `signal ${proc.signal}`;
-			throw indeterminateError(`git ${args[0] ?? ""} did not report an exit status (${why})`);
+			throw indeterminateError(
+				`git ${args[0] ?? ""} did not report an exit status (${noExitStatusReason(proc.timedOut, proc.signal)})`,
+			);
 		}
 		return { status: proc.status, stdout: proc.stdout.toString(), stderr: proc.stderr.toString() };
 	} catch (error) {

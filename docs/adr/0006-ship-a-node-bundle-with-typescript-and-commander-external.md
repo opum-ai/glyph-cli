@@ -100,11 +100,22 @@ the dependency classification unchanged.
   `getPreEmitDiagnostics`; the gate also runs every manifest command under node,
   including `impact --ref` (the git cat-file/stdin path). It rejects an installed
   `dist/glyph.js` containing a baked absolute `__dirname`/`__filename`, the
-  signature of an inlined dependency. Dropping `--external typescript` turns the
-  gate red.
+  signature of an inlined dependency, and requires the installed bundle to
+  import `typescript` and `commander` as BARE SPECIFIERS (`from "x"` or
+  `require("x")`), which catches inlining regardless of how the bundler spells
+  its shim. Measured 2026-11-22: dropping `--external typescript` fails the
+  typescript bare-specifier check; dropping `--external commander` fails the
+  commander one (commander bundles with no baked path at all).
+- Both release-workflow jobs run on GitHub-hosted `ubuntu-24.04`, so the tarball
+  is built, verified and published on the same runner class. npm provenance
+  attests the PUBLISH step and the published bytes, not the build; ci.yml's jobs
+  stay on the existing `[self-hosted, Linux, ARM64]` group.
+- `test/spawn.test.ts` runs under Bun's `node:child_process`; the Node
+  implementation is checked by `scripts/node-spawn-check.mjs`, which the
+  packaging gate runs with the `node` binary (timeout, maxBuffer, E2BIG).
 - A real tarball with `dist` removed is re-packed, installed, and asserted to
-  fail that same gate — the negative control is the gate rejecting it, not a
-  missing file.
+  fail that same gate — the negative control is the gate rejecting it for naming
+  `dist/glyph.js`, not a missing file.
 - The build reads `bun` from `.bun-version`; consumers only need Node >= 24.
 
 ## Release route
@@ -113,7 +124,10 @@ The publish route follows lore-cli's working OIDC job and quest-cli's
 dispatch/OIDC shape: `workflow_dispatch` against a `v*` tag, a `publish` input
 defaulting to false, npm OIDC Trusted Publishing with `environment: release` and
 a job-scoped `id-token: write`, an exact npm pin above the asserted 11.5.1
-floor, and provenance from a GitHub-hosted runner. quest-cli's own release.yml
+floor, and both release jobs on GitHub-hosted `ubuntu-24.04` — the tarball is
+built and verified on the same runner class that publishes it, while provenance
+itself attests the publish step and the published bytes, not the build.
+quest-cli's own release.yml
 had never succeeded and its working publish was a local script, so the workflow
 keeps a dry-run rehearsal path and treats a real publish as an operator step. A
 dry run may skip the attestation and does not prove provenance; only a recorded

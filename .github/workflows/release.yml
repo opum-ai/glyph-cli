@@ -17,6 +17,13 @@ name: Release
 # tag and the publish job refuses any other ref: the bytes published are the
 # bytes the tag names.
 #
+# Both release jobs run on GitHub-hosted ubuntu-24.04 (F3): the tarball is
+# built, verified and published on the same runner class, so the bytes npm
+# receives were produced by this workflow rather than on a different runner.
+# npm's provenance attestation covers the PUBLISH step and the published bytes;
+# it is not a build attestation. ci.yml's own jobs stay on the existing
+# [self-hosted, Linux, ARM64] group.
+#
 # One caveat from the precedent, recorded rather than glossed over: quest-cli's
 # own release.yml had never succeeded, and its working publish was a local
 # script. What this workflow borrows from quest is the dispatch/OIDC SHAPE; what
@@ -57,9 +64,16 @@ jobs:
   # Always runs. This is the rehearsal: build, pack, install, and run every
   # advertised command under node; the tarball it verifies is the artifact the
   # publish job receives.
+  #
+  # GitHub-hosted, like the publish job: the bytes provenanced at publish time
+  # must be the bytes THIS workflow built and verified, not bytes built on a
+  # different runner class (F3). Provenance attests the publish step; running
+  # the build here keeps the whole tarball's production chain on the same
+  # GitHub-hosted class. ci.yml's Package job stays on the existing
+  # [self-hosted, Linux, ARM64] group.
   package:
     name: Package
-    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -94,10 +108,17 @@ jobs:
       # re-packs or rebuilds, so the published bytes are the tested bytes.
       - name: Pack, verify and keep the release tarball
         run: node scripts/check-package.mjs --out-dir release
+      # The digest is recorded beside the tarball and carried in the same
+      # artifact; the publish job verifies it before npm sees the bytes.
+      - name: Record the tarball digest
+        run: |
+          set -euo pipefail
+          cd release
+          sha256sum ./*.tgz | tee SHA256SUMS
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: glyph-npm-tarball
-          path: release/*.tgz
+          path: release/*
           if-no-files-found: error
 
   # Runs only when the dispatch names a v* tag. With publish=false it is a dry
@@ -126,14 +147,12 @@ jobs:
       # exchanges for a provenance attestation.
       id-token: write
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: glyph-npm-tarball
-          path: release
-      # This job otherwise has no checkout (it publishes the downloaded
-      # tarball). It needs only the tag/version checker, so it checks out that
-      # one file, without persisted credentials. The leading "/" matters in
-      # non-cone mode: a bare path matches at any depth.
+      # ORDER IS LOAD-BEARING (F1). actions/checkout's prepareExistingDirectory
+      # removes/recreates the workspace when the directory has no .git
+      # (confirmed in src/git-directory-helper.ts at the pinned SHA), so a
+      # download written before this step would be deleted. Check out first.
+      # The checkout is sparse: this job needs only the tag checker, and it
+      # keeps persist-credentials false.
       - name: Check out the release-tag check only
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
@@ -141,6 +160,10 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /scripts/check-release-tag.mjs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: glyph-npm-tarball
+          path: release
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24
@@ -172,6 +195,14 @@ jobs:
               process.exit(1);
             }
           ' "$version"
+      # F4: the bytes about to be published are the ones the Package job
+      # recorded and verified, not merely a file that happens to be named the
+      # same. sha256sum -c fails on a mismatch.
+      - name: Verify the downloaded tarball's sha256
+        run: |
+          set -euo pipefail
+          cd release
+          sha256sum -c SHA256SUMS
       # H1: the ref guard above only proves a v* tag. This proves the tag names
       # the version INSIDE the tarball about to be published. GITHUB_REF_NAME
       # arrives through env: (DEC-240), never interpolated into run:.

@@ -5,6 +5,11 @@ import { isSpawnFailure, spawnResult } from "../src/spawn.ts";
  * The one spawn helper (GCLI-46). The git readers used to call Bun.spawnSync;
  * these tests pin the Node behavior they now rely on: bytes, exit codes, stdin,
  * the timeout, the buffer limit, and which failures throw.
+ *
+ * These run under `bun test`, so `node:child_process` here is BUN's
+ * implementation. The Node implementation the shipped artifact uses is
+ * exercised by scripts/node-spawn-check.mjs, which the packaging gate runs with
+ * the `node` binary.
  */
 
 const NODE = process.execPath;

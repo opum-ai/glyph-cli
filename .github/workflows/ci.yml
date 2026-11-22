@@ -168,8 +168,9 @@ jobs:
   # prepack wiring, install the tarball into an empty directory with
   # --ignore-scripts (DEC-240), and run glyph under node for every command the
   # manifest advertises — the list comes from help --json, so a new command
-  # with no coverage fails the job. It also runs a negative control: a tarball
-  # packed without dist must exit non-zero when run.
+  # with no coverage fails the job. It also runs a negative control: a copy of
+  # the REAL tarball with dist removed is re-packed, installed, and must be
+  # REJECTED by the gate's contents check.
   #
   # It is a NEW job with a NEW name on purpose: Docs, Tracker integrity and
   # Check are required contexts on dev, and renaming one means editing the

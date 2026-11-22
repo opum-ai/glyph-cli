@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
 	copyFileSync,
 	existsSync,
@@ -211,6 +212,22 @@ function verifyPackagedTarball(tarball) {
 	const installedBin = join(installDir, "node_modules", "@opum-ai", "glyph", "dist", "glyph.js");
 	must(existsSync(installedBin), `installed ${label} has no ${installedBin}`);
 	const installedSource = readFileSync(installedBin, "utf8");
+	// A bare specifier is the spelling-independent evidence that a dependency
+	// stayed external. It catches an inlined dependency even when Bun's bundled
+	// form emits no absolute __dirname (commander is a case: bundling it leaves
+	// no baked path at all).
+	const importsBare = (specifier) =>
+		new RegExp(`\\bfrom\\s+["']${specifier}["']|\\brequire\\(\\s*["']${specifier}["']\\s*\\)`).test(installedSource);
+	must(
+		importsBare("typescript"),
+		`installed ${label} does not import "typescript" as a bare specifier: it was bundled instead of kept external`,
+	);
+	must(
+		importsBare("commander"),
+		`installed ${label} does not import "commander" as a bare specifier: it was bundled instead of kept external`,
+	);
+	console.log(`  ${label}: typescript and commander are imported as bare specifiers`);
+	// Keep the baked-path check as the second, spelling-specific witness.
 	must(
 		!/__dirname\s*=\s*["']\//.test(installedSource),
 		`installed ${label} bakes an absolute __dirname: a dependency was bundled instead of kept external`,
@@ -310,6 +327,12 @@ function main() {
 		`toolchain: node ${versions.node.stdout.trim()}, npm ${versions.npm.stdout.trim()}, bun ${versions.bun.stdout.trim()}`,
 	);
 
+	// The unit tests run under Bun's node:child_process; this runs the edge
+	// cases under the `node` binary the artifact actually targets (F7).
+	const spawnEdge = sh("node", [join(root, "scripts", "node-spawn-check.mjs")]);
+	must(spawnEdge.status === 0, `node spawnSync edge checks failed: ${summary(spawnEdge)}`);
+	console.log(`node spawnSync edge checks: ${(spawnEdge.stdout ?? "").trim()}`);
+
 	if (outDir !== undefined) {
 		mkdirSync(outDir, { recursive: true });
 		const existing = readdirSync(outDir).filter((name) => name.endsWith(".tgz"));
@@ -330,7 +353,9 @@ function main() {
 	must(tarballName !== undefined, `npm pack did not report a tarball name: ${JSON.stringify(pack.stdout)}`);
 	const tarball = join(packDir, tarballName);
 	must(existsSync(tarball), `npm pack reported ${tarballName} but it does not exist`);
+	const digest = createHash("sha256").update(readFileSync(tarball)).digest("hex");
 	console.log(`packed ${tarball}`);
+	console.log(`sha256 ${digest}  ${tarballName}`);
 
 	verifyPackagedTarball(tarball);
 
@@ -359,6 +384,10 @@ function main() {
 		negativeError = error;
 	}
 	must(negativeError !== undefined, "negative control failed: the gate accepted a real tarball with dist removed");
+	must(
+		/dist\/glyph\.js/.test(negativeError.message),
+		`negative control failed: the gate rejected the tarball for an unexpected reason: ${negativeError.message}`,
+	);
 	console.log(`negative control: the gate rejected a dist-less copy of the real tarball (${negativeError.message})`);
 
 	console.log(`packaging gate passed${outDir === undefined ? "" : `; verified tarball left at ${tarball}`}`);
