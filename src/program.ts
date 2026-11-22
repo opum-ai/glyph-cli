@@ -9,18 +9,21 @@ import {
 	type EnvelopeErrorType,
 	errorEnvelope,
 	globalKindOf,
+	itemKindOf,
 	kindOf,
+	STREAMING_COMMANDS,
 	successEnvelope,
 } from "./contract.ts";
 import { discoverSources } from "./discover.ts";
 import { exitCodeFor, GlyphError, notFoundError, usageError } from "./errors.ts";
 import { parseDiff, repoRootFor, resolveCommit, resolveDiffRefs } from "./git.ts";
-import type { ImpactCaller } from "./impact.ts";
+import type { ImpactCaller, ImpactResult } from "./impact.ts";
 import { impactOf } from "./impact.ts";
 import { produceCodeMap } from "./codemap.ts";
 import { buildIndex } from "./indexer.ts";
-import { callersOf, display, resolveSymbol, touchedSymbols } from "./queries.ts";
+import { type CallerSite, callerSites, callersOf, display, resolveSymbol, touchedSymbols } from "./queries.ts";
 import { indexSnapshot, snapshotAtRef, sourceFilesAtRef } from "./snapshot.ts";
+import { codeMapStreamResultData, createStreamWriter, streamResultData } from "./stream.ts";
 import type { GlyphIndex, IndexInfo, SymbolEntry, UnresolvedByKind } from "./types.ts";
 
 /**
@@ -57,6 +60,8 @@ const DEFAULT_IMPACT_DEPTH = 5;
 interface Context {
 	repoRoot: string;
 	json: boolean;
+	/** `--stream`: the NDJSON variant of `--json` (§1a). */
+	stream: boolean;
 }
 
 function readVersion(): string {
@@ -70,7 +75,7 @@ function readVersion(): string {
 
 function contextOf(scanned: ScannedArgs): Context {
 	const dir = resolve(scanned.repo ?? process.cwd());
-	return { repoRoot: repoRootFor(dir) ?? dir, json: scanned.json };
+	return { repoRoot: repoRootFor(dir) ?? dir, json: scanned.json, stream: scanned.stream };
 }
 
 interface LoadedIndex {
@@ -127,6 +132,90 @@ function emit(json: boolean, kind: string, data: unknown, renderHuman: () => str
 	} else {
 		process.stdout.write(`${renderHuman()}\n`);
 	}
+}
+
+/** One `callers` list element. Shared by the batch and streamed forms so they cannot drift. */
+function callerRow(site: CallerSite): {
+	file: string;
+	line: number;
+	column: number;
+	kind: string;
+	caller: { id: string; name: string; container: string | null; kind: string; file: string; line: number } | null;
+} {
+	return {
+		file: site.file,
+		line: site.line,
+		column: site.column,
+		kind: site.kind,
+		caller:
+			site.caller === null
+				? null
+				: {
+						id: site.caller.id,
+						name: site.caller.name,
+						container: site.caller.container,
+						kind: site.caller.kind,
+						file: site.caller.file,
+						line: site.caller.line,
+					},
+	};
+}
+
+/** `callers --stream`: items as the site scan finds them, then the result line. */
+function streamCallers(index: GlyphIndex, symbol: SymbolEntry, info: IndexInfo): void {
+	const writer = createStreamWriter();
+	const files = new Set<string>();
+	let count = 0;
+	for (const site of callerSites(index, symbol)) {
+		files.add(site.file);
+		writer.item(itemKindOf("callers"), callerRow(site));
+		count += 1;
+	}
+	writer.result(kindOf("callers"), {
+		symbol,
+		totals: { callers: count, files: files.size },
+		index: info,
+		itemCount: count,
+	});
+}
+
+/**
+ * `impact --stream`: items once the walk has finalized. The caller list cannot be
+ * emitted as found, because a caller's `cycle` flag is decided by SCCs over the
+ * closure after the breadth-first search completes (ADR 0006 says so plainly).
+ */
+function streamImpact(
+	index: GlyphIndex,
+	symbol: SymbolEntry,
+	result: ImpactResult,
+	ref: LoadedIndex["ref"],
+	depth: number | null,
+	info: IndexInfo,
+): void {
+	const writer = createStreamWriter();
+	for (const caller of result.callers) writer.item(itemKindOf("impact"), caller);
+	writer.result(
+		kindOf("impact"),
+		streamResultData(
+			{
+				symbol,
+				ref,
+				depth: { bound: depth, all: depth === null },
+				callers: result.callers,
+				cycle: result.cycle,
+				truncated: result.truncated,
+				unexplored: result.unexplored,
+				total: result.total,
+				resolvedSites: index.sites.length,
+				unresolvedSites: index.unresolvedSites,
+				unresolvedByKind: index.unresolvedByKind,
+				totals: { callers: result.callers.length, byDepth: byDepth(result.callers) },
+				index: info,
+			},
+			"callers",
+			result.callers.length,
+		),
+	);
 }
 
 function indexLine(info: IndexInfo): string {
@@ -190,6 +279,10 @@ export interface ScannedArgs {
 	/** The directory `--repo <dir>` or `--repo=<dir>` names, if either is present. */
 	repo?: string;
 	json: boolean;
+	/** `--stream`: implies `json` and selects the NDJSON framing (contract §1a). */
+	stream: boolean;
+	/** `--plain`: only read to reject `--stream --plain`; glyph has no plain mode. */
+	plain: boolean;
 	help: boolean;
 	version: boolean;
 	/** True when every argument is a known global flag or such a flag's value. */
@@ -232,6 +325,8 @@ export function scanArgv(argv: string[]): ScannedArgs {
 	let commandToken: string | undefined;
 	let repo: string | undefined;
 	let json = false;
+	let stream = false;
+	let plain = false;
 	let help = false;
 	let version = false;
 	let onlyKnownGlobals = true;
@@ -256,6 +351,19 @@ export function scanArgv(argv: string[]): ScannedArgs {
 			if (equals === -1) index += 1;
 			continue;
 		}
+		// `--stream` is declared per command, so it is recognised here for framing
+		// and the command checks it; `--plain` is recognised only to reject the
+		// combination. Neither is a global flag, and neither makes a bare run help.
+		if (arg === "--stream") {
+			stream = true;
+			onlyKnownGlobals = false;
+			continue;
+		}
+		if (arg === "--plain") {
+			plain = true;
+			onlyKnownGlobals = false;
+			continue;
+		}
 		if (GLOBAL_FLAGS.has(arg)) {
 			if (arg === "--json") json = true;
 			else if (arg === "--version" || arg === "-v") version = true;
@@ -269,7 +377,9 @@ export function scanArgv(argv: string[]): ScannedArgs {
 		onlyKnownGlobals = false;
 		if (!arg.startsWith("-") && commandToken === undefined) commandToken = arg;
 	}
-	return { commandToken, repo, json, help, version, onlyKnownGlobals };
+	// §1a rule 2: `--stream` implies `--json`. One scanner value keeps the
+	// success and failure paths in the same framing.
+	return { commandToken, repo, json: json || stream, stream, plain, help, version, onlyKnownGlobals };
 }
 
 function writeError(json: boolean, errorType: EnvelopeErrorType, message: string): void {
@@ -299,31 +409,20 @@ export function buildProgram(scanned: ScannedArgs): Command {
 		.command("callers <name>")
 		.description("what calls this symbol")
 		.option("--file <pattern>", "narrow to symbols whose file path contains <pattern>")
-		.action((name: string, options: { file?: string }) => {
+		.option("--stream", "stream the answer as NDJSON: one item per line, then the result (implies --json)")
+		.action((name: string, options: { file?: string; stream?: boolean }) => {
 			const context = contextOf(scanned);
 			const { index, info } = loadIndex(context);
 			const symbol = resolveSymbol(index, name, options.file);
+			if (context.stream) {
+				streamCallers(index, symbol, info);
+				return;
+			}
 			const callers = callersOf(index, symbol);
 			const files = new Set(callers.map((site) => site.file)).size;
 			const data = {
 				symbol,
-				callers: callers.map((site) => ({
-					file: site.file,
-					line: site.line,
-					column: site.column,
-					kind: site.kind,
-					caller:
-						site.caller === null
-							? null
-							: {
-									id: site.caller.id,
-									name: site.caller.name,
-									container: site.caller.container,
-									kind: site.caller.kind,
-									file: site.caller.file,
-									line: site.caller.line,
-								},
-				})),
+				callers: callers.map(callerRow),
 				totals: { callers: callers.length, files },
 				index: info,
 			};
@@ -347,12 +446,17 @@ export function buildProgram(scanned: ScannedArgs): Command {
 		.option("--depth <n>", `how many hops to report (default: ${DEFAULT_IMPACT_DEPTH})`)
 		.option("--all", "report the full closure instead of a depth")
 		.option("--ref <ref>", "index that commit's tree instead of the working tree")
-		.action((name: string, options: { depth?: string; all?: boolean; ref?: string }) => {
+		.option("--stream", "stream the answer as NDJSON: one item per line, then the result (implies --json)")
+		.action((name: string, options: { depth?: string; all?: boolean; ref?: string; stream?: boolean }) => {
 			const depth = depthOf(options.depth, options.all === true);
 			const context = contextOf(scanned);
 			const { index, info, ref } = loadIndex(context, options.ref);
 			const symbol = resolveSymbol(index, name, undefined, "impact has no file filter, so the name must be unique");
 			const result = impactOf(index, symbol, depth);
+			if (context.stream) {
+				streamImpact(index, symbol, result, ref, depth, info);
+				return;
+			}
 			const byId = new Map(index.symbols.map((entry) => [entry.id, entry]));
 			const data = {
 				symbol,
@@ -431,7 +535,8 @@ export function buildProgram(scanned: ScannedArgs): Command {
 		.command("code-map")
 		.description("pointers into the code a task concerns; the task text is read from stdin")
 		.option("--source-ref <ref>", "the ref every read resolves against (required)")
-		.action((options: { sourceRef?: string }) => {
+		.option("--stream", "stream the answer as NDJSON: one item per line, then the result (implies --json)")
+		.action((options: { sourceRef?: string; stream?: boolean }) => {
 			const context = contextOf(scanned);
 			if (options.sourceRef === undefined || options.sourceRef === "") {
 				throw usageError("code-map needs --source-ref <ref>");
@@ -439,6 +544,17 @@ export function buildProgram(scanned: ScannedArgs): Command {
 			// Task text on stdin. The bound is enforced by produceCodeMap, which refuses
 			// text over the limit rather than truncating it.
 			const taskText = readFileSync(0, "utf8");
+			if (context.stream) {
+				const writer = createStreamWriter();
+				const streamed = produceCodeMap({
+					repositoryPath: context.repoRoot,
+					sourceRef: options.sourceRef,
+					taskText,
+					onPointer: (pointer) => writer.item(itemKindOf("code-map"), pointer),
+				});
+				writer.result(kindOf("code-map"), codeMapStreamResultData(streamed));
+				return;
+			}
 			const output = produceCodeMap({ repositoryPath: context.repoRoot, sourceRef: options.sourceRef, taskText });
 			emit(context.json, kindOf("code-map"), output, () => {
 				const lines = [`code map for ${options.sourceRef} — ${output.pointers.length} pointer(s)`];
@@ -512,6 +628,18 @@ export async function run(argv: string[]): Promise<number> {
 	const token = scanned.commandToken;
 
 	try {
+		// §1a rules 1 and 2: `--stream` is declared per command, and it is a usage
+		// error on a command that does not declare it, with `--plain`, or anywhere
+		// other than a streaming command's own query (global help and version too).
+		if (scanned.stream) {
+			if (scanned.plain) throw usageError("--stream and --plain are mutually exclusive");
+			const streamToken = scanned.commandToken;
+			const declared = streamToken !== undefined && (STREAMING_COMMANDS as readonly string[]).includes(streamToken);
+			if (!declared || scanned.version || scanned.help) {
+				throw usageError(`--stream is declared only by ${STREAMING_COMMANDS.join(", ")}; it cannot be used here`);
+			}
+		}
+
 		if (json && scanned.version) {
 			emit(true, globalKindOf("version"), { version: readVersion() }, () => "");
 			return 0;

@@ -169,6 +169,35 @@ Emit the live command manifest — every command's dotted `kind`, its flags and
 exit codes, and the frozen exit-code taxonomy. The manifest is built from the
 same registry the commands use, so it cannot drift from the handlers.
 
+## Streaming (`--stream`)
+
+`callers`, `impact` and `code-map` accept `--stream`, the opt-in NDJSON variant
+of `--json` (Opum command contract §1a, DEC-299; the design is
+[ADR 0006](docs/adr/0006-stream-the-long-answers-as-ndjson.md)). It is for an
+agent that can act on early items before the whole answer is computed.
+
+- `--stream` implies `--json`. Combining it with `--plain` is a usage error
+  (exit 2), and so is passing it to a command that does not declare it.
+- stdout carries one compact success envelope per line, each newline-terminated
+  and flushed when written, with `principal` last. Item lines carry
+  `<command>.item`; exactly one `<command>.result` line ends the stream and
+  carries the batch data with the item list replaced by `itemCount` (and, for
+  `code-map`, `truncated` from ADR 0005's wall-time budget).
+- Exit 0 means the result line was written. A failure mid-stream leaves no
+  result line, writes the ordinary error envelope to stderr and exits with the
+  mapped code; a consumer treats a stream with no result line as incomplete.
+- The item multiset equals the plain `--json` answer, and order may differ
+  because items are emitted as they are found. `callers` and `code-map` emit
+  each item as it is produced; `impact` emits once its walk completes, because
+  a caller's `cycle` flag is decided after the breadth-first search.
+
+```console
+$ glyph callers helper --stream
+{"schemaVersion":1,"kind":"callers.item","data":{"file":"src/main.ts","line":3,"column":10,"kind":"call","caller":{"id":"src/main.ts:2:17","name":"main","container":null,"kind":"function","file":"src/main.ts","line":2}},"principal":null}
+{"schemaVersion":1,"kind":"callers.item","data":{"file":"src/other.ts","line":3,"column":10,"kind":"call","caller":{"id":"src/other.ts:2:17","name":"other","container":null,"kind":"function","file":"src/other.ts","line":2}},"principal":null}
+{"schemaVersion":1,"kind":"callers.result","data":{"symbol":{"id":"src/util.ts:1:17","name":"helper","container":null,"kind":"function","file":"src/util.ts","startLine":1,"line":1,"column":17,"endLine":3,"exported":true},"totals":{"callers":2,"files":2},"index":{"cache":"miss","files":3,"symbols":3,"sites":4},"itemCount":2},"principal":null}
+```
+
 ## The machine contract
 
 Glyph implements the frozen

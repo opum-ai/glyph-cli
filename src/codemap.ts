@@ -71,6 +71,12 @@ export interface CodeMapInput {
 	timeBudgetMs?: number;
 	/** The clock, in ms; defaults to `performance.now`. A seam for tests. */
 	now?: () => number;
+	/**
+	 * Streaming seam (`--stream`): called with each pointer as it is chosen,
+	 * before `produceCodeMap` returns. The complete `{pointers, omissions}` is
+	 * still returned, so the batch answer is unchanged when this is absent.
+	 */
+	onPointer?: (pointer: CodeMapPointer) => void;
 }
 
 const GIT_TIMEOUT_MS = 15_000;
@@ -333,6 +339,16 @@ export function assertTaskTextWithinBound(taskText: string): void {
 export function codeMapPointerLine(pointer: CodeMapPointer): string {
 	const range = pointer.lineRanges.length > 0 ? ` (${pointer.lineRanges.join(", ")})` : "";
 	return `${pointer.path}${range} — ${pointer.reason}`;
+}
+
+/**
+ * True when ADR 0005's wall-time budget stopped the run. A streamed result line
+ * carries this boolean so a consumer can tell a complete map from a bounded one
+ * without reading the omission rows; the batch answer keeps its `{pointers,
+ * omissions}` shape unchanged.
+ */
+export function codeMapTruncated(output: CodeMapOutput): boolean {
+	return output.omissions.some((omission) => omission.source === TIME_BUDGET_SOURCE);
 }
 
 /** The code map: named paths, changed files, symbols resolved through the index, identifier matches. */
@@ -609,6 +625,7 @@ function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, ela
 		}
 		tokens += cost;
 		pointers.push(pointer);
+		input.onPointer?.(pointer);
 	}
 	// A file that tier 3 pushed out of the cap is named, not only counted: it was in
 	// the first CODE_MAP_MAX_FILES of the ranking without tier 3 and is not in the
