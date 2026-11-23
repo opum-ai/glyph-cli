@@ -20,6 +20,10 @@ for n in list(range(55, 71)) + [80, 100]:
     c = -(-9 * n // 10)
     print(f'{n:<4} {k:<7} {k / n:.4f}  {wilson(k, n)[0]:.4f}        {c:<11} {wilson(c, n)[0]:.4f}             {"yes" if wilson(c, n)[0] >= 0.8 else "no"}')
 print()
+print('Recall of exactly 0.9 (k = 0.9n, not necessarily a whole number of hits): lower bound by n')
+for n in range(58, 66):
+    print(f'n = {n}  k = {0.9 * n:.1f}  lower {wilson(0.9 * n, n)[0]:.4f}  {"meets 0.8" if wilson(0.9 * n, n)[0] >= 0.8 else "below 0.8"}')
+print()
 print('Specific values')
 for k, n in [(54, 60), (55, 60), (55, 61), (56, 62), (63, 70), (59, 65), (58, 65), (60, 60), (10, 10)]:
     lo, hi = wilson(k, n)

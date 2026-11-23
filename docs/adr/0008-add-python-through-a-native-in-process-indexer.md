@@ -10,7 +10,7 @@ tags:
 summary: Python in glyph 0.1.0 is a native in-process tree-sitter indexer with glyph-owned semantics and no language server (DEC-303 (a1)); drafts the gate and a held-out repository.
 generated:
   by: lore/0.14.1
-  at: 2026-11-23T21:30:00.000Z
+  at: 2026-11-23T20:29:02.000Z
 ---
 
 # Add Python through a native in-process indexer
@@ -55,7 +55,7 @@ Python is indexed by glyph's own analyzer, in process, producing the same `Glyph
 6. **Exit 7 (`indeterminate`) only when a first-party package root fails to resolve; every other unresolved first-party import
    is counted and named** (the old D5, option B).
 7. **The gate** below, scored against pyright's numbers. A shortfall goes to opum-doc with the numbers; the fallback named in
-   (a1), pyright in-process as a library, is the operator's decision.
+   opum-doc's relay of the (a1) design (point 4; in no file this record can cite), pyright in-process as a library, is the operator's decision.
 8. **ADR 0008 names DEC-303 (a1) before any build slice**, and the 0.1.0 tag waits for Python.
 
 ### Proposed by this draft (opum-doc may change any of these)
@@ -66,15 +66,14 @@ Python is indexed by glyph's own analyzer, in process, producing the same `Glyph
   was present); a per-answer note where a constructor call is recorded against a class. TypeScript leaves them absent or constant.
 - **The source roots** are those opum-doc listed, plus the repository root itself (an `app/` directory at the top level).
   Adding the root is this draft's proposal.
-- **Inheritance** uses the method resolution order over in-repository bases; a base outside the repository ends the chain and
-  the call is recorded as resolved to the last known class or unresolved (decision 7).
+- **Inheritance** uses the method resolution order over in-repository bases; a method found only in a base outside the repository
+  is not attributed to a repository symbol and its bin is open (decision 7).
 - **The cache key** gains the language, the analyzer version and the grammar version beside the commit. `--ref` reads the tree
   from the commit as TypeScript's does; a native analyzer has no interpreter or installed environment to differ, which removes
   the layout failure the pyright measurement found (`results/layouts.txt`: an out-of-root analysis silently lost every absolute
   import edge, 0/5 on the fixture).
-- **The exit-7 trigger, natively.** A name is a *first-party package root* when it is the top-level name of a directory or module
-  in the repository tree (a directory holding `.py` files, or a `.py` file) outside excluded paths such as virtual
-  environments. The run is `indeterminate` when an import binds such a name and glyph's resolution over its source roots finds no
+- **The exit-7 trigger, natively.** A name is a *first-party package root* when it names a package directory (one holding `__init__.py`)
+  anywhere in the repository tree outside excluded paths such as virtual environments; bare `.py` files do not count (decision 6). The run is `indeterminate` when an import binds such a name and glyph's resolution over its source roots finds no
   file for it: the roots are wrong or incomplete, which is the measured silent-loss mode. A name that is not first-party
   (no such directory or file) is external, recorded by import binding. Every other failed first-party import (a missing
   submodule, a generated `_pb2`, an optional extension) is counted and named. How roots are discovered is open (decision 6).
@@ -87,19 +86,33 @@ iteration, `del`, and bare `@d` decorators (recorded as `decorator` sites, not c
 bin; the draft proposes four, so `x.append(1)` on an untyped list does not mix with unknown in-repository calls:
 **resolved in the repository** (an edge), **resolved external** (the callee is bound by an import of a non-first-party module
 or is a builtin), **unresolved: receiver needs inference**, and **unresolved: name not statically bound** (star import,
-`getattr`, a name bound only at run time). The unresolved bins are published separately. This is a proposal; opum-doc rules the bins.
+`getattr`, a name bound only at run time). The unresolved bins are published separately, and the resolved-external share is published too: a shadowed builtin (a local
+`open`, `type`, `format`) would otherwise be misbinned as external without a trace. "Exact" holds only for trees without parse
+errors: tree-sitter emits `ERROR` and `MISSING` nodes and calls inside them can be dropped, so the count of `ERROR` regions and the
+files holding them are published, and a run over files with errors does not claim the count exact. For comparison with TypeScript,
+which publishes `unresolvedSites` as every site that did not resolve in the repository (`src/types.ts`), Python's `unresolvedSites`
+is the sum of the two unresolved bins, with the resolved-external bin beside it; whether TypeScript's external calls fall in
+`unresolvedSites` is checked against `src/indexer.ts` when the slice is written. For the pyright comparator the denominators must
+agree: pyright's `definition` count of 1,028 is every named call and decorator (`gt_rules.md` says "986 + 43 decorator sites", which sums
+to 1,029; the one-site difference is pre-existing and unexplained), whereas glyph's exact count is of call expressions with decorators separate, so the
+comparison is made over call expressions plus decorator sites on both sides. This is a proposal; opum-doc rules the bins.
 
 ## The gate
 
 The ruling (DEC-303 (a1) item 4) gives the bar: incoming-call recall of at least 0.9 with a Wilson lower bound of at least 0.8, and
 precision of at least 0.95, on `psf/requests` and on a held-out, less-annotated second repository whose ground truth is committed
-before any run, with pyright's numbers as the baseline. The Wilson bound attaches to recall; precision is a point value.
+before any run, with pyright's numbers as the baseline. **Each repository must pass separately.** The Wilson bound attaches to
+recall; precision is a point value. ("Item 4" here is point (4) of opum-doc's relayed (a1) design, which restates the gate; it is not
+DEC-303's original item 4, which (a1) supersedes.) **`psf/requests` is in-sample for the native build**: its 65 sites, pyright's
+misses on them and the constructor mapping designed on them are committed and have been read, so passing it shows less than passing
+a repository nobody tuned on, which is the reason for the second one.
 
 **Sample size, from `test/python-lsp-measurement/results/wilson-floor.txt` (`wilson_floor.py`, the formula of `score.py`).**
-With whole hits, 54/60 = 0.9000 has Wilson lower bound 0.7985 and fails; 55/60 = 0.9167 passes (0.8193). At 61 true sites 55
-hits (0.9016) give 0.8016; at 62, 56 hits (0.9032) give 0.8045; at 65, 59 hits give 0.8129 and 58 hits (0.8923, lower 0.7940) fail.
-So a held-out set needs at least **62 true sites**, which leaves a one-hit margin and lets an observed 0.9 meet the bound by itself. For
-requests (65 sites) the required hits are 59 or more. For precision, information only: a perfect score has a Wilson lower bound
+With whole hits, 54/60 = 0.9000 has Wilson lower bound 0.7985 and fails; 55/60 = 0.9167 passes (0.8193); 55/61 = 0.9016 passes
+(0.8016); at 65, 59 hits give 0.8129 and 58 hits (0.8923, lower 0.7940) fail. For a recall of exactly 0.9 (a fraction of a hit,
+the table's second block) the lower bound crosses 0.8 between n = 61 (0.7995) and n = 62 (0.8005). **Proposed floor, not in the
+ruling: at least 62 true sites**, the smallest n at which a recall of exactly 0.9 meets the bound; a whole-number result needs 56 or
+more hits at 62. For requests (65 sites) 59 or more hits are required. For precision, information only: a perfect score has a Wilson lower bound
 of at least 0.95 only from 73 emitted edges (`results/wilson-floor.txt`), and precision's n is the emitted edges to the seeded
 targets, not the true sites.
 
@@ -111,10 +124,25 @@ files. The seven default-platform misses (six constructor calls recorded against
 are the `differs:` lines of `results/union-real-default.txt`. The alias set (post hoc, 4 targets, 15 true sites, `gt4_alias.json`)
 is the other baseline row: pyright's incoming calls found 2 of the 15 (`results/score-alias-default.txt`, `calls_incoming_recall`). Resolution at call sites,
 as the comparator for the unresolved share: pyright's `definition` returned no location at 66 of 1,028 call sites
-(`results/score-real-default.txt`, "none": 66). The harness and the scorers read pyright's raw LSP output (`score.py`, `union.py`),
-and nothing yet maps a `GlyphIndex` into them; the gate needs a small adapter that writes glyph's edges in the shape the scorers
-read, or a scorer that reads `GlyphIndex` directly. Which of the two, and who writes it, is part of the first build slice, not a
-decision here, and the scoring rules (`gt_rules.md`, the Wilson function) are reused unchanged.
+(`results/score-real-default.txt`, "none": 66). The harness and the scorers read pyright's raw LSP output (`score.py`, `union.py`) and nothing yet maps a `GlyphIndex` into them. **The
+mapping and the scoring conventions below are fixed and committed together with the held-out ground truth, before any analyzer
+run, and are not left to a build slice**: the same worker builds the analyzer, so an unfixed mapping is a way to meet the gate by
+redefinition. Conventions (proposals; the ones that depart from `gt_rules.md` are open decision 10):
+- **Decorators.** `gt_rules.md` R4 makes `@d` a call to `d`; this record publishes bare `@d` as a `decorator` site, not a call
+  site. For scoring, decorator sites count as incoming edges to `d` (R4 unchanged), reported as their own kind.
+- **Constructors.** R2 sends `Cls(...)` to `Cls.__init__`; addendum item 8 records that constructions of a subclass inheriting
+  `__init__` are invisible to the requests ground truth and scorer. The held-out ground truth draws candidate sites for every
+  subclass construction that inherits an `__init__` (click's `Command`, `Group`, `Parameter`, `Option` hierarchy is that case), so
+  glyph's MRO-correct edges are not scored as false positives. The scorer credits an edge to the class and to the resolved
+  `__init__` as decision 1 settles.
+- **Files.** R5 excludes callers outside the package directory. The scorer drops glyph edges whose caller file is outside the
+  scored package directory; which files glyph itself indexes (`tests/`, `scripts/`, `docs/` examples) against which it resolves over is
+  open decision 10, because losses outside the scored directory are invisible to both measurements.
+- **Lines.** A site matches when the file and the line of the call expression's first token agree (R-kinds: "the call's line"); for
+  a call whose callee spans lines, the first line of the call expression. The same convention is applied to the ground truth and
+  to the mapping.
+- **Controls.** Addendum item 10: an alias-only target must not be drawn as a zero-truth precision control; the held-out draw
+  enumerates alias calls first (below), so a control has no calls under any name.
 
 **What the gate must report beside recall**, so that unresolving cannot pass for accuracy: the repository-wide unresolved share
 (per bin) next to the recall, per repository; the share of true sites the ground truth excluded as undecidable, with its count
@@ -147,8 +175,7 @@ The tags were checked with `git ls-remote --tags https://github.com/pallets/clic
 lightweight tag at `1784558e…`, and `8.1.8` is an annotated tag whose peeled commit (`refs/tags/8.1.8^{}`) is `934813e4…`; both
 scratch clones read that `HEAD`.
 
-**The candidate: click at 7.1.2.** It is one real candidate; the alternatives are not measured and so not ranked, and this is not
-an A/B (listed as decision 8). Its features for the gate: relative imports across a `src/` layout, a class hierarchy (`Command`,
+**The candidate: click at 7.1.2.** It is one real candidate; the alternatives are not measured, so this is not a ranked choice between candidates (decision 8 asks only whether to accept it). Its features for the gate: relative imports across a `src/` layout, a class hierarchy (`Command`,
 `MultiCommand`, `Group`, `Parameter`, `Option`, `Argument`), a decorator-built API, and no annotations at all.
 
 Risks, named rather than hidden:
@@ -168,10 +195,14 @@ Risks, named rather than hidden:
 
 Procedure if accepted, mirroring the requests set: pin the SHA; seed about 40 targets with the stratified sampler and a fixed seed
 (`gt1_enumerate.py`); hand-classify candidate sites by `gt_rules.md` and its addendum, with 9 or more zero-truth targets as
-precision controls; require at least 62 true sites; **include aliased and re-exported calls in candidate-finding** (the requests
-sampler matched callee names only, `gt_rules_addendum.md` item 1, so it was blind to the calls the native design claims to
-handle) or run the alias census as a gate component (`alias_enum.py`); commit the ground truth and its provenance (a scratch
-repository bundle, as for requests) before any run. **No second-repository ground truth is committed with this record.**
+precision controls. **Pre-registered fork: if the first 40 seeded targets yield fewer than 62 true sites, further targets are drawn
+from the same seed sequence, in order, before any run, until 62 is reached or the candidates are exhausted; if they are exhausted
+below 62, the repository is declared unsuitable and reported to opum-doc, not run.** **Candidate-finding includes aliased and
+re-exported calls** (the requests sampler matched callee names only, `gt_rules_addendum.md` item 1, so it was blind to the calls the
+native design claims to handle); the alias census (`alias_enum.py`) is not a gate component and stays the post hoc row it was on
+requests. Commit the ground truth, the mapping and conventions above, and the provenance (a scratch repository bundle, as for
+requests) before any run. **No second-repository ground truth is committed with this record.** (Whether alias calls are drawn
+into the sample or run as a census is the draft's choice; opum-doc may overrule it.)
 
 ## Open decisions for opum-doc
 
@@ -180,9 +211,11 @@ Each is an A/B with the recommendation first and the cost of each side. None is 
 1. **The constructor rule.** Does `callers C.__init__` include the sites that construct `C`? (A, recommended) yes: record
    `C(...)` against the class and, for the class's resolved `__init__`, also against that `__init__`, one rule for every class,
    with a per-answer note where `__init__` is not what runs (metaclass `__call__`, `__new__`, `Enum`, dataclass-generated
-   `__init__`) and what is recorded there stated; cost: wrong edges where interception is undetected, which the pyright round
-   measured as untested. (B) record against the class only: no wrong `__init__` edge, but `callers C.__init__` is near-empty
-   for every class, which DEC-299 (a5) forbids as a silent near-empty answer unless the note says so. The pyright measurement's
+   `__init__`) and what is recorded there stated; cost: wrong edges where interception is undetected (the pyright record found
+   no such class in its sample: `lsp-design-record.md`, "The bar" section). (B) record against the class only: no wrong `__init__` edge, but `callers C.__init__` is near-empty
+   for every class, which DEC-299 (a5) forbids as a silent near-empty answer unless the note says so, **and under R2 unchanged every
+   constructor site scores as an `__init__` miss** (how pyright lost six of its seven default-platform misses, `results/union-real-default.txt`), so B needs a
+   scored mapping that credits the class edge as the `__init__` edge, which is A under another name. The pyright measurement's
    constructor mapping was designed after the six misses were seen (in-sample), so the rule is tested only on the held-out set.
 2. **What a "human-attributable" true site is (the recall denominator).** (A, recommended) the denominator is every call a human
    with the whole repository can attribute to a definition, defined by a rule written before the analyzer's rules and not by
@@ -191,13 +224,16 @@ Each is an A/B with the recommendation first and the cost of each side. None is 
    breaks comparability with pyright's 65, so the held-out set carries the new definition and requests is scored under both. (B)
    keep R1 as written (undecidable excluded, with its share reported): comparable with pyright's 65, but a high recall is then only
    as informative as the excluded share, and nothing bounds it on unannotated code.
-3. **Known-class binding.** "Known-class bindings are attributed" needs a definition. (A, recommended) a binding is known when
-   a name is bound exactly once in its scope to a constructor call of an in-repository class or to an import of a class, or is annotated with
-   a class name; anything reassigned, branch-dependent, or reached through an attribute of another value (`self.x.m()`) is
-   unresolved and counted; a function return annotation `-> C` counts as an annotation for the call's result; cost: the
-   conservative rule resolves less, so the unresolved share is higher. (B) also follow single assignments through `self.x = C()` in
-   `__init__` and through return annotations of in-repository functions: more resolved, at the cost of the very inference the
-   ruling says to count rather than guess.
+3. **Known-class binding.** "Known-class bindings are attributed" needs a definition; the requests half of the gate depends almost entirely
+   on it (399 of 399 parameters annotated, `results/annotation-count.txt`). (A, recommended) a binding is known when a name is bound exactly
+   once in its scope to a constructor call of an in-repository class or to an import of a class, or is annotated (parameter or
+   variable) with a class name; `Optional[C]`, `Union[C, None]` and `C | None` unwrap to `C` (a union of two classes is unresolved);
+   a string forward reference resolves if the name binds in scope; an import under `TYPE_CHECKING` counts as a binding for annotations;
+   anything reassigned, branch-dependent, or reached through an attribute of another value (`self.x.m()`) is unresolved and counted;
+   **a function's return annotation `-> C` is not used**: a call's result is not a known class. Cost: the conservative rule
+   resolves less, so the unresolved share is higher, notably on calls chained off in-repository functions. (B) as A, and also follow a
+   function's return annotation `-> C` and a single assignment through `self.x = C()` in `__init__`: more resolved, at the cost of
+   the inference the ruling says to count rather than guess.
 4. **Site-level or cluster-robust interval.** Sites cluster by target, so a site-level Wilson interval is optimistic (the
    pyright rows give the cluster bootstrap, `results/union-real-allplat.txt`). (A, recommended) apply the bound at the site level as the
    ruling states and report the cluster-bootstrap interval beside it; cost: a result may pass the bar and not its cluster-robust
@@ -208,17 +244,21 @@ Each is an A/B with the recommendation first and the cost of each side. None is 
    fall short, with the fallback the operator's call. (B) the second repository's ground truth and a first measurement come before
    any build slice: nothing is built on an unmeasured design, at the cost of a ground-truth effort of about the size of the
    requests one before slice 1.
-6. **First-party root discovery.** (A, recommended) the roots are the opum-doc list plus the repository root, plus any directory
-   that holds a top-level package and that the exit-7 trigger above finds unresolved, which fails the run and names the directory,
-   not silently adding it; cost: a repository with an unusual layout exits 7 until a root is declared (a flag or a config file, whose name is open).
-   (B) auto-add every directory holding a top-level package as a root: more repositories run, but a wrong guess (tests mirroring
-   package names, vendored copies) can resolve to the wrong module silently, which is the failure the old record measured.
+6. **First-party root discovery, and what is first-party.** (A, recommended) the roots are the opum-doc list plus the repository root;
+   a name is a *first-party package* only when it is a directory holding an `__init__.py` found anywhere outside excluded paths
+   (virtual environments, `node_modules`, build output), and never a bare `.py` file or a directory without `__init__.py` (so a stray
+   `json.py` or a `test/` directory cannot collide with the standard library and cause a spurious exit 7); an import that binds a
+   first-party package no root resolves fails the run and names the directory, and glyph never adds the directory as a root; cost: a repository with an
+   unusual layout exits 7 until a root is declared (a flag or a config file, whose name is open), and a namespace package (no
+   `__init__.py`) is not recognised. (B) also treat bare modules and directories without `__init__.py` as first-party, and auto-add
+   any such directory as a root: more repositories run, but a wrong guess (tests mirroring package names, vendored copies) can
+   resolve to the wrong module silently, which is the failure the old record measured.
 7. **Names that cannot be bound once.** Multiply-bound names (`if PY2` / `else`, `try/except ImportError`, `TYPE_CHECKING`,
    platform-conditional definitions, `@overload` stubs with one qualified name), decorated names that return another object
    (click `Command`, `functools.wraps`), `super().m()`, `cls(...)` in a classmethod, `@property` and `.setter`, star imports and
    `__all__`, re-exports beyond `__init__.py`, class-body scope, `global` and `nonlocal`, module identity (repository root against
    `src/`, tests mirroring package names, PEP 420 namespace packages, `.pyi` beside `.py`, self-imports), `getattr`,
-   `functools.partial` and metaclass `__call__`, tree-sitter `ERROR` nodes (Python-2 syntax, non-UTF-8 files). (A, recommended)
+   `functools.partial` and metaclass `__call__`, a method that lives in an external base class (`class A(ExternalBase)`, `a.m()` with `m` not defined in the repository: counted `resolved external`? or unresolved? the rule is open), tree-sitter `ERROR` and `MISSING` nodes (Python-2 syntax, non-UTF-8 files, syntax newer than the grammar). (A, recommended)
    each is either resolved by a stated rule or counted in an unresolved bin with a reason, and a file the parser cannot read is named and
    counted, not skipped; the rules are written one per case before the slice that builds them. (B) leave them to the build slices to
    settle: faster to start, but the stated-limits list the old record carried (its section 8) is then lost and the design is not
@@ -228,10 +268,16 @@ Each is an A/B with the recommendation first and the cost of each side. None is 
    unannotated class-based package of similar size, measured the same way with `annotation_count.py` before it is accepted: no
    known candidate exists yet, so this costs a search, and the same held-out-ness caveat applies to whichever is chosen.
 9. **The grammar package and runtime**, and how a WASM file is packaged under ADR 0007's single Node bundle (which leaves
-   TypeScript and Commander external). (A, recommended) decide it in the dependency slice against a packaged-tarball check like
-   ADR 0007's (a1): the package, its licence and its size measured; cost: the bundle shape is unknown until then. (B) decide it
-   here: opum-doc's call, since a library pick is design; this draft does not name one.
-
+   TypeScript and Commander external). (A, recommended) the dependency slice **measures** the candidate packages (package, licence,
+   size, and a packaged-tarball check like ADR 0007's (a1)) and **opum-doc rules the pick** on those numbers; cost: the bundle shape and the
+   dependency are unknown until that slice reports. (B) opum-doc names the package in this ADR before any slice: the pick is
+   settled up front and the slice only integrates it, at the cost of ruling without measurements of the bundle; this draft names no package.
+10. **Scoring conventions and indexed-file scope.** The conventions under "The gate" are the draft's. Open: (A, recommended)
+    decorator sites count as incoming edges (R4), glyph indexes every `.py` file under the repository outside excluded paths but the
+    scorer counts only edges whose caller file is inside the package directory (R5), so glyph's `callers` answer includes tests and
+    scripts as TypeScript's does; cost: edges from tests that the gate never scores are unmeasured. (B) glyph indexes only the
+    package directory: the gate scores everything glyph emits, at the cost of `callers` missing every test and script caller, which
+    is a silent loss for a code-intelligence answer unless the coverage line names it.
 ## Consequences
 
 - Python adds a tree-sitter grammar and runtime as a dependency and an analyzer glyph owns and must keep correct; there is no

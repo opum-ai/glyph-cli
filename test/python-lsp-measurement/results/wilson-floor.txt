@@ -19,6 +19,16 @@ n    min k   k/n     lower(min k)  ceil(0.9n)  lower(ceil(0.9n))  observed 0.9 a
 80   72      0.9000  0.8149        72          0.8149             yes
 100  88      0.8800  0.8019        90          0.8256             yes
 
+Recall of exactly 0.9 (k = 0.9n, not necessarily a whole number of hits): lower bound by n
+n = 58  k = 52.2  lower 0.7964  below 0.8
+n = 59  k = 53.1  lower 0.7974  below 0.8
+n = 60  k = 54.0  lower 0.7985  below 0.8
+n = 61  k = 54.9  lower 0.7995  below 0.8
+n = 62  k = 55.8  lower 0.8005  meets 0.8
+n = 63  k = 56.7  lower 0.8015  meets 0.8
+n = 64  k = 57.6  lower 0.8025  meets 0.8
+n = 65  k = 58.5  lower 0.8034  meets 0.8
+
 Specific values
 54/60 = 0.9000  Wilson 0.7985-0.9534
 55/60 = 0.9167  Wilson 0.8193-0.9639
