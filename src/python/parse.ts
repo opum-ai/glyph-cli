@@ -47,6 +47,7 @@ export interface PythonRegion {
 
 export interface PythonParseResult {
 	path: string;
+	/** Caller owns the tree and must call `tree.delete()` when done. */
 	tree: Tree;
 	/** tree.rootNode.hasError; true when any ERROR or MISSING node exists. */
 	hasError: boolean;
@@ -86,12 +87,24 @@ async function loadParser(wasmPath: string): Promise<Parser> {
 let sharedParser: Parser | null = null;
 let sharedInit: Promise<Parser> | null = null;
 
+// How the shared init locates its wasm. Production always resolves the
+// installed package; a test-only seam replaces it to force the failure path.
+let grammarWasmResolver: () => string = resolvePythonWasm;
+
+/**
+ * Test-only seam: replace how the shared init locates its wasm. It does not
+ * touch already-initialised state; production never calls it.
+ */
+export function __setGrammarWasmResolverForTest(resolver: (() => string) | null): void {
+	grammarWasmResolver = resolver ?? resolvePythonWasm;
+}
+
 async function getParser(): Promise<Parser> {
 	if (sharedParser !== null) return sharedParser;
 	if (sharedInit === null) {
 		let wasmPath: string;
 		try {
-			wasmPath = resolvePythonWasm();
+			wasmPath = grammarWasmResolver();
 		} catch (cause) {
 			throw initError(PYTHON_WASM_SUBPATH, cause);
 		}
@@ -112,21 +125,24 @@ async function getParser(): Promise<Parser> {
 /**
  * Initialise the parser, once and lazily. `parsePython` calls this for you.
  *
- * An explicit `wasmPath` loads that asset fresh and validates it without
- * touching the shared instance — useful for a pre-warm or for exercising the
- * failure path. A missing or unloadable asset rejects with a clear Error that
- * names the path and the cause; it never yields an empty tree.
+ * An explicit `wasmPath` loads and validates that asset, then frees the parser
+ * it created; it does NOT populate the shared instance, so it is not a
+ * pre-warm. (The runtime's Language has no delete() in 0.3.1, so only the
+ * parser can be freed.) A missing or unloadable asset rejects with a clear
+ * Error that names the path and the cause; it never yields an empty tree.
  */
 export async function initPythonParser(wasmPath?: string): Promise<void> {
 	if (wasmPath === undefined) {
 		await getParser();
 		return;
 	}
+	let parser: Parser;
 	try {
-		await loadParser(wasmPath);
+		parser = await loadParser(wasmPath);
 	} catch (cause) {
 		throw initError(wasmPath, cause);
 	}
+	parser.delete();
 }
 
 /** The pinned grammar/runtime version, for a future cache key; read from the pin. */
@@ -159,8 +175,9 @@ function countReplacementChars(text: string): number {
  * replacements, however many literal U+FFFD characters the source holds. Only
  * on a fatal-decode failure are replacement characters counted, and the count
  * subtracts the input's own literal U+FFFD sequences so a valid character is
- * never miscounted as a decode replacement. A leading BOM is stripped by the
- * decoder (default ignoreBOM: false).
+ * never miscounted as a decode replacement. On the bytes path a leading BOM is
+ * stripped by the decoder (default ignoreBOM: false); a string input is used
+ * verbatim and keeps any BOM.
  */
 function decodeSource(source: Uint8Array | string): { text: string; replacements: number } {
 	if (typeof source === "string") return { text: source, replacements: 0 };
@@ -214,6 +231,13 @@ function collectRegions(root: Node, path: string, errors: PythonRegion[], missin
  * UTF-8 is decoded (and counted) before parsing, and ERROR/MISSING nodes are
  * reported as named regions. It throws only when the grammar itself cannot be
  * loaded (see `initPythonParser`).
+ *
+ * Callers MUST pass bytes. A pre-decoded string is parsed as-is: if it already
+ * contains replacement characters, `decodeReplacements` is 0 and `limit` is
+ * null, because the caller owns any lossy conversion. A leading BOM is stripped
+ * on the bytes path only; a string keeps it.
+ *
+ * The caller owns the returned tree and must call `tree.delete()`.
  */
 export async function parsePython(source: Uint8Array | string, path: string): Promise<PythonParseResult> {
 	const parser = await getParser();

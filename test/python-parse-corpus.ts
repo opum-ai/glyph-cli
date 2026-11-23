@@ -62,6 +62,8 @@ for (const file of files) {
 			result.limit ?? "-",
 		].join("\t"),
 	);
+	// The regions are copied out as plain objects, so the tree can be freed here.
+	result.tree.delete();
 }
 
 console.log(

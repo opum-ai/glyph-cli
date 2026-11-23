@@ -1,25 +1,24 @@
 # GCLI-73 (S2b) — Python parse corpus: pallets/click 7.1.2
 
 Grammar/runtime: @vscode/tree-sitter-wasm 0.3.1 (pinned exactly in package.json and bun.lock),
-python grammar wasm sha256 16108b50df4ee9a30168742ab55e7c93bfc5765d7fa0aa3e335752c515f47, 457,883 bytes.
-Toolchain: bun 1.3.14, node v24.22.2.
+python grammar wasm sha256 16108b50df4ee9a30168794252ab55e7c93bfc5765d7fa0aa3e335752c515f47, 457,883 bytes.
+Toolchain: bun 1.4.2 (the repository's pinned version), node v24.22.2.
 
 Corpus: pallets/click commit 1784558ed7c75c65764d2a434bd9cbb206ca939d (src/click/__init__.py `__version__ = "7.1.2"`),
 directory `src/click` (17 .py files).
 
-Download (into a fresh empty scratch dir):
+Download (into a fresh empty scratch dir; `<scratch>` is that local directory):
 
-  curl -sSL -o /private/tmp/claude-501/-Volumes-external-repos-glyph-cli/853a7a5b-4f9a-4db1-a4ee-350fab922cd1/scratchpad/s2b/click-download/click.tar.gz \
+  curl -sSL -o <scratch>/click.tar.gz \
     https://codeload.github.com/pallets/click/tar.gz/1784558ed7c75c65764d2a434bd9cbb206ca939d
   # tarball sha256 bbd39309fe67e93ab9edb61d5426060978ee0858e88acf7235a08499ce6d71f3
-  tar -xzf .../click.tar.gz -C .../s2b/click-src
+  tar -xzf <scratch>/click.tar.gz -C <scratch>/click-src
 
 Measurement command (run from the repository root):
 
-  bun test/python-parse-corpus.ts \
-    /private/tmp/claude-501/-Volumes-external-repos-glyph-cli/853a7a5b-4f9a-4db1-a4ee-350fab922cd1/scratchpad/s2b/click-src/click-1784558ed7c75c65764d2a434bd9cbb206ca939d/src/click
+  bun test/python-parse-corpus.ts <scratch>/click-src/click-1784558e/src/click
 
-Result (tab-separated, as printed):
+Result (tab-separated, as printed under bun 1.4.2):
 
 # path	bytes	ERROR	MISSING	hasError	decodeReplacements	limit
 __init__.py	2463	0	0	false	0	-
@@ -41,6 +40,7 @@ types.py	25045	0	0	false	0	-
 utils.py	15940	0	0	false	0	-
 TOTAL	17 files	276344 bytes	0 ERROR	0 MISSING	0 files with an error	0 decode replacements
 
-This matches the S2a measurement (docs/GCLI-71, test/python-gate/tree-sitter-measure/report.md):
-17 files, 276,344 bytes, 0 files with hasError, 0 ERROR, 0 MISSING. The corpus is not vendored
-into the repository (licence and size); this file is the recorded measurement.
+This matches the S2a measurement, recorded on branch `docs/GCLI-71-tree-sitter-measure` at
+`test/python-gate/tree-sitter-measure/report.md` (that report is not on this branch): 17 files,
+276,344 bytes, 0 files with hasError, 0 ERROR, 0 MISSING. The corpus is not vendored into the
+repository (licence and size); this file is the recorded measurement.
