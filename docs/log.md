@@ -42,3 +42,5 @@
 - 2026-11-22T16:14:02-06:00 94e1d25910f105b3160a5e1dfa6fe5652252d2c7 fix(GCLI-46): correct the release workflow route
 - 2026-11-22T16:27:35-06:00 8cba4c26f801934b3d60ff0c3e50630ab9a2132b fix(GCLI-46): fix release workspace order and harden provenance checks
 - 2026-11-22T16:33:18-06:00 79c0d49788293eebeb92a810acd38461e4207c04 feat(GCLI-45): stream callers, impact and code-map (DEC-299) (#95)
+- 2026-11-22T16:39:43-06:00 a7aa53c7f7c02a7ccdd1fba736cca0c2ecff4bfc feat(GCLI-46): Node >=24 bundle and release route (DEC-299) (#94)
+- 2026-11-22T17:24:07-06:00 a544c9edde4cc2b22479c694c3bd77394e2bdcc5 fix(GCLI-47): bind the release digest, tighten the negative control, correct wording (#98)

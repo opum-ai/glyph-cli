@@ -1,0 +1,325 @@
+{
+ "symbols_documentSymbol_recall": "300/320 = 0.938 (95% Wilson 0.905-0.959)",
+ "symbols_documentSymbol_precision(class/method/function kinds)": "300/300 = 1.000 (95% Wilson 0.987-1.000)",
+ "symbols_missing": [
+  [
+   "auth.py",
+   "__init__",
+   92
+  ],
+  [
+   "auth.py",
+   "__init__",
+   94
+  ],
+  [
+   "auth.py",
+   "__init__",
+   137
+  ],
+  [
+   "auth.py",
+   "__init__",
+   139
+  ],
+  [
+   "cookies.py",
+   "cookiejar_from_dict",
+   564
+  ],
+  [
+   "cookies.py",
+   "cookiejar_from_dict",
+   572
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   134
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   138
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   142
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   148
+  ],
+  [
+   "models.py",
+   "iter_content",
+   907
+  ],
+  [
+   "models.py",
+   "iter_content",
+   911
+  ],
+  [
+   "models.py",
+   "iter_lines",
+   980
+  ],
+  [
+   "models.py",
+   "iter_lines",
+   987
+  ],
+  [
+   "structures.py",
+   "get",
+   124
+  ],
+  [
+   "structures.py",
+   "get",
+   127
+  ],
+  [
+   "utils.py",
+   "to_key_val_list",
+   371
+  ],
+  [
+   "utils.py",
+   "to_key_val_list",
+   373
+  ],
+  [
+   "utils.py",
+   "iter_slices",
+   614
+  ],
+  [
+   "utils.py",
+   "iter_slices",
+   618
+  ]
+ ],
+ "symbols_class_kind_mismatch": [],
+ "symbols_extra_decl": [],
+ "symbols_workspaceSymbol_recall": "300/320 = 0.938 (95% Wilson 0.905-0.959)",
+ "symbols_workspaceSymbol_missing_sample": [
+  [
+   "auth.py",
+   "__init__",
+   92
+  ],
+  [
+   "auth.py",
+   "__init__",
+   94
+  ],
+  [
+   "auth.py",
+   "__init__",
+   137
+  ],
+  [
+   "auth.py",
+   "__init__",
+   139
+  ],
+  [
+   "cookies.py",
+   "cookiejar_from_dict",
+   564
+  ],
+  [
+   "cookies.py",
+   "cookiejar_from_dict",
+   572
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   134
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   138
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   142
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   148
+  ]
+ ],
+ "calls_duplicate_incoming_sites_removed_before_scoring": 20,
+ "calls_incoming_recall": "59/65 = 0.908 (95% Wilson 0.813-0.957)",
+ "calls_incoming_precision": "59/59 = 1.000 (95% Wilson 0.939-1.000)",
+ "calls_poly_sites_counted_neutral": 0,
+ "calls_blind_sites_found_by_pyright": 0,
+ "calls_targets_with_true_sites": 37,
+ "calls_negative_targets (no true site)": "9/9 returned no false site",
+ "calls_prepareCallHierarchy_null_targets": 0,
+ "references_recall_over_true_call_sites": "59/65 = 0.908 (95% Wilson 0.813-0.957)",
+ "references_extras_not_true_calls (hand-classify)": 40,
+ "definition_at_call_site_total": 1028,
+ "definition_at_call_site_outcomes": {
+  "external": 657,
+  "in-package": 314,
+  "none": 57,
+  "in-package, not at a def (variable/import/alias)": 22
+ },
+ "definition_in_package_name_mismatches (hand-review)": [
+  [
+   "adapters.py",
+   375,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "adapters.py",
+   481,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "adapters.py",
+   581,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "adapters.py",
+   659,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "cookies.py",
+   46,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "models.py",
+   947,
+   "RequestsSSLError",
+   "->",
+   "SSLError"
+  ],
+  [
+   "models.py",
+   1117,
+   "RequestsJSONDecodeError",
+   "->",
+   "JSONDecodeError"
+  ],
+  [
+   "models.py",
+   1124,
+   "RequestsJSONDecodeError",
+   "->",
+   "JSONDecodeError"
+  ],
+  [
+   "sessions.py",
+   317,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "sessions.py",
+   318,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "sessions.py",
+   350,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "sessions.py",
+   637,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "sessions.py",
+   770,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ]
+ ],
+ "definition_in_package_name_mismatch_count": 13,
+ "timing_ms": {
+  "initMs": 107.90175,
+  "firstAllDocumentSymbolsMs": 216.586792,
+  "totalMs": 4141.394583
+ },
+ "latency_ms": {
+  "initialize": {
+   "n": 1,
+   "mean": 107.7,
+   "max": 107.7
+  },
+  "textDocument/documentSymbol": {
+   "n": 19,
+   "mean": 11.3,
+   "max": 155.0
+  },
+  "workspace/symbol": {
+   "n": 242,
+   "mean": 0.5,
+   "max": 3.0
+  },
+  "textDocument/prepareCallHierarchy": {
+   "n": 46,
+   "mean": 0.2,
+   "max": 1.1
+  },
+  "callHierarchy/incomingCalls": {
+   "n": 46,
+   "mean": 16.7,
+   "max": 221.7
+  },
+  "callHierarchy/outgoingCalls": {
+   "n": 46,
+   "mean": 7.4,
+   "max": 121.0
+  },
+  "textDocument/references": {
+   "n": 46,
+   "mean": 3.0,
+   "max": 96.6
+  },
+  "textDocument/definition": {
+   "n": 1028,
+   "mean": 2.3,
+   "max": 26.7
+  }
+ },
+ "stats": {
+  "requests": 1474,
+  "answered": 1474,
+  "errors": 0,
+  "serverStderr": ""
+ }
+}

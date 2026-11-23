@@ -1,0 +1,422 @@
+{
+ "symbols_documentSymbol_recall": "298/320 = 0.931 (95% Wilson 0.898-0.954)",
+ "symbols_documentSymbol_precision(class/method/function kinds)": "298/298 = 1.000 (95% Wilson 0.987-1.000)",
+ "symbols_missing": [
+  [
+   "auth.py",
+   "__init__",
+   92
+  ],
+  [
+   "auth.py",
+   "__init__",
+   94
+  ],
+  [
+   "auth.py",
+   "__init__",
+   137
+  ],
+  [
+   "auth.py",
+   "__init__",
+   139
+  ],
+  [
+   "cookies.py",
+   "cookiejar_from_dict",
+   564
+  ],
+  [
+   "cookies.py",
+   "cookiejar_from_dict",
+   572
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   134
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   138
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   142
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   148
+  ],
+  [
+   "models.py",
+   "iter_content",
+   907
+  ],
+  [
+   "models.py",
+   "iter_content",
+   911
+  ],
+  [
+   "models.py",
+   "iter_lines",
+   980
+  ],
+  [
+   "models.py",
+   "iter_lines",
+   987
+  ],
+  [
+   "structures.py",
+   "get",
+   124
+  ],
+  [
+   "structures.py",
+   "get",
+   127
+  ],
+  [
+   "utils.py",
+   "proxy_bypass_registry",
+   99
+  ],
+  [
+   "utils.py",
+   "proxy_bypass",
+   137
+  ],
+  [
+   "utils.py",
+   "to_key_val_list",
+   371
+  ],
+  [
+   "utils.py",
+   "to_key_val_list",
+   373
+  ]
+ ],
+ "symbols_class_kind_mismatch": [],
+ "symbols_extra_decl": [],
+ "symbols_workspaceSymbol_recall": "298/320 = 0.931 (95% Wilson 0.898-0.954)",
+ "symbols_workspaceSymbol_missing_sample": [
+  [
+   "auth.py",
+   "__init__",
+   92
+  ],
+  [
+   "auth.py",
+   "__init__",
+   94
+  ],
+  [
+   "auth.py",
+   "__init__",
+   137
+  ],
+  [
+   "auth.py",
+   "__init__",
+   139
+  ],
+  [
+   "cookies.py",
+   "cookiejar_from_dict",
+   564
+  ],
+  [
+   "cookies.py",
+   "cookiejar_from_dict",
+   572
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   134
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   138
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   142
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   148
+  ]
+ ],
+ "calls_duplicate_incoming_sites_removed_before_scoring": 20,
+ "calls_incoming_recall": "58/65 = 0.892 (95% Wilson 0.794-0.947)",
+ "calls_incoming_precision": "58/58 = 1.000 (95% Wilson 0.938-1.000)",
+ "calls_poly_sites_counted_neutral": 0,
+ "calls_blind_sites_found_by_pyright": 0,
+ "calls_targets_with_true_sites": 37,
+ "calls_negative_targets (no true site)": "9/9 returned no false site",
+ "calls_prepareCallHierarchy_null_targets": 1,
+ "references_recall_over_true_call_sites": "58/65 = 0.892 (95% Wilson 0.794-0.947)",
+ "references_extras_not_true_calls (hand-classify)": 40,
+ "definition_at_call_site_total": 1028,
+ "definition_at_call_site_outcomes": {
+  "external": 650,
+  "in-package": 312,
+  "none": 66,
+  "in-package, not at a def (variable/import/alias)": 22
+ },
+ "definition_in_package_name_mismatches (hand-review)": [
+  [
+   "adapters.py",
+   375,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "adapters.py",
+   481,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "adapters.py",
+   581,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "adapters.py",
+   659,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "cookies.py",
+   46,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "models.py",
+   947,
+   "RequestsSSLError",
+   "->",
+   "SSLError"
+  ],
+  [
+   "models.py",
+   1117,
+   "RequestsJSONDecodeError",
+   "->",
+   "JSONDecodeError"
+  ],
+  [
+   "models.py",
+   1124,
+   "RequestsJSONDecodeError",
+   "->",
+   "JSONDecodeError"
+  ],
+  [
+   "sessions.py",
+   317,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "sessions.py",
+   318,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "sessions.py",
+   350,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "sessions.py",
+   637,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "sessions.py",
+   770,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ]
+ ],
+ "definition_in_package_name_mismatch_count": 13,
+ "timing_ms": {
+  "initMs": 81.78625000000001,
+  "firstAllDocumentSymbolsMs": 187.717333,
+  "totalMs": 3979.208125
+ },
+ "latency_ms": {
+  "initialize": {
+   "n": 1,
+   "mean": 81.6,
+   "max": 81.6
+  },
+  "textDocument/documentSymbol": {
+   "n": 19,
+   "mean": 9.8,
+   "max": 123.3
+  },
+  "workspace/symbol": {
+   "n": 242,
+   "mean": 0.5,
+   "max": 2.9
+  },
+  "textDocument/prepareCallHierarchy": {
+   "n": 46,
+   "mean": 0.2,
+   "max": 1.1
+  },
+  "callHierarchy/incomingCalls": {
+   "n": 45,
+   "mean": 16.6,
+   "max": 214.0
+  },
+  "callHierarchy/outgoingCalls": {
+   "n": 45,
+   "mean": 5.5,
+   "max": 84.0
+  },
+  "textDocument/references": {
+   "n": 46,
+   "mean": 3.4,
+   "max": 119.2
+  },
+  "textDocument/definition": {
+   "n": 1028,
+   "mean": 2.3,
+   "max": 24.0
+  }
+ },
+ "stats": {
+  "requests": 1472,
+  "answered": 1472,
+  "errors": 0,
+  "serverStderr": ""
+ }
+}
+
+-- per target
+utils.py:231 get_netrc_auth | true=2 pyright_incoming=2 tp=2 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=3 refs_tp=2
+sessions.py:108 merge_hooks | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+status_codes.py:109 _init | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+utils.py:951 default_headers | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=2 refs_tp=1
+utils.py:373 to_key_val_list | true=5 pyright_incoming=5 tp=5 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=9 refs_tp=5
+utils.py:1098 _validate_header_part | true=2 pyright_incoming=2 tp=2 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=2 refs_tp=2
+cookies.py:494 create_cookie | true=3 pyright_incoming=3 tp=3 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=3 refs_tp=3
+__init__.py:99 _check_cryptography | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+utils.py:99 proxy_bypass_registry | true=1 pyright_incoming=0 tp=0 fp=0 fn=1 poly_ok=0 blind_found=0 prepared=NULL refs=0 refs_tp=0
+     ('MISSED', 'utils.py:146')
+utils.py:704 requote_uri | true=3 pyright_incoming=3 tp=3 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=5 refs_tp=3
+sessions.py:334 SessionRedirectMixin.rebuild_proxies | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+models.py:360 Request.prepare | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0
+adapters.py:455 HTTPAdapter.get_connection_with_tls_context | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+cookies.py:54 MockRequest.get_host | true=2 pyright_incoming=2 tp=2 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=2 refs_tp=2
+adapters.py:153 BaseAdapter.close | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+structures.py:127 LookupDict.get | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=2 refs_tp=0
+cookies.py:80 MockRequest.is_unverifiable | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+cookies.py:128 MockResponse.info | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0
+cookies.py:250 RequestsCookieJar.iterkeys | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+models.py:1173 Response.close | true=3 pyright_incoming=3 tp=3 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=3 refs_tp=3
+adapters.py:365 HTTPAdapter.build_response | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+models.py:576 PreparedRequest.prepare_body | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+models.py:134 RequestEncodingMixin._encode_params | true=2 pyright_incoming=2 tp=2 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=6 refs_tp=2
+models.py:183 RequestEncodingMixin._encode_files | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+exceptions.py:130 ChunkedEncodingError | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=4 refs_tp=1
+exceptions.py:118 InvalidURL | true=7 pyright_incoming=7 tp=7 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=12 refs_tp=7
+auth.py:85 HTTPBasicAuth | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=3 refs_tp=1
+exceptions.py:38 InvalidJSONError | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=4 refs_tp=1
+exceptions.py:126 InvalidProxyURL | true=2 pyright_incoming=2 tp=2 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=3 refs_tp=2
+exceptions.py:106 TooManyRedirects | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=4 refs_tp=1
+exceptions.py:114 InvalidSchema | true=2 pyright_incoming=2 tp=2 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=4 refs_tp=2
+sessions.py:395 Session | true=2 pyright_incoming=2 tp=2 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=5 refs_tp=2
+utils.py:819 should_bypass_proxies.get_proxy | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+status_codes.py:116 _init.doc | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+sessions.py:655 Session.get | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0
+structures.py:89 CaseInsensitiveDict.copy | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+cookies.py:293 RequestsCookieJar.items | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0
+adapters.py:555 HTTPAdapter.close | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0
+models.py:424 PreparedRequest.prepare | true=2 pyright_incoming=2 tp=2 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=2 refs_tp=2
+models.py:456 PreparedRequest.copy | true=2 pyright_incoming=2 tp=2 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=2 refs_tp=2
+cookies.py:310 RequestsCookieJar.list_paths | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0
+sessions.py:908 session | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=2 refs_tp=0
+sessions.py:684 Session.head | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0
+models.py:407 PreparedRequest.__init__ | true=3 pyright_incoming=0 tp=0 fp=0 fn=3 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0
+     ('MISSED', 'models.py:362')
+     ('MISSED', 'models.py:457')
+     ('MISSED', 'sessions.py:540')
+auth.py:96 HTTPBasicAuth.__init__ | true=1 pyright_incoming=0 tp=0 fp=0 fn=1 poly_ok=0 blind_found=0 prepared=yes refs=2 refs_tp=0
+     ('MISSED', 'models.py:685')
+cookies.py:45 MockRequest.__init__ | true=2 pyright_incoming=0 tp=0 fp=0 fn=2 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0
+     ('MISSED', 'cookies.py:147')
+     ('MISSED', 'cookies.py:159')
+
+-- references extras
+    ('utils.py:231 get_netrc_auth', 'sessions.py:53', 'get_netrc_auth,')
+    ('utils.py:951 default_headers', 'sessions.py:50', 'default_headers,')
+    ('utils.py:373 to_key_val_list', 'models.py:82', 'to_key_val_list,')
+    ('utils.py:373 to_key_val_list', 'sessions.py:58', 'to_key_val_list,')
+    ('utils.py:373 to_key_val_list', 'utils.py:371', 'def to_key_val_list(value: None) -> None: ...')
+    ('utils.py:373 to_key_val_list', 'utils.py:376', 'def to_key_val_list(')
+    ('utils.py:704 requote_uri', 'models.py:79', 'requote_uri,')
+    ('utils.py:704 requote_uri', 'sessions.py:54', 'requote_uri,')
+    ('structures.py:127 LookupDict.get', 'structures.py:124', 'def get(self, key: str, default: None = None) -> _VT | None: ...')
+    ('structures.py:127 LookupDict.get', 'structures.py:129', 'def get(self, key: str, default: _D | None = None) -> _VT | _D | None:')
+    ('models.py:134 RequestEncodingMixin._encode_params', 'models.py:138', 'def _encode_params(data: bytes) -> bytes: ...')
+    ('models.py:134 RequestEncodingMixin._encode_params', 'models.py:142', 'def _encode_params(')
+    ('models.py:134 RequestEncodingMixin._encode_params', 'models.py:148', 'def _encode_params(data: _t.KVDataType) -> str: ...')
+    ('models.py:134 RequestEncodingMixin._encode_params', 'models.py:151', 'def _encode_params(')
+    ('exceptions.py:130 ChunkedEncodingError', 'models.py:58', 'ChunkedEncodingError,')
+    ('exceptions.py:130 ChunkedEncodingError', 'sessions.py:31', 'ChunkedEncodingError,')
+    ('exceptions.py:130 ChunkedEncodingError', 'sessions.py:213', 'except (ChunkedEncodingError, ContentDecodingError, RuntimeError):')
+    ('exceptions.py:118 InvalidURL', 'adapters.py:45', 'InvalidURL,')
+    ('exceptions.py:118 InvalidURL', 'exceptions.py:126', 'class InvalidProxyURL(InvalidURL):')
+    ('exceptions.py:118 InvalidURL', 'models.py:63', 'InvalidURL,')
+    ('exceptions.py:118 InvalidURL', 'utils.py:66', 'InvalidURL,')
+    ('exceptions.py:118 InvalidURL', 'utils.py:719', 'except InvalidURL:')
+    ('auth.py:85 HTTPBasicAuth', 'auth.py:116', 'class HTTPProxyAuth(HTTPBasicAuth):')
+    ('auth.py:85 HTTPBasicAuth', 'models.py:40', 'from .auth import HTTPBasicAuth')
+    ('exceptions.py:38 InvalidJSONError', 'exceptions.py:42', 'class JSONDecodeError(InvalidJSONError, CompatJSONDecodeError):')
+    ('exceptions.py:38 InvalidJSONError', 'exceptions.py:53', 'InvalidJSONError.__init__(self, *self.args, **kwargs)')
+    ('exceptions.py:38 InvalidJSONError', 'models.py:62', 'InvalidJSONError,')
+    ('exceptions.py:126 InvalidProxyURL', 'adapters.py:43', 'InvalidProxyURL,')
+    ('exceptions.py:106 TooManyRedirects', '__init__.py:181', 'TooManyRedirects,')
+    ('exceptions.py:106 TooManyRedirects', '__init__.py:200', '"TooManyRedirects",')
+    ('exceptions.py:106 TooManyRedirects', 'sessions.py:34', 'TooManyRedirects,')
+    ('exceptions.py:114 InvalidSchema', 'adapters.py:44', 'InvalidSchema,')
+    ('exceptions.py:114 InvalidSchema', 'sessions.py:33', 'InvalidSchema,')
+    ('sessions.py:395 Session', '__init__.py:185', 'from .sessions import Session, session')
+    ('sessions.py:395 Session', '__init__.py:198', '"Session",')
+    ('sessions.py:395 Session', 'sessions.py:908', 'def session() -> Session:')
+    ('sessions.py:908 session', '__init__.py:185', 'from .sessions import Session, session')
+    ('sessions.py:908 session', '__init__.py:212', '"session",')
+    ('auth.py:96 HTTPBasicAuth.__init__', 'auth.py:92', 'def __init__(self, username: str, password: str) -> None: ...')
+    ('auth.py:96 HTTPBasicAuth.__init__', 'auth.py:94', 'def __init__(self, username: bytes, password: bytes) -> None: ...')

@@ -1,0 +1,9 @@
+stratum          targets true_sites found false_extra
+function              10         20    20           0
+method                12         12    12           0
+staticmethod           2          3     3           0
+class                  8         17    17           0
+nested                 2          2     2           0
+overridden             6          5     5           0
+zero-candidates        3          0     0           0
+init                   3          6     0           0
