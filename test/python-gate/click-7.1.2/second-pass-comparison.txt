@@ -1,0 +1,20 @@
+Second blind pass on the 10 exclusion-set ids (Opus unit, blind to classified-batch0.json and the label files) against the committed labels
+(classified-batch0.json, fd0fc6b). Label sources: `poly` is the "polymorphic site, reported separately" bullet of
+test/python-lsp-measurement/gt_rules.md R1 (gt_rules_click.md R1' does not restate it: gap, Addendum 3); `multiply-bound` is gt_rules_click.md
+Addendum 1 item 1; `ambiguous-receiver` is gt_rules_click.md R1'.
+
+id  target | site                                                         committed label            blind label                    agree
+1   get_text_stdin _compat.py:248 | _compat.py:525:15                    excluded multiply-bound    multiply-bound (facts high)    yes
+2   MissingParameter.format_message | exceptions.py:42:37                poly                       other-definition (high)        NO
+3   MissingParameter.format_message | exceptions.py:73:37                poly                       polymorphic (medium)           yes
+4   CommandCollection.list_commands | _bashcomplete.py:240:25            poly                       polymorphic (medium)           yes
+5   CommandCollection.list_commands | core.py:1184:31                    poly                       polymorphic (medium)           yes
+6   CommandCollection.list_commands | core.py:1417:29                    poly                       polymorphic, weakest (low)     yes (low confidence)
+7   BoolParamType.convert | types.py:46:24                               poly                       polymorphic (medium)           yes
+8   _NonClosingTextIOWrapper.isatty | _compat.py:744:22                  excluded ambiguous-receiver ambiguous-receiver (med-high) yes
+9   Option._parse_decls | core.py:1482:57                                poly                       polymorphic, arguably true     yes (label), caveat
+10  UsageError.show | core.py:799:18                                     poly                       polymorphic (medium)           yes
+Agreement 9 of 10; disagreement 1 (id 2). The blind unit is right on id 2: exceptions.py:42 is ClickException.show, which UsageError.show
+(line 61) overrides without calling up, so a MissingParameter never runs it; the committed `poly` label is wrong and should be
+other-definition. classified-batch0.json is NOT edited (instruction); the move would change poly 8 to 7 and other-definition by +1 and no
+true-site count. Ten pairs is a small sample; no rate is quoted.

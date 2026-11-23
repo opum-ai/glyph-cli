@@ -100,3 +100,28 @@ stay as committed, and the effect of the alternative is reported.
 5. **Which line identifies a decorated definition.** Rule: a symbol is identified by the line of its `def` or `class` keyword (the
    `lineno` of the `ast` node under Python 3.8 or later; the host is 3.15.2), not by a decorator line above it; a decorator
    application site is identified by the line of the decorator expression. Every committed target and site already follows this; no label moves.
+
+## Addendum 3, 2026-11-23T20:41Z: downward polymorphic dispatch (found by the second blind pass; batch-0 labels NOT changed)
+
+The committed `poly` label follows the polymorphic bullet of `gt_rules.md` R1, which is written for ONE direction: the receiver's
+evident type is the class that overrides `m` (true for the override, polymorphic for the base). `gt_rules_click.md` R1' omitted that
+bullet. Sites 3, 5, 7, 9 and 10 of the exclusion set run the other way: the receiver's evident type is a BASE (`self` inside a base
+method, `except ClickException as e`) and the target is a subclass override reached by dynamic dispatch; site 9 has no base definition at
+all (`Parameter` defines no `_parse_decls`; `Option` and `Argument` do). The comparison is in `click-7.1.2/second-pass-comparison.txt`
+(9 of 10 labels agree; the one disagreement, `exceptions.py:42:37`, should be other-definition, poly 8 to 7, no true-site change).
+
+Rule proposed (a clarification of R1 in both directions): **a site whose receiver's evident class is D resolves to the definition D finds
+for the method (nearest in D's MRO); an override of that method in a subclass of D is reached only by dynamic dispatch and the site is a
+polymorphic site for that override.** *Open for opum-doc (design choice; it changes what is a true site on click):*
+- (A, recommended) a polymorphic site, in either direction, is reported separately and is not scored for recall or precision, as R1 did
+  for requests: the committed counts stand, **81 true, 71 direct**; cost: a real call to an override is invisible to the gate, so an
+  analyzer that resolves it (by class-hierarchy analysis) earns nothing for it and is not penalised for it.
+- (B-live) a downward-dispatch site counts as TRUE for each override that is live (constructed or raised in the repository, one per
+  site and target; site 9 counts once for `Option._parse_decls`): batch-0 sites 3, 7, 9, 10 become true (sites 4, 5, 6 are for
+  `CommandCollection`, never constructed in `src/click`, and stay polymorphic): **85 true, 75 direct** (all four have receivers
+  `self` or an `except ... as e` name, so direct).
+- (B-all) every override counts: sites 3, 4, 5, 6, 7, 9, 10 become true: **88 true, 76 direct, 12 inferred** (sites 4 and 6 have
+  inferred receivers).
+Under A the gate cannot reward class-hierarchy resolution; under B it can, at the price of a liveness judgment (B-live) or of
+counting calls that cannot occur at run time (B-all). Combined with Addendum 2 option A the batch-0 counts under each reading are
+80/70 (A, A), 84/74 (A, B-live), 87/75 (A, B-all) in the same order of tuple (true, direct) with testing.py:190 removed from the true set.
