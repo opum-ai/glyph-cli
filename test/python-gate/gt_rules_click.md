@@ -125,3 +125,34 @@ polymorphic site for that override.** *Open for opum-doc (design choice; it chan
 Under A the gate cannot reward class-hierarchy resolution; under B it can, at the price of a liveness judgment (B-live) or of
 counting calls that cannot occur at run time (B-all). Combined with Addendum 2 option A the batch-0 counts under each reading are
 80/70 (A, A), 84/74 (A, B-live), 87/75 (A, B-all) in the same order of tuple (true, direct) with testing.py:190 removed from the true set.
+
+## Addendum 4, 2026-11-23T20:44Z: DEC-303 (a3), the operator's rulings on Addendum 2 and 3 (opum-ai/opum-doc#1932, commit e540d4ff, accepted, decided by operator)
+
+Quoted verbatim as relayed:
+
+> Q1 Forwarding decorators (for example @contextmanager): attribution stays and the site is true.
+> Q2 Version and platform branches: PY2 branches are evaluated under Python 3. Platform branches (WIN, sys.platform) are all reachable, matching pythonPlatform "All". A callee defined in both arms of a platform branch is multiply-bound.
+> Q3 Precision: the pyright-comparable precision side excludes edges at inferred sites, for comparability with the baseline. The independent side counts them.
+> Q4 Polymorphic dispatch: polymorphic sites are reported separately and NOT scored. The gate measures resolution glyph claims to do, not class-hierarchy dispatch it deliberately does not guess.
+
+Label effect of each, on the batch-0 classification (`classified-batch0.json`, rebuilt from `classify-batch0.txt`; history: fd0fc6b original,
+661dada correction from the second blind pass, 8a49c2d this addendum's Q2):
+- **Q1:** no label moves (`formatting.py:85:21` stays true). This is Addendum 2 rule 1, option A.
+- **Q2:** two labels move, both done in 8a49c2d: `testing.py:190:24` true to excluded (`unreachable-version-branch`) and `_compat.py:525:15`
+  excluded `multiply-bound` to other-definition. Final batch-0 counts: **80 true, 70 direct, 10 inferred; 7 polymorphic; 2 excluded**
+  (`_compat.py:744:22` ambiguous-receiver, `testing.py:190:24` unreachable-version-branch); 80 other-definition pairs (per target).
+  `multiply-bound` now means only a callee defined in both arms of a platform branch.
+- **Q3:** no true-site label moves. The comparable side needs an evidence flag on sites that are not true: `derive_site_evidence.py` writes it
+  mechanically to `click-7.1.2/non-true-site-evidence-batch0.json` (89 non-true pairs: 70 direct, 19 inferred) by the rule in its docstring (a receiver of
+  `self`, `cls`, a class or a stdlib module name is direct; any other attribute receiver is inferred; name and decorator sites are direct). It adds
+  no judgment after any analyzer output and does not relabel the classification. Recall under the pyright-comparable denominator is over the 70 direct
+  true sites; precision on that side excludes emitted edges at sites flagged inferred (true or not); the independent side counts every emitted edge.
+- **Q4:** no label moves. Addendum 3 option A: polymorphic sites, in either direction, are reported separately and not scored. This also settles that
+  a polymorphic site is neither a recall miss nor a precision false positive.
+
+**Standing rule (the operator's, relayed with (a3); applied from now on, quoted verbatim):** "glyph-cli applies the principle already ruled. A site
+counts when a human with the whole repository can attribute it without dynamic dispatch or runtime state; when it is genuinely ambiguous, exclude it
+and report it. glyph-cli records each such convention in gt_rules with its label effect. It escalates to opum-doc only when a convention would change
+whether a repository PASSES the gate." Applied as an instruction: a further convention is recorded here as a dated addendum with its label effect on
+the committed counts; a convention that would change whether a repository passes the gate (its recall, its Wilson lower bound or its precision crossing
+0.9, 0.8 or 0.95 on either denominator) goes to the leader before it is applied. It is not used to relabel batch 0 beyond what (a3) states.
