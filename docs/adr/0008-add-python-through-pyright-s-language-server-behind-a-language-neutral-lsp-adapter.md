@@ -130,11 +130,32 @@ not to `__init__` (4 sites, as in the real repository); (3) a decorator applicat
 in call hierarchy (1 site; `references` finds it); (4) one false positive: an attribute access that
 is not called (`Cat("x").speak`, later called through a variable) is listed as a call.
 
-**Outgoing calls, as an alternative source for the edges.** Built per function symbol with
-`outgoingCalls`: on the real repository 63/65 true sites appear (the 2 missing are calls at
-module scope, which no function symbol encloses; incoming calls found both). On the fixtures 21/26
-in-package calls appear, including every aliased-import call; the 5 missing are calls through a
-variable (`fn(1)`, `cb()`, `d_speak()`), a closure variable (`fn(*args)`) and `cls(name)`.
+**Outgoing calls, and the union, which is what the design ships.** Built per function symbol with
+`outgoingCalls`, a true site counts as found only if the callee is the target (same name, same file,
+a line within 3 of its definition; an `__init__` target also matches its class). Scored that strict
+way, per site (`union.py`; a line that holds two true sites needs two found sites):
+
+| set | incoming | outgoing | union |
+|---|---|---|---|
+| real, `pythonPlatform: "All"` (65 sites) | 59/65 = 0.908 (0.813-0.957) | 57/65 = 0.877 (0.775-0.936) | 59/65 = 0.908 (0.813-0.957) |
+| fixtures (28 sites) | 17/28 = 0.607 (0.424-0.764) | 20/28 = 0.714 (0.529-0.847) | 20/28 = 0.714 (0.529-0.847) |
+
+The union is computed per true site: found if the target's `incomingCalls` lists it or any function's
+`outgoingCalls` lists a range there whose callee is the target. On the real repository the union adds
+nothing over incoming calls (the 2 sites incoming finds and outgoing does not are calls at module
+scope, which no function symbol encloses; outgoing finds no site incoming misses), and no outgoing
+edge to a target was a false site. On the fixtures the union gains the three aliased-import calls
+over incoming. An earlier, looser reading of this check, "an outgoing range exists on the true
+site's line, whatever its callee", gives 63/65 on the real repository and 25/28 on the fixtures; it
+is not a recall figure and is not used. The five fixture calls still missed by every route are calls
+through a variable, a closure variable and `cls(name)`; the six real constructor sites are missed
+by both routes when asked as calls to `__init__`, and found under the class (below).
+
+**Constructor sites, asked of the class.** Querying `incomingCalls` on the three classes that own
+the six constructor sites (`PreparedRequest`, `HTTPBasicAuth`, `MockRequest`) returns all six
+(6/6; `cls-1` in `results/raw/`). This is the mapping the design proposes (a constructor call is
+recorded against the class and as an edge to its `__init__`); it was measured as a separate query,
+not run end to end, because the mapping is a build slice.
 
 **Resolution at every call site.** `textDocument/definition` at the callee of all 1,028 syntactic
 calls and decorators in requests: 312 resolve inside the package (22 of them to a variable or
@@ -178,13 +199,27 @@ under load.
 
 ## Decision
 
-Recall is high enough on the call kinds that matter that the alternative DEC-303 item 4 reserves
-(`references`-only, or tree-sitter plus pyright) is **not** proposed. opum-doc rules on whether
-"recall is poor" is the right reading of these numbers; this ADR proposes a threshold and says it is
-opum-doc's to set: build the Python adapter if the measured recall on non-constructor call kinds is
-at least 0.9 with a lower interval bound above 0.8, as it is here (0.908, lower 0.813 with
-`pythonPlatform: "All"`). If opum-doc wants a higher bar, the sample needs a second, larger
-repository first (see Consequences).
+Recall on the call kinds that matter is high enough that the alternative DEC-303 item 4 reserves
+(`references`-only, or tree-sitter plus pyright) is **not** proposed. Whether the numbers are "poor"
+is opum-doc's reading to make. This ADR proposes a bar and says plainly what it does and does not
+clear: *recall on non-constructor call kinds at least 0.9, with a 95% lower bound above 0.8.*
+
+What the bar is scored against, and whether it is met, depends on the quantity:
+
+| quantity scored (requests, 65 true sites) | recall (95% Wilson) | meets the bar |
+|---|---|---|
+| incoming calls, default platform (what a bare pyright run gives) | 58/65 = 0.892 (0.794-0.947) | **no** (point below 0.9, bound below 0.8) |
+| incoming calls, `pythonPlatform: "All"` | 59/65 = 0.908 (0.813-0.957) | yes |
+| union of outgoing and incoming, `pythonPlatform: "All"` | 59/65 = 0.908 (0.813-0.957) | yes (equal to the line above on this repository) |
+| the shipped design: that union plus the constructor-to-class mapping, `"All"` | 65/65 = 1.000 (0.944-1.000), constructors measured as a separate class query | yes, with the caveat that the mapping was not run end to end |
+
+So "met" is true of the quantity the design ships (the union under `pythonPlatform: "All"`, with
+constructor calls recorded against their class) and is **not** true of incoming calls alone on the
+default platform; the 0.892 figure is the one the build must not be read as having cleared. On the
+fixtures the same union scores 20/28 = 0.714 (0.529-0.847), which is below the bar by design: they
+contain the failure cases on purpose, and they are not a rate. If opum-doc scores the bar on the
+fixtures, or on incoming calls alone, it is not met and the alternatives are back on the table.
+The bar is not edited to fit the result; D3 is opum-doc's to rule.
 
 The design follows. Names are proposals for the build slices; nothing here is implemented.
 
@@ -321,9 +356,11 @@ the install hint, never a skipped language.
   applied for a different reason than recall; it is not needed for recall and adds a dependency.
 - **D2. Mixed-language repositories.** Recommended: index one language per run (detection or
   `--language`), say plainly when the other was skipped, and put "index both and merge" after 0.1.0.
-- **D3. The threshold.** The 0.9 recall / 0.8 lower-bound bar above is a proposal. A higher bar
-  needs a second real repository, ideally one without type annotations, measured by the same
-  method before the build slices start.
+- **D3. The threshold, and the quantity it applies to.** The 0.9 recall / 0.8 lower-bound bar above is
+  a proposal, met by the shipped union under `"All"` and not met by incoming calls alone on the default
+  platform or on the fixtures. opum-doc rules on both the bar and which quantity it scores. A higher bar
+  needs a second real repository, ideally one without type annotations, measured by the same method
+  before the build slices start.
 
 ## Consequences
 

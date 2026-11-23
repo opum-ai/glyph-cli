@@ -44,3 +44,8 @@ python3 -I score.py <fx raw> fixtures/expected.json derived/fx_symbols.json /non
 output of `real-allplatform-1` reproduces `results/score-real-allplatform-1.txt` exactly apart from
 timings. `strata.py` additionally needs `derived/targets.json` as `targets.json` in its working
 directory. Re-running the LSP needs `node`, the pinned pyright and the pinned requests checkout.
+
+The union of incoming and outgoing calls and the constructor-site check (ADR 0008, "Outgoing calls,
+and the union") are `union.py` over `results/raw/real-allplatform-1`, `real-out-1`, `fx-all-1`,
+`fx-out-1` with `derived/targets.json` and `derived/fx_targets.json`; the class query is
+`results/raw/cls-1` with `derived/cls_targets.json`.
