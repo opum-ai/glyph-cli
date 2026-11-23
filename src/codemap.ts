@@ -148,6 +148,22 @@ export function noExitStatusReason(timedOut: boolean, signal: string | null): st
 }
 
 /**
+ * The timing a no-exit-status failure carries beside its reason (GCLI-51): how long
+ * the read ran, the timeout it was given, and what the run's budget had left when
+ * it ended. Whether a SIGTERM came from the spawn's own timeout or from outside is
+ * then readable from the message. Exported so the format is asserted directly.
+ */
+export function noExitStatusTiming(
+	elapsedMs: number,
+	timeoutMs: number | undefined,
+	budgetLeftMs: number | null,
+): string {
+	const cap = timeoutMs === undefined ? "no timeout" : `timeout cap ${timeoutMs} ms`;
+	const left = budgetLeftMs === null ? "no budget" : `budget left ${Math.round(budgetLeftMs)} ms`;
+	return `elapsed ${Math.round(elapsedMs)} ms, ${cap}, ${left}`;
+}
+
+/**
  * `--literal-pathspecs` is on every invocation: a task text, a filename or an
  * identifier is data, and no part of it may be re-read by git as a glob or as an
  * option. A read that cannot report a status (a timeout, a failed spawn) is
@@ -158,6 +174,7 @@ function git(repositoryPath: string, args: readonly string[]): GitOutcome {
 	// git's own timeout, the budget cut it off. That is a stop only if the budget really
 	// ran out; a read that died for another reason (a signal, a buffer overflow) is a failure.
 	const { timeout, budgeted } = spawnLimits(GIT_TIMEOUT_MS);
+	const spawnedAt = performance.now();
 	try {
 		const proc = spawnResult("git", ["--literal-pathspecs", ...args], {
 			cwd: repositoryPath,
@@ -166,9 +183,11 @@ function git(repositoryPath: string, args: readonly string[]): GitOutcome {
 			maxBuffer: GIT_MAX_BUFFER,
 		});
 		if (proc.status === null) {
+			const elapsed = performance.now() - spawnedAt;
+			const left = currentGitBudget()?.remaining() ?? null;
 			stopIfBudgetSpent(budgeted);
 			throw indeterminateError(
-				`git ${args[0] ?? ""} did not report an exit status (${noExitStatusReason(proc.timedOut, proc.signal)})`,
+				`git ${args[0] ?? ""} did not report an exit status (${noExitStatusReason(proc.timedOut, proc.signal)}; ${noExitStatusTiming(elapsed, timeout, left)})`,
 			);
 		}
 		return { status: proc.status, stdout: proc.stdout.toString(), stderr: proc.stderr.toString() };
