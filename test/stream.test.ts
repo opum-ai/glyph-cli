@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, setDefaultTimeout, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { codeMapTruncated, produceCodeMap } from "../src/codemap.ts";
 import {
@@ -13,6 +13,11 @@ import { checkStreamStdout, codeMapStreamResultData, streamLine, type StreamSpec
 import { makeScratchRepo, scratchCacheDir, type ScratchRepo } from "./helpers.ts";
 import { STREAM_BATCH_GOLDENS } from "./stream-goldens.ts";
 import { STREAM_BATCH_INVOCATIONS, STREAM_CODEMAP_TASK, STREAM_FIXTURE_FILES } from "./stream-fixtures.ts";
+
+// Several tests run each streaming command cold in a subprocess, one after another.
+// On the Linux runner that took 5.1 s and bun's 5 s default killed the child (glyph-cli#101,
+// Check run 45101379493: exit code null). 60 s leaves headroom without hiding a hang.
+setDefaultTimeout(60_000);
 
 const CLI = new URL("../src/cli.ts", import.meta.url).pathname;
 /** The test-only entry point that installs the fault hook; the shipped CLI does not. */
