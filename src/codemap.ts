@@ -22,7 +22,7 @@ import {
 import { loadRefIndex, symbolHits } from "./codemap-tier3.ts";
 import { GlyphError, indeterminateError, notFoundError, usageError } from "./errors.ts";
 import { BudgetExpired, currentGitBudget, setGitBudget, spawnLimits, stopIfBudgetSpent } from "./git.ts";
-import { spawnResult } from "./spawn.ts";
+import { type SpawnOptions, type SpawnResult, spawnResult } from "./spawn.ts";
 import type { GlyphIndex } from "./types.ts";
 
 /**
@@ -138,6 +138,15 @@ interface GitOutcome {
 }
 
 /**
+ * The spawn one git read uses. `produceCodeMap` always passes the real
+ * `spawnResult`; `produceCodeMapWithSpawn` is the test-only path that injects a
+ * fake, so a test can force a read to come back empty (GCLI-56). Exported only
+ * for a test to type its fake — the CLI entry points (`src/cli.ts`,
+ * `src/program.ts`) never name it.
+ */
+export type GitSpawn = (command: string, args: readonly string[], options?: SpawnOptions) => SpawnResult;
+
+/**
  * Why a git read reported no exit status: the parenthetical in the
  * indeterminate error below. Exported so the three cases can be asserted
  * without provoking a real timeout or signal.
@@ -169,14 +178,14 @@ export function noExitStatusTiming(
  * option. A read that cannot report a status (a timeout, a failed spawn) is
  * indeterminate, never an empty answer.
  */
-function git(repositoryPath: string, args: readonly string[]): GitOutcome {
+function git(repositoryPath: string, args: readonly string[], spawn: GitSpawn = spawnResult): GitOutcome {
 	// A git read never outlives the run's budget: when the time left is shorter than
 	// git's own timeout, the budget cut it off. That is a stop only if the budget really
 	// ran out; a read that died for another reason (a signal, a buffer overflow) is a failure.
 	const { timeout, budgeted } = spawnLimits(GIT_TIMEOUT_MS);
 	const spawnedAt = performance.now();
 	try {
-		const proc = spawnResult("git", ["--literal-pathspecs", ...args], {
+		const proc = spawn("git", ["--literal-pathspecs", ...args], {
 			cwd: repositoryPath,
 			env: { ...process.env, NO_COLOR: "1" },
 			timeout,
@@ -201,20 +210,50 @@ function failed(what: string, outcome: GitOutcome): Error {
 	return indeterminateError(`${what}: ${outcome.stderr.trim().slice(0, 400) || "unknown error"}`);
 }
 
+/** Exit 0 with no output at all: the impossible empty DEC-299 (a5) names. */
+function exitedZeroWithNoOutput(outcome: GitOutcome): boolean {
+	return outcome.status === 0 && outcome.stdout.trim().length === 0;
+}
+
+/**
+ * DEC-299 (a5): a git read whose empty result contradicts a precondition glyph
+ * already holds (a path known to match, an object known to exist) is suspect.
+ * Retry it ONCE; if it is still empty, fail indeterminate naming the read rather
+ * than returning a silent empty. `contradicts` is this read's own test for "this
+ * outcome is that impossible empty"; `message` names the read and the
+ * precondition it contradicted. Reads whose empty is a legitimate answer never
+ * call this: a caller that gates on it has already established the precondition.
+ */
+function readNotEmptyOrIndeterminate(
+	repositoryPath: string,
+	args: readonly string[],
+	spawn: GitSpawn,
+	contradicts: (outcome: GitOutcome) => boolean,
+	message: string,
+): GitOutcome {
+	const first = git(repositoryPath, args, spawn);
+	if (!contradicts(first)) return first;
+	const retried = git(repositoryPath, args, spawn);
+	if (!contradicts(retried)) return retried;
+	throw indeterminateError(message);
+}
+
 /**
  * Resolve the source ref to the commit every read uses. Doing it once is what
  * makes `<ref>:path`, `git grep <commit>` and `merge-base <commit> HEAD` agree
  * inside one run, and it keeps a ref that starts with `-` from being read as an
  * option.
  */
-function resolveSourceRef(repositoryPath: string, sourceRef: string): string {
-	const resolved = git(repositoryPath, [
-		"rev-parse",
-		"--verify",
-		"--quiet",
-		"--end-of-options",
-		`${sourceRef}^{commit}`,
-	]);
+function resolveSourceRef(repositoryPath: string, sourceRef: string, spawn: GitSpawn): string {
+	// A ref that resolved to a commit prints that commit; exit 0 with no output is
+	// impossible, so it is retried once and then indeterminate, never "not found".
+	const resolved = readNotEmptyOrIndeterminate(
+		repositoryPath,
+		["rev-parse", "--verify", "--quiet", "--end-of-options", `${sourceRef}^{commit}`],
+		spawn,
+		exitedZeroWithNoOutput,
+		`git rev-parse returned no output for '${sourceRef}' in ${repositoryPath} although it exited 0`,
+	);
 	const commit = resolved.stdout.trim();
 	if (resolved.status !== 0 || commit.length === 0) {
 		throw notFoundError(`the code map's source ref '${sourceRef}' does not resolve to a commit in ${repositoryPath}`);
@@ -222,8 +261,16 @@ function resolveSourceRef(repositoryPath: string, sourceRef: string): string {
 	return commit;
 }
 
-function isBlobAt(repositoryPath: string, commit: string, path: string): boolean {
-	const result = git(repositoryPath, ["cat-file", "-t", `${commit}:${path}`]);
+function isBlobAt(repositoryPath: string, commit: string, path: string, spawn: GitSpawn): boolean {
+	// `cat-file -t` prints a type on success; exit 0 with no output is impossible.
+	// A non-zero status is the legitimate "no such object at this commit".
+	const result = readNotEmptyOrIndeterminate(
+		repositoryPath,
+		["cat-file", "-t", `${commit}:${path}`],
+		spawn,
+		exitedZeroWithNoOutput,
+		`git cat-file -t returned no output for ${commit}:${path} although it exited 0`,
+	);
 	return result.status === 0 && result.stdout.trim() === "blob";
 }
 
@@ -240,8 +287,17 @@ interface BranchChange {
  * set is empty. Paths come from `--name-only -z` and churn from `--numstat -z`,
  * both with `core.quotepath=false`, so no user config can reshape a path.
  */
-function branchChange(repositoryPath: string, commit: string): BranchChange {
-	const mergeBase = git(repositoryPath, ["merge-base", commit, "HEAD"]);
+function branchChange(repositoryPath: string, commit: string, spawn: GitSpawn): BranchChange {
+	// Exit 1 with NO output is "the histories are unrelated" — a legitimate empty.
+	// Exit 0 with no output is impossible (a merge base is a commit); it is retried
+	// once and then indeterminate.
+	const mergeBase = readNotEmptyOrIndeterminate(
+		repositoryPath,
+		["merge-base", commit, "HEAD"],
+		spawn,
+		exitedZeroWithNoOutput,
+		`git merge-base returned no output for ${commit} HEAD although it exited 0`,
+	);
 	// `merge-base` exits 1 with NO output when the histories are unrelated.
 	// Unrelated means "no branch change against that ref", not a failed read.
 	if (mergeBase.status === 1 && mergeBase.stdout.trim().length === 0) {
@@ -252,9 +308,10 @@ function branchChange(repositoryPath: string, commit: string): BranchChange {
 	if (base.length === 0) return { base: undefined, files: new Map() };
 
 	const common = ["-c", "core.quotepath=false", "diff", ...DIFF_PINS, "--diff-filter=ACMR", base, "HEAD"];
-	const names = git(repositoryPath, [...common, "--name-only", "-z"]);
+	// No changes against the source ref is a legitimate empty: these two are unguarded.
+	const names = git(repositoryPath, [...common, "--name-only", "-z"], spawn);
 	if (names.status !== 0) throw failed("git diff --name-only failed", names);
-	const stats = git(repositoryPath, [...common, "--numstat", "-z"]);
+	const stats = git(repositoryPath, [...common, "--numstat", "-z"], spawn);
 	if (stats.status !== 0) throw failed("git diff --numstat failed", stats);
 
 	const churn = parseNumstat(stats.stdout);
@@ -267,19 +324,18 @@ function branchChange(repositoryPath: string, commit: string): BranchChange {
 }
 
 /** The changed line ranges of one file, from `@@` headers only. */
-function diffRanges(repositoryPath: string, base: string, path: string): Array<[number, number]> {
-	const result = git(repositoryPath, [
-		"-c",
-		"core.quotepath=false",
-		"diff",
-		"--no-color",
-		...DIFF_PINS,
-		"--unified=0",
-		base,
-		"HEAD",
-		"--",
-		path,
-	]);
+function diffRanges(repositoryPath: string, base: string, path: string, spawn: GitSpawn): Array<[number, number]> {
+	// The path is already known changed (it came from the branch's ACMR set), so an
+	// empty diff is impossible and is retried once, then indeterminate. The guard is
+	// on EMPTY OUTPUT, not on empty parsed ranges: a mode-only change prints
+	// `old mode`/`new mode` lines and no hunk headers, which is a legitimate `[]`.
+	const result = readNotEmptyOrIndeterminate(
+		repositoryPath,
+		["-c", "core.quotepath=false", "diff", "--no-color", ...DIFF_PINS, "--unified=0", base, "HEAD", "--", path],
+		spawn,
+		exitedZeroWithNoOutput,
+		`git diff returned no output for ${path} although the file is known changed`,
+	);
 	if (result.status !== 0) throw failed(`git diff failed for ${path}`, result);
 	return parseHunkRanges(result.stdout);
 }
@@ -306,8 +362,16 @@ const GREP_PINS = ["-c", "core.quotepath=true"] as const;
  * `git grep -l` at the source commit: every file containing the literal token,
  * before the per-identifier read bound. The caller slices and reports the bound.
  */
-function grepFiles(repositoryPath: string, commit: string, identifier: string): string[] {
-	const result = git(repositoryPath, [...GREP_PINS, "grep", "--no-color", "-l", "-F", "-e", identifier, commit, "--"]);
+function grepFiles(repositoryPath: string, commit: string, identifier: string, spawn: GitSpawn): string[] {
+	// Exit 0 means "found matches", so exit 0 with no output is impossible and is
+	// retried once, then indeterminate. Exit 1 is a legitimate "no matches".
+	const result = readNotEmptyOrIndeterminate(
+		repositoryPath,
+		[...GREP_PINS, "grep", "--no-color", "-l", "-F", "-e", identifier, commit, "--"],
+		spawn,
+		exitedZeroWithNoOutput,
+		`git grep -l returned no output for \`${identifier}\` although it exited 0`,
+	);
 	// 1 is "no matches", which is an answer; anything else is a broken read.
 	if (result.status === 1) return [];
 	if (result.status !== 0) throw failed(`git grep failed for \`${identifier}\``, result);
@@ -322,19 +386,26 @@ function grepFiles(repositoryPath: string, commit: string, identifier: string): 
 }
 
 /** The line numbers a literal identifier occupies in one file at the source commit. */
-function grepLines(repositoryPath: string, commit: string, identifier: string, path: string): Array<[number, number]> {
-	const result = git(repositoryPath, [
-		...GREP_PINS,
-		"grep",
-		"--no-color",
-		"-n",
-		"-F",
-		"-e",
-		identifier,
-		commit,
-		"--",
-		path,
-	]);
+function grepLines(
+	repositoryPath: string,
+	commit: string,
+	identifier: string,
+	path: string,
+	spawn: GitSpawn,
+): Array<[number, number]> {
+	// Exit 0 means "found lines", so exit 0 with no output is impossible and is
+	// retried once, then indeterminate. Exit 1 is LEFT legitimate: a quoted
+	// non-ASCII path (`"src/caf\303\251.ts"`, from the grep -l tier) does not match
+	// the real file under `--literal-pathspecs`, so git grep -n exits 1 with no
+	// output for it — a genuine "no lines at this exact path", pinned by the
+	// special-paths parity golden (see GREP_PINS above).
+	const result = readNotEmptyOrIndeterminate(
+		repositoryPath,
+		[...GREP_PINS, "grep", "--no-color", "-n", "-F", "-e", identifier, commit, "--", path],
+		spawn,
+		exitedZeroWithNoOutput,
+		`git grep -n returned no output for \`${identifier}\` in ${path} although the path matched`,
+	);
 	if (result.status === 1) return [];
 	if (result.status !== 0) throw failed(`git grep -n failed for \`${identifier}\` in ${path}`, result);
 	const prefix = `${commit}:${path}:`;
@@ -396,6 +467,15 @@ export function setCodeMapTimeBudgetForTests(ms: number | null): void {
 
 /** The code map: named paths, changed files, symbols resolved through the index, identifier matches. */
 export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
+	return produceCodeMapWithSpawn(input, spawnResult);
+}
+
+/**
+ * DEC-299 (a5) test seam: `produceCodeMap` with the git spawn injected, so a test
+ * can force a read to come back empty. The shipped path always goes through
+ * `produceCodeMap`, which passes the real `spawnResult`; the CLI never names this.
+ */
+export function produceCodeMapWithSpawn(input: CodeMapInput, spawn: GitSpawn): CodeMapOutput {
 	const now = input.now ?? (() => performance.now());
 	const budgetMs = input.timeBudgetMs ?? testTimeBudgetMs ?? CODE_MAP_TIME_BUDGET_MS;
 	const startedAt = now();
@@ -407,13 +487,13 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
 	try {
 		let commit: string;
 		try {
-			commit = resolveSourceRef(input.repositoryPath, input.sourceRef);
+			commit = resolveSourceRef(input.repositoryPath, input.sourceRef, spawn);
 		} catch (error) {
 			if (!(error instanceof BudgetExpired)) throw error;
 			// Nothing can be gathered without the commit: no pointers, and the row says why.
 			return { pointers: [], omissions: [timeBudgetRow(budgetMs, "source ref", elapsedMs(), 0)] };
 		}
-		return buildCodeMap(input, commit, budgetMs, elapsedMs);
+		return buildCodeMap(input, commit, budgetMs, elapsedMs, spawn);
 	} finally {
 		setGitBudget(null);
 	}
@@ -435,7 +515,13 @@ function timeBudgetRow(budgetMs: number, stage: string, elapsedMs: number, range
  * repository far larger than the measured ones could overrun (DEC-216 (a10)); the
  * omission then names the stage that overran and carries the elapsed time.
  */
-function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, elapsedMs: () => number): CodeMapOutput {
+function buildCodeMap(
+	input: CodeMapInput,
+	commit: string,
+	budgetMs: number,
+	elapsedMs: () => number,
+	spawn: GitSpawn,
+): CodeMapOutput {
 	const text = input.taskText;
 	const omissions: CodeMapOmission[] = [];
 	let stoppedAt: string | undefined;
@@ -512,7 +598,7 @@ function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, ela
 	}
 	for (const path of namedPaths.slice(0, CODE_MAP_MAX_PATH_CANDIDATES)) {
 		guarded("named paths", () => {
-			if (isBlobAt(input.repositoryPath, commit, path)) {
+			if (isBlobAt(input.repositoryPath, commit, path, spawn)) {
 				add({ path, kind: "task-text-path", detail: "path named in the task text" });
 			}
 		});
@@ -522,7 +608,7 @@ function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, ela
 	// are fetched later, for the files that survive the cap only.
 	let change: BranchChange = { base: undefined, files: new Map() };
 	guarded("branch diff", () => {
-		change = branchChange(input.repositoryPath, commit);
+		change = branchChange(input.repositoryPath, commit, spawn);
 	});
 	for (const [path, changedLines] of change.files) {
 		add({
@@ -569,7 +655,7 @@ function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, ela
 	}
 	for (const identifier of identifiers.slice(0, CODE_MAP_MAX_IDENTIFIERS)) {
 		guarded("identifier grep", () => {
-			const matches = grepFiles(input.repositoryPath, commit, identifier);
+			const matches = grepFiles(input.repositoryPath, commit, identifier, spawn);
 			if (matches.length > CODE_MAP_MAX_FILES_PER_IDENTIFIER) {
 				omissions.push({
 					source: READ_BOUND_SOURCE,
@@ -627,7 +713,7 @@ function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, ela
 		guarded("line ranges", () => {
 			const branchRanges =
 				candidate.fromBranch && change.base !== undefined
-					? diffRanges(input.repositoryPath, change.base, candidate.path)
+					? diffRanges(input.repositoryPath, change.base, candidate.path, spawn)
 					: undefined;
 			ranges =
 				branchRanges !== undefined
@@ -635,7 +721,7 @@ function buildCodeMap(input: CodeMapInput, commit: string, budgetMs: number, ela
 					: mergeRanges([
 							...candidate.symbolRanges,
 							...candidate.identifiers.flatMap((identifier) =>
-								grepLines(input.repositoryPath, commit, identifier, candidate.path),
+								grepLines(input.repositoryPath, commit, identifier, candidate.path, spawn),
 							),
 						]);
 			rangesRead = true;
