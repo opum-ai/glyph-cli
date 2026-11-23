@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { Buffer } from "node:buffer";
-import { chmodSync, mkdtempSync, readFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type GitSpawn, produceCodeMap, produceCodeMapWithSpawn } from "../src/codemap.ts";
@@ -357,12 +357,28 @@ describe("the name-only and numstat reads are a pair: exactly one empty is retri
 		expect(JSON.stringify(output)).toBe(JSON.stringify(clean));
 	});
 
-	test("a mode-only change: git prints a numstat row for it, so the pair is not both-sides-different", () => {
+	test("a branch whose only change is a mode change: names and numstat are both non-empty, each read once", () => {
 		const root = scratchRoot();
-		const repo = branchRepo(root);
+		const repo = makeFixtureRepo(root);
+		repo.git("init", "-q", "-b", "base");
+		repo.write("src/changed.ts", "export const alpha = 1;\n");
+		repo.commit("base");
+		repo.git("checkout", "-q", "-b", "work");
 		chmodSync(join(root, "src/changed.ts"), 0o755);
 		repo.git("add", "-A");
 		repo.git("-c", "commit.gpgsign=false", "commit", "-q", "-m", "mode only");
+		const injected = recorder();
+		const output = mapWith(root, "base", "fix src/changed.ts", injected);
+		expect(output.pointers.some((pointer) => pointer.path === "src/changed.ts")).toBe(true);
+		expect(injected.count(READS.nameOnly)).toBe(1);
+		expect(injected.count(READS.numstat)).toBe(1);
+	});
+
+	test("a binary file in the branch change: numstat prints a row for it, so neither read is retried", () => {
+		const root = scratchRoot();
+		const repo = branchRepo(root);
+		writeFileSync(join(root, "src/blob.bin"), Buffer.from([0, 1, 2, 0, 3]));
+		repo.commit("binary");
 		const injected = recorder();
 		const output = mapWith(root, "base", "fix src/changed.ts", injected);
 		expect(output.pointers.some((pointer) => pointer.path === "src/changed.ts")).toBe(true);
