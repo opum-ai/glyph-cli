@@ -9,6 +9,7 @@
  */
 
 import { EXIT_CODES, EXIT_OK, EXIT_UNCAUGHT, type GlyphErrorType } from "./errors.ts";
+import { registeredLanguages } from "./language.ts";
 
 /** Bumped when the envelope shape changes. */
 export const SCHEMA_VERSION = 1;
@@ -212,14 +213,20 @@ export function streamItemKinds(): string[] {
  * `help.usage` rather than mirroring lore's undotted `version`/`help`.
  * Consumers tolerate unknown kinds, so the names stay Glyph's own.
  */
+/**
+ * The `--language` flag summary, derived from the live registry so the published
+ * help can never name a stale set of languages. Only the flag is published by
+ * `help --json`; which commands accept it is documented, not a manifest field
+ * (the frozen manifest has no slot for output fields).
+ */
+export function languageFlagSummary(): string {
+	return `index this language instead of the one detection picks (registered: ${registeredLanguages().join(", ")})`;
+}
+
 export const GLOBAL_FLAGS: readonly GlobalFlagSpec[] = Object.freeze([
 	{ name: "json", takesValue: false, summary: "emit the machine-readable JSON envelope" },
 	{ name: "repo", takesValue: true, summary: "repository directory to analyze (default: current directory)" },
-	{
-		name: "language",
-		takesValue: true,
-		summary: "index this language instead of the one detection picks (registered: typescript)",
-	},
+	{ name: "language", takesValue: true, summary: languageFlagSummary() },
 	{ name: "version", takesValue: false, summary: "print the version and exit", kind: "version.info" },
 	{ name: "help", takesValue: false, summary: "show help and exit", kind: "help.usage" },
 ]);

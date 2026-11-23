@@ -11,6 +11,7 @@ import {
 	globalKindOf,
 	itemKindOf,
 	kindOf,
+	languageFlagSummary,
 	STREAMING_COMMANDS,
 	successEnvelope,
 } from "./contract.ts";
@@ -25,10 +26,11 @@ import {
 	isDefaultLanguage,
 	type LanguageSelection,
 	registeredLanguages,
+	selectFromPresence,
 	selectLanguage,
 } from "./language.ts";
 import { type CallerSite, callerSites, callersOf, display, resolveSymbol, touchedSymbols } from "./queries.ts";
-import { indexSnapshot, snapshotAtRef, sourceFilesAtRef } from "./snapshot.ts";
+import { indexSnapshot, languageFilesAtRef, snapshotAtRef } from "./snapshot.ts";
 import { codeMapStreamResultData, createStreamWriter, streamResultData } from "./stream.ts";
 import type { GlyphIndex, IndexInfo, SymbolEntry, UnresolvedByKind } from "./types.ts";
 
@@ -117,18 +119,22 @@ function loadIndex(context: Context, ref?: string): LoadedIndex {
 		if (sha === null) {
 			throw notFoundError(`could not resolve '${ref}' to a commit in ${context.repoRoot}`);
 		}
-		// The listing alone is enough to key the cache; the blobs are read only
-		// on a miss, so a hit does not pay for the tree it already holds.
-		const files = sourceFilesAtRef(context.repoRoot, sha);
-		if (files.length === 0) {
-			throw notFoundError(`no TypeScript or JavaScript sources at ${ref} (${shortSha(sha)}) in ${context.repoRoot}`);
-		}
+		// The ref's tree is listed once for both the cache key and the language
+		// coverage: the selection carries the TypeScript files to index and any
+		// recognised non-TypeScript language it cannot, exactly as the working-tree
+		// path does. A Python-only ref is the same exit-3 answer as one at HEAD.
+		const present = languageFilesAtRef(context.repoRoot, sha);
+		const selection = selectFromPresence(present, context.language, {
+			where: `at ${ref} (${shortSha(sha)}) in ${context.repoRoot}`,
+			emptyMessage: `no TypeScript or JavaScript sources at ${ref} (${shortSha(sha)}) in ${context.repoRoot}`,
+		});
+		const files = selection.files;
 		const key = computeRefKey(sha, files);
 		const cached = readCachedIndex(context.repoRoot, key);
-		if (cached !== null) return { index: cached, info: infoOf(cached, "hit"), ref: { ref, sha } };
+		if (cached !== null) return { index: cached, info: infoOf(cached, "hit", selection), ref: { ref, sha } };
 		const index = indexSnapshot(snapshotAtRef(context.repoRoot, sha));
 		writeCachedIndex(context.repoRoot, key, index);
-		return { index, info: infoOf(index, "miss"), ref: { ref, sha } };
+		return { index, info: infoOf(index, "miss", selection), ref: { ref, sha } };
 	}
 	const selection = selectLanguage(context.repoRoot, context.language);
 	const files = selection.files;
@@ -148,7 +154,7 @@ function infoOf(index: GlyphIndex, cache: "hit" | "miss", selection?: LanguageSe
 		sites: index.sites.length,
 	};
 	// The additive language entries are ABSENT on the plain TypeScript answer, so
-	// a repository with no non-TypeScript source keeps its exact bytes.
+	// a repository with no recognised non-TypeScript source keeps its exact bytes.
 	if (selection !== undefined && !isDefaultLanguage(selection)) {
 		info.language = selection.id;
 		if (selection.notIndexed.length > 0) info.notIndexed = selection.notIndexed;
@@ -453,7 +459,7 @@ export function buildProgram(scanned: ScannedArgs): Command {
 		)
 		.version(readVersion(), "-v, --version")
 		.option("--repo <dir>", "repository directory to analyze (default: current directory)")
-		.option("--language <id>", "index this language instead of the one detection picks (registered: typescript)")
+		.option("--language <id>", languageFlagSummary())
 		.option("--json", "emit the machine-readable JSON envelope")
 		// Registered at program level, hidden, so commander extracts it wherever it
 		// appears — exactly as it does `--json` — instead of letting a value option

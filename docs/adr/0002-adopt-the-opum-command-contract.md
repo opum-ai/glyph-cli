@@ -131,31 +131,53 @@ language-per-run (its ruled items 4 and 5) and lists the ones it drafts
 ships, and the shape it takes so a TypeScript-only repository's answers stay
 byte-identical.
 
+**Merge-order note.** ADR 0008 is cited here by name but is absent from this
+bundle at this SHA: it lives on `docs/GCLI-68-adr-0008-native-python` and merges
+after this slice. This amendment therefore links no file whose absence would
+break the docs check.
+
 - **`--language <id>` is a global option**, declared in `GLOBAL_FLAGS` and so
-  published by `glyph help --json` beside `--json` and `--repo`. It selects one
-  language for the run; detection selects one when it is absent. It is accepted
-  only by the commands whose answer is read from the shared index (`callers`,
-  `impact`, `diff`); every other command — `code-map` included, whose tier-3
-  index is a byte-parity contract and does not expose the seam, and `help` and
-  `cache`, which read no index — rejects it as a usage error (exit 2) rather
-  than ignoring it.
+  published by `glyph help --json` beside `--json` and `--repo`; its summary is
+  derived from the live registry, not a second hand-written list. It selects one
+  language for the run; detection selects one when it is absent.
+- **Only `callers`, `impact` and `diff` accept `--language`.** They are the
+  commands whose answer is read from the shared index; every other command —
+  `code-map` included, whose tier-3 index is a byte-parity contract and does not
+  expose the seam, and `help` and `cache`, which read no index — rejects it as a
+  usage error (exit 2) rather than ignoring it. The frozen manifest has no slot
+  for output fields, so `help --json` publishes the flag but **not** a
+  machine-readable statement of which commands accept it; that is documented here
+  and in the README. (This is why acceptance criterion 2 cannot be checked as
+  written: the manifest can only declare the flag, not the per-command
+  acceptance or the output fields the criterion names.)
 - **`language` in the `index` block**: the language whose indexer produced the
-  answer.
+  answer, present only when the answer is not the plain TypeScript default.
 - **`notIndexed` in the `index` block**: the recognised languages present in
   scope with no registered indexer, each as `{language, files}`. The human
   coverage line carries the same fact as a trailing
-  `; language not indexed: <id> (<n> files)`.
+  `; language not indexed: <id> (<n> files)`. Both are carried by the
+  working-tree and the `--ref` answers alike: the `--ref` path counts recognised
+  non-TypeScript files at the ref's tree with the same listing and mode filter.
 - **`not_found` answers name the language** where language selection produced
   them: an explicitly requested, registered language with no files is exit 3
   naming it. An explicitly requested language that is *not* registered is a
-  usage error (exit 2) naming the registered languages, never a silent empty
-  answer (ADR 0008's item 2). A repository whose only recognised language has
-  no indexer is `indeterminate` (exit 7), naming the language and its file
-  count.
-- **On a repository with no non-TypeScript source, every one of these entries is
-  ABSENT** — not `null`, not a constant — so that answer is byte-for-byte what
-  it was before this amendment. A golden captured from the pre-seam build
-  (`test/language-goldens.ts`) holds it.
+  usage error (exit 2) naming the registered languages. A repository whose only
+  recognised language has no indexer is **not_found (exit 3)**, naming the
+  language and its file count — never an empty success (the "never a silent empty
+  answer" rule, DEC-303 item 2 restated as ADR 0008's ruled item 4). This is the
+  same answer with and without `--ref`, and it stands until the S7 slice
+  registers Python indexing.
+- **`--ref` and `code-map` still build TypeScript only**, through
+  `indexSnapshot`; a ref's recognised non-TypeScript files are counted for the
+  coverage entries but are not indexed there. S7 owns wiring Python into both.
+- **On a repository with no recognised non-TypeScript source** (only `.py` counts
+  today), every one of these entries is ABSENT — not `null`, not a constant — so
+  that answer is byte-for-byte what it was before this amendment. A golden
+  captured from the pre-seam build (`test/language-goldens.ts`) holds it.
+- The non-Git discovery walk now also skips `.venv`, `venv`, `__pycache__` and
+  `.tox` (alongside the existing excluded directories), so a nested environment
+  or cache does not inflate the recognised Python count. That changes nothing for
+  a TypeScript-only repository, which the golden continues to show.
 
 The remaining drafted entries — a `decorator` site kind, an
 unresolved-first-party-import count and a per-answer constructor note — are

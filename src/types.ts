@@ -108,8 +108,8 @@ export interface IndexInfo {
 	/**
 	 * The indexed language, present only when the answer is not the plain
 	 * TypeScript default (ADR 0008's additive contract entry). Absent — never
-	 * null, never a constant — on a pure-TypeScript repository, so that answer
-	 * stays byte-identical.
+	 * null, never a constant — on a repository with no recognised non-TypeScript
+	 * source, so that answer stays byte-identical.
 	 */
 	language?: string;
 	/**

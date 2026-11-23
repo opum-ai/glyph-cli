@@ -198,15 +198,23 @@ a later slice of the same decision.
   its indexer lands — is named, with its file count, as not indexed. The human
   coverage line ends `; language not indexed: python (2 files)`, and the JSON
   `index` block carries `language` (the indexed language) and `notIndexed`
-  (`[{language, files}]`). It is never dropped silently.
-- A repository whose only recognised language has no indexer is `indeterminate`
-  (exit 7) rather than an empty answer.
+  (`[{language, files}]`). It is never dropped silently, and the same entries
+  are carried by the `--ref` answer.
+- A repository whose only recognised language has no indexer is `not_found`
+  (exit 3) naming the language and its file count — for example, "no TypeScript
+  or JavaScript sources; python (1 file) not indexed yet" — identical with and
+  without `--ref`, and never an empty answer. This stands until a later slice
+  registers Python indexing.
 - An explicit `--language` naming an unregistered language is a usage error
   (exit 2) listing the registered languages; naming a registered language that
   has no files is `not_found` (exit 3) naming it.
-- When a repository has no non-TypeScript source, the `index` block carries
-  neither `language` nor `notIndexed` — both are omitted, not `null` or a
-  constant — so that answer is byte-for-byte the one earlier releases produced.
+- `--ref` and `code-map` still build TypeScript only; a ref's recognised
+  non-TypeScript files are counted for the coverage entries but not indexed there
+  until a later slice wires Python in.
+- When a repository has no recognised non-TypeScript source (only `.py` counts
+  today), the `index` block carries neither `language` nor `notIndexed` — both
+  are omitted, not `null` or a constant — so that answer is byte-for-byte the one
+  earlier releases produced.
 
 ## Streaming (`--stream`)
 
