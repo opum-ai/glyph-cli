@@ -4,6 +4,9 @@ usage: python3 -I score.py <raw.json> <truth.json> <symbols.json> <srcroot> [--v
 import json, sys, collections, math
 
 raw = json.load(open(sys.argv[1]))
+if raw["stats"]["answered"] == 0 or raw["stats"]["errors"] > 0:
+    print("ERROR: the raw run answered no request or had request errors; refusing to score", file=sys.stderr)
+    sys.exit(2)
 truth = json.load(open(sys.argv[2]))
 symbols = json.load(open(sys.argv[3]))
 srcroot = sys.argv[4]
@@ -63,9 +66,9 @@ for f, lst in want.items():
             extra_decl.append((f, x["name"], x["line"], x["kind"]))
 res["symbols_documentSymbol_recall"] = fmt(found, tot)
 res["symbols_documentSymbol_precision(class/method/function kinds)"] = fmt(sum(1 for f in want for x in raw["symbols"].get(f, []) if x["kind"] in (5, 6, 12)) - len(extra_decl), sum(1 for f in want for x in raw["symbols"].get(f, []) if x["kind"] in (5, 6, 12)))
-res["symbols_missing"] = missing[:20]
-res["symbols_class_kind_mismatch"] = kindmis[:10]
-res["symbols_extra_decl"] = extra_decl[:20]
+res["symbols_missing"] = missing
+res["symbols_class_kind_mismatch"] = kindmis
+res["symbols_extra_decl"] = extra_decl
 
 wfound = wtot = 0
 wmiss = []
@@ -77,7 +80,7 @@ for s in symbols:
     else:
         wmiss.append((s["file"], s["name"], s["line"]))
 res["symbols_workspaceSymbol_recall"] = fmt(wfound, wtot)
-res["symbols_workspaceSymbol_missing_sample"] = wmiss[:10]
+res["symbols_workspaceSymbol_missing"] = wmiss
 
 # ---- calls
 TP = FP = FN = 0
@@ -94,8 +97,8 @@ for key, tr in truth.items():
         continue
     rec = raw["targets"].get(key)
     if rec is None:
-        per.append((key, "NO RECORD"))
-        continue
+        print(f"ERROR: no harness record for target {key}; refusing to score with a smaller denominator", file=sys.stderr)
+        sys.exit(2)
     truelist = collections.Counter(tr["true"])
     poly = collections.Counter(tr.get("poly", []))
     blind = collections.Counter(tr.get("blind", []))
@@ -159,9 +162,45 @@ for d in defs:
             mism.append((d["file"], d["line"], d["name"], "->", nm))
 res["definition_at_call_site_total"] = len(defs)
 res["definition_at_call_site_outcomes"] = dict(cats)
-res["definition_in_package_name_mismatches (hand-review)"] = mism[:15]
+res["definition_in_package_name_mismatches (hand-review)"] = mism
 res["definition_in_package_name_mismatch_count"] = len(mism)
 
+# definition vs ground truth: at every ground-truth call site, does `definition` at a callee of that name resolve
+# to the target's own definition (same file, line within 3)? This catches a same-named wrong target, which the
+# name-mismatch check above cannot.
+tinfo_path = None
+dg_ok = dg_total = 0
+dg_bad = []
+tdefs = collections.defaultdict(list)
+for d in defs:
+    tdefs[(d["file"], d["line"])].append(d)
+tgt_by_key = {}
+if "targets_meta" in raw:
+    tgt_by_key = raw["targets_meta"]
+for key, tr in truth.items():
+    if key in ("_note", "symbols_expected_count"):
+        continue
+    loc, qual = key.split(" ", 1)
+    tfile, tline = loc.rsplit(":", 1)
+    tline = int(tline)
+    simple = qual.split(".")[-1]
+    names = {simple}
+    if simple == "__init__":
+        names.add(qual.split(".")[0])
+    for site in set(tr["true"]):
+        f, l = site.rsplit(":", 1)
+        cands = [d for d in tdefs.get((f, int(l)), []) if d["name"] in names]
+        if not cands:
+            continue  # alias or non-name callee: not checkable by name here
+        for d in cands:
+            dg_total += 1
+            hit = any(t["file"] == tfile and abs(t["line"] - tline) <= 3 for t in d["targets"]) or (simple == "__init__" and d["targets"])
+            if hit:
+                dg_ok += 1
+            else:
+                dg_bad.append((key, site, d["targets"][:2]))
+res["definition_at_true_sites_resolves_to_the_target"] = fmt(dg_ok, dg_total)
+res["definition_at_true_sites_disagreements"] = dg_bad
 res["timing_ms"] = raw["timing"]
 res["latency_ms"] = {k: (None if v is None else {"n": v["n"], "mean": round(v["meanMs"], 1), "max": round(v["maxMs"], 1)}) for k, v in raw["latency"].items()}
 res["stats"] = raw["stats"]

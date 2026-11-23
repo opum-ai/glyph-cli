@@ -1,6 +1,7 @@
+"""Incoming-call recall per sampling stratum. usage: python3 -I strata.py <raw run> <truth.json> <targets.json>"""
 import json, collections, sys, math
-raw = json.load(open(sys.argv[1])); truth = json.load(open("gt3_classified.json")); truth.pop("_note")
-tg = {f'{t["file"]}:{t["line"]} {t["qualname"]}': t["stratum"] for t in json.load(open("targets.json"))}
+raw = json.load(open(sys.argv[1])); truth = json.load(open(sys.argv[2])); truth.pop("_note")
+tg = {f'{t["file"]}:{t["line"]} {t["qualname"]}': t["stratum"] for t in json.load(open(sys.argv[3]))}
 agg = collections.defaultdict(lambda: [0, 0, 0, 0])  # targets, true sites, tp, fp
 for k, v in truth.items():
     rec = raw["targets"][k]

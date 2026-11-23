@@ -1,0 +1,59 @@
+[
+ {
+  "file": "_types.py",
+  "name": "is_prepared",
+  "qualname": "is_prepared",
+  "kind": "function",
+  "category": "function",
+  "line": 47,
+  "col": 4,
+  "decorators": [],
+  "bases": [],
+  "stratum": "alias"
+ },
+ {
+  "file": "exceptions.py",
+  "name": "JSONDecodeError",
+  "qualname": "JSONDecodeError",
+  "kind": "class",
+  "category": "class",
+  "line": 42,
+  "col": 6,
+  "decorators": [],
+  "bases": [
+   "InvalidJSONError",
+   "CompatJSONDecodeError"
+  ],
+  "stratum": "alias"
+ },
+ {
+  "file": "exceptions.py",
+  "name": "SSLError",
+  "qualname": "SSLError",
+  "kind": "class",
+  "category": "class",
+  "line": 78,
+  "col": 6,
+  "decorators": [],
+  "bases": [
+   "ConnectionError"
+  ],
+  "stratum": "alias"
+ },
+ {
+  "file": "_types.py",
+  "name": "SupportsItems",
+  "qualname": "SupportsItems",
+  "kind": "class",
+  "category": "class",
+  "line": 38,
+  "col": 6,
+  "decorators": [
+   "runtime_checkable"
+  ],
+  "bases": [
+   "Protocol[_KT_co, _VT_co]"
+  ],
+  "stratum": "alias"
+ }
+]

@@ -4,125 +4,165 @@
   "name": "helper",
   "qualname": "helper",
   "line": 4,
-  "col": 4
+  "col": 4,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/base.py",
   "name": "speak",
   "qualname": "Animal.speak",
   "line": 22,
-  "col": 8
+  "col": 8,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/base.py",
   "name": "speak",
   "qualname": "Dog.speak",
   "line": 46,
-  "col": 8
+  "col": 8,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/base.py",
   "name": "speak",
   "qualname": "Cat.speak",
   "line": 55,
-  "col": 8
+  "col": 8,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/base.py",
   "name": "__init__",
   "qualname": "Animal.__init__",
   "line": 19,
-  "col": 8
+  "col": 8,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/base.py",
   "name": "__init__",
   "qualname": "Dog.__init__",
   "line": 42,
-  "col": 8
+  "col": 8,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/base.py",
   "name": "create",
   "qualname": "Animal.create",
   "line": 29,
-  "col": 8
+  "col": 8,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/base.py",
   "name": "kingdom",
   "qualname": "Animal.kingdom",
   "line": 33,
-  "col": 8
+  "col": 8,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/base.py",
   "name": "describe",
   "qualname": "Animal.describe",
   "line": 25,
-  "col": 8
+  "col": 8,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/base.py",
   "name": "traced",
   "qualname": "traced",
   "line": 8,
-  "col": 4
+  "col": 4,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/base.py",
   "name": "fetch",
   "qualname": "Dog.fetch",
   "line": 50,
-  "col": 8
+  "col": 8,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/base.py",
   "name": "Animal",
   "qualname": "Animal",
   "line": 16,
-  "col": 6
+  "col": 6,
+  "kind": "class",
+  "bases": []
  },
  {
   "file": "pkg/base.py",
   "name": "Dog",
   "qualname": "Dog",
   "line": 41,
-  "col": 6
+  "col": 6,
+  "kind": "class",
+  "bases": [
+   "Animal"
+  ]
  },
  {
   "file": "pkg/base.py",
   "name": "Cat",
   "qualname": "Cat",
   "line": 54,
-  "col": 6
+  "col": 6,
+  "kind": "class",
+  "bases": [
+   "Animal"
+  ]
  },
  {
   "file": "pkg/use.py",
   "name": "_aw",
   "qualname": "_aw",
   "line": 43,
-  "col": 10
+  "col": 10,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/use.py",
   "name": "run_all",
   "qualname": "run_all",
   "line": 6,
-  "col": 4
+  "col": 4,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/use.py",
   "name": "through_callback",
   "qualname": "through_callback",
   "line": 28,
-  "col": 4
+  "col": 4,
+  "kind": "function",
+  "bases": []
  },
  {
   "file": "pkg/use.py",
   "name": "comprehension",
   "qualname": "comprehension",
   "line": 35,
-  "col": 4
+  "col": 4,
+  "kind": "function",
+  "bases": []
  }
 ]

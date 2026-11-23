@@ -1,0 +1,14 @@
+
+== truth set 1: 18 targets, 28 true sites ==
+set                site recall                        site precision                     targets fully correct       
+incoming           17/28 = 0.607 (0.424-0.764)        17/18 = 0.944 (0.742-0.990)        11/18 = 0.611 (0.386-0.797) 
+outgoing           21/28 = 0.750 (0.566-0.873)        21/21 = 1.000 (0.845-1.000)        14/18 = 0.778 (0.548-0.910) 
+union              21/28 = 0.750 (0.566-0.873)        21/22 = 0.955 (0.782-0.992)        13/18 = 0.722 (0.491-0.875) 
+union + ctor map   25/28 = 0.893 (0.728-0.963)        25/26 = 0.962 (0.811-0.993)        14/18 = 0.778 (0.548-0.910) 
+  differs: pkg/base.py:4 helper | incoming: tp=3 fp=0 fn=3
+  differs: pkg/base.py:55 Cat.speak | incoming: tp=1 fp=1 fn=0; union: tp=1 fp=1 fn=0; union + ctor map: tp=1 fp=1 fn=0
+  differs: pkg/base.py:19 Animal.__init__ | incoming: tp=1 fp=0 fn=4; outgoing: tp=1 fp=0 fn=4; union: tp=1 fp=0 fn=4; union + ctor map: tp=4 fp=0 fn=1
+  differs: pkg/base.py:42 Dog.__init__ | incoming: tp=0 fp=0 fn=1; outgoing: tp=0 fp=0 fn=1; union: tp=0 fp=0 fn=1
+  differs: pkg/base.py:8 traced | incoming: tp=0 fp=0 fn=1; outgoing: tp=0 fp=0 fn=1; union: tp=0 fp=0 fn=1; union + ctor map: tp=0 fp=0 fn=1
+  differs: pkg/base.py:16 Animal | incoming: tp=1 fp=0 fn=1; outgoing: tp=1 fp=0 fn=1; union: tp=1 fp=0 fn=1; union + ctor map: tp=1 fp=0 fn=1
+  differs: pkg/base.py:41 Dog | incoming: tp=0 fp=0 fn=1

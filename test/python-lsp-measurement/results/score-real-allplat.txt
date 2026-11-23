@@ -1,6 +1,6 @@
 {
- "symbols_documentSymbol_recall": "298/320 = 0.931 (95% Wilson 0.898-0.954)",
- "symbols_documentSymbol_precision(class/method/function kinds)": "298/298 = 1.000 (95% Wilson 0.987-1.000)",
+ "symbols_documentSymbol_recall": "300/320 = 0.938 (95% Wilson 0.905-0.959)",
+ "symbols_documentSymbol_precision(class/method/function kinds)": "300/300 = 1.000 (95% Wilson 0.987-1.000)",
  "symbols_missing": [
   [
    "auth.py",
@@ -84,16 +84,6 @@
   ],
   [
    "utils.py",
-   "proxy_bypass_registry",
-   99
-  ],
-  [
-   "utils.py",
-   "proxy_bypass",
-   137
-  ],
-  [
-   "utils.py",
    "to_key_val_list",
    371
   ],
@@ -101,12 +91,22 @@
    "utils.py",
    "to_key_val_list",
    373
+  ],
+  [
+   "utils.py",
+   "iter_slices",
+   614
+  ],
+  [
+   "utils.py",
+   "iter_slices",
+   618
   ]
  ],
  "symbols_class_kind_mismatch": [],
  "symbols_extra_decl": [],
- "symbols_workspaceSymbol_recall": "298/320 = 0.931 (95% Wilson 0.898-0.954)",
- "symbols_workspaceSymbol_missing_sample": [
+ "symbols_workspaceSymbol_recall": "300/320 = 0.938 (95% Wilson 0.905-0.959)",
+ "symbols_workspaceSymbol_missing": [
   [
    "auth.py",
    "__init__",
@@ -156,23 +156,73 @@
    "models.py",
    "_encode_params",
    148
+  ],
+  [
+   "models.py",
+   "iter_content",
+   907
+  ],
+  [
+   "models.py",
+   "iter_content",
+   911
+  ],
+  [
+   "models.py",
+   "iter_lines",
+   980
+  ],
+  [
+   "models.py",
+   "iter_lines",
+   987
+  ],
+  [
+   "structures.py",
+   "get",
+   124
+  ],
+  [
+   "structures.py",
+   "get",
+   127
+  ],
+  [
+   "utils.py",
+   "to_key_val_list",
+   371
+  ],
+  [
+   "utils.py",
+   "to_key_val_list",
+   373
+  ],
+  [
+   "utils.py",
+   "iter_slices",
+   614
+  ],
+  [
+   "utils.py",
+   "iter_slices",
+   618
   ]
  ],
  "calls_duplicate_incoming_sites_removed_before_scoring": 20,
- "calls_incoming_recall": "58/65 = 0.892 (95% Wilson 0.794-0.947)",
- "calls_incoming_precision": "58/58 = 1.000 (95% Wilson 0.938-1.000)",
+ "calls_incoming_recall": "59/65 = 0.908 (95% Wilson 0.813-0.957)",
+ "calls_incoming_precision": "59/59 = 1.000 (95% Wilson 0.939-1.000)",
  "calls_poly_sites_counted_neutral": 0,
  "calls_blind_sites_found_by_pyright": 0,
  "calls_targets_with_true_sites": 37,
  "calls_negative_targets (no true site)": "9/9 returned no false site",
- "calls_prepareCallHierarchy_null_targets": 1,
- "references_recall_over_true_call_sites": "58/65 = 0.892 (95% Wilson 0.794-0.947)",
+ "calls_prepareCallHierarchy_null_targets": 0,
+ "references_recall_over_true_call_sites": "59/65 = 0.908 (95% Wilson 0.813-0.957)",
  "references_extras_not_true_calls (hand-classify)": 40,
  "definition_at_call_site_total": 1028,
  "definition_at_call_site_outcomes": {
-  "external": 650,
-  "in-package": 312,
-  "none": 66,
+  "external": 657,
+  "in-package": 314,
+  "none": 57,
   "in-package, not at a def (variable/import/alias)": 22
  },
  "definition_in_package_name_mismatches (hand-review)": [
@@ -269,56 +319,58 @@
   ]
  ],
  "definition_in_package_name_mismatch_count": 13,
+ "definition_at_true_sites_resolves_to_the_target": "65/65 = 1.000 (95% Wilson 0.944-1.000)",
+ "definition_at_true_sites_disagreements": [],
  "timing_ms": {
-  "initMs": 81.78625000000001,
-  "firstAllDocumentSymbolsMs": 187.717333,
-  "totalMs": 3979.208125
+  "initMs": 78.067333,
+  "firstAllDocumentSymbolsMs": 171.80266699999999,
+  "totalMs": 3686.0105
  },
  "latency_ms": {
   "initialize": {
    "n": 1,
-   "mean": 81.6,
-   "max": 81.6
+   "mean": 77.9,
+   "max": 77.9
   },
   "textDocument/documentSymbol": {
    "n": 19,
-   "mean": 9.8,
-   "max": 123.3
+   "mean": 9.0,
+   "max": 116.7
   },
   "workspace/symbol": {
    "n": 242,
    "mean": 0.5,
-   "max": 2.9
+   "max": 4.0
   },
   "textDocument/prepareCallHierarchy": {
-   "n": 46,
-   "mean": 0.2,
-   "max": 1.1
+   "n": 320,
+   "mean": 0.1,
+   "max": 15.4
   },
   "callHierarchy/incomingCalls": {
-   "n": 45,
-   "mean": 16.6,
-   "max": 214.0
+   "n": 52,
+   "mean": 14.2,
+   "max": 207.8
   },
   "callHierarchy/outgoingCalls": {
-   "n": 45,
-   "mean": 5.5,
-   "max": 84.0
+   "n": 320,
+   "mean": 1.1,
+   "max": 78.7
   },
   "textDocument/references": {
-   "n": 46,
-   "mean": 3.4,
-   "max": 119.2
+   "n": 52,
+   "mean": 0.7,
+   "max": 2.0
   },
   "textDocument/definition": {
    "n": 1028,
-   "mean": 2.3,
-   "max": 24.0
+   "mean": 2.1,
+   "max": 21.9
   }
  },
  "stats": {
-  "requests": 1472,
-  "answered": 1472,
+  "requests": 2034,
+  "answered": 2034,
   "errors": 0,
   "serverStderr": ""
  }
@@ -333,8 +385,7 @@ utils.py:373 to_key_val_list | true=5 pyright_incoming=5 tp=5 fp=0 fn=0 poly_ok=
 utils.py:1098 _validate_header_part | true=2 pyright_incoming=2 tp=2 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=2 refs_tp=2
 cookies.py:494 create_cookie | true=3 pyright_incoming=3 tp=3 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=3 refs_tp=3
 __init__.py:99 _check_cryptography | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
-utils.py:99 proxy_bypass_registry | true=1 pyright_incoming=0 tp=0 fp=0 fn=1 poly_ok=0 blind_found=0 prepared=NULL refs=0 refs_tp=0
-     ('MISSED', 'utils.py:146')
+utils.py:99 proxy_bypass_registry | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
 utils.py:704 requote_uri | true=3 pyright_incoming=3 tp=3 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=5 refs_tp=3
 sessions.py:334 SessionRedirectMixin.rebuild_proxies | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
 models.py:360 Request.prepare | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0

@@ -1,5 +1,7 @@
 // LSP measurement harness (GCLI-66, DEC-303). Drives pyright-langserver --stdio over JSON-RPC.
-// usage: node harness.mjs <rootDir> <targets.json> <allcalls.json|-> <symbols.json> <openMode: all|none> <out.json> [srcSubdir]
+// usage: PYRIGHT_LANGSERVER=<path to pyright-langserver> node harness.mjs <rootDir> <targets.json> <allcalls.json|-> <symbols.json> <openMode: all|none> <out.json> [srcSubdir]
+// OUT_ALL=1 adds the per-symbol outgoingCalls pass. Exits non-zero if no request was answered, if any request errored,
+// or if every prepareCallHierarchy returned null (the stated controls).
 import { spawn } from "node:child_process";
 import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
@@ -8,7 +10,8 @@ import { pathToFileURL, fileURLToPath } from "node:url";
 const [root0, targetsPath, allcallsPath, symbolsPath, openMode, outPath, srcSub = ""] = process.argv.slice(2);
 const root = resolve(root0);
 const srcDir = join(root, srcSub);
-const BIN = "/private/tmp/claude-501/-Volumes-external-repos-glyph-cli/f49f7d09-3ac6-45aa-b911-af683fb9e242/scratchpad/py/npm/node_modules/.bin/pyright-langserver";
+const BIN = process.env.PYRIGHT_LANGSERVER;
+if (!BIN) throw new Error("set PYRIGHT_LANGSERVER to the pyright-langserver executable");
 
 function listPy(dir, base = dir) {
 	let out = [];
@@ -177,5 +180,8 @@ out.latency = Object.fromEntries(Object.entries(stats.latencies).map(([k, v]) =>
 writeFileSync(outPath, JSON.stringify(out, null, 1));
 await request("shutdown", null).catch(() => {});
 notify("exit", null);
-setTimeout(() => process.exit(0), 200);
-console.log(`ok ${outPath} requests=${stats.requests} answered=${stats.answered} errors=${stats.errors} totalMs=${Math.round(out.timing.totalMs)}`);
+const prepNull = Object.values(out.targets).filter((t) => !t.prepared).length;
+const nTargets = Object.keys(out.targets).length;
+const failed = stats.answered === 0 || stats.errors > 0 || (nTargets > 0 && prepNull === nTargets);
+console.log(`${failed ? "FAILED" : "ok"} ${outPath} requests=${stats.requests} answered=${stats.answered} errors=${stats.errors} prepareNull=${prepNull}/${nTargets} totalMs=${Math.round(out.timing.totalMs)}`);
+setTimeout(() => process.exit(failed ? 1 : 0), 200);

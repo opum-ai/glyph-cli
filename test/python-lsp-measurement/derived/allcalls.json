@@ -1,0 +1,9263 @@
+[
+ {
+  "file": "__init__.py",
+  "line": 65,
+  "col": 43,
+  "name": "split",
+  "form": "attr",
+  "callee": "urllib3_version.split",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 69,
+  "col": 7,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 70,
+  "col": 29,
+  "name": "append",
+  "form": "attr",
+  "callee": "urllib3_version_list.append",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 74,
+  "col": 26,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 74,
+  "col": 38,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 74,
+  "col": 50,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 82,
+  "col": 46,
+  "name": "split",
+  "form": "attr",
+  "callee": "chardet_version.split",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 83,
+  "col": 30,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 83,
+  "col": 42,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 83,
+  "col": 54,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 87,
+  "col": 57,
+  "name": "split",
+  "form": "attr",
+  "callee": "charset_normalizer_version.split",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 88,
+  "col": 30,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 88,
+  "col": 42,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 88,
+  "col": 54,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 92,
+  "col": 17,
+  "name": "warn",
+  "form": "attr",
+  "callee": "warnings.warn",
+  "in": "check_compatibility"
+ },
+ {
+  "file": "__init__.py",
+  "line": 102,
+  "col": 36,
+  "name": "list",
+  "form": "name",
+  "callee": "list",
+  "in": "_check_cryptography"
+ },
+ {
+  "file": "__init__.py",
+  "line": 102,
+  "col": 41,
+  "name": "map",
+  "form": "name",
+  "callee": "map",
+  "in": "_check_cryptography"
+ },
+ {
+  "file": "__init__.py",
+  "line": 102,
+  "col": 71,
+  "name": "split",
+  "form": "attr",
+  "callee": "cryptography_version.split",
+  "in": "_check_cryptography"
+ },
+ {
+  "file": "__init__.py",
+  "line": 108,
+  "col": 17,
+  "name": "warn",
+  "form": "attr",
+  "callee": "warnings.warn",
+  "in": "_check_cryptography"
+ },
+ {
+  "file": "__init__.py",
+  "line": 113,
+  "col": 4,
+  "name": "check_compatibility",
+  "form": "name",
+  "callee": "check_compatibility",
+  "in": ""
+ },
+ {
+  "file": "__init__.py",
+  "line": 119,
+  "col": 13,
+  "name": "warn",
+  "form": "attr",
+  "callee": "warnings.warn",
+  "in": ""
+ },
+ {
+  "file": "__init__.py",
+  "line": 135,
+  "col": 11,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": ""
+ },
+ {
+  "file": "__init__.py",
+  "line": 138,
+  "col": 18,
+  "name": "inject_into_urllib3",
+  "form": "attr",
+  "callee": "pyopenssl.inject_into_urllib3",
+  "in": ""
+ },
+ {
+  "file": "__init__.py",
+  "line": 145,
+  "col": 8,
+  "name": "_check_cryptography",
+  "form": "name",
+  "callee": "_check_cryptography",
+  "in": ""
+ },
+ {
+  "file": "__init__.py",
+  "line": 152,
+  "col": 9,
+  "name": "simplefilter",
+  "form": "attr",
+  "callee": "warnings.simplefilter",
+  "in": ""
+ },
+ {
+  "file": "__init__.py",
+  "line": 216,
+  "col": 28,
+  "name": "addHandler",
+  "form": "attr",
+  "callee": "logging.getLogger(__name__).addHandler",
+  "in": ""
+ },
+ {
+  "file": "__init__.py",
+  "line": 216,
+  "col": 8,
+  "name": "getLogger",
+  "form": "attr",
+  "callee": "logging.getLogger",
+  "in": ""
+ },
+ {
+  "file": "__init__.py",
+  "line": 216,
+  "col": 39,
+  "name": "NullHandler",
+  "form": "name",
+  "callee": "NullHandler",
+  "in": ""
+ },
+ {
+  "file": "__init__.py",
+  "line": 219,
+  "col": 9,
+  "name": "simplefilter",
+  "form": "attr",
+  "callee": "warnings.simplefilter",
+  "in": ""
+ },
+ {
+  "file": "_internal_utils.py",
+  "line": 13,
+  "col": 32,
+  "name": "compile",
+  "form": "attr",
+  "callee": "re.compile",
+  "in": ""
+ },
+ {
+  "file": "_internal_utils.py",
+  "line": 14,
+  "col": 31,
+  "name": "compile",
+  "form": "attr",
+  "callee": "re.compile",
+  "in": ""
+ },
+ {
+  "file": "_internal_utils.py",
+  "line": 15,
+  "col": 33,
+  "name": "compile",
+  "form": "attr",
+  "callee": "re.compile",
+  "in": ""
+ },
+ {
+  "file": "_internal_utils.py",
+  "line": 16,
+  "col": 32,
+  "name": "compile",
+  "form": "attr",
+  "callee": "re.compile",
+  "in": ""
+ },
+ {
+  "file": "_internal_utils.py",
+  "line": 31,
+  "col": 7,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "to_native_string"
+ },
+ {
+  "file": "_internal_utils.py",
+  "line": 34,
+  "col": 21,
+  "name": "decode",
+  "form": "attr",
+  "callee": "string.decode",
+  "in": "to_native_string"
+ },
+ {
+  "file": "_internal_utils.py",
+  "line": 46,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "unicode_is_ascii"
+ },
+ {
+  "file": "_internal_utils.py",
+  "line": 48,
+  "col": 17,
+  "name": "encode",
+  "form": "attr",
+  "callee": "u_string.encode",
+  "in": "unicode_is_ascii"
+ },
+ {
+  "file": "_types.py",
+  "line": 22,
+  "col": 8,
+  "name": "TypeVar",
+  "form": "name",
+  "callee": "TypeVar",
+  "in": ""
+ },
+ {
+  "file": "_types.py",
+  "line": 23,
+  "col": 9,
+  "name": "TypeVar",
+  "form": "name",
+  "callee": "TypeVar",
+  "in": ""
+ },
+ {
+  "file": "_types.py",
+  "line": 24,
+  "col": 9,
+  "name": "TypeVar",
+  "form": "name",
+  "callee": "TypeVar",
+  "in": ""
+ },
+ {
+  "file": "_types.py",
+  "line": 34,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "has_read"
+ },
+ {
+  "file": "_types.py",
+  "line": 34,
+  "col": 44,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "has_read"
+ },
+ {
+  "file": "adapters.py",
+  "line": 67,
+  "col": 14,
+  "name": "InvalidSchema",
+  "form": "name",
+  "callee": "InvalidSchema",
+  "in": "SOCKSProxyManager"
+ },
+ {
+  "file": "adapters.py",
+  "line": 93,
+  "col": 25,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "_urllib3_request_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 94,
+  "col": 39,
+  "name": "lower",
+  "form": "attr",
+  "callee": "parsed_request_url.scheme.lower",
+  "in": "_urllib3_request_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 100,
+  "col": 9,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "_urllib3_request_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 101,
+  "col": 23,
+  "name": "isdir",
+  "form": "attr",
+  "callee": "os.path.isdir",
+  "in": "_urllib3_request_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 107,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "_urllib3_request_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 107,
+  "col": 46,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "_urllib3_request_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 126,
+  "col": 16,
+  "name": "__init__",
+  "form": "attr",
+  "callee": "super().__init__",
+  "in": "BaseAdapter.__init__"
+ },
+ {
+  "file": "adapters.py",
+  "line": 126,
+  "col": 8,
+  "name": "super",
+  "form": "name",
+  "callee": "super",
+  "in": "BaseAdapter.__init__"
+ },
+ {
+  "file": "adapters.py",
+  "line": 209,
+  "col": 31,
+  "name": "Retry",
+  "form": "name",
+  "callee": "Retry",
+  "in": "HTTPAdapter.__init__"
+ },
+ {
+  "file": "adapters.py",
+  "line": 211,
+  "col": 37,
+  "name": "from_int",
+  "form": "attr",
+  "callee": "Retry.from_int",
+  "in": "HTTPAdapter.__init__"
+ },
+ {
+  "file": "adapters.py",
+  "line": 215,
+  "col": 16,
+  "name": "__init__",
+  "form": "attr",
+  "callee": "super().__init__",
+  "in": "HTTPAdapter.__init__"
+ },
+ {
+  "file": "adapters.py",
+  "line": 215,
+  "col": 8,
+  "name": "super",
+  "form": "name",
+  "callee": "super",
+  "in": "HTTPAdapter.__init__"
+ },
+ {
+  "file": "adapters.py",
+  "line": 221,
+  "col": 13,
+  "name": "init_poolmanager",
+  "form": "attr",
+  "callee": "self.init_poolmanager",
+  "in": "HTTPAdapter.__init__"
+ },
+ {
+  "file": "adapters.py",
+  "line": 224,
+  "col": 22,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "HTTPAdapter.__getstate__"
+ },
+ {
+  "file": "adapters.py",
+  "line": 232,
+  "col": 33,
+  "name": "items",
+  "form": "attr",
+  "callee": "state.items",
+  "in": "HTTPAdapter.__setstate__"
+ },
+ {
+  "file": "adapters.py",
+  "line": 233,
+  "col": 12,
+  "name": "setattr",
+  "form": "name",
+  "callee": "setattr",
+  "in": "HTTPAdapter.__setstate__"
+ },
+ {
+  "file": "adapters.py",
+  "line": 235,
+  "col": 13,
+  "name": "init_poolmanager",
+  "form": "attr",
+  "callee": "self.init_poolmanager",
+  "in": "HTTPAdapter.__setstate__"
+ },
+ {
+  "file": "adapters.py",
+  "line": 262,
+  "col": 27,
+  "name": "PoolManager",
+  "form": "name",
+  "callee": "PoolManager",
+  "in": "HTTPAdapter.init_poolmanager"
+ },
+ {
+  "file": "adapters.py",
+  "line": 283,
+  "col": 27,
+  "name": "startswith",
+  "form": "attr",
+  "callee": "proxy.lower().startswith",
+  "in": "HTTPAdapter.proxy_manager_for"
+ },
+ {
+  "file": "adapters.py",
+  "line": 283,
+  "col": 19,
+  "name": "lower",
+  "form": "attr",
+  "callee": "proxy.lower",
+  "in": "HTTPAdapter.proxy_manager_for"
+ },
+ {
+  "file": "adapters.py",
+  "line": 284,
+  "col": 33,
+  "name": "get_auth_from_url",
+  "form": "name",
+  "callee": "get_auth_from_url",
+  "in": "HTTPAdapter.proxy_manager_for"
+ },
+ {
+  "file": "adapters.py",
+  "line": 285,
+  "col": 50,
+  "name": "SOCKSProxyManager",
+  "form": "name",
+  "callee": "SOCKSProxyManager",
+  "in": "HTTPAdapter.proxy_manager_for"
+ },
+ {
+  "file": "adapters.py",
+  "line": 295,
+  "col": 33,
+  "name": "proxy_headers",
+  "form": "attr",
+  "callee": "self.proxy_headers",
+  "in": "HTTPAdapter.proxy_manager_for"
+ },
+ {
+  "file": "adapters.py",
+  "line": 296,
+  "col": 50,
+  "name": "proxy_from_url",
+  "form": "name",
+  "callee": "proxy_from_url",
+  "in": "HTTPAdapter.proxy_manager_for"
+ },
+ {
+  "file": "adapters.py",
+  "line": 321,
+  "col": 23,
+  "name": "startswith",
+  "form": "attr",
+  "callee": "url.lower().startswith",
+  "in": "HTTPAdapter.cert_verify"
+ },
+ {
+  "file": "adapters.py",
+  "line": 321,
+  "col": 15,
+  "name": "lower",
+  "form": "attr",
+  "callee": "url.lower",
+  "in": "HTTPAdapter.cert_verify"
+ },
+ {
+  "file": "adapters.py",
+  "line": 331,
+  "col": 43,
+  "name": "exists",
+  "form": "attr",
+  "callee": "os.path.exists",
+  "in": "HTTPAdapter.cert_verify"
+ },
+ {
+  "file": "adapters.py",
+  "line": 332,
+  "col": 22,
+  "name": "OSError",
+  "form": "name",
+  "callee": "OSError",
+  "in": "HTTPAdapter.cert_verify"
+ },
+ {
+  "file": "adapters.py",
+  "line": 339,
+  "col": 27,
+  "name": "isdir",
+  "form": "attr",
+  "callee": "os.path.isdir",
+  "in": "HTTPAdapter.cert_verify"
+ },
+ {
+  "file": "adapters.py",
+  "line": 349,
+  "col": 19,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPAdapter.cert_verify"
+ },
+ {
+  "file": "adapters.py",
+  "line": 355,
+  "col": 46,
+  "name": "exists",
+  "form": "attr",
+  "callee": "os.path.exists",
+  "in": "HTTPAdapter.cert_verify"
+ },
+ {
+  "file": "adapters.py",
+  "line": 356,
+  "col": 22,
+  "name": "OSError",
+  "form": "name",
+  "callee": "OSError",
+  "in": "HTTPAdapter.cert_verify"
+ },
+ {
+  "file": "adapters.py",
+  "line": 360,
+  "col": 45,
+  "name": "exists",
+  "form": "attr",
+  "callee": "os.path.exists",
+  "in": "HTTPAdapter.cert_verify"
+ },
+ {
+  "file": "adapters.py",
+  "line": 361,
+  "col": 22,
+  "name": "OSError",
+  "form": "name",
+  "callee": "OSError",
+  "in": "HTTPAdapter.cert_verify"
+ },
+ {
+  "file": "adapters.py",
+  "line": 375,
+  "col": 15,
+  "name": "_is_prepared",
+  "form": "name",
+  "callee": "_is_prepared",
+  "in": "HTTPAdapter.build_response"
+ },
+ {
+  "file": "adapters.py",
+  "line": 376,
+  "col": 19,
+  "name": "Response",
+  "form": "name",
+  "callee": "Response",
+  "in": "HTTPAdapter.build_response"
+ },
+ {
+  "file": "adapters.py",
+  "line": 379,
+  "col": 31,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "HTTPAdapter.build_response"
+ },
+ {
+  "file": "adapters.py",
+  "line": 382,
+  "col": 27,
+  "name": "CaseInsensitiveDict",
+  "form": "name",
+  "callee": "CaseInsensitiveDict",
+  "in": "HTTPAdapter.build_response"
+ },
+ {
+  "file": "adapters.py",
+  "line": 382,
+  "col": 47,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "HTTPAdapter.build_response"
+ },
+ {
+  "file": "adapters.py",
+  "line": 385,
+  "col": 28,
+  "name": "get_encoding_from_headers",
+  "form": "name",
+  "callee": "get_encoding_from_headers",
+  "in": "HTTPAdapter.build_response"
+ },
+ {
+  "file": "adapters.py",
+  "line": 389,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPAdapter.build_response"
+ },
+ {
+  "file": "adapters.py",
+  "line": 390,
+  "col": 35,
+  "name": "decode",
+  "form": "attr",
+  "callee": "req.url.decode",
+  "in": "HTTPAdapter.build_response"
+ },
+ {
+  "file": "adapters.py",
+  "line": 395,
+  "col": 8,
+  "name": "extract_cookies_to_jar",
+  "form": "name",
+  "callee": "extract_cookies_to_jar",
+  "in": "HTTPAdapter.build_response"
+ },
+ {
+  "file": "adapters.py",
+  "line": 453,
+  "col": 15,
+  "name": "_urllib3_request_context",
+  "form": "name",
+  "callee": "_urllib3_request_context",
+  "in": "HTTPAdapter.build_connection_pool_key_attributes"
+ },
+ {
+  "file": "adapters.py",
+  "line": 481,
+  "col": 15,
+  "name": "_is_prepared",
+  "form": "name",
+  "callee": "_is_prepared",
+  "in": "HTTPAdapter.get_connection_with_tls_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 483,
+  "col": 16,
+  "name": "select_proxy",
+  "form": "name",
+  "callee": "select_proxy",
+  "in": "HTTPAdapter.get_connection_with_tls_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 485,
+  "col": 44,
+  "name": "build_connection_pool_key_attributes",
+  "form": "attr",
+  "callee": "self.build_connection_pool_key_attributes",
+  "in": "HTTPAdapter.get_connection_with_tls_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 491,
+  "col": 18,
+  "name": "InvalidURL",
+  "form": "name",
+  "callee": "InvalidURL",
+  "in": "HTTPAdapter.get_connection_with_tls_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 493,
+  "col": 20,
+  "name": "prepend_scheme_if_needed",
+  "form": "name",
+  "callee": "prepend_scheme_if_needed",
+  "in": "HTTPAdapter.get_connection_with_tls_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 494,
+  "col": 24,
+  "name": "parse_url",
+  "form": "name",
+  "callee": "parse_url",
+  "in": "HTTPAdapter.get_connection_with_tls_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 496,
+  "col": 22,
+  "name": "InvalidProxyURL",
+  "form": "name",
+  "callee": "InvalidProxyURL",
+  "in": "HTTPAdapter.get_connection_with_tls_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 500,
+  "col": 33,
+  "name": "proxy_manager_for",
+  "form": "attr",
+  "callee": "self.proxy_manager_for",
+  "in": "HTTPAdapter.get_connection_with_tls_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 501,
+  "col": 33,
+  "name": "connection_from_host",
+  "form": "attr",
+  "callee": "proxy_manager.connection_from_host",
+  "in": "HTTPAdapter.get_connection_with_tls_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 506,
+  "col": 36,
+  "name": "connection_from_host",
+  "form": "attr",
+  "callee": "self.poolmanager.connection_from_host",
+  "in": "HTTPAdapter.get_connection_with_tls_context"
+ },
+ {
+  "file": "adapters.py",
+  "line": 526,
+  "col": 17,
+  "name": "warn",
+  "form": "attr",
+  "callee": "warnings.warn",
+  "in": "HTTPAdapter.get_connection"
+ },
+ {
+  "file": "adapters.py",
+  "line": 535,
+  "col": 16,
+  "name": "select_proxy",
+  "form": "name",
+  "callee": "select_proxy",
+  "in": "HTTPAdapter.get_connection"
+ },
+ {
+  "file": "adapters.py",
+  "line": 538,
+  "col": 20,
+  "name": "prepend_scheme_if_needed",
+  "form": "name",
+  "callee": "prepend_scheme_if_needed",
+  "in": "HTTPAdapter.get_connection"
+ },
+ {
+  "file": "adapters.py",
+  "line": 539,
+  "col": 24,
+  "name": "parse_url",
+  "form": "name",
+  "callee": "parse_url",
+  "in": "HTTPAdapter.get_connection"
+ },
+ {
+  "file": "adapters.py",
+  "line": 541,
+  "col": 22,
+  "name": "InvalidProxyURL",
+  "form": "name",
+  "callee": "InvalidProxyURL",
+  "in": "HTTPAdapter.get_connection"
+ },
+ {
+  "file": "adapters.py",
+  "line": 545,
+  "col": 33,
+  "name": "proxy_manager_for",
+  "form": "attr",
+  "callee": "self.proxy_manager_for",
+  "in": "HTTPAdapter.get_connection"
+ },
+ {
+  "file": "adapters.py",
+  "line": 546,
+  "col": 33,
+  "name": "connection_from_url",
+  "form": "attr",
+  "callee": "proxy_manager.connection_from_url",
+  "in": "HTTPAdapter.get_connection"
+ },
+ {
+  "file": "adapters.py",
+  "line": 549,
+  "col": 21,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "HTTPAdapter.get_connection"
+ },
+ {
+  "file": "adapters.py",
+  "line": 550,
+  "col": 25,
+  "name": "geturl",
+  "form": "attr",
+  "callee": "parsed.geturl",
+  "in": "HTTPAdapter.get_connection"
+ },
+ {
+  "file": "adapters.py",
+  "line": 551,
+  "col": 36,
+  "name": "connection_from_url",
+  "form": "attr",
+  "callee": "self.poolmanager.connection_from_url",
+  "in": "HTTPAdapter.get_connection"
+ },
+ {
+  "file": "adapters.py",
+  "line": 561,
+  "col": 25,
+  "name": "clear",
+  "form": "attr",
+  "callee": "self.poolmanager.clear",
+  "in": "HTTPAdapter.close"
+ },
+ {
+  "file": "adapters.py",
+  "line": 562,
+  "col": 40,
+  "name": "values",
+  "form": "attr",
+  "callee": "self.proxy_manager.values",
+  "in": "HTTPAdapter.close"
+ },
+ {
+  "file": "adapters.py",
+  "line": 563,
+  "col": 18,
+  "name": "clear",
+  "form": "attr",
+  "callee": "proxy.clear",
+  "in": "HTTPAdapter.close"
+ },
+ {
+  "file": "adapters.py",
+  "line": 581,
+  "col": 15,
+  "name": "_is_prepared",
+  "form": "name",
+  "callee": "_is_prepared",
+  "in": "HTTPAdapter.request_url"
+ },
+ {
+  "file": "adapters.py",
+  "line": 583,
+  "col": 16,
+  "name": "select_proxy",
+  "form": "name",
+  "callee": "select_proxy",
+  "in": "HTTPAdapter.request_url"
+ },
+ {
+  "file": "adapters.py",
+  "line": 584,
+  "col": 17,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "HTTPAdapter.request_url"
+ },
+ {
+  "file": "adapters.py",
+  "line": 589,
+  "col": 50,
+  "name": "lower",
+  "form": "attr",
+  "callee": "urlparse(proxy).scheme.lower",
+  "in": "HTTPAdapter.request_url"
+ },
+ {
+  "file": "adapters.py",
+  "line": 589,
+  "col": 27,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "HTTPAdapter.request_url"
+ },
+ {
+  "file": "adapters.py",
+  "line": 590,
+  "col": 45,
+  "name": "startswith",
+  "form": "attr",
+  "callee": "proxy_scheme.startswith",
+  "in": "HTTPAdapter.request_url"
+ },
+ {
+  "file": "adapters.py",
+  "line": 595,
+  "col": 18,
+  "name": "urldefragauth",
+  "form": "name",
+  "callee": "urldefragauth",
+  "in": "HTTPAdapter.request_url"
+ },
+ {
+  "file": "adapters.py",
+  "line": 627,
+  "col": 29,
+  "name": "get_auth_from_url",
+  "form": "name",
+  "callee": "get_auth_from_url",
+  "in": "HTTPAdapter.proxy_headers"
+ },
+ {
+  "file": "adapters.py",
+  "line": 630,
+  "col": 45,
+  "name": "_basic_auth_str",
+  "form": "name",
+  "callee": "_basic_auth_str",
+  "in": "HTTPAdapter.proxy_headers"
+ },
+ {
+  "file": "adapters.py",
+  "line": 659,
+  "col": 15,
+  "name": "_is_prepared",
+  "form": "name",
+  "callee": "_is_prepared",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 662,
+  "col": 24,
+  "name": "get_connection_with_tls_context",
+  "form": "attr",
+  "callee": "self.get_connection_with_tls_context",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 666,
+  "col": 18,
+  "name": "InvalidURL",
+  "form": "name",
+  "callee": "InvalidURL",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 668,
+  "col": 13,
+  "name": "cert_verify",
+  "form": "attr",
+  "callee": "self.cert_verify",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 669,
+  "col": 19,
+  "name": "request_url",
+  "form": "attr",
+  "callee": "self.request_url",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 670,
+  "col": 13,
+  "name": "add_headers",
+  "form": "attr",
+  "callee": "self.add_headers",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 681,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 684,
+  "col": 35,
+  "name": "TimeoutSauce",
+  "form": "name",
+  "callee": "TimeoutSauce",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 686,
+  "col": 22,
+  "name": "ValueError",
+  "form": "name",
+  "callee": "ValueError",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 690,
+  "col": 13,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 693,
+  "col": 31,
+  "name": "TimeoutSauce",
+  "form": "name",
+  "callee": "TimeoutSauce",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 696,
+  "col": 24,
+  "name": "urlopen",
+  "form": "attr",
+  "callee": "conn.urlopen",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 711,
+  "col": 18,
+  "name": "ConnectionError",
+  "form": "name",
+  "callee": "ConnectionError",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 714,
+  "col": 15,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 716,
+  "col": 23,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 717,
+  "col": 26,
+  "name": "ConnectTimeout",
+  "form": "name",
+  "callee": "ConnectTimeout",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 719,
+  "col": 15,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 720,
+  "col": 22,
+  "name": "RetryError",
+  "form": "name",
+  "callee": "RetryError",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 722,
+  "col": 15,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 723,
+  "col": 22,
+  "name": "ProxyError",
+  "form": "name",
+  "callee": "ProxyError",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 725,
+  "col": 15,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 727,
+  "col": 22,
+  "name": "SSLError",
+  "form": "name",
+  "callee": "SSLError",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 729,
+  "col": 18,
+  "name": "ConnectionError",
+  "form": "name",
+  "callee": "ConnectionError",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 732,
+  "col": 18,
+  "name": "ConnectionError",
+  "form": "name",
+  "callee": "ConnectionError",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 735,
+  "col": 18,
+  "name": "ProxyError",
+  "form": "name",
+  "callee": "ProxyError",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 738,
+  "col": 15,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 740,
+  "col": 22,
+  "name": "SSLError",
+  "form": "name",
+  "callee": "SSLError",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 741,
+  "col": 17,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 742,
+  "col": 22,
+  "name": "ReadTimeout",
+  "form": "name",
+  "callee": "ReadTimeout",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 743,
+  "col": 17,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 744,
+  "col": 22,
+  "name": "InvalidHeader",
+  "form": "name",
+  "callee": "InvalidHeader",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "adapters.py",
+  "line": 748,
+  "col": 20,
+  "name": "build_response",
+  "form": "attr",
+  "callee": "self.build_response",
+  "in": "HTTPAdapter.send"
+ },
+ {
+  "file": "api.py",
+  "line": 70,
+  "col": 18,
+  "name": "Session",
+  "form": "attr",
+  "callee": "sessions.Session",
+  "in": "request"
+ },
+ {
+  "file": "api.py",
+  "line": 71,
+  "col": 23,
+  "name": "request",
+  "form": "attr",
+  "callee": "session.request",
+  "in": "request"
+ },
+ {
+  "file": "api.py",
+  "line": 87,
+  "col": 11,
+  "name": "request",
+  "form": "name",
+  "callee": "request",
+  "in": "get"
+ },
+ {
+  "file": "api.py",
+  "line": 99,
+  "col": 11,
+  "name": "request",
+  "form": "name",
+  "callee": "request",
+  "in": "options"
+ },
+ {
+  "file": "api.py",
+  "line": 113,
+  "col": 11,
+  "name": "setdefault",
+  "form": "attr",
+  "callee": "kwargs.setdefault",
+  "in": "head"
+ },
+ {
+  "file": "api.py",
+  "line": 114,
+  "col": 11,
+  "name": "request",
+  "form": "name",
+  "callee": "request",
+  "in": "head"
+ },
+ {
+  "file": "api.py",
+  "line": 134,
+  "col": 11,
+  "name": "request",
+  "form": "name",
+  "callee": "request",
+  "in": "post"
+ },
+ {
+  "file": "api.py",
+  "line": 151,
+  "col": 11,
+  "name": "request",
+  "form": "name",
+  "callee": "request",
+  "in": "put"
+ },
+ {
+  "file": "api.py",
+  "line": 168,
+  "col": 11,
+  "name": "request",
+  "form": "name",
+  "callee": "request",
+  "in": "patch"
+ },
+ {
+  "file": "api.py",
+  "line": 180,
+  "col": 11,
+  "name": "request",
+  "form": "name",
+  "callee": "request",
+  "in": "delete"
+ },
+ {
+  "file": "auth.py",
+  "line": 44,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 45,
+  "col": 17,
+  "name": "warn",
+  "form": "attr",
+  "callee": "warnings.warn",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 52,
+  "col": 19,
+  "name": "str",
+  "form": "name",
+  "callee": "str",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 54,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 55,
+  "col": 17,
+  "name": "warn",
+  "form": "attr",
+  "callee": "warnings.warn",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 57,
+  "col": 66,
+  "name": "type",
+  "form": "name",
+  "callee": "type",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 62,
+  "col": 19,
+  "name": "str",
+  "form": "name",
+  "callee": "str",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 65,
+  "col": 7,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 66,
+  "col": 28,
+  "name": "encode",
+  "form": "attr",
+  "callee": "username.encode",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 68,
+  "col": 7,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 69,
+  "col": 28,
+  "name": "encode",
+  "form": "attr",
+  "callee": "password.encode",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 71,
+  "col": 25,
+  "name": "to_native_string",
+  "form": "name",
+  "callee": "to_native_string",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 72,
+  "col": 51,
+  "name": "strip",
+  "form": "attr",
+  "callee": "b64encode(b':'.join((username, password))).strip",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 72,
+  "col": 8,
+  "name": "b64encode",
+  "form": "name",
+  "callee": "b64encode",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 72,
+  "col": 23,
+  "name": "join",
+  "form": "attr",
+  "callee": "b':'.join",
+  "in": "_basic_auth_str"
+ },
+ {
+  "file": "auth.py",
+  "line": 82,
+  "col": 14,
+  "name": "NotImplementedError",
+  "form": "name",
+  "callee": "NotImplementedError",
+  "in": "AuthBase.__call__"
+ },
+ {
+  "file": "auth.py",
+  "line": 101,
+  "col": 15,
+  "name": "all",
+  "form": "name",
+  "callee": "all",
+  "in": "HTTPBasicAuth.__eq__"
+ },
+ {
+  "file": "auth.py",
+  "line": 103,
+  "col": 33,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "HTTPBasicAuth.__eq__"
+ },
+ {
+  "file": "auth.py",
+  "line": 104,
+  "col": 33,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "HTTPBasicAuth.__eq__"
+ },
+ {
+  "file": "auth.py",
+  "line": 112,
+  "col": 37,
+  "name": "_basic_auth_str",
+  "form": "name",
+  "callee": "_basic_auth_str",
+  "in": "HTTPBasicAuth.__call__"
+ },
+ {
+  "file": "auth.py",
+  "line": 120,
+  "col": 43,
+  "name": "_basic_auth_str",
+  "form": "name",
+  "callee": "_basic_auth_str",
+  "in": "HTTPProxyAuth.__call__"
+ },
+ {
+  "file": "auth.py",
+  "line": 145,
+  "col": 39,
+  "name": "local",
+  "form": "attr",
+  "callee": "threading.local",
+  "in": "HTTPDigestAuth.__init__"
+ },
+ {
+  "file": "auth.py",
+  "line": 149,
+  "col": 15,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "HTTPDigestAuth.init_per_thread_state"
+ },
+ {
+  "file": "auth.py",
+  "line": 164,
+  "col": 38,
+  "name": "get",
+  "form": "attr",
+  "callee": "self._thread_local.chal.get",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 165,
+  "col": 44,
+  "name": "get",
+  "form": "attr",
+  "callee": "self._thread_local.chal.get",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 166,
+  "col": 41,
+  "name": "get",
+  "form": "attr",
+  "callee": "self._thread_local.chal.get",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 172,
+  "col": 35,
+  "name": "upper",
+  "form": "attr",
+  "callee": "algorithm.upper",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 177,
+  "col": 19,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPDigestAuth.build_digest_header.md5_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 178,
+  "col": 26,
+  "name": "encode",
+  "form": "attr",
+  "callee": "x.encode",
+  "in": "HTTPDigestAuth.build_digest_header.md5_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 179,
+  "col": 61,
+  "name": "hexdigest",
+  "form": "attr",
+  "callee": "hashlib.md5(x, usedforsecurity=False).hexdigest",
+  "in": "HTTPDigestAuth.build_digest_header.md5_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 179,
+  "col": 31,
+  "name": "md5",
+  "form": "attr",
+  "callee": "hashlib.md5",
+  "in": "HTTPDigestAuth.build_digest_header.md5_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 185,
+  "col": 19,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPDigestAuth.build_digest_header.sha_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 186,
+  "col": 26,
+  "name": "encode",
+  "form": "attr",
+  "callee": "x.encode",
+  "in": "HTTPDigestAuth.build_digest_header.sha_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 187,
+  "col": 62,
+  "name": "hexdigest",
+  "form": "attr",
+  "callee": "hashlib.sha1(x, usedforsecurity=False).hexdigest",
+  "in": "HTTPDigestAuth.build_digest_header.sha_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 187,
+  "col": 31,
+  "name": "sha1",
+  "form": "attr",
+  "callee": "hashlib.sha1",
+  "in": "HTTPDigestAuth.build_digest_header.sha_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 193,
+  "col": 19,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPDigestAuth.build_digest_header.sha256_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 194,
+  "col": 26,
+  "name": "encode",
+  "form": "attr",
+  "callee": "x.encode",
+  "in": "HTTPDigestAuth.build_digest_header.sha256_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 195,
+  "col": 64,
+  "name": "hexdigest",
+  "form": "attr",
+  "callee": "hashlib.sha256(x, usedforsecurity=False).hexdigest",
+  "in": "HTTPDigestAuth.build_digest_header.sha256_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 195,
+  "col": 31,
+  "name": "sha256",
+  "form": "attr",
+  "callee": "hashlib.sha256",
+  "in": "HTTPDigestAuth.build_digest_header.sha256_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 201,
+  "col": 19,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "HTTPDigestAuth.build_digest_header.sha512_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 202,
+  "col": 26,
+  "name": "encode",
+  "form": "attr",
+  "callee": "x.encode",
+  "in": "HTTPDigestAuth.build_digest_header.sha512_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 203,
+  "col": 64,
+  "name": "hexdigest",
+  "form": "attr",
+  "callee": "hashlib.sha512(x, usedforsecurity=False).hexdigest",
+  "in": "HTTPDigestAuth.build_digest_header.sha512_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 203,
+  "col": 31,
+  "name": "sha512",
+  "form": "attr",
+  "callee": "hashlib.sha512",
+  "in": "HTTPDigestAuth.build_digest_header.sha512_utf8"
+ },
+ {
+  "file": "auth.py",
+  "line": 211,
+  "col": 19,
+  "name": "hash_utf8",
+  "form": "name",
+  "callee": "hash_utf8",
+  "in": "HTTPDigestAuth.build_digest_header.KD"
+ },
+ {
+  "file": "auth.py",
+  "line": 215,
+  "col": 19,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 224,
+  "col": 14,
+  "name": "hash_utf8",
+  "form": "name",
+  "callee": "hash_utf8",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 225,
+  "col": 14,
+  "name": "hash_utf8",
+  "form": "name",
+  "callee": "hash_utf8",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 232,
+  "col": 48,
+  "name": "encode",
+  "form": "attr",
+  "callee": "str(self._thread_local.nonce_count).encode",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 232,
+  "col": 12,
+  "name": "str",
+  "form": "name",
+  "callee": "str",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 233,
+  "col": 19,
+  "name": "encode",
+  "form": "attr",
+  "callee": "nonce.encode",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 234,
+  "col": 26,
+  "name": "encode",
+  "form": "attr",
+  "callee": "time.ctime().encode",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 234,
+  "col": 18,
+  "name": "ctime",
+  "form": "attr",
+  "callee": "time.ctime",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 235,
+  "col": 16,
+  "name": "urandom",
+  "form": "attr",
+  "callee": "os.urandom",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 237,
+  "col": 56,
+  "name": "hexdigest",
+  "form": "attr",
+  "callee": "hashlib.sha1(s, usedforsecurity=False).hexdigest",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 237,
+  "col": 25,
+  "name": "sha1",
+  "form": "attr",
+  "callee": "hashlib.sha1",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 239,
+  "col": 18,
+  "name": "hash_utf8",
+  "form": "name",
+  "callee": "hash_utf8",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 242,
+  "col": 22,
+  "name": "KD",
+  "form": "name",
+  "callee": "KD",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 243,
+  "col": 44,
+  "name": "split",
+  "form": "attr",
+  "callee": "qop.split",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 245,
+  "col": 22,
+  "name": "KD",
+  "form": "name",
+  "callee": "KD",
+  "in": "HTTPDigestAuth.build_digest_header"
+ },
+ {
+  "file": "auth.py",
+  "line": 289,
+  "col": 24,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 290,
+  "col": 16,
+  "name": "seek",
+  "form": "name",
+  "callee": "seek",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 291,
+  "col": 27,
+  "name": "get",
+  "form": "attr",
+  "callee": "r.headers.get",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 293,
+  "col": 30,
+  "name": "lower",
+  "form": "attr",
+  "callee": "s_auth.lower",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 295,
+  "col": 21,
+  "name": "compile",
+  "form": "attr",
+  "callee": "re.compile",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 296,
+  "col": 38,
+  "name": "parse_dict_header",
+  "form": "name",
+  "callee": "parse_dict_header",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 296,
+  "col": 60,
+  "name": "sub",
+  "form": "attr",
+  "callee": "pat.sub",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 301,
+  "col": 14,
+  "name": "close",
+  "form": "attr",
+  "callee": "r.close",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 302,
+  "col": 29,
+  "name": "copy",
+  "form": "attr",
+  "callee": "r.request.copy",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 303,
+  "col": 25,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 304,
+  "col": 12,
+  "name": "extract_cookies_to_jar",
+  "form": "name",
+  "callee": "extract_cookies_to_jar",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 305,
+  "col": 17,
+  "name": "prepare_cookies",
+  "form": "attr",
+  "callee": "prep.prepare_cookies",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 307,
+  "col": 32,
+  "name": "build_digest_header",
+  "form": "attr",
+  "callee": "self.build_digest_header",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 308,
+  "col": 16,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 308,
+  "col": 40,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 312,
+  "col": 30,
+  "name": "send",
+  "form": "attr",
+  "callee": "r.connection.send",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 313,
+  "col": 23,
+  "name": "append",
+  "form": "attr",
+  "callee": "_r.history.append",
+  "in": "HTTPDigestAuth.handle_401"
+ },
+ {
+  "file": "auth.py",
+  "line": 323,
+  "col": 13,
+  "name": "init_per_thread_state",
+  "form": "attr",
+  "callee": "self.init_per_thread_state",
+  "in": "HTTPDigestAuth.__call__"
+ },
+ {
+  "file": "auth.py",
+  "line": 326,
+  "col": 32,
+  "name": "build_digest_header",
+  "form": "attr",
+  "callee": "self.build_digest_header",
+  "in": "HTTPDigestAuth.__call__"
+ },
+ {
+  "file": "auth.py",
+  "line": 327,
+  "col": 16,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "HTTPDigestAuth.__call__"
+ },
+ {
+  "file": "auth.py",
+  "line": 327,
+  "col": 37,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "HTTPDigestAuth.__call__"
+ },
+ {
+  "file": "auth.py",
+  "line": 331,
+  "col": 20,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "HTTPDigestAuth.__call__"
+ },
+ {
+  "file": "auth.py",
+  "line": 332,
+  "col": 37,
+  "name": "tell",
+  "form": "name",
+  "callee": "tell",
+  "in": "HTTPDigestAuth.__call__"
+ },
+ {
+  "file": "auth.py",
+  "line": 339,
+  "col": 10,
+  "name": "register_hook",
+  "form": "attr",
+  "callee": "r.register_hook",
+  "in": "HTTPDigestAuth.__call__"
+ },
+ {
+  "file": "auth.py",
+  "line": 340,
+  "col": 10,
+  "name": "register_hook",
+  "form": "attr",
+  "callee": "r.register_hook",
+  "in": "HTTPDigestAuth.__call__"
+ },
+ {
+  "file": "auth.py",
+  "line": 346,
+  "col": 15,
+  "name": "all",
+  "form": "name",
+  "callee": "all",
+  "in": "HTTPDigestAuth.__eq__"
+ },
+ {
+  "file": "auth.py",
+  "line": 348,
+  "col": 33,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "HTTPDigestAuth.__eq__"
+ },
+ {
+  "file": "auth.py",
+  "line": 349,
+  "col": 33,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "HTTPDigestAuth.__eq__"
+ },
+ {
+  "file": "certs.py",
+  "line": 18,
+  "col": 4,
+  "name": "print",
+  "form": "name",
+  "callee": "print",
+  "in": ""
+ },
+ {
+  "file": "certs.py",
+  "line": 18,
+  "col": 10,
+  "name": "where",
+  "form": "name",
+  "callee": "where",
+  "in": ""
+ },
+ {
+  "file": "compat.py",
+  "line": 26,
+  "col": 19,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": ""
+ },
+ {
+  "file": "compat.py",
+  "line": 26,
+  "col": 39,
+  "name": "split",
+  "form": "attr",
+  "callee": "urllib3_version.split",
+  "in": ""
+ },
+ {
+  "file": "compat.py",
+  "line": 42,
+  "col": 36,
+  "name": "import_module",
+  "form": "attr",
+  "callee": "importlib.import_module",
+  "in": "_resolve_char_detection"
+ },
+ {
+  "file": "compat.py",
+  "line": 51,
+  "col": 14,
+  "name": "_resolve_char_detection",
+  "form": "name",
+  "callee": "_resolve_char_detection",
+  "in": ""
+ },
+ {
+  "file": "cookies.py",
+  "line": 46,
+  "col": 15,
+  "name": "_is_prepared",
+  "form": "name",
+  "callee": "_is_prepared",
+  "in": "MockRequest.__init__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 49,
+  "col": 20,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "MockRequest.__init__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 55,
+  "col": 15,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "MockRequest.get_host"
+ },
+ {
+  "file": "cookies.py",
+  "line": 58,
+  "col": 20,
+  "name": "get_host",
+  "form": "attr",
+  "callee": "self.get_host",
+  "in": "MockRequest.get_origin_req_host"
+ },
+ {
+  "file": "cookies.py",
+  "line": 63,
+  "col": 31,
+  "name": "get",
+  "form": "attr",
+  "callee": "self._r.headers.get",
+  "in": "MockRequest.get_full_url"
+ },
+ {
+  "file": "cookies.py",
+  "line": 66,
+  "col": 15,
+  "name": "to_native_string",
+  "form": "name",
+  "callee": "to_native_string",
+  "in": "MockRequest.get_full_url"
+ },
+ {
+  "file": "cookies.py",
+  "line": 67,
+  "col": 17,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "MockRequest.get_full_url"
+ },
+ {
+  "file": "cookies.py",
+  "line": 69,
+  "col": 15,
+  "name": "urlunparse",
+  "form": "name",
+  "callee": "urlunparse",
+  "in": "MockRequest.get_full_url"
+ },
+ {
+  "file": "cookies.py",
+  "line": 87,
+  "col": 31,
+  "name": "get",
+  "form": "attr",
+  "callee": "self._r.headers.get",
+  "in": "MockRequest.get_header"
+ },
+ {
+  "file": "cookies.py",
+  "line": 87,
+  "col": 59,
+  "name": "get",
+  "form": "attr",
+  "callee": "self._new_headers.get",
+  "in": "MockRequest.get_header"
+ },
+ {
+  "file": "cookies.py",
+  "line": 91,
+  "col": 14,
+  "name": "NotImplementedError",
+  "form": "name",
+  "callee": "NotImplementedError",
+  "in": "MockRequest.add_header"
+ },
+ {
+  "file": "cookies.py",
+  "line": 103,
+  "col": 20,
+  "name": "is_unverifiable",
+  "form": "attr",
+  "callee": "self.is_unverifiable",
+  "in": "MockRequest.unverifiable"
+ },
+ {
+  "file": "cookies.py",
+  "line": 107,
+  "col": 20,
+  "name": "get_origin_req_host",
+  "form": "attr",
+  "callee": "self.get_origin_req_host",
+  "in": "MockRequest.origin_req_host"
+ },
+ {
+  "file": "cookies.py",
+  "line": 111,
+  "col": 20,
+  "name": "get_host",
+  "form": "attr",
+  "callee": "self.get_host",
+  "in": "MockRequest.host"
+ },
+ {
+  "file": "cookies.py",
+  "line": 132,
+  "col": 22,
+  "name": "getheaders",
+  "form": "attr",
+  "callee": "self._headers.getheaders",
+  "in": "MockResponse.getheaders"
+ },
+ {
+  "file": "cookies.py",
+  "line": 144,
+  "col": 12,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "extract_cookies_to_jar"
+ },
+ {
+  "file": "cookies.py",
+  "line": 147,
+  "col": 10,
+  "name": "MockRequest",
+  "form": "name",
+  "callee": "MockRequest",
+  "in": "extract_cookies_to_jar"
+ },
+ {
+  "file": "cookies.py",
+  "line": 149,
+  "col": 10,
+  "name": "MockResponse",
+  "form": "name",
+  "callee": "MockResponse",
+  "in": "extract_cookies_to_jar"
+ },
+ {
+  "file": "cookies.py",
+  "line": 150,
+  "col": 8,
+  "name": "extract_cookies",
+  "form": "attr",
+  "callee": "jar.extract_cookies",
+  "in": "extract_cookies_to_jar"
+ },
+ {
+  "file": "cookies.py",
+  "line": 159,
+  "col": 8,
+  "name": "MockRequest",
+  "form": "name",
+  "callee": "MockRequest",
+  "in": "get_cookie_header"
+ },
+ {
+  "file": "cookies.py",
+  "line": 160,
+  "col": 8,
+  "name": "add_cookie_header",
+  "form": "attr",
+  "callee": "jar.add_cookie_header",
+  "in": "get_cookie_header"
+ },
+ {
+  "file": "cookies.py",
+  "line": 161,
+  "col": 31,
+  "name": "get",
+  "form": "attr",
+  "callee": "r.get_new_headers().get",
+  "in": "get_cookie_header"
+ },
+ {
+  "file": "cookies.py",
+  "line": 161,
+  "col": 13,
+  "name": "get_new_headers",
+  "form": "attr",
+  "callee": "r.get_new_headers",
+  "in": "get_cookie_header"
+ },
+ {
+  "file": "cookies.py",
+  "line": 179,
+  "col": 19,
+  "name": "append",
+  "form": "attr",
+  "callee": "clearables.append",
+  "in": "remove_cookie_by_name"
+ },
+ {
+  "file": "cookies.py",
+  "line": 182,
+  "col": 18,
+  "name": "clear",
+  "form": "attr",
+  "callee": "cookiejar.clear",
+  "in": "remove_cookie_by_name"
+ },
+ {
+  "file": "cookies.py",
+  "line": 225,
+  "col": 24,
+  "name": "_find_no_duplicates",
+  "form": "attr",
+  "callee": "self._find_no_duplicates",
+  "in": "RequestsCookieJar.get"
+ },
+ {
+  "file": "cookies.py",
+  "line": 238,
+  "col": 12,
+  "name": "remove_cookie_by_name",
+  "form": "name",
+  "callee": "remove_cookie_by_name",
+  "in": "RequestsCookieJar.set"
+ },
+ {
+  "file": "cookies.py",
+  "line": 239,
+  "col": 42,
+  "name": "get",
+  "form": "attr",
+  "callee": "kwargs.get",
+  "in": "RequestsCookieJar.set"
+ },
+ {
+  "file": "cookies.py",
+  "line": 239,
+  "col": 69,
+  "name": "get",
+  "form": "attr",
+  "callee": "kwargs.get",
+  "in": "RequestsCookieJar.set"
+ },
+ {
+  "file": "cookies.py",
+  "line": 243,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestsCookieJar.set"
+ },
+ {
+  "file": "cookies.py",
+  "line": 244,
+  "col": 16,
+  "name": "morsel_to_cookie",
+  "form": "name",
+  "callee": "morsel_to_cookie",
+  "in": "RequestsCookieJar.set"
+ },
+ {
+  "file": "cookies.py",
+  "line": 246,
+  "col": 16,
+  "name": "create_cookie",
+  "form": "name",
+  "callee": "create_cookie",
+  "in": "RequestsCookieJar.set"
+ },
+ {
+  "file": "cookies.py",
+  "line": 247,
+  "col": 13,
+  "name": "set_cookie",
+  "form": "attr",
+  "callee": "self.set_cookie",
+  "in": "RequestsCookieJar.set"
+ },
+ {
+  "file": "cookies.py",
+  "line": 256,
+  "col": 22,
+  "name": "iter",
+  "form": "name",
+  "callee": "iter",
+  "in": "RequestsCookieJar.iterkeys"
+ },
+ {
+  "file": "cookies.py",
+  "line": 265,
+  "col": 15,
+  "name": "list",
+  "form": "name",
+  "callee": "list",
+  "in": "RequestsCookieJar.keys"
+ },
+ {
+  "file": "cookies.py",
+  "line": 265,
+  "col": 25,
+  "name": "iterkeys",
+  "form": "attr",
+  "callee": "self.iterkeys",
+  "in": "RequestsCookieJar.keys"
+ },
+ {
+  "file": "cookies.py",
+  "line": 273,
+  "col": 22,
+  "name": "iter",
+  "form": "name",
+  "callee": "iter",
+  "in": "RequestsCookieJar.itervalues"
+ },
+ {
+  "file": "cookies.py",
+  "line": 282,
+  "col": 15,
+  "name": "list",
+  "form": "name",
+  "callee": "list",
+  "in": "RequestsCookieJar.values"
+ },
+ {
+  "file": "cookies.py",
+  "line": 282,
+  "col": 25,
+  "name": "itervalues",
+  "form": "attr",
+  "callee": "self.itervalues",
+  "in": "RequestsCookieJar.values"
+ },
+ {
+  "file": "cookies.py",
+  "line": 290,
+  "col": 22,
+  "name": "iter",
+  "form": "name",
+  "callee": "iter",
+  "in": "RequestsCookieJar.iteritems"
+ },
+ {
+  "file": "cookies.py",
+  "line": 300,
+  "col": 15,
+  "name": "list",
+  "form": "name",
+  "callee": "list",
+  "in": "RequestsCookieJar.items"
+ },
+ {
+  "file": "cookies.py",
+  "line": 300,
+  "col": 25,
+  "name": "iteritems",
+  "form": "attr",
+  "callee": "self.iteritems",
+  "in": "RequestsCookieJar.items"
+ },
+ {
+  "file": "cookies.py",
+  "line": 305,
+  "col": 22,
+  "name": "iter",
+  "form": "name",
+  "callee": "iter",
+  "in": "RequestsCookieJar.list_domains"
+ },
+ {
+  "file": "cookies.py",
+  "line": 307,
+  "col": 24,
+  "name": "append",
+  "form": "attr",
+  "callee": "domains.append",
+  "in": "RequestsCookieJar.list_domains"
+ },
+ {
+  "file": "cookies.py",
+  "line": 313,
+  "col": 22,
+  "name": "iter",
+  "form": "name",
+  "callee": "iter",
+  "in": "RequestsCookieJar.list_paths"
+ },
+ {
+  "file": "cookies.py",
+  "line": 315,
+  "col": 22,
+  "name": "append",
+  "form": "attr",
+  "callee": "paths.append",
+  "in": "RequestsCookieJar.list_paths"
+ },
+ {
+  "file": "cookies.py",
+  "line": 325,
+  "col": 22,
+  "name": "iter",
+  "form": "name",
+  "callee": "iter",
+  "in": "RequestsCookieJar.multiple_domains"
+ },
+ {
+  "file": "cookies.py",
+  "line": 328,
+  "col": 20,
+  "name": "append",
+  "form": "attr",
+  "callee": "domains.append",
+  "in": "RequestsCookieJar.multiple_domains"
+ },
+ {
+  "file": "cookies.py",
+  "line": 341,
+  "col": 22,
+  "name": "iter",
+  "form": "name",
+  "callee": "iter",
+  "in": "RequestsCookieJar.get_dict"
+ },
+ {
+  "file": "cookies.py",
+  "line": 350,
+  "col": 23,
+  "name": "__iter__",
+  "form": "attr",
+  "callee": "super().__iter__",
+  "in": "RequestsCookieJar.__iter__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 350,
+  "col": 15,
+  "name": "super",
+  "form": "name",
+  "callee": "super",
+  "in": "RequestsCookieJar.__iter__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 354,
+  "col": 27,
+  "name": "__contains__",
+  "form": "attr",
+  "callee": "super().__contains__",
+  "in": "RequestsCookieJar.__contains__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 354,
+  "col": 19,
+  "name": "super",
+  "form": "name",
+  "callee": "super",
+  "in": "RequestsCookieJar.__contains__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 365,
+  "col": 20,
+  "name": "_find_no_duplicates",
+  "form": "attr",
+  "callee": "self._find_no_duplicates",
+  "in": "RequestsCookieJar.__getitem__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 374,
+  "col": 13,
+  "name": "set",
+  "form": "attr",
+  "callee": "self.set",
+  "in": "RequestsCookieJar.__setitem__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 380,
+  "col": 8,
+  "name": "remove_cookie_by_name",
+  "form": "name",
+  "callee": "remove_cookie_by_name",
+  "in": "RequestsCookieJar.__delitem__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 385,
+  "col": 22,
+  "name": "startswith",
+  "form": "attr",
+  "callee": "value.startswith",
+  "in": "RequestsCookieJar.set_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 386,
+  "col": 22,
+  "name": "endswith",
+  "form": "attr",
+  "callee": "value.endswith",
+  "in": "RequestsCookieJar.set_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 388,
+  "col": 33,
+  "name": "replace",
+  "form": "attr",
+  "callee": "value.replace",
+  "in": "RequestsCookieJar.set_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 389,
+  "col": 23,
+  "name": "set_cookie",
+  "form": "attr",
+  "callee": "super().set_cookie",
+  "in": "RequestsCookieJar.set_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 389,
+  "col": 15,
+  "name": "super",
+  "form": "name",
+  "callee": "super",
+  "in": "RequestsCookieJar.set_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 395,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestsCookieJar.update"
+ },
+ {
+  "file": "cookies.py",
+  "line": 397,
+  "col": 21,
+  "name": "set_cookie",
+  "form": "attr",
+  "callee": "self.set_cookie",
+  "in": "RequestsCookieJar.update"
+ },
+ {
+  "file": "cookies.py",
+  "line": 397,
+  "col": 37,
+  "name": "copy",
+  "form": "attr",
+  "callee": "copy.copy",
+  "in": "RequestsCookieJar.update"
+ },
+ {
+  "file": "cookies.py",
+  "line": 399,
+  "col": 20,
+  "name": "update",
+  "form": "attr",
+  "callee": "super().update",
+  "in": "RequestsCookieJar.update"
+ },
+ {
+  "file": "cookies.py",
+  "line": 399,
+  "col": 12,
+  "name": "super",
+  "form": "name",
+  "callee": "super",
+  "in": "RequestsCookieJar.update"
+ },
+ {
+  "file": "cookies.py",
+  "line": 415,
+  "col": 22,
+  "name": "iter",
+  "form": "name",
+  "callee": "iter",
+  "in": "RequestsCookieJar._find"
+ },
+ {
+  "file": "cookies.py",
+  "line": 421,
+  "col": 14,
+  "name": "KeyError",
+  "form": "name",
+  "callee": "KeyError",
+  "in": "RequestsCookieJar._find"
+ },
+ {
+  "file": "cookies.py",
+  "line": 438,
+  "col": 22,
+  "name": "iter",
+  "form": "name",
+  "callee": "iter",
+  "in": "RequestsCookieJar._find_no_duplicates"
+ },
+ {
+  "file": "cookies.py",
+  "line": 444,
+  "col": 34,
+  "name": "CookieConflictError",
+  "form": "name",
+  "callee": "CookieConflictError",
+  "in": "RequestsCookieJar._find_no_duplicates"
+ },
+ {
+  "file": "cookies.py",
+  "line": 452,
+  "col": 14,
+  "name": "KeyError",
+  "form": "name",
+  "callee": "KeyError",
+  "in": "RequestsCookieJar._find_no_duplicates"
+ },
+ {
+  "file": "cookies.py",
+  "line": 456,
+  "col": 30,
+  "name": "copy",
+  "form": "attr",
+  "callee": "self.__dict__.copy",
+  "in": "RequestsCookieJar.__getstate__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 458,
+  "col": 14,
+  "name": "pop",
+  "form": "attr",
+  "callee": "state.pop",
+  "in": "RequestsCookieJar.__getstate__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 463,
+  "col": 22,
+  "name": "update",
+  "form": "attr",
+  "callee": "self.__dict__.update",
+  "in": "RequestsCookieJar.__setstate__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 465,
+  "col": 43,
+  "name": "RLock",
+  "form": "attr",
+  "callee": "threading.RLock",
+  "in": "RequestsCookieJar.__setstate__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 469,
+  "col": 17,
+  "name": "RequestsCookieJar",
+  "form": "name",
+  "callee": "RequestsCookieJar",
+  "in": "RequestsCookieJar.copy"
+ },
+ {
+  "file": "cookies.py",
+  "line": 470,
+  "col": 15,
+  "name": "set_policy",
+  "form": "attr",
+  "callee": "new_cj.set_policy",
+  "in": "RequestsCookieJar.copy"
+ },
+ {
+  "file": "cookies.py",
+  "line": 470,
+  "col": 31,
+  "name": "get_policy",
+  "form": "attr",
+  "callee": "self.get_policy",
+  "in": "RequestsCookieJar.copy"
+ },
+ {
+  "file": "cookies.py",
+  "line": 471,
+  "col": 15,
+  "name": "update",
+  "form": "attr",
+  "callee": "new_cj.update",
+  "in": "RequestsCookieJar.copy"
+ },
+ {
+  "file": "cookies.py",
+  "line": 483,
+  "col": 22,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "_copy_cookie_jar"
+ },
+ {
+  "file": "cookies.py",
+  "line": 485,
+  "col": 15,
+  "name": "copy_method",
+  "form": "name",
+  "callee": "copy_method",
+  "in": "_copy_cookie_jar"
+ },
+ {
+  "file": "cookies.py",
+  "line": 487,
+  "col": 19,
+  "name": "copy",
+  "form": "attr",
+  "callee": "copy.copy",
+  "in": "_copy_cookie_jar"
+ },
+ {
+  "file": "cookies.py",
+  "line": 488,
+  "col": 12,
+  "name": "clear",
+  "form": "attr",
+  "callee": "new_jar.clear",
+  "in": "_copy_cookie_jar"
+ },
+ {
+  "file": "cookies.py",
+  "line": 490,
+  "col": 16,
+  "name": "set_cookie",
+  "form": "attr",
+  "callee": "new_jar.set_cookie",
+  "in": "_copy_cookie_jar"
+ },
+ {
+  "file": "cookies.py",
+  "line": 490,
+  "col": 32,
+  "name": "copy",
+  "form": "attr",
+  "callee": "copy.copy",
+  "in": "_copy_cookie_jar"
+ },
+ {
+  "file": "cookies.py",
+  "line": 516,
+  "col": 14,
+  "name": "set",
+  "form": "name",
+  "callee": "set",
+  "in": "create_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 516,
+  "col": 28,
+  "name": "set",
+  "form": "name",
+  "callee": "set",
+  "in": "create_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 518,
+  "col": 14,
+  "name": "TypeError",
+  "form": "name",
+  "callee": "TypeError",
+  "in": "create_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 519,
+  "col": 65,
+  "name": "list",
+  "form": "name",
+  "callee": "list",
+  "in": "create_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 522,
+  "col": 11,
+  "name": "update",
+  "form": "attr",
+  "callee": "result.update",
+  "in": "create_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 523,
+  "col": 31,
+  "name": "bool",
+  "form": "name",
+  "callee": "bool",
+  "in": "create_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 524,
+  "col": 33,
+  "name": "bool",
+  "form": "name",
+  "callee": "bool",
+  "in": "create_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 525,
+  "col": 52,
+  "name": "startswith",
+  "form": "attr",
+  "callee": "result['domain'].startswith",
+  "in": "create_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 526,
+  "col": 31,
+  "name": "bool",
+  "form": "name",
+  "callee": "bool",
+  "in": "create_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 528,
+  "col": 21,
+  "name": "Cookie",
+  "form": "attr",
+  "callee": "cookielib.Cookie",
+  "in": "create_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 537,
+  "col": 22,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "morsel_to_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 537,
+  "col": 31,
+  "name": "time",
+  "form": "attr",
+  "callee": "time.time",
+  "in": "morsel_to_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 537,
+  "col": 40,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "morsel_to_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 539,
+  "col": 18,
+  "name": "TypeError",
+  "form": "name",
+  "callee": "TypeError",
+  "in": "morsel_to_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 542,
+  "col": 27,
+  "name": "timegm",
+  "form": "attr",
+  "callee": "calendar.timegm",
+  "in": "morsel_to_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 542,
+  "col": 39,
+  "name": "strptime",
+  "form": "attr",
+  "callee": "time.strptime",
+  "in": "morsel_to_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 543,
+  "col": 11,
+  "name": "create_cookie",
+  "form": "name",
+  "callee": "create_cookie",
+  "in": "morsel_to_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 545,
+  "col": 20,
+  "name": "bool",
+  "form": "name",
+  "callee": "bool",
+  "in": "morsel_to_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 554,
+  "col": 15,
+  "name": "bool",
+  "form": "name",
+  "callee": "bool",
+  "in": "morsel_to_cookie"
+ },
+ {
+  "file": "cookies.py",
+  "line": 560,
+  "col": 14,
+  "name": "TypeVar",
+  "form": "name",
+  "callee": "TypeVar",
+  "in": ""
+ },
+ {
+  "file": "cookies.py",
+  "line": 593,
+  "col": 20,
+  "name": "RequestsCookieJar",
+  "form": "name",
+  "callee": "RequestsCookieJar",
+  "in": "cookiejar_from_dict"
+ },
+ {
+  "file": "cookies.py",
+  "line": 599,
+  "col": 26,
+  "name": "set_cookie",
+  "form": "attr",
+  "callee": "cookiejar.set_cookie",
+  "in": "cookiejar_from_dict"
+ },
+ {
+  "file": "cookies.py",
+  "line": 599,
+  "col": 37,
+  "name": "create_cookie",
+  "form": "name",
+  "callee": "create_cookie",
+  "in": "cookiejar_from_dict"
+ },
+ {
+  "file": "cookies.py",
+  "line": 613,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "merge_cookies"
+ },
+ {
+  "file": "cookies.py",
+  "line": 614,
+  "col": 14,
+  "name": "ValueError",
+  "form": "name",
+  "callee": "ValueError",
+  "in": "merge_cookies"
+ },
+ {
+  "file": "cookies.py",
+  "line": 616,
+  "col": 7,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "merge_cookies"
+ },
+ {
+  "file": "cookies.py",
+  "line": 617,
+  "col": 20,
+  "name": "cookiejar_from_dict",
+  "form": "name",
+  "callee": "cookiejar_from_dict",
+  "in": "merge_cookies"
+ },
+ {
+  "file": "cookies.py",
+  "line": 618,
+  "col": 9,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "merge_cookies"
+ },
+ {
+  "file": "cookies.py",
+  "line": 619,
+  "col": 28,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "merge_cookies"
+ },
+ {
+  "file": "cookies.py",
+  "line": 620,
+  "col": 12,
+  "name": "update_method",
+  "form": "name",
+  "callee": "update_method",
+  "in": "merge_cookies"
+ },
+ {
+  "file": "cookies.py",
+  "line": 623,
+  "col": 26,
+  "name": "set_cookie",
+  "form": "attr",
+  "callee": "cookiejar.set_cookie",
+  "in": "merge_cookies"
+ },
+ {
+  "file": "exceptions.py",
+  "line": 30,
+  "col": 43,
+  "name": "pop",
+  "form": "attr",
+  "callee": "kwargs.pop",
+  "in": "RequestException.__init__"
+ },
+ {
+  "file": "exceptions.py",
+  "line": 32,
+  "col": 30,
+  "name": "pop",
+  "form": "attr",
+  "callee": "kwargs.pop",
+  "in": "RequestException.__init__"
+ },
+ {
+  "file": "exceptions.py",
+  "line": 33,
+  "col": 57,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "RequestException.__init__"
+ },
+ {
+  "file": "exceptions.py",
+  "line": 35,
+  "col": 16,
+  "name": "__init__",
+  "form": "attr",
+  "callee": "super().__init__",
+  "in": "RequestException.__init__"
+ },
+ {
+  "file": "exceptions.py",
+  "line": 35,
+  "col": 8,
+  "name": "super",
+  "form": "name",
+  "callee": "super",
+  "in": "RequestException.__init__"
+ },
+ {
+  "file": "exceptions.py",
+  "line": 52,
+  "col": 30,
+  "name": "__init__",
+  "form": "attr",
+  "callee": "CompatJSONDecodeError.__init__",
+  "in": "JSONDecodeError.__init__"
+ },
+ {
+  "file": "exceptions.py",
+  "line": 53,
+  "col": 25,
+  "name": "__init__",
+  "form": "attr",
+  "callee": "InvalidJSONError.__init__",
+  "in": "JSONDecodeError.__init__"
+ },
+ {
+  "file": "exceptions.py",
+  "line": 63,
+  "col": 37,
+  "name": "__reduce__",
+  "form": "attr",
+  "callee": "CompatJSONDecodeError.__reduce__",
+  "in": "JSONDecodeError.__reduce__"
+ },
+ {
+  "file": "help.py",
+  "line": 46,
+  "col": 30,
+  "name": "python_implementation",
+  "form": "attr",
+  "callee": "platform.python_implementation",
+  "in": "_implementation"
+ },
+ {
+  "file": "help.py",
+  "line": 49,
+  "col": 42,
+  "name": "python_version",
+  "form": "attr",
+  "callee": "platform.python_version",
+  "in": "_implementation"
+ },
+ {
+  "file": "help.py",
+  "line": 54,
+  "col": 40,
+  "name": "join",
+  "form": "attr",
+  "callee": "''.join",
+  "in": "_implementation"
+ },
+ {
+  "file": "help.py",
+  "line": 58,
+  "col": 42,
+  "name": "python_version",
+  "form": "attr",
+  "callee": "platform.python_version",
+  "in": "_implementation"
+ },
+ {
+  "file": "help.py",
+  "line": 60,
+  "col": 42,
+  "name": "python_version",
+  "form": "attr",
+  "callee": "platform.python_version",
+  "in": "_implementation"
+ },
+ {
+  "file": "help.py",
+  "line": 71,
+  "col": 31,
+  "name": "system",
+  "form": "attr",
+  "callee": "platform.system",
+  "in": "info"
+ },
+ {
+  "file": "help.py",
+  "line": 72,
+  "col": 32,
+  "name": "release",
+  "form": "attr",
+  "callee": "platform.release",
+  "in": "info"
+ },
+ {
+  "file": "help.py",
+  "line": 80,
+  "col": 26,
+  "name": "_implementation",
+  "form": "name",
+  "callee": "_implementation",
+  "in": "info"
+ },
+ {
+  "file": "help.py",
+  "line": 99,
+  "col": 19,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "info"
+ },
+ {
+  "file": "help.py",
+  "line": 102,
+  "col": 19,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "info"
+ },
+ {
+  "file": "help.py",
+  "line": 128,
+  "col": 4,
+  "name": "print",
+  "form": "name",
+  "callee": "print",
+  "in": "main"
+ },
+ {
+  "file": "help.py",
+  "line": 128,
+  "col": 15,
+  "name": "dumps",
+  "form": "attr",
+  "callee": "json.dumps",
+  "in": "main"
+ },
+ {
+  "file": "help.py",
+  "line": 128,
+  "col": 21,
+  "name": "info",
+  "form": "name",
+  "callee": "info",
+  "in": "main"
+ },
+ {
+  "file": "help.py",
+  "line": 132,
+  "col": 4,
+  "name": "main",
+  "form": "name",
+  "callee": "main",
+  "in": ""
+ },
+ {
+  "file": "hooks.py",
+  "line": 40,
+  "col": 71,
+  "name": "get",
+  "form": "attr",
+  "callee": "hooks_dict.get",
+  "in": "dispatch_hook"
+ },
+ {
+  "file": "hooks.py",
+  "line": 42,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "dispatch_hook"
+ },
+ {
+  "file": "hooks.py",
+  "line": 45,
+  "col": 25,
+  "name": "hook",
+  "form": "name",
+  "callee": "hook",
+  "in": "dispatch_hook"
+ },
+ {
+  "file": "models.py",
+  "line": 117,
+  "col": 12,
+  "name": "urlsplit",
+  "form": "name",
+  "callee": "urlsplit",
+  "in": "RequestEncodingMixin.path_url"
+ },
+ {
+  "file": "models.py",
+  "line": 117,
+  "col": 21,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "RequestEncodingMixin.path_url"
+ },
+ {
+  "file": "models.py",
+  "line": 123,
+  "col": 12,
+  "name": "append",
+  "form": "attr",
+  "callee": "url.append",
+  "in": "RequestEncodingMixin.path_url"
+ },
+ {
+  "file": "models.py",
+  "line": 127,
+  "col": 16,
+  "name": "append",
+  "form": "attr",
+  "callee": "url.append",
+  "in": "RequestEncodingMixin.path_url"
+ },
+ {
+  "file": "models.py",
+  "line": 128,
+  "col": 16,
+  "name": "append",
+  "form": "attr",
+  "callee": "url.append",
+  "in": "RequestEncodingMixin.path_url"
+ },
+ {
+  "file": "models.py",
+  "line": 130,
+  "col": 18,
+  "name": "join",
+  "form": "attr",
+  "callee": "''.join",
+  "in": "RequestEncodingMixin.path_url"
+ },
+ {
+  "file": "models.py",
+  "line": 161,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestEncodingMixin._encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 163,
+  "col": 16,
+  "name": "has_read",
+  "form": "attr",
+  "callee": "_t.has_read",
+  "in": "RequestEncodingMixin._encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 165,
+  "col": 13,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "RequestEncodingMixin._encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 167,
+  "col": 25,
+  "name": "to_key_val_list",
+  "form": "name",
+  "callee": "to_key_val_list",
+  "in": "RequestEncodingMixin._encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 168,
+  "col": 19,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestEncodingMixin._encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 168,
+  "col": 53,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "RequestEncodingMixin._encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 172,
+  "col": 31,
+  "name": "append",
+  "form": "attr",
+  "callee": "result.append",
+  "in": "RequestEncodingMixin._encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 174,
+  "col": 53,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestEncodingMixin._encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 174,
+  "col": 34,
+  "name": "encode",
+  "form": "attr",
+  "callee": "k.encode",
+  "in": "RequestEncodingMixin._encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 175,
+  "col": 53,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestEncodingMixin._encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 175,
+  "col": 34,
+  "name": "encode",
+  "form": "attr",
+  "callee": "v.encode",
+  "in": "RequestEncodingMixin._encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 178,
+  "col": 19,
+  "name": "urlencode",
+  "form": "name",
+  "callee": "urlencode",
+  "in": "RequestEncodingMixin._encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 195,
+  "col": 18,
+  "name": "ValueError",
+  "form": "name",
+  "callee": "ValueError",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 196,
+  "col": 13,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 197,
+  "col": 18,
+  "name": "ValueError",
+  "form": "name",
+  "callee": "ValueError",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 200,
+  "col": 17,
+  "name": "to_key_val_list",
+  "form": "name",
+  "callee": "to_key_val_list",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 201,
+  "col": 16,
+  "name": "to_key_val_list",
+  "form": "name",
+  "callee": "to_key_val_list",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 204,
+  "col": 15,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 204,
+  "col": 50,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 209,
+  "col": 27,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 210,
+  "col": 28,
+  "name": "str",
+  "form": "name",
+  "callee": "str",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 212,
+  "col": 31,
+  "name": "append",
+  "form": "attr",
+  "callee": "new_fields.append",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 215,
+  "col": 31,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 214,
+  "col": 34,
+  "name": "decode",
+  "form": "attr",
+  "callee": "field.decode",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 217,
+  "col": 49,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 217,
+  "col": 30,
+  "name": "encode",
+  "form": "attr",
+  "callee": "v.encode",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 225,
+  "col": 15,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 226,
+  "col": 19,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 228,
+  "col": 21,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 233,
+  "col": 21,
+  "name": "guess_filename",
+  "form": "name",
+  "callee": "guess_filename",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 236,
+  "col": 15,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 238,
+  "col": 20,
+  "name": "has_read",
+  "form": "attr",
+  "callee": "_t.has_read",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 239,
+  "col": 27,
+  "name": "read",
+  "form": "attr",
+  "callee": "fp.read",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 245,
+  "col": 17,
+  "name": "RequestField",
+  "form": "name",
+  "callee": "RequestField",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 246,
+  "col": 15,
+  "name": "make_multipart",
+  "form": "attr",
+  "callee": "rf.make_multipart",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 247,
+  "col": 23,
+  "name": "append",
+  "form": "attr",
+  "callee": "new_fields.append",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 249,
+  "col": 29,
+  "name": "encode_multipart_formdata",
+  "form": "name",
+  "callee": "encode_multipart_formdata",
+  "in": "RequestEncodingMixin._encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 263,
+  "col": 18,
+  "name": "ValueError",
+  "form": "name",
+  "callee": "ValueError",
+  "in": "RequestHooksMixin.register_hook"
+ },
+ {
+  "file": "models.py",
+  "line": 265,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestHooksMixin.register_hook"
+ },
+ {
+  "file": "models.py",
+  "line": 266,
+  "col": 30,
+  "name": "append",
+  "form": "attr",
+  "callee": "self.hooks[event].append",
+  "in": "RequestHooksMixin.register_hook"
+ },
+ {
+  "file": "models.py",
+  "line": 267,
+  "col": 13,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "RequestHooksMixin.register_hook"
+ },
+ {
+  "file": "models.py",
+  "line": 268,
+  "col": 30,
+  "name": "extend",
+  "form": "attr",
+  "callee": "self.hooks[event].extend",
+  "in": "RequestHooksMixin.register_hook"
+ },
+ {
+  "file": "models.py",
+  "line": 269,
+  "col": 35,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "RequestHooksMixin.register_hook"
+ },
+ {
+  "file": "models.py",
+  "line": 278,
+  "col": 30,
+  "name": "remove",
+  "form": "attr",
+  "callee": "self.hooks[event].remove",
+  "in": "RequestHooksMixin.deregister_hook"
+ },
+ {
+  "file": "models.py",
+  "line": 343,
+  "col": 21,
+  "name": "default_hooks",
+  "form": "name",
+  "callee": "default_hooks",
+  "in": "Request.__init__"
+ },
+ {
+  "file": "models.py",
+  "line": 344,
+  "col": 20,
+  "name": "list",
+  "form": "name",
+  "callee": "list",
+  "in": "Request.__init__"
+ },
+ {
+  "file": "models.py",
+  "line": 344,
+  "col": 31,
+  "name": "items",
+  "form": "attr",
+  "callee": "hooks.items",
+  "in": "Request.__init__"
+ },
+ {
+  "file": "models.py",
+  "line": 345,
+  "col": 17,
+  "name": "register_hook",
+  "form": "attr",
+  "callee": "self.register_hook",
+  "in": "Request.__init__"
+ },
+ {
+  "file": "models.py",
+  "line": 362,
+  "col": 12,
+  "name": "PreparedRequest",
+  "form": "name",
+  "callee": "PreparedRequest",
+  "in": "Request.prepare"
+ },
+ {
+  "file": "models.py",
+  "line": 363,
+  "col": 10,
+  "name": "prepare",
+  "form": "attr",
+  "callee": "p.prepare",
+  "in": "Request.prepare"
+ },
+ {
+  "file": "models.py",
+  "line": 420,
+  "col": 21,
+  "name": "default_hooks",
+  "form": "name",
+  "callee": "default_hooks",
+  "in": "PreparedRequest.__init__"
+ },
+ {
+  "file": "models.py",
+  "line": 439,
+  "col": 14,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "PreparedRequest.prepare"
+ },
+ {
+  "file": "models.py",
+  "line": 440,
+  "col": 13,
+  "name": "prepare_method",
+  "form": "attr",
+  "callee": "self.prepare_method",
+  "in": "PreparedRequest.prepare"
+ },
+ {
+  "file": "models.py",
+  "line": 441,
+  "col": 13,
+  "name": "prepare_url",
+  "form": "attr",
+  "callee": "self.prepare_url",
+  "in": "PreparedRequest.prepare"
+ },
+ {
+  "file": "models.py",
+  "line": 442,
+  "col": 13,
+  "name": "prepare_headers",
+  "form": "attr",
+  "callee": "self.prepare_headers",
+  "in": "PreparedRequest.prepare"
+ },
+ {
+  "file": "models.py",
+  "line": 443,
+  "col": 13,
+  "name": "prepare_cookies",
+  "form": "attr",
+  "callee": "self.prepare_cookies",
+  "in": "PreparedRequest.prepare"
+ },
+ {
+  "file": "models.py",
+  "line": 444,
+  "col": 13,
+  "name": "prepare_body",
+  "form": "attr",
+  "callee": "self.prepare_body",
+  "in": "PreparedRequest.prepare"
+ },
+ {
+  "file": "models.py",
+  "line": 445,
+  "col": 13,
+  "name": "prepare_auth",
+  "form": "attr",
+  "callee": "self.prepare_auth",
+  "in": "PreparedRequest.prepare"
+ },
+ {
+  "file": "models.py",
+  "line": 451,
+  "col": 13,
+  "name": "prepare_hooks",
+  "form": "attr",
+  "callee": "self.prepare_hooks",
+  "in": "PreparedRequest.prepare"
+ },
+ {
+  "file": "models.py",
+  "line": 457,
+  "col": 12,
+  "name": "PreparedRequest",
+  "form": "name",
+  "callee": "PreparedRequest",
+  "in": "PreparedRequest.copy"
+ },
+ {
+  "file": "models.py",
+  "line": 460,
+  "col": 33,
+  "name": "copy",
+  "form": "attr",
+  "callee": "self.headers.copy",
+  "in": "PreparedRequest.copy"
+ },
+ {
+  "file": "models.py",
+  "line": 461,
+  "col": 21,
+  "name": "_copy_cookie_jar",
+  "form": "name",
+  "callee": "_copy_cookie_jar",
+  "in": "PreparedRequest.copy"
+ },
+ {
+  "file": "models.py",
+  "line": 471,
+  "col": 26,
+  "name": "to_native_string",
+  "form": "name",
+  "callee": "to_native_string",
+  "in": "PreparedRequest.prepare_method"
+ },
+ {
+  "file": "models.py",
+  "line": 471,
+  "col": 55,
+  "name": "upper",
+  "form": "attr",
+  "callee": "self.method.upper",
+  "in": "PreparedRequest.prepare_method"
+ },
+ {
+  "file": "models.py",
+  "line": 478,
+  "col": 49,
+  "name": "decode",
+  "form": "attr",
+  "callee": "idna.encode(host, uts46=True).decode",
+  "in": "PreparedRequest._get_idna_encoded_host"
+ },
+ {
+  "file": "models.py",
+  "line": 478,
+  "col": 24,
+  "name": "encode",
+  "form": "attr",
+  "callee": "idna.encode",
+  "in": "PreparedRequest._get_idna_encoded_host"
+ },
+ {
+  "file": "models.py",
+  "line": 494,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 495,
+  "col": 22,
+  "name": "decode",
+  "form": "attr",
+  "callee": "url.decode",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 497,
+  "col": 18,
+  "name": "str",
+  "form": "name",
+  "callee": "str",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 500,
+  "col": 18,
+  "name": "lstrip",
+  "form": "attr",
+  "callee": "url.lstrip",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 505,
+  "col": 42,
+  "name": "startswith",
+  "form": "attr",
+  "callee": "url.lower().startswith",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 505,
+  "col": 34,
+  "name": "lower",
+  "form": "attr",
+  "callee": "url.lower",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 511,
+  "col": 62,
+  "name": "parse_url",
+  "form": "name",
+  "callee": "parse_url",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 513,
+  "col": 18,
+  "name": "InvalidURL",
+  "form": "name",
+  "callee": "InvalidURL",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 516,
+  "col": 18,
+  "name": "MissingSchema",
+  "form": "name",
+  "callee": "MissingSchema",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 522,
+  "col": 18,
+  "name": "InvalidURL",
+  "form": "name",
+  "callee": "InvalidURL",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 528,
+  "col": 15,
+  "name": "unicode_is_ascii",
+  "form": "name",
+  "callee": "unicode_is_ascii",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 530,
+  "col": 28,
+  "name": "_get_idna_encoded_host",
+  "form": "attr",
+  "callee": "self._get_idna_encoded_host",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 532,
+  "col": 22,
+  "name": "InvalidURL",
+  "form": "name",
+  "callee": "InvalidURL",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 533,
+  "col": 18,
+  "name": "startswith",
+  "form": "attr",
+  "callee": "host.startswith",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 534,
+  "col": 18,
+  "name": "InvalidURL",
+  "form": "name",
+  "callee": "InvalidURL",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 548,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 549,
+  "col": 21,
+  "name": "to_native_string",
+  "form": "name",
+  "callee": "to_native_string",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 552,
+  "col": 30,
+  "name": "_encode_params",
+  "form": "attr",
+  "callee": "self._encode_params",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 562,
+  "col": 14,
+  "name": "requote_uri",
+  "form": "name",
+  "callee": "requote_uri",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 562,
+  "col": 26,
+  "name": "urlunparse",
+  "form": "name",
+  "callee": "urlunparse",
+  "in": "PreparedRequest.prepare_url"
+ },
+ {
+  "file": "models.py",
+  "line": 568,
+  "col": 23,
+  "name": "CaseInsensitiveDict",
+  "form": "name",
+  "callee": "CaseInsensitiveDict",
+  "in": "PreparedRequest.prepare_headers"
+ },
+ {
+  "file": "models.py",
+  "line": 570,
+  "col": 34,
+  "name": "items",
+  "form": "attr",
+  "callee": "headers.items",
+  "in": "PreparedRequest.prepare_headers"
+ },
+ {
+  "file": "models.py",
+  "line": 572,
+  "col": 16,
+  "name": "check_header_validity",
+  "form": "name",
+  "callee": "check_header_validity",
+  "in": "PreparedRequest.prepare_headers"
+ },
+ {
+  "file": "models.py",
+  "line": 574,
+  "col": 29,
+  "name": "to_native_string",
+  "form": "name",
+  "callee": "to_native_string",
+  "in": "PreparedRequest.prepare_headers"
+ },
+ {
+  "file": "models.py",
+  "line": 594,
+  "col": 35,
+  "name": "dumps",
+  "form": "attr",
+  "callee": "complexjson.dumps",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 596,
+  "col": 22,
+  "name": "InvalidJSONError",
+  "form": "name",
+  "callee": "InvalidJSONError",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 598,
+  "col": 19,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 599,
+  "col": 28,
+  "name": "encode",
+  "form": "attr",
+  "callee": "body.encode",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 602,
+  "col": 22,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 602,
+  "col": 52,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 603,
+  "col": 31,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 605,
+  "col": 25,
+  "name": "super_len",
+  "form": "name",
+  "callee": "super_len",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 611,
+  "col": 15,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 616,
+  "col": 47,
+  "name": "tell",
+  "form": "attr",
+  "callee": "body.tell",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 620,
+  "col": 42,
+  "name": "object",
+  "form": "name",
+  "callee": "object",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 623,
+  "col": 22,
+  "name": "NotImplementedError",
+  "form": "name",
+  "callee": "NotImplementedError",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 628,
+  "col": 49,
+  "name": "builtin_str",
+  "form": "name",
+  "callee": "builtin_str",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 633,
+  "col": 23,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 637,
+  "col": 44,
+  "name": "_encode_files",
+  "form": "attr",
+  "callee": "self._encode_files",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 640,
+  "col": 32,
+  "name": "_encode_params",
+  "form": "attr",
+  "callee": "self._encode_params",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 641,
+  "col": 23,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 641,
+  "col": 58,
+  "name": "has_read",
+  "form": "attr",
+  "callee": "_t.has_read",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 646,
+  "col": 17,
+  "name": "prepare_content_length",
+  "form": "attr",
+  "callee": "self.prepare_content_length",
+  "in": "PreparedRequest.prepare_body"
+ },
+ {
+  "file": "models.py",
+  "line": 657,
+  "col": 21,
+  "name": "super_len",
+  "form": "name",
+  "callee": "super_len",
+  "in": "PreparedRequest.prepare_content_length"
+ },
+ {
+  "file": "models.py",
+  "line": 661,
+  "col": 49,
+  "name": "builtin_str",
+  "form": "name",
+  "callee": "builtin_str",
+  "in": "PreparedRequest.prepare_content_length"
+ },
+ {
+  "file": "models.py",
+  "line": 664,
+  "col": 29,
+  "name": "get",
+  "form": "attr",
+  "callee": "self.headers.get",
+  "in": "PreparedRequest.prepare_content_length"
+ },
+ {
+  "file": "models.py",
+  "line": 679,
+  "col": 23,
+  "name": "get_auth_from_url",
+  "form": "name",
+  "callee": "get_auth_from_url",
+  "in": "PreparedRequest.prepare_auth"
+ },
+ {
+  "file": "models.py",
+  "line": 679,
+  "col": 41,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "PreparedRequest.prepare_auth"
+ },
+ {
+  "file": "models.py",
+  "line": 680,
+  "col": 31,
+  "name": "any",
+  "form": "name",
+  "callee": "any",
+  "in": "PreparedRequest.prepare_auth"
+ },
+ {
+  "file": "models.py",
+  "line": 683,
+  "col": 15,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "PreparedRequest.prepare_auth"
+ },
+ {
+  "file": "models.py",
+  "line": 683,
+  "col": 43,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "PreparedRequest.prepare_auth"
+ },
+ {
+  "file": "models.py",
+  "line": 685,
+  "col": 31,
+  "name": "HTTPBasicAuth",
+  "form": "name",
+  "callee": "HTTPBasicAuth",
+  "in": "PreparedRequest.prepare_auth"
+ },
+ {
+  "file": "models.py",
+  "line": 688,
+  "col": 31,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "PreparedRequest.prepare_auth"
+ },
+ {
+  "file": "models.py",
+  "line": 691,
+  "col": 16,
+  "name": "auth_handler",
+  "form": "name",
+  "callee": "auth_handler",
+  "in": "PreparedRequest.prepare_auth"
+ },
+ {
+  "file": "models.py",
+  "line": 694,
+  "col": 26,
+  "name": "update",
+  "form": "attr",
+  "callee": "self.__dict__.update",
+  "in": "PreparedRequest.prepare_auth"
+ },
+ {
+  "file": "models.py",
+  "line": 697,
+  "col": 17,
+  "name": "prepare_content_length",
+  "form": "attr",
+  "callee": "self.prepare_content_length",
+  "in": "PreparedRequest.prepare_auth"
+ },
+ {
+  "file": "models.py",
+  "line": 712,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "PreparedRequest.prepare_cookies"
+ },
+ {
+  "file": "models.py",
+  "line": 715,
+  "col": 28,
+  "name": "cookiejar_from_dict",
+  "form": "name",
+  "callee": "cookiejar_from_dict",
+  "in": "PreparedRequest.prepare_cookies"
+ },
+ {
+  "file": "models.py",
+  "line": 717,
+  "col": 22,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "PreparedRequest.prepare_cookies"
+ },
+ {
+  "file": "models.py",
+  "line": 718,
+  "col": 24,
+  "name": "get_cookie_header",
+  "form": "name",
+  "callee": "get_cookie_header",
+  "in": "PreparedRequest.prepare_cookies"
+ },
+ {
+  "file": "models.py",
+  "line": 729,
+  "col": 17,
+  "name": "register_hook",
+  "form": "attr",
+  "callee": "self.register_hook",
+  "in": "PreparedRequest.prepare_hooks"
+ },
+ {
+  "file": "models.py",
+  "line": 776,
+  "col": 23,
+  "name": "CaseInsensitiveDict",
+  "form": "name",
+  "callee": "CaseInsensitiveDict",
+  "in": "Response.__init__"
+ },
+ {
+  "file": "models.py",
+  "line": 798,
+  "col": 23,
+  "name": "cookiejar_from_dict",
+  "form": "name",
+  "callee": "cookiejar_from_dict",
+  "in": "Response.__init__"
+ },
+ {
+  "file": "models.py",
+  "line": 806,
+  "col": 32,
+  "name": "timedelta",
+  "form": "attr",
+  "callee": "datetime.timedelta",
+  "in": "Response.__init__"
+ },
+ {
+  "file": "models.py",
+  "line": 816,
+  "col": 13,
+  "name": "close",
+  "form": "attr",
+  "callee": "self.close",
+  "in": "Response.__exit__"
+ },
+ {
+  "file": "models.py",
+  "line": 824,
+  "col": 22,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "Response.__getstate__"
+ },
+ {
+  "file": "models.py",
+  "line": 827,
+  "col": 33,
+  "name": "items",
+  "form": "attr",
+  "callee": "state.items",
+  "in": "Response.__setstate__"
+ },
+ {
+  "file": "models.py",
+  "line": 828,
+  "col": 12,
+  "name": "setattr",
+  "form": "name",
+  "callee": "setattr",
+  "in": "Response.__setstate__"
+ },
+ {
+  "file": "models.py",
+  "line": 831,
+  "col": 8,
+  "name": "setattr",
+  "form": "name",
+  "callee": "setattr",
+  "in": "Response.__setstate__"
+ },
+ {
+  "file": "models.py",
+  "line": 832,
+  "col": 8,
+  "name": "setattr",
+  "form": "name",
+  "callee": "setattr",
+  "in": "Response.__setstate__"
+ },
+ {
+  "file": "models.py",
+  "line": 859,
+  "col": 20,
+  "name": "iter_content",
+  "form": "attr",
+  "callee": "self.iter_content",
+  "in": "Response.__iter__"
+ },
+ {
+  "file": "models.py",
+  "line": 871,
+  "col": 17,
+  "name": "raise_for_status",
+  "form": "attr",
+  "callee": "self.raise_for_status",
+  "in": "Response.ok"
+ },
+ {
+  "file": "models.py",
+  "line": 900,
+  "col": 27,
+  "name": "detect",
+  "form": "attr",
+  "callee": "chardet.detect",
+  "in": "Response.apparent_encoding"
+ },
+ {
+  "file": "models.py",
+  "line": 937,
+  "col": 15,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "Response.iter_content.generate"
+ },
+ {
+  "file": "models.py",
+  "line": 939,
+  "col": 40,
+  "name": "stream",
+  "form": "attr",
+  "callee": "self.raw.stream",
+  "in": "Response.iter_content.generate"
+ },
+ {
+  "file": "models.py",
+  "line": 941,
+  "col": 26,
+  "name": "ChunkedEncodingError",
+  "form": "name",
+  "callee": "ChunkedEncodingError",
+  "in": "Response.iter_content.generate"
+ },
+ {
+  "file": "models.py",
+  "line": 943,
+  "col": 26,
+  "name": "ContentDecodingError",
+  "form": "name",
+  "callee": "ContentDecodingError",
+  "in": "Response.iter_content.generate"
+ },
+ {
+  "file": "models.py",
+  "line": 945,
+  "col": 26,
+  "name": "ConnectionError",
+  "form": "name",
+  "callee": "ConnectionError",
+  "in": "Response.iter_content.generate"
+ },
+ {
+  "file": "models.py",
+  "line": 947,
+  "col": 26,
+  "name": "RequestsSSLError",
+  "form": "name",
+  "callee": "RequestsSSLError",
+  "in": "Response.iter_content.generate"
+ },
+ {
+  "file": "models.py",
+  "line": 951,
+  "col": 37,
+  "name": "read",
+  "form": "attr",
+  "callee": "self.raw.read",
+  "in": "Response.iter_content.generate"
+ },
+ {
+  "file": "models.py",
+  "line": 958,
+  "col": 38,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "Response.iter_content"
+ },
+ {
+  "file": "models.py",
+  "line": 959,
+  "col": 18,
+  "name": "StreamConsumedError",
+  "form": "name",
+  "callee": "StreamConsumedError",
+  "in": "Response.iter_content"
+ },
+ {
+  "file": "models.py",
+  "line": 960,
+  "col": 44,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "Response.iter_content"
+ },
+ {
+  "file": "models.py",
+  "line": 963,
+  "col": 18,
+  "name": "TypeError",
+  "form": "name",
+  "callee": "TypeError",
+  "in": "Response.iter_content"
+ },
+ {
+  "file": "models.py",
+  "line": 964,
+  "col": 62,
+  "name": "type",
+  "form": "name",
+  "callee": "type",
+  "in": "Response.iter_content"
+ },
+ {
+  "file": "models.py",
+  "line": 969,
+  "col": 22,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "Response.iter_content"
+ },
+ {
+  "file": "models.py",
+  "line": 970,
+  "col": 21,
+  "name": "iter_slices",
+  "form": "name",
+  "callee": "iter_slices",
+  "in": "Response.iter_content"
+ },
+ {
+  "file": "models.py",
+  "line": 972,
+  "col": 21,
+  "name": "generate",
+  "form": "name",
+  "callee": "generate",
+  "in": "Response.iter_content"
+ },
+ {
+  "file": "models.py",
+  "line": 975,
+  "col": 21,
+  "name": "stream_decode_response_unicode",
+  "form": "name",
+  "callee": "stream_decode_response_unicode",
+  "in": "Response.iter_content"
+ },
+ {
+  "file": "models.py",
+  "line": 1012,
+  "col": 26,
+  "name": "iter_content",
+  "form": "attr",
+  "callee": "self.iter_content",
+  "in": "Response.iter_lines"
+ },
+ {
+  "file": "models.py",
+  "line": 1017,
+  "col": 24,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "Response.iter_lines"
+ },
+ {
+  "file": "models.py",
+  "line": 1020,
+  "col": 30,
+  "name": "split",
+  "form": "attr",
+  "callee": "chunk.split",
+  "in": "Response.iter_lines"
+ },
+ {
+  "file": "models.py",
+  "line": 1022,
+  "col": 30,
+  "name": "splitlines",
+  "form": "attr",
+  "callee": "chunk.splitlines",
+  "in": "Response.iter_lines"
+ },
+ {
+  "file": "models.py",
+  "line": 1025,
+  "col": 32,
+  "name": "pop",
+  "form": "attr",
+  "callee": "lines.pop",
+  "in": "Response.iter_lines"
+ },
+ {
+  "file": "models.py",
+  "line": 1041,
+  "col": 22,
+  "name": "RuntimeError",
+  "form": "name",
+  "callee": "RuntimeError",
+  "in": "Response.content"
+ },
+ {
+  "file": "models.py",
+  "line": 1046,
+  "col": 36,
+  "name": "join",
+  "form": "attr",
+  "callee": "b''.join",
+  "in": "Response.content"
+ },
+ {
+  "file": "models.py",
+  "line": 1046,
+  "col": 46,
+  "name": "iter_content",
+  "form": "attr",
+  "callee": "self.iter_content",
+  "in": "Response.content"
+ },
+ {
+  "file": "models.py",
+  "line": 1079,
+  "col": 22,
+  "name": "str",
+  "form": "name",
+  "callee": "str",
+  "in": "Response.text"
+ },
+ {
+  "file": "models.py",
+  "line": 1087,
+  "col": 22,
+  "name": "str",
+  "form": "name",
+  "callee": "str",
+  "in": "Response.text"
+ },
+ {
+  "file": "models.py",
+  "line": 1101,
+  "col": 50,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "Response.json"
+ },
+ {
+  "file": "models.py",
+  "line": 1106,
+  "col": 23,
+  "name": "guess_json_utf",
+  "form": "name",
+  "callee": "guess_json_utf",
+  "in": "Response.json"
+ },
+ {
+  "file": "models.py",
+  "line": 1109,
+  "col": 39,
+  "name": "loads",
+  "form": "attr",
+  "callee": "complexjson.loads",
+  "in": "Response.json"
+ },
+ {
+  "file": "models.py",
+  "line": 1109,
+  "col": 58,
+  "name": "decode",
+  "form": "attr",
+  "callee": "self.content.decode",
+  "in": "Response.json"
+ },
+ {
+  "file": "models.py",
+  "line": 1117,
+  "col": 26,
+  "name": "RequestsJSONDecodeError",
+  "form": "name",
+  "callee": "RequestsJSONDecodeError",
+  "in": "Response.json"
+ },
+ {
+  "file": "models.py",
+  "line": 1120,
+  "col": 31,
+  "name": "loads",
+  "form": "attr",
+  "callee": "complexjson.loads",
+  "in": "Response.json"
+ },
+ {
+  "file": "models.py",
+  "line": 1124,
+  "col": 18,
+  "name": "RequestsJSONDecodeError",
+  "form": "name",
+  "callee": "RequestsJSONDecodeError",
+  "in": "Response.json"
+ },
+ {
+  "file": "models.py",
+  "line": 1130,
+  "col": 30,
+  "name": "get",
+  "form": "attr",
+  "callee": "self.headers.get",
+  "in": "Response.links"
+ },
+ {
+  "file": "models.py",
+  "line": 1135,
+  "col": 20,
+  "name": "parse_header_links",
+  "form": "name",
+  "callee": "parse_header_links",
+  "in": "Response.links"
+ },
+ {
+  "file": "models.py",
+  "line": 1138,
+  "col": 27,
+  "name": "get",
+  "form": "attr",
+  "callee": "link.get",
+  "in": "Response.links"
+ },
+ {
+  "file": "models.py",
+  "line": 1138,
+  "col": 46,
+  "name": "get",
+  "form": "attr",
+  "callee": "link.get",
+  "in": "Response.links"
+ },
+ {
+  "file": "models.py",
+  "line": 1148,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "Response.raise_for_status"
+ },
+ {
+  "file": "models.py",
+  "line": 1154,
+  "col": 37,
+  "name": "decode",
+  "form": "attr",
+  "callee": "self.reason.decode",
+  "in": "Response.raise_for_status"
+ },
+ {
+  "file": "models.py",
+  "line": 1156,
+  "col": 37,
+  "name": "decode",
+  "form": "attr",
+  "callee": "self.reason.decode",
+  "in": "Response.raise_for_status"
+ },
+ {
+  "file": "models.py",
+  "line": 1171,
+  "col": 18,
+  "name": "HTTPError",
+  "form": "name",
+  "callee": "HTTPError",
+  "in": "Response.raise_for_status"
+ },
+ {
+  "file": "models.py",
+  "line": 1180,
+  "col": 21,
+  "name": "close",
+  "form": "attr",
+  "callee": "self.raw.close",
+  "in": "Response.close"
+ },
+ {
+  "file": "models.py",
+  "line": 1182,
+  "col": 23,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "Response.close"
+ },
+ {
+  "file": "models.py",
+  "line": 1184,
+  "col": 12,
+  "name": "release_conn",
+  "form": "name",
+  "callee": "release_conn",
+  "in": "Response.close"
+ },
+ {
+  "file": "packages.py",
+  "line": 9,
+  "col": 4,
+  "name": "locals",
+  "form": "name",
+  "callee": "locals",
+  "in": ""
+ },
+ {
+  "file": "packages.py",
+  "line": 9,
+  "col": 24,
+  "name": "__import__",
+  "form": "name",
+  "callee": "__import__",
+  "in": ""
+ },
+ {
+  "file": "packages.py",
+  "line": 12,
+  "col": 15,
+  "name": "list",
+  "form": "name",
+  "callee": "list",
+  "in": ""
+ },
+ {
+  "file": "packages.py",
+  "line": 13,
+  "col": 33,
+  "name": "startswith",
+  "form": "attr",
+  "callee": "mod.startswith",
+  "in": ""
+ },
+ {
+  "file": "packages.py",
+  "line": 18,
+  "col": 15,
+  "name": "list",
+  "form": "name",
+  "callee": "list",
+  "in": ""
+ },
+ {
+  "file": "packages.py",
+  "line": 19,
+  "col": 32,
+  "name": "startswith",
+  "form": "attr",
+  "callee": "mod.startswith",
+  "in": ""
+ },
+ {
+  "file": "packages.py",
+  "line": 22,
+  "col": 22,
+  "name": "replace",
+  "form": "attr",
+  "callee": "mod.replace",
+  "in": ""
+ },
+ {
+  "file": "sessions.py",
+  "line": 92,
+  "col": 8,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "merge_setting"
+ },
+ {
+  "file": "sessions.py",
+  "line": 92,
+  "col": 49,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "merge_setting"
+ },
+ {
+  "file": "sessions.py",
+  "line": 96,
+  "col": 21,
+  "name": "dict_class",
+  "form": "name",
+  "callee": "dict_class",
+  "in": "merge_setting"
+ },
+ {
+  "file": "sessions.py",
+  "line": 96,
+  "col": 32,
+  "name": "to_key_val_list",
+  "form": "name",
+  "callee": "to_key_val_list",
+  "in": "merge_setting"
+ },
+ {
+  "file": "sessions.py",
+  "line": 97,
+  "col": 19,
+  "name": "update",
+  "form": "attr",
+  "callee": "merged_setting.update",
+  "in": "merge_setting"
+ },
+ {
+  "file": "sessions.py",
+  "line": 97,
+  "col": 26,
+  "name": "to_key_val_list",
+  "form": "name",
+  "callee": "to_key_val_list",
+  "in": "merge_setting"
+ },
+ {
+  "file": "sessions.py",
+  "line": 101,
+  "col": 48,
+  "name": "items",
+  "form": "attr",
+  "callee": "merged_setting.items",
+  "in": "merge_setting"
+ },
+ {
+  "file": "sessions.py",
+  "line": 118,
+  "col": 46,
+  "name": "get",
+  "form": "attr",
+  "callee": "session_hooks.get",
+  "in": "merge_hooks"
+ },
+ {
+  "file": "sessions.py",
+  "line": 121,
+  "col": 46,
+  "name": "get",
+  "form": "attr",
+  "callee": "request_hooks.get",
+  "in": "merge_hooks"
+ },
+ {
+  "file": "sessions.py",
+  "line": 124,
+  "col": 11,
+  "name": "merge_setting",
+  "form": "name",
+  "callee": "merge_setting",
+  "in": "merge_hooks"
+ },
+ {
+  "file": "sessions.py",
+  "line": 150,
+  "col": 32,
+  "name": "encode",
+  "form": "attr",
+  "callee": "location.encode",
+  "in": "SessionRedirectMixin.get_redirect_target"
+ },
+ {
+  "file": "sessions.py",
+  "line": 151,
+  "col": 19,
+  "name": "to_native_string",
+  "form": "name",
+  "callee": "to_native_string",
+  "in": "SessionRedirectMixin.get_redirect_target"
+ },
+ {
+  "file": "sessions.py",
+  "line": 156,
+  "col": 21,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "SessionRedirectMixin.should_strip_auth"
+ },
+ {
+  "file": "sessions.py",
+  "line": 157,
+  "col": 21,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "SessionRedirectMixin.should_strip_auth"
+ },
+ {
+  "file": "sessions.py",
+  "line": 175,
+  "col": 38,
+  "name": "get",
+  "form": "attr",
+  "callee": "DEFAULT_PORTS.get",
+  "in": "SessionRedirectMixin.should_strip_auth"
+ },
+ {
+  "file": "sessions.py",
+  "line": 202,
+  "col": 19,
+  "name": "get_redirect_target",
+  "form": "attr",
+  "callee": "self.get_redirect_target",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 203,
+  "col": 28,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 205,
+  "col": 35,
+  "name": "copy",
+  "form": "attr",
+  "callee": "req.copy",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 209,
+  "col": 17,
+  "name": "append",
+  "form": "attr",
+  "callee": "hist.append",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 214,
+  "col": 25,
+  "name": "read",
+  "form": "attr",
+  "callee": "resp.raw.read",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 216,
+  "col": 15,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 217,
+  "col": 22,
+  "name": "TooManyRedirects",
+  "form": "name",
+  "callee": "TooManyRedirects",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 222,
+  "col": 17,
+  "name": "close",
+  "form": "attr",
+  "callee": "resp.close",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 225,
+  "col": 19,
+  "name": "startswith",
+  "form": "attr",
+  "callee": "url.startswith",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 226,
+  "col": 30,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 227,
+  "col": 26,
+  "name": "join",
+  "form": "attr",
+  "callee": "':'.join",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 227,
+  "col": 32,
+  "name": "to_native_string",
+  "form": "name",
+  "callee": "to_native_string",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 230,
+  "col": 21,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 232,
+  "col": 32,
+  "name": "_replace",
+  "form": "attr",
+  "callee": "parsed._replace",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 235,
+  "col": 25,
+  "name": "geturl",
+  "form": "attr",
+  "callee": "parsed.geturl",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 241,
+  "col": 22,
+  "name": "urljoin",
+  "form": "name",
+  "callee": "urljoin",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 241,
+  "col": 40,
+  "name": "requote_uri",
+  "form": "name",
+  "callee": "requote_uri",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 243,
+  "col": 22,
+  "name": "requote_uri",
+  "form": "name",
+  "callee": "requote_uri",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 245,
+  "col": 35,
+  "name": "to_native_string",
+  "form": "name",
+  "callee": "to_native_string",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 247,
+  "col": 17,
+  "name": "rebuild_method",
+  "form": "attr",
+  "callee": "self.rebuild_method",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 257,
+  "col": 45,
+  "name": "pop",
+  "form": "attr",
+  "callee": "prepared_request.headers.pop",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 261,
+  "col": 20,
+  "name": "pop",
+  "form": "attr",
+  "callee": "headers.pop",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 266,
+  "col": 25,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 267,
+  "col": 12,
+  "name": "extract_cookies_to_jar",
+  "form": "name",
+  "callee": "extract_cookies_to_jar",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 268,
+  "col": 12,
+  "name": "merge_cookies",
+  "form": "name",
+  "callee": "merge_cookies",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 269,
+  "col": 29,
+  "name": "prepare_cookies",
+  "form": "attr",
+  "callee": "prepared_request.prepare_cookies",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 272,
+  "col": 27,
+  "name": "rebuild_proxies",
+  "form": "attr",
+  "callee": "self.rebuild_proxies",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 273,
+  "col": 17,
+  "name": "rebuild_auth",
+  "form": "attr",
+  "callee": "self.rebuild_auth",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 284,
+  "col": 16,
+  "name": "rewind_body",
+  "form": "name",
+  "callee": "rewind_body",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 292,
+  "col": 28,
+  "name": "send",
+  "form": "attr",
+  "callee": "self.send",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 303,
+  "col": 16,
+  "name": "extract_cookies_to_jar",
+  "form": "name",
+  "callee": "extract_cookies_to_jar",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 306,
+  "col": 27,
+  "name": "get_redirect_target",
+  "form": "attr",
+  "callee": "self.get_redirect_target",
+  "in": "SessionRedirectMixin.resolve_redirects"
+ },
+ {
+  "file": "sessions.py",
+  "line": 317,
+  "col": 15,
+  "name": "_is_prepared",
+  "form": "name",
+  "callee": "_is_prepared",
+  "in": "SessionRedirectMixin.rebuild_auth"
+ },
+ {
+  "file": "sessions.py",
+  "line": 318,
+  "col": 15,
+  "name": "_is_prepared",
+  "form": "name",
+  "callee": "_is_prepared",
+  "in": "SessionRedirectMixin.rebuild_auth"
+ },
+ {
+  "file": "sessions.py",
+  "line": 324,
+  "col": 47,
+  "name": "should_strip_auth",
+  "form": "attr",
+  "callee": "self.should_strip_auth",
+  "in": "SessionRedirectMixin.rebuild_auth"
+ },
+ {
+  "file": "sessions.py",
+  "line": 330,
+  "col": 19,
+  "name": "get_netrc_auth",
+  "form": "name",
+  "callee": "get_netrc_auth",
+  "in": "SessionRedirectMixin.rebuild_auth"
+ },
+ {
+  "file": "sessions.py",
+  "line": 332,
+  "col": 29,
+  "name": "prepare_auth",
+  "form": "attr",
+  "callee": "prepared_request.prepare_auth",
+  "in": "SessionRedirectMixin.rebuild_auth"
+ },
+ {
+  "file": "sessions.py",
+  "line": 350,
+  "col": 15,
+  "name": "_is_prepared",
+  "form": "name",
+  "callee": "_is_prepared",
+  "in": "SessionRedirectMixin.rebuild_proxies"
+ },
+ {
+  "file": "sessions.py",
+  "line": 352,
+  "col": 17,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "SessionRedirectMixin.rebuild_proxies"
+ },
+ {
+  "file": "sessions.py",
+  "line": 353,
+  "col": 22,
+  "name": "resolve_proxies",
+  "form": "name",
+  "callee": "resolve_proxies",
+  "in": "SessionRedirectMixin.rebuild_proxies"
+ },
+ {
+  "file": "sessions.py",
+  "line": 359,
+  "col": 33,
+  "name": "get_auth_from_url",
+  "form": "name",
+  "callee": "get_auth_from_url",
+  "in": "SessionRedirectMixin.rebuild_proxies"
+ },
+ {
+  "file": "sessions.py",
+  "line": 365,
+  "col": 22,
+  "name": "startswith",
+  "form": "attr",
+  "callee": "scheme.startswith",
+  "in": "SessionRedirectMixin.rebuild_proxies"
+ },
+ {
+  "file": "sessions.py",
+  "line": 366,
+  "col": 45,
+  "name": "_basic_auth_str",
+  "form": "name",
+  "callee": "_basic_auth_str",
+  "in": "SessionRedirectMixin.rebuild_proxies"
+ },
+ {
+  "file": "sessions.py",
+  "line": 446,
+  "col": 23,
+  "name": "default_headers",
+  "form": "name",
+  "callee": "default_headers",
+  "in": "Session.__init__"
+ },
+ {
+  "file": "sessions.py",
+  "line": 458,
+  "col": 21,
+  "name": "default_hooks",
+  "form": "name",
+  "callee": "default_hooks",
+  "in": "Session.__init__"
+ },
+ {
+  "file": "sessions.py",
+  "line": 498,
+  "col": 23,
+  "name": "cookiejar_from_dict",
+  "form": "name",
+  "callee": "cookiejar_from_dict",
+  "in": "Session.__init__"
+ },
+ {
+  "file": "sessions.py",
+  "line": 501,
+  "col": 24,
+  "name": "OrderedDict",
+  "form": "name",
+  "callee": "OrderedDict",
+  "in": "Session.__init__"
+ },
+ {
+  "file": "sessions.py",
+  "line": 502,
+  "col": 13,
+  "name": "mount",
+  "form": "attr",
+  "callee": "self.mount",
+  "in": "Session.__init__"
+ },
+ {
+  "file": "sessions.py",
+  "line": 502,
+  "col": 31,
+  "name": "HTTPAdapter",
+  "form": "name",
+  "callee": "HTTPAdapter",
+  "in": "Session.__init__"
+ },
+ {
+  "file": "sessions.py",
+  "line": 503,
+  "col": 13,
+  "name": "mount",
+  "form": "attr",
+  "callee": "self.mount",
+  "in": "Session.__init__"
+ },
+ {
+  "file": "sessions.py",
+  "line": 503,
+  "col": 30,
+  "name": "HTTPAdapter",
+  "form": "name",
+  "callee": "HTTPAdapter",
+  "in": "Session.__init__"
+ },
+ {
+  "file": "sessions.py",
+  "line": 509,
+  "col": 13,
+  "name": "close",
+  "form": "attr",
+  "callee": "self.close",
+  "in": "Session.__exit__"
+ },
+ {
+  "file": "sessions.py",
+  "line": 521,
+  "col": 14,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 522,
+  "col": 17,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 527,
+  "col": 15,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 528,
+  "col": 22,
+  "name": "cookiejar_from_dict",
+  "form": "name",
+  "callee": "cookiejar_from_dict",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 531,
+  "col": 25,
+  "name": "merge_cookies",
+  "form": "name",
+  "callee": "merge_cookies",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 532,
+  "col": 12,
+  "name": "merge_cookies",
+  "form": "name",
+  "callee": "merge_cookies",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 532,
+  "col": 26,
+  "name": "RequestsCookieJar",
+  "form": "name",
+  "callee": "RequestsCookieJar",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 538,
+  "col": 19,
+  "name": "get_netrc_auth",
+  "form": "name",
+  "callee": "get_netrc_auth",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 540,
+  "col": 12,
+  "name": "PreparedRequest",
+  "form": "name",
+  "callee": "PreparedRequest",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 541,
+  "col": 10,
+  "name": "prepare",
+  "form": "attr",
+  "callee": "p.prepare",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 542,
+  "col": 26,
+  "name": "upper",
+  "form": "attr",
+  "callee": "method.upper",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 547,
+  "col": 20,
+  "name": "merge_setting",
+  "form": "name",
+  "callee": "merge_setting",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 550,
+  "col": 19,
+  "name": "merge_setting",
+  "form": "name",
+  "callee": "merge_setting",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 551,
+  "col": 17,
+  "name": "merge_setting",
+  "form": "name",
+  "callee": "merge_setting",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 553,
+  "col": 18,
+  "name": "merge_hooks",
+  "form": "name",
+  "callee": "merge_hooks",
+  "in": "Session.prepare_request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 619,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "Session.request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 620,
+  "col": 22,
+  "name": "decode",
+  "form": "attr",
+  "callee": "url.decode",
+  "in": "Session.request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 623,
+  "col": 14,
+  "name": "Request",
+  "form": "name",
+  "callee": "Request",
+  "in": "Session.request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 624,
+  "col": 26,
+  "name": "upper",
+  "form": "attr",
+  "callee": "method.upper",
+  "in": "Session.request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 635,
+  "col": 20,
+  "name": "prepare_request",
+  "form": "attr",
+  "callee": "self.prepare_request",
+  "in": "Session.request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 637,
+  "col": 15,
+  "name": "_is_prepared",
+  "form": "name",
+  "callee": "_is_prepared",
+  "in": "Session.request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 641,
+  "col": 24,
+  "name": "merge_environment_settings",
+  "form": "attr",
+  "callee": "self.merge_environment_settings",
+  "in": "Session.request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 650,
+  "col": 20,
+  "name": "update",
+  "form": "attr",
+  "callee": "send_kwargs.update",
+  "in": "Session.request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 651,
+  "col": 20,
+  "name": "send",
+  "form": "attr",
+  "callee": "self.send",
+  "in": "Session.request"
+ },
+ {
+  "file": "sessions.py",
+  "line": 670,
+  "col": 15,
+  "name": "setdefault",
+  "form": "attr",
+  "callee": "kwargs.setdefault",
+  "in": "Session.get"
+ },
+ {
+  "file": "sessions.py",
+  "line": 671,
+  "col": 20,
+  "name": "request",
+  "form": "attr",
+  "callee": "self.request",
+  "in": "Session.get"
+ },
+ {
+  "file": "sessions.py",
+  "line": 681,
+  "col": 15,
+  "name": "setdefault",
+  "form": "attr",
+  "callee": "kwargs.setdefault",
+  "in": "Session.options"
+ },
+ {
+  "file": "sessions.py",
+  "line": 682,
+  "col": 20,
+  "name": "request",
+  "form": "attr",
+  "callee": "self.request",
+  "in": "Session.options"
+ },
+ {
+  "file": "sessions.py",
+  "line": 692,
+  "col": 15,
+  "name": "setdefault",
+  "form": "attr",
+  "callee": "kwargs.setdefault",
+  "in": "Session.head"
+ },
+ {
+  "file": "sessions.py",
+  "line": 693,
+  "col": 20,
+  "name": "request",
+  "form": "attr",
+  "callee": "self.request",
+  "in": "Session.head"
+ },
+ {
+  "file": "sessions.py",
+  "line": 712,
+  "col": 20,
+  "name": "request",
+  "form": "attr",
+  "callee": "self.request",
+  "in": "Session.post"
+ },
+ {
+  "file": "sessions.py",
+  "line": 726,
+  "col": 20,
+  "name": "request",
+  "form": "attr",
+  "callee": "self.request",
+  "in": "Session.put"
+ },
+ {
+  "file": "sessions.py",
+  "line": 740,
+  "col": 20,
+  "name": "request",
+  "form": "attr",
+  "callee": "self.request",
+  "in": "Session.patch"
+ },
+ {
+  "file": "sessions.py",
+  "line": 750,
+  "col": 20,
+  "name": "request",
+  "form": "attr",
+  "callee": "self.request",
+  "in": "Session.delete"
+ },
+ {
+  "file": "sessions.py",
+  "line": 759,
+  "col": 15,
+  "name": "setdefault",
+  "form": "attr",
+  "callee": "kwargs.setdefault",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 760,
+  "col": 15,
+  "name": "setdefault",
+  "form": "attr",
+  "callee": "kwargs.setdefault",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 761,
+  "col": 15,
+  "name": "setdefault",
+  "form": "attr",
+  "callee": "kwargs.setdefault",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 763,
+  "col": 32,
+  "name": "resolve_proxies",
+  "form": "name",
+  "callee": "resolve_proxies",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 767,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 768,
+  "col": 18,
+  "name": "ValueError",
+  "form": "name",
+  "callee": "ValueError",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 770,
+  "col": 15,
+  "name": "_is_prepared",
+  "form": "name",
+  "callee": "_is_prepared",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 773,
+  "col": 33,
+  "name": "pop",
+  "form": "attr",
+  "callee": "kwargs.pop",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 774,
+  "col": 24,
+  "name": "get",
+  "form": "attr",
+  "callee": "kwargs.get",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 778,
+  "col": 23,
+  "name": "get_adapter",
+  "form": "attr",
+  "callee": "self.get_adapter",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 781,
+  "col": 16,
+  "name": "preferred_clock",
+  "form": "name",
+  "callee": "preferred_clock",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 784,
+  "col": 20,
+  "name": "send",
+  "form": "attr",
+  "callee": "adapter.send",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 787,
+  "col": 18,
+  "name": "preferred_clock",
+  "form": "name",
+  "callee": "preferred_clock",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 788,
+  "col": 20,
+  "name": "timedelta",
+  "form": "name",
+  "callee": "timedelta",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 791,
+  "col": 12,
+  "name": "dispatch_hook",
+  "form": "name",
+  "callee": "dispatch_hook",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 797,
+  "col": 16,
+  "name": "extract_cookies_to_jar",
+  "form": "name",
+  "callee": "extract_cookies_to_jar",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 799,
+  "col": 8,
+  "name": "extract_cookies_to_jar",
+  "form": "name",
+  "callee": "extract_cookies_to_jar",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 804,
+  "col": 23,
+  "name": "resolve_redirects",
+  "form": "attr",
+  "callee": "self.resolve_redirects",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 812,
+  "col": 20,
+  "name": "insert",
+  "form": "attr",
+  "callee": "history.insert",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 814,
+  "col": 24,
+  "name": "pop",
+  "form": "attr",
+  "callee": "history.pop",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 820,
+  "col": 26,
+  "name": "next",
+  "form": "name",
+  "callee": "next",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 821,
+  "col": 25,
+  "name": "resolve_redirects",
+  "form": "attr",
+  "callee": "self.resolve_redirects",
+  "in": "Session.send"
+ },
+ {
+  "file": "sessions.py",
+  "line": 847,
+  "col": 31,
+  "name": "get",
+  "form": "attr",
+  "callee": "proxies.get",
+  "in": "Session.merge_environment_settings"
+ },
+ {
+  "file": "sessions.py",
+  "line": 848,
+  "col": 26,
+  "name": "get_environ_proxies",
+  "form": "name",
+  "callee": "get_environ_proxies",
+  "in": "Session.merge_environment_settings"
+ },
+ {
+  "file": "sessions.py",
+  "line": 850,
+  "col": 40,
+  "name": "items",
+  "form": "attr",
+  "callee": "env_proxies.items",
+  "in": "Session.merge_environment_settings"
+ },
+ {
+  "file": "sessions.py",
+  "line": 851,
+  "col": 28,
+  "name": "setdefault",
+  "form": "attr",
+  "callee": "proxies.setdefault",
+  "in": "Session.merge_environment_settings"
+ },
+ {
+  "file": "sessions.py",
+  "line": 857,
+  "col": 31,
+  "name": "get",
+  "form": "attr",
+  "callee": "os.environ.get",
+  "in": "Session.merge_environment_settings"
+ },
+ {
+  "file": "sessions.py",
+  "line": 858,
+  "col": 34,
+  "name": "get",
+  "form": "attr",
+  "callee": "os.environ.get",
+  "in": "Session.merge_environment_settings"
+ },
+ {
+  "file": "sessions.py",
+  "line": 863,
+  "col": 18,
+  "name": "merge_setting",
+  "form": "name",
+  "callee": "merge_setting",
+  "in": "Session.merge_environment_settings"
+ },
+ {
+  "file": "sessions.py",
+  "line": 864,
+  "col": 17,
+  "name": "merge_setting",
+  "form": "name",
+  "callee": "merge_setting",
+  "in": "Session.merge_environment_settings"
+ },
+ {
+  "file": "sessions.py",
+  "line": 865,
+  "col": 17,
+  "name": "merge_setting",
+  "form": "name",
+  "callee": "merge_setting",
+  "in": "Session.merge_environment_settings"
+ },
+ {
+  "file": "sessions.py",
+  "line": 866,
+  "col": 15,
+  "name": "merge_setting",
+  "form": "name",
+  "callee": "merge_setting",
+  "in": "Session.merge_environment_settings"
+ },
+ {
+  "file": "sessions.py",
+  "line": 876,
+  "col": 45,
+  "name": "items",
+  "form": "attr",
+  "callee": "self.adapters.items",
+  "in": "Session.get_adapter"
+ },
+ {
+  "file": "sessions.py",
+  "line": 877,
+  "col": 27,
+  "name": "startswith",
+  "form": "attr",
+  "callee": "url.lower().startswith",
+  "in": "Session.get_adapter"
+ },
+ {
+  "file": "sessions.py",
+  "line": 877,
+  "col": 19,
+  "name": "lower",
+  "form": "attr",
+  "callee": "url.lower",
+  "in": "Session.get_adapter"
+ },
+ {
+  "file": "sessions.py",
+  "line": 877,
+  "col": 45,
+  "name": "lower",
+  "form": "attr",
+  "callee": "prefix.lower",
+  "in": "Session.get_adapter"
+ },
+ {
+  "file": "sessions.py",
+  "line": 881,
+  "col": 14,
+  "name": "InvalidSchema",
+  "form": "name",
+  "callee": "InvalidSchema",
+  "in": "Session.get_adapter"
+ },
+ {
+  "file": "sessions.py",
+  "line": 885,
+  "col": 31,
+  "name": "values",
+  "form": "attr",
+  "callee": "self.adapters.values",
+  "in": "Session.close"
+ },
+ {
+  "file": "sessions.py",
+  "line": 886,
+  "col": 14,
+  "name": "close",
+  "form": "attr",
+  "callee": "v.close",
+  "in": "Session.close"
+ },
+ {
+  "file": "sessions.py",
+  "line": 894,
+  "col": 52,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "Session.mount"
+ },
+ {
+  "file": "sessions.py",
+  "line": 894,
+  "col": 61,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "Session.mount"
+ },
+ {
+  "file": "sessions.py",
+  "line": 897,
+  "col": 47,
+  "name": "pop",
+  "form": "attr",
+  "callee": "self.adapters.pop",
+  "in": "Session.mount"
+ },
+ {
+  "file": "sessions.py",
+  "line": 900,
+  "col": 23,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "Session.__getstate__"
+ },
+ {
+  "file": "sessions.py",
+  "line": 904,
+  "col": 33,
+  "name": "items",
+  "form": "attr",
+  "callee": "state.items",
+  "in": "Session.__setstate__"
+ },
+ {
+  "file": "sessions.py",
+  "line": 905,
+  "col": 12,
+  "name": "setattr",
+  "form": "name",
+  "callee": "setattr",
+  "in": "Session.__setstate__"
+ },
+ {
+  "file": "sessions.py",
+  "line": 920,
+  "col": 11,
+  "name": "Session",
+  "form": "name",
+  "callee": "Session",
+  "in": "session"
+ },
+ {
+  "file": "status_codes.py",
+  "line": 106,
+  "col": 25,
+  "name": "LookupDict",
+  "form": "name",
+  "callee": "LookupDict",
+  "in": ""
+ },
+ {
+  "file": "status_codes.py",
+  "line": 110,
+  "col": 31,
+  "name": "items",
+  "form": "attr",
+  "callee": "_codes.items",
+  "in": "_init"
+ },
+ {
+  "file": "status_codes.py",
+  "line": 112,
+  "col": 12,
+  "name": "setattr",
+  "form": "name",
+  "callee": "setattr",
+  "in": "_init"
+ },
+ {
+  "file": "status_codes.py",
+  "line": 113,
+  "col": 25,
+  "name": "startswith",
+  "form": "attr",
+  "callee": "title.startswith",
+  "in": "_init"
+ },
+ {
+  "file": "status_codes.py",
+  "line": 114,
+  "col": 16,
+  "name": "setattr",
+  "form": "name",
+  "callee": "setattr",
+  "in": "_init"
+ },
+ {
+  "file": "status_codes.py",
+  "line": 114,
+  "col": 37,
+  "name": "upper",
+  "form": "attr",
+  "callee": "title.upper",
+  "in": "_init"
+ },
+ {
+  "file": "status_codes.py",
+  "line": 117,
+  "col": 21,
+  "name": "join",
+  "form": "attr",
+  "callee": "', '.join",
+  "in": "_init.doc"
+ },
+ {
+  "file": "status_codes.py",
+  "line": 122,
+  "col": 30,
+  "name": "join",
+  "form": "attr",
+  "callee": "'\\n'.join",
+  "in": "_init"
+ },
+ {
+  "file": "status_codes.py",
+  "line": 122,
+  "col": 35,
+  "name": "doc",
+  "form": "name",
+  "callee": "doc",
+  "in": "_init"
+ },
+ {
+  "file": "status_codes.py",
+  "line": 122,
+  "col": 57,
+  "name": "sorted",
+  "form": "name",
+  "callee": "sorted",
+  "in": "_init"
+ },
+ {
+  "file": "status_codes.py",
+  "line": 128,
+  "col": 0,
+  "name": "_init",
+  "form": "name",
+  "callee": "_init",
+  "in": ""
+ },
+ {
+  "file": "structures.py",
+  "line": 16,
+  "col": 6,
+  "name": "TypeVar",
+  "form": "name",
+  "callee": "TypeVar",
+  "in": ""
+ },
+ {
+  "file": "structures.py",
+  "line": 17,
+  "col": 5,
+  "name": "TypeVar",
+  "form": "name",
+  "callee": "TypeVar",
+  "in": ""
+ },
+ {
+  "file": "structures.py",
+  "line": 54,
+  "col": 22,
+  "name": "OrderedDict",
+  "form": "name",
+  "callee": "OrderedDict",
+  "in": "CaseInsensitiveDict.__init__"
+ },
+ {
+  "file": "structures.py",
+  "line": 57,
+  "col": 13,
+  "name": "update",
+  "form": "attr",
+  "callee": "self.update",
+  "in": "CaseInsensitiveDict.__init__"
+ },
+ {
+  "file": "structures.py",
+  "line": 62,
+  "col": 24,
+  "name": "lower",
+  "form": "attr",
+  "callee": "key.lower",
+  "in": "CaseInsensitiveDict.__setitem__"
+ },
+ {
+  "file": "structures.py",
+  "line": 65,
+  "col": 31,
+  "name": "lower",
+  "form": "attr",
+  "callee": "key.lower",
+  "in": "CaseInsensitiveDict.__getitem__"
+ },
+ {
+  "file": "structures.py",
+  "line": 68,
+  "col": 28,
+  "name": "lower",
+  "form": "attr",
+  "callee": "key.lower",
+  "in": "CaseInsensitiveDict.__delitem__"
+ },
+ {
+  "file": "structures.py",
+  "line": 71,
+  "col": 56,
+  "name": "values",
+  "form": "attr",
+  "callee": "self._store.values",
+  "in": "CaseInsensitiveDict.__iter__"
+ },
+ {
+  "file": "structures.py",
+  "line": 74,
+  "col": 15,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "CaseInsensitiveDict.__len__"
+ },
+ {
+  "file": "structures.py",
+  "line": 78,
+  "col": 76,
+  "name": "items",
+  "form": "attr",
+  "callee": "self._store.items",
+  "in": "CaseInsensitiveDict.lower_items"
+ },
+ {
+  "file": "structures.py",
+  "line": 81,
+  "col": 11,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "CaseInsensitiveDict.__eq__"
+ },
+ {
+  "file": "structures.py",
+  "line": 82,
+  "col": 51,
+  "name": "CaseInsensitiveDict",
+  "form": "name",
+  "callee": "CaseInsensitiveDict",
+  "in": "CaseInsensitiveDict.__eq__"
+ },
+ {
+  "file": "structures.py",
+  "line": 86,
+  "col": 15,
+  "name": "dict",
+  "form": "name",
+  "callee": "dict",
+  "in": "CaseInsensitiveDict.__eq__"
+ },
+ {
+  "file": "structures.py",
+  "line": 86,
+  "col": 25,
+  "name": "lower_items",
+  "form": "attr",
+  "callee": "self.lower_items",
+  "in": "CaseInsensitiveDict.__eq__"
+ },
+ {
+  "file": "structures.py",
+  "line": 86,
+  "col": 43,
+  "name": "dict",
+  "form": "name",
+  "callee": "dict",
+  "in": "CaseInsensitiveDict.__eq__"
+ },
+ {
+  "file": "structures.py",
+  "line": 86,
+  "col": 59,
+  "name": "lower_items",
+  "form": "attr",
+  "callee": "other_dict.lower_items",
+  "in": "CaseInsensitiveDict.__eq__"
+ },
+ {
+  "file": "structures.py",
+  "line": 90,
+  "col": 15,
+  "name": "CaseInsensitiveDict",
+  "form": "name",
+  "callee": "CaseInsensitiveDict",
+  "in": "CaseInsensitiveDict.copy"
+ },
+ {
+  "file": "structures.py",
+  "line": 90,
+  "col": 47,
+  "name": "values",
+  "form": "attr",
+  "callee": "self._store.values",
+  "in": "CaseInsensitiveDict.copy"
+ },
+ {
+  "file": "structures.py",
+  "line": 93,
+  "col": 15,
+  "name": "str",
+  "form": "name",
+  "callee": "str",
+  "in": "CaseInsensitiveDict.__repr__"
+ },
+ {
+  "file": "structures.py",
+  "line": 93,
+  "col": 19,
+  "name": "dict",
+  "form": "name",
+  "callee": "dict",
+  "in": "CaseInsensitiveDict.__repr__"
+ },
+ {
+  "file": "structures.py",
+  "line": 93,
+  "col": 29,
+  "name": "items",
+  "form": "attr",
+  "callee": "self.items",
+  "in": "CaseInsensitiveDict.__repr__"
+ },
+ {
+  "file": "structures.py",
+  "line": 103,
+  "col": 16,
+  "name": "__init__",
+  "form": "attr",
+  "callee": "super().__init__",
+  "in": "LookupDict.__init__"
+ },
+ {
+  "file": "structures.py",
+  "line": 103,
+  "col": 8,
+  "name": "super",
+  "form": "name",
+  "callee": "super",
+  "in": "LookupDict.__init__"
+ },
+ {
+  "file": "structures.py",
+  "line": 114,
+  "col": 18,
+  "name": "AttributeError",
+  "form": "name",
+  "callee": "AttributeError",
+  "in": "LookupDict.__getattr__"
+ },
+ {
+  "file": "structures.py",
+  "line": 115,
+  "col": 20,
+  "name": "type",
+  "form": "name",
+  "callee": "type",
+  "in": "LookupDict.__getattr__"
+ },
+ {
+  "file": "structures.py",
+  "line": 121,
+  "col": 29,
+  "name": "get",
+  "form": "attr",
+  "callee": "self.__dict__.get",
+  "in": "LookupDict.__getitem__"
+ },
+ {
+  "file": "structures.py",
+  "line": 130,
+  "col": 29,
+  "name": "get",
+  "form": "attr",
+  "callee": "self.__dict__.get",
+  "in": "LookupDict.get"
+ },
+ {
+  "file": "utils.py",
+  "line": 82,
+  "col": 36,
+  "name": "where",
+  "form": "attr",
+  "callee": "certs.where",
+  "in": ""
+ },
+ {
+  "file": "utils.py",
+  "line": 87,
+  "col": 6,
+  "name": "TypeVar",
+  "form": "name",
+  "callee": "TypeVar",
+  "in": ""
+ },
+ {
+  "file": "utils.py",
+  "line": 88,
+  "col": 6,
+  "name": "TypeVar",
+  "form": "name",
+  "callee": "TypeVar",
+  "in": ""
+ },
+ {
+  "file": "utils.py",
+  "line": 91,
+  "col": 38,
+  "name": "join",
+  "form": "attr",
+  "callee": "', '.join",
+  "in": ""
+ },
+ {
+  "file": "utils.py",
+  "line": 92,
+  "col": 7,
+  "name": "split",
+  "form": "attr",
+  "callee": "re.split",
+  "in": ""
+ },
+ {
+  "file": "utils.py",
+  "line": 92,
+  "col": 22,
+  "name": "make_headers",
+  "form": "name",
+  "callee": "make_headers",
+  "in": ""
+ },
+ {
+  "file": "utils.py",
+  "line": 106,
+  "col": 38,
+  "name": "OpenKey",
+  "form": "attr",
+  "callee": "winreg.OpenKey",
+  "in": "proxy_bypass_registry"
+ },
+ {
+  "file": "utils.py",
+  "line": 111,
+  "col": 26,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "proxy_bypass_registry"
+ },
+ {
+  "file": "utils.py",
+  "line": 111,
+  "col": 37,
+  "name": "QueryValueEx",
+  "form": "attr",
+  "callee": "winreg.QueryValueEx",
+  "in": "proxy_bypass_registry"
+ },
+ {
+  "file": "utils.py",
+  "line": 113,
+  "col": 35,
+  "name": "QueryValueEx",
+  "form": "attr",
+  "callee": "winreg.QueryValueEx",
+  "in": "proxy_bypass_registry"
+ },
+ {
+  "file": "utils.py",
+  "line": 122,
+  "col": 38,
+  "name": "split",
+  "form": "attr",
+  "callee": "proxyOverride.split",
+  "in": "proxy_bypass_registry"
+ },
+ {
+  "file": "utils.py",
+  "line": 124,
+  "col": 24,
+  "name": "filter",
+  "form": "name",
+  "callee": "filter",
+  "in": "proxy_bypass_registry"
+ },
+ {
+  "file": "utils.py",
+  "line": 130,
+  "col": 24,
+  "name": "replace",
+  "form": "attr",
+  "callee": "test.replace",
+  "in": "proxy_bypass_registry"
+ },
+ {
+  "file": "utils.py",
+  "line": 131,
+  "col": 24,
+  "name": "replace",
+  "form": "attr",
+  "callee": "test.replace",
+  "in": "proxy_bypass_registry"
+ },
+ {
+  "file": "utils.py",
+  "line": 132,
+  "col": 24,
+  "name": "replace",
+  "form": "attr",
+  "callee": "test.replace",
+  "in": "proxy_bypass_registry"
+ },
+ {
+  "file": "utils.py",
+  "line": 133,
+  "col": 18,
+  "name": "match",
+  "form": "attr",
+  "callee": "re.match",
+  "in": "proxy_bypass_registry"
+ },
+ {
+  "file": "utils.py",
+  "line": 143,
+  "col": 11,
+  "name": "getproxies_environment",
+  "form": "name",
+  "callee": "getproxies_environment",
+  "in": "proxy_bypass"
+ },
+ {
+  "file": "utils.py",
+  "line": 144,
+  "col": 19,
+  "name": "proxy_bypass_environment",
+  "form": "name",
+  "callee": "proxy_bypass_environment",
+  "in": "proxy_bypass"
+ },
+ {
+  "file": "utils.py",
+  "line": 146,
+  "col": 19,
+  "name": "proxy_bypass_registry",
+  "form": "name",
+  "callee": "proxy_bypass_registry",
+  "in": "proxy_bypass"
+ },
+ {
+  "file": "utils.py",
+  "line": 154,
+  "col": 7,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "dict_to_sequence"
+ },
+ {
+  "file": "utils.py",
+  "line": 155,
+  "col": 17,
+  "name": "items",
+  "form": "attr",
+  "callee": "d.items",
+  "in": "dict_to_sequence"
+ },
+ {
+  "file": "utils.py",
+  "line": 164,
+  "col": 28,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 167,
+  "col": 14,
+  "name": "encode",
+  "form": "attr",
+  "callee": "o.encode",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 169,
+  "col": 7,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 170,
+  "col": 23,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 172,
+  "col": 9,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 175,
+  "col": 9,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 177,
+  "col": 23,
+  "name": "fileno",
+  "form": "attr",
+  "callee": "o.fileno",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 184,
+  "col": 30,
+  "name": "fstat",
+  "form": "attr",
+  "callee": "os.fstat",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 189,
+  "col": 25,
+  "name": "warn",
+  "form": "attr",
+  "callee": "warnings.warn",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 201,
+  "col": 7,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 203,
+  "col": 33,
+  "name": "tell",
+  "form": "attr",
+  "callee": "o.tell",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 212,
+  "col": 15,
+  "name": "hasattr",
+  "form": "name",
+  "callee": "hasattr",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 216,
+  "col": 22,
+  "name": "seek",
+  "form": "attr",
+  "callee": "o.seek",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 217,
+  "col": 37,
+  "name": "tell",
+  "form": "attr",
+  "callee": "o.tell",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 221,
+  "col": 22,
+  "name": "seek",
+  "form": "attr",
+  "callee": "o.seek",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 228,
+  "col": 11,
+  "name": "max",
+  "form": "name",
+  "callee": "max",
+  "in": "super_len"
+ },
+ {
+  "file": "utils.py",
+  "line": 236,
+  "col": 7,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "get_netrc_auth"
+ },
+ {
+  "file": "utils.py",
+  "line": 237,
+  "col": 18,
+  "name": "decode",
+  "form": "attr",
+  "callee": "url.decode",
+  "in": "get_netrc_auth"
+ },
+ {
+  "file": "utils.py",
+  "line": 239,
+  "col": 28,
+  "name": "get",
+  "form": "attr",
+  "callee": "os.environ.get",
+  "in": "get_netrc_auth"
+ },
+ {
+  "file": "utils.py",
+  "line": 251,
+  "col": 26,
+  "name": "expanduser",
+  "form": "attr",
+  "callee": "os.path.expanduser",
+  "in": "get_netrc_auth"
+ },
+ {
+  "file": "utils.py",
+  "line": 252,
+  "col": 23,
+  "name": "exists",
+  "form": "attr",
+  "callee": "os.path.exists",
+  "in": "get_netrc_auth"
+ },
+ {
+  "file": "utils.py",
+  "line": 260,
+  "col": 13,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "get_netrc_auth"
+ },
+ {
+  "file": "utils.py",
+  "line": 267,
+  "col": 39,
+  "name": "authenticators",
+  "form": "attr",
+  "callee": "netrc(netrc_path).authenticators",
+  "in": "get_netrc_auth"
+ },
+ {
+  "file": "utils.py",
+  "line": 267,
+  "col": 21,
+  "name": "netrc",
+  "form": "name",
+  "callee": "netrc",
+  "in": "get_netrc_auth"
+ },
+ {
+  "file": "utils.py",
+  "line": 268,
+  "col": 26,
+  "name": "any",
+  "form": "name",
+  "callee": "any",
+  "in": "get_netrc_auth"
+ },
+ {
+  "file": "utils.py",
+  "line": 285,
+  "col": 11,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "guess_filename"
+ },
+ {
+  "file": "utils.py",
+  "line": 286,
+  "col": 16,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "guess_filename"
+ },
+ {
+  "file": "utils.py",
+  "line": 287,
+  "col": 23,
+  "name": "basename",
+  "form": "attr",
+  "callee": "os.path.basename",
+  "in": "guess_filename"
+ },
+ {
+  "file": "utils.py",
+  "line": 295,
+  "col": 15,
+  "name": "exists",
+  "form": "attr",
+  "callee": "os.path.exists",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 301,
+  "col": 30,
+  "name": "split",
+  "form": "attr",
+  "callee": "os.path.split",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 302,
+  "col": 34,
+  "name": "exists",
+  "form": "attr",
+  "callee": "os.path.exists",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 303,
+  "col": 34,
+  "name": "split",
+  "form": "attr",
+  "callee": "os.path.split",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 308,
+  "col": 21,
+  "name": "join",
+  "form": "attr",
+  "callee": "'/'.join",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 310,
+  "col": 19,
+  "name": "is_zipfile",
+  "form": "attr",
+  "callee": "zipfile.is_zipfile",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 313,
+  "col": 23,
+  "name": "ZipFile",
+  "form": "attr",
+  "callee": "zipfile.ZipFile",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 314,
+  "col": 30,
+  "name": "namelist",
+  "form": "attr",
+  "callee": "zip_file.namelist",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 318,
+  "col": 21,
+  "name": "splitext",
+  "form": "attr",
+  "callee": "os.path.splitext",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 318,
+  "col": 37,
+  "name": "split",
+  "form": "attr",
+  "callee": "member.split",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 319,
+  "col": 34,
+  "name": "mkstemp",
+  "form": "attr",
+  "callee": "tempfile.mkstemp",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 321,
+  "col": 11,
+  "name": "write",
+  "form": "attr",
+  "callee": "os.write",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 321,
+  "col": 30,
+  "name": "read",
+  "form": "attr",
+  "callee": "zip_file.read",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 323,
+  "col": 11,
+  "name": "close",
+  "form": "attr",
+  "callee": "os.close",
+  "in": "extract_zipped_paths"
+ },
+ {
+  "file": "utils.py",
+  "line": 331,
+  "col": 40,
+  "name": "mkstemp",
+  "form": "attr",
+  "callee": "tempfile.mkstemp",
+  "in": "atomic_open"
+ },
+ {
+  "file": "utils.py",
+  "line": 331,
+  "col": 60,
+  "name": "dirname",
+  "form": "attr",
+  "callee": "os.path.dirname",
+  "in": "atomic_open"
+ },
+ {
+  "file": "utils.py",
+  "line": 333,
+  "col": 16,
+  "name": "fdopen",
+  "form": "attr",
+  "callee": "os.fdopen",
+  "in": "atomic_open"
+ },
+ {
+  "file": "utils.py",
+  "line": 335,
+  "col": 11,
+  "name": "replace",
+  "form": "attr",
+  "callee": "os.replace",
+  "in": "atomic_open"
+ },
+ {
+  "file": "utils.py",
+  "line": 337,
+  "col": 11,
+  "name": "remove",
+  "form": "attr",
+  "callee": "os.remove",
+  "in": "atomic_open"
+ },
+ {
+  "file": "utils.py",
+  "line": 364,
+  "col": 7,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "from_key_val_list"
+ },
+ {
+  "file": "utils.py",
+  "line": 365,
+  "col": 14,
+  "name": "ValueError",
+  "form": "name",
+  "callee": "ValueError",
+  "in": "from_key_val_list"
+ },
+ {
+  "file": "utils.py",
+  "line": 367,
+  "col": 11,
+  "name": "OrderedDict",
+  "form": "name",
+  "callee": "OrderedDict",
+  "in": "from_key_val_list"
+ },
+ {
+  "file": "utils.py",
+  "line": 398,
+  "col": 7,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "to_key_val_list"
+ },
+ {
+  "file": "utils.py",
+  "line": 399,
+  "col": 14,
+  "name": "ValueError",
+  "form": "name",
+  "callee": "ValueError",
+  "in": "to_key_val_list"
+ },
+ {
+  "file": "utils.py",
+  "line": 401,
+  "col": 7,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "to_key_val_list"
+ },
+ {
+  "file": "utils.py",
+  "line": 402,
+  "col": 15,
+  "name": "list",
+  "form": "name",
+  "callee": "list",
+  "in": "to_key_val_list"
+ },
+ {
+  "file": "utils.py",
+  "line": 402,
+  "col": 26,
+  "name": "items",
+  "form": "attr",
+  "callee": "value.items",
+  "in": "to_key_val_list"
+ },
+ {
+  "file": "utils.py",
+  "line": 404,
+  "col": 11,
+  "name": "list",
+  "form": "name",
+  "callee": "list",
+  "in": "to_key_val_list"
+ },
+ {
+  "file": "utils.py",
+  "line": 432,
+  "col": 16,
+  "name": "_parse_list_header",
+  "form": "name",
+  "callee": "_parse_list_header",
+  "in": "parse_list_header"
+ },
+ {
+  "file": "utils.py",
+  "line": 434,
+  "col": 19,
+  "name": "unquote_header_value",
+  "form": "name",
+  "callee": "unquote_header_value",
+  "in": "parse_list_header"
+ },
+ {
+  "file": "utils.py",
+  "line": 435,
+  "col": 15,
+  "name": "append",
+  "form": "attr",
+  "callee": "result.append",
+  "in": "parse_list_header"
+ },
+ {
+  "file": "utils.py",
+  "line": 463,
+  "col": 16,
+  "name": "_parse_list_header",
+  "form": "name",
+  "callee": "_parse_list_header",
+  "in": "parse_dict_header"
+ },
+ {
+  "file": "utils.py",
+  "line": 467,
+  "col": 27,
+  "name": "split",
+  "form": "attr",
+  "callee": "item.split",
+  "in": "parse_dict_header"
+ },
+ {
+  "file": "utils.py",
+  "line": 469,
+  "col": 20,
+  "name": "unquote_header_value",
+  "form": "name",
+  "callee": "unquote_header_value",
+  "in": "parse_dict_header"
+ },
+ {
+  "file": "utils.py",
+  "line": 496,
+  "col": 47,
+  "name": "replace",
+  "form": "attr",
+  "callee": "value.replace('\\\\\\\\', '\\\\').replace",
+  "in": "unquote_header_value"
+ },
+ {
+  "file": "utils.py",
+  "line": 496,
+  "col": 25,
+  "name": "replace",
+  "form": "attr",
+  "callee": "value.replace",
+  "in": "unquote_header_value"
+ },
+ {
+  "file": "utils.py",
+  "line": 519,
+  "col": 11,
+  "name": "cookiejar_from_dict",
+  "form": "name",
+  "callee": "cookiejar_from_dict",
+  "in": "add_dict_to_cookiejar"
+ },
+ {
+  "file": "utils.py",
+  "line": 527,
+  "col": 13,
+  "name": "warn",
+  "form": "attr",
+  "callee": "warnings.warn",
+  "in": "get_encodings_from_content"
+ },
+ {
+  "file": "utils.py",
+  "line": 536,
+  "col": 20,
+  "name": "compile",
+  "form": "attr",
+  "callee": "re.compile",
+  "in": "get_encodings_from_content"
+ },
+ {
+  "file": "utils.py",
+  "line": 537,
+  "col": 19,
+  "name": "compile",
+  "form": "attr",
+  "callee": "re.compile",
+  "in": "get_encodings_from_content"
+ },
+ {
+  "file": "utils.py",
+  "line": 538,
+  "col": 16,
+  "name": "compile",
+  "form": "attr",
+  "callee": "re.compile",
+  "in": "get_encodings_from_content"
+ },
+ {
+  "file": "utils.py",
+  "line": 541,
+  "col": 19,
+  "name": "findall",
+  "form": "attr",
+  "callee": "charset_re.findall",
+  "in": "get_encodings_from_content"
+ },
+ {
+  "file": "utils.py",
+  "line": 542,
+  "col": 20,
+  "name": "findall",
+  "form": "attr",
+  "callee": "pragma_re.findall",
+  "in": "get_encodings_from_content"
+ },
+ {
+  "file": "utils.py",
+  "line": 543,
+  "col": 17,
+  "name": "findall",
+  "form": "attr",
+  "callee": "xml_re.findall",
+  "in": "get_encodings_from_content"
+ },
+ {
+  "file": "utils.py",
+  "line": 555,
+  "col": 20,
+  "name": "split",
+  "form": "attr",
+  "callee": "header.split",
+  "in": "_parse_content_type_header"
+ },
+ {
+  "file": "utils.py",
+  "line": 556,
+  "col": 37,
+  "name": "strip",
+  "form": "attr",
+  "callee": "tokens[0].strip",
+  "in": "_parse_content_type_header"
+ },
+ {
+  "file": "utils.py",
+  "line": 561,
+  "col": 22,
+  "name": "strip",
+  "form": "attr",
+  "callee": "param.strip",
+  "in": "_parse_content_type_header"
+ },
+ {
+  "file": "utils.py",
+  "line": 562,
+  "col": 35,
+  "name": "find",
+  "form": "attr",
+  "callee": "param.find",
+  "in": "_parse_content_type_header"
+ },
+ {
+  "file": "utils.py",
+  "line": 563,
+  "col": 30,
+  "name": "strip",
+  "form": "attr",
+  "callee": "param[:idx].strip",
+  "in": "_parse_content_type_header"
+ },
+ {
+  "file": "utils.py",
+  "line": 564,
+  "col": 37,
+  "name": "strip",
+  "form": "attr",
+  "callee": "param[idx + 1:].strip",
+  "in": "_parse_content_type_header"
+ },
+ {
+  "file": "utils.py",
+  "line": 565,
+  "col": 28,
+  "name": "lower",
+  "form": "attr",
+  "callee": "key.lower",
+  "in": "_parse_content_type_header"
+ },
+ {
+  "file": "utils.py",
+  "line": 576,
+  "col": 27,
+  "name": "get",
+  "form": "attr",
+  "callee": "headers.get",
+  "in": "get_encoding_from_headers"
+ },
+ {
+  "file": "utils.py",
+  "line": 581,
+  "col": 27,
+  "name": "_parse_content_type_header",
+  "form": "name",
+  "callee": "_parse_content_type_header",
+  "in": "get_encoding_from_headers"
+ },
+ {
+  "file": "utils.py",
+  "line": 584,
+  "col": 33,
+  "name": "strip",
+  "form": "attr",
+  "callee": "params['charset'].strip",
+  "in": "get_encoding_from_headers"
+ },
+ {
+  "file": "utils.py",
+  "line": 603,
+  "col": 14,
+  "name": null,
+  "form": "other",
+  "callee": "codecs.getincrementaldecoder(r.encoding)",
+  "in": "stream_decode_response_unicode"
+ },
+ {
+  "file": "utils.py",
+  "line": 603,
+  "col": 21,
+  "name": "getincrementaldecoder",
+  "form": "attr",
+  "callee": "codecs.getincrementaldecoder",
+  "in": "stream_decode_response_unicode"
+ },
+ {
+  "file": "utils.py",
+  "line": 605,
+  "col": 21,
+  "name": "decode",
+  "form": "attr",
+  "callee": "decoder.decode",
+  "in": "stream_decode_response_unicode"
+ },
+ {
+  "file": "utils.py",
+  "line": 608,
+  "col": 17,
+  "name": "decode",
+  "form": "attr",
+  "callee": "decoder.decode",
+  "in": "stream_decode_response_unicode"
+ },
+ {
+  "file": "utils.py",
+  "line": 627,
+  "col": 23,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "iter_slices"
+ },
+ {
+  "file": "utils.py",
+  "line": 628,
+  "col": 16,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "iter_slices"
+ },
+ {
+  "file": "utils.py",
+  "line": 645,
+  "col": 13,
+  "name": "warn",
+  "form": "attr",
+  "callee": "warnings.warn",
+  "in": "get_unicode_from_response"
+ },
+ {
+  "file": "utils.py",
+  "line": 659,
+  "col": 15,
+  "name": "get_encoding_from_headers",
+  "form": "name",
+  "callee": "get_encoding_from_headers",
+  "in": "get_unicode_from_response"
+ },
+ {
+  "file": "utils.py",
+  "line": 663,
+  "col": 19,
+  "name": "str",
+  "form": "name",
+  "callee": "str",
+  "in": "get_unicode_from_response"
+ },
+ {
+  "file": "utils.py",
+  "line": 665,
+  "col": 28,
+  "name": "append",
+  "form": "attr",
+  "callee": "tried_encodings.append",
+  "in": "get_unicode_from_response"
+ },
+ {
+  "file": "utils.py",
+  "line": 669,
+  "col": 15,
+  "name": "str",
+  "form": "name",
+  "callee": "str",
+  "in": "get_unicode_from_response"
+ },
+ {
+  "file": "utils.py",
+  "line": 675,
+  "col": 24,
+  "name": "frozenset",
+  "form": "name",
+  "callee": "frozenset",
+  "in": ""
+ },
+ {
+  "file": "utils.py",
+  "line": 686,
+  "col": 16,
+  "name": "split",
+  "form": "attr",
+  "callee": "uri.split",
+  "in": "unquote_unreserved"
+ },
+ {
+  "file": "utils.py",
+  "line": 687,
+  "col": 13,
+  "name": "range",
+  "form": "name",
+  "callee": "range",
+  "in": "unquote_unreserved"
+ },
+ {
+  "file": "utils.py",
+  "line": 687,
+  "col": 22,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "unquote_unreserved"
+ },
+ {
+  "file": "utils.py",
+  "line": 689,
+  "col": 11,
+  "name": "len",
+  "form": "name",
+  "callee": "len",
+  "in": "unquote_unreserved"
+ },
+ {
+  "file": "utils.py",
+  "line": 689,
+  "col": 29,
+  "name": "isalnum",
+  "form": "attr",
+  "callee": "h.isalnum",
+  "in": "unquote_unreserved"
+ },
+ {
+  "file": "utils.py",
+  "line": 691,
+  "col": 20,
+  "name": "chr",
+  "form": "name",
+  "callee": "chr",
+  "in": "unquote_unreserved"
+ },
+ {
+  "file": "utils.py",
+  "line": 691,
+  "col": 24,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "unquote_unreserved"
+ },
+ {
+  "file": "utils.py",
+  "line": 693,
+  "col": 22,
+  "name": "InvalidURL",
+  "form": "name",
+  "callee": "InvalidURL",
+  "in": "unquote_unreserved"
+ },
+ {
+  "file": "utils.py",
+  "line": 701,
+  "col": 14,
+  "name": "join",
+  "form": "attr",
+  "callee": "''.join",
+  "in": "unquote_unreserved"
+ },
+ {
+  "file": "utils.py",
+  "line": 718,
+  "col": 15,
+  "name": "quote",
+  "form": "name",
+  "callee": "quote",
+  "in": "requote_uri"
+ },
+ {
+  "file": "utils.py",
+  "line": 718,
+  "col": 21,
+  "name": "unquote_unreserved",
+  "form": "name",
+  "callee": "unquote_unreserved",
+  "in": "requote_uri"
+ },
+ {
+  "file": "utils.py",
+  "line": 723,
+  "col": 15,
+  "name": "quote",
+  "form": "name",
+  "callee": "quote",
+  "in": "requote_uri"
+ },
+ {
+  "file": "utils.py",
+  "line": 734,
+  "col": 20,
+  "name": "unpack",
+  "form": "attr",
+  "callee": "struct.unpack",
+  "in": "address_in_network"
+ },
+ {
+  "file": "utils.py",
+  "line": 734,
+  "col": 40,
+  "name": "inet_aton",
+  "form": "attr",
+  "callee": "socket.inet_aton",
+  "in": "address_in_network"
+ },
+ {
+  "file": "utils.py",
+  "line": 735,
+  "col": 24,
+  "name": "split",
+  "form": "attr",
+  "callee": "net.split",
+  "in": "address_in_network"
+ },
+ {
+  "file": "utils.py",
+  "line": 736,
+  "col": 21,
+  "name": "unpack",
+  "form": "attr",
+  "callee": "struct.unpack",
+  "in": "address_in_network"
+ },
+ {
+  "file": "utils.py",
+  "line": 736,
+  "col": 41,
+  "name": "inet_aton",
+  "form": "attr",
+  "callee": "socket.inet_aton",
+  "in": "address_in_network"
+ },
+ {
+  "file": "utils.py",
+  "line": 736,
+  "col": 51,
+  "name": "dotted_netmask",
+  "form": "name",
+  "callee": "dotted_netmask",
+  "in": "address_in_network"
+ },
+ {
+  "file": "utils.py",
+  "line": 736,
+  "col": 66,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "address_in_network"
+ },
+ {
+  "file": "utils.py",
+  "line": 737,
+  "col": 21,
+  "name": "unpack",
+  "form": "attr",
+  "callee": "struct.unpack",
+  "in": "address_in_network"
+ },
+ {
+  "file": "utils.py",
+  "line": 737,
+  "col": 41,
+  "name": "inet_aton",
+  "form": "attr",
+  "callee": "socket.inet_aton",
+  "in": "address_in_network"
+ },
+ {
+  "file": "utils.py",
+  "line": 749,
+  "col": 18,
+  "name": "inet_ntoa",
+  "form": "attr",
+  "callee": "socket.inet_ntoa",
+  "in": "dotted_netmask"
+ },
+ {
+  "file": "utils.py",
+  "line": 749,
+  "col": 35,
+  "name": "pack",
+  "form": "attr",
+  "callee": "struct.pack",
+  "in": "dotted_netmask"
+ },
+ {
+  "file": "utils.py",
+  "line": 757,
+  "col": 15,
+  "name": "inet_aton",
+  "form": "attr",
+  "callee": "socket.inet_aton",
+  "in": "is_ipv4_address"
+ },
+ {
+  "file": "utils.py",
+  "line": 769,
+  "col": 22,
+  "name": "count",
+  "form": "attr",
+  "callee": "string_network.count",
+  "in": "is_valid_cidr"
+ },
+ {
+  "file": "utils.py",
+  "line": 771,
+  "col": 19,
+  "name": "int",
+  "form": "name",
+  "callee": "int",
+  "in": "is_valid_cidr"
+ },
+ {
+  "file": "utils.py",
+  "line": 771,
+  "col": 38,
+  "name": "split",
+  "form": "attr",
+  "callee": "string_network.split",
+  "in": "is_valid_cidr"
+ },
+ {
+  "file": "utils.py",
+  "line": 779,
+  "col": 19,
+  "name": "inet_aton",
+  "form": "attr",
+  "callee": "socket.inet_aton",
+  "in": "is_valid_cidr"
+ },
+ {
+  "file": "utils.py",
+  "line": 779,
+  "col": 44,
+  "name": "split",
+  "form": "attr",
+  "callee": "string_network.split",
+  "in": "is_valid_cidr"
+ },
+ {
+  "file": "utils.py",
+  "line": 798,
+  "col": 31,
+  "name": "get",
+  "form": "attr",
+  "callee": "os.environ.get",
+  "in": "set_environ"
+ },
+ {
+  "file": "utils.py",
+  "line": 820,
+  "col": 26,
+  "name": "get",
+  "form": "attr",
+  "callee": "os.environ.get",
+  "in": "should_bypass_proxies.get_proxy"
+ },
+ {
+  "file": "utils.py",
+  "line": 820,
+  "col": 49,
+  "name": "get",
+  "form": "attr",
+  "callee": "os.environ.get",
+  "in": "should_bypass_proxies.get_proxy"
+ },
+ {
+  "file": "utils.py",
+  "line": 820,
+  "col": 57,
+  "name": "upper",
+  "form": "attr",
+  "callee": "key.upper",
+  "in": "should_bypass_proxies.get_proxy"
+ },
+ {
+  "file": "utils.py",
+  "line": 826,
+  "col": 19,
+  "name": "get_proxy",
+  "form": "name",
+  "callee": "get_proxy",
+  "in": "should_bypass_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 827,
+  "col": 13,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "should_bypass_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 837,
+  "col": 69,
+  "name": "split",
+  "form": "attr",
+  "callee": "no_proxy.replace(' ', '').split",
+  "in": "should_bypass_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 837,
+  "col": 52,
+  "name": "replace",
+  "form": "attr",
+  "callee": "no_proxy.replace",
+  "in": "should_bypass_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 839,
+  "col": 11,
+  "name": "is_ipv4_address",
+  "form": "name",
+  "callee": "is_ipv4_address",
+  "in": "should_bypass_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 841,
+  "col": 19,
+  "name": "is_valid_cidr",
+  "form": "name",
+  "callee": "is_valid_cidr",
+  "in": "should_bypass_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 842,
+  "col": 23,
+  "name": "address_in_network",
+  "form": "name",
+  "callee": "address_in_network",
+  "in": "should_bypass_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 854,
+  "col": 28,
+  "name": "lstrip",
+  "form": "attr",
+  "callee": "host.lstrip",
+  "in": "should_bypass_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 858,
+  "col": 28,
+  "name": "endswith",
+  "form": "attr",
+  "callee": "hostname.endswith",
+  "in": "should_bypass_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 858,
+  "col": 61,
+  "name": "endswith",
+  "form": "attr",
+  "callee": "host_with_port.endswith",
+  "in": "should_bypass_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 861,
+  "col": 9,
+  "name": "set_environ",
+  "form": "name",
+  "callee": "set_environ",
+  "in": "should_bypass_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 863,
+  "col": 21,
+  "name": "proxy_bypass",
+  "form": "name",
+  "callee": "proxy_bypass",
+  "in": "should_bypass_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 879,
+  "col": 7,
+  "name": "should_bypass_proxies",
+  "form": "name",
+  "callee": "should_bypass_proxies",
+  "in": "get_environ_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 882,
+  "col": 15,
+  "name": "getproxies",
+  "form": "name",
+  "callee": "getproxies",
+  "in": "get_environ_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 892,
+  "col": 15,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "select_proxy"
+ },
+ {
+  "file": "utils.py",
+  "line": 894,
+  "col": 23,
+  "name": "get",
+  "form": "attr",
+  "callee": "proxies.get",
+  "in": "select_proxy"
+ },
+ {
+  "file": "utils.py",
+  "line": 894,
+  "col": 52,
+  "name": "get",
+  "form": "attr",
+  "callee": "proxies.get",
+  "in": "select_proxy"
+ },
+ {
+  "file": "utils.py",
+  "line": 927,
+  "col": 10,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "resolve_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 928,
+  "col": 13,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "resolve_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 929,
+  "col": 23,
+  "name": "get",
+  "form": "attr",
+  "callee": "proxies.get",
+  "in": "resolve_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 930,
+  "col": 26,
+  "name": "copy",
+  "form": "attr",
+  "callee": "proxies.copy",
+  "in": "resolve_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 932,
+  "col": 25,
+  "name": "should_bypass_proxies",
+  "form": "name",
+  "callee": "should_bypass_proxies",
+  "in": "resolve_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 933,
+  "col": 26,
+  "name": "get_environ_proxies",
+  "form": "name",
+  "callee": "get_environ_proxies",
+  "in": "resolve_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 935,
+  "col": 32,
+  "name": "get",
+  "form": "attr",
+  "callee": "environ_proxies.get",
+  "in": "resolve_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 935,
+  "col": 60,
+  "name": "get",
+  "form": "attr",
+  "callee": "environ_proxies.get",
+  "in": "resolve_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 938,
+  "col": 24,
+  "name": "setdefault",
+  "form": "attr",
+  "callee": "new_proxies.setdefault",
+  "in": "resolve_proxies"
+ },
+ {
+  "file": "utils.py",
+  "line": 955,
+  "col": 11,
+  "name": "CaseInsensitiveDict",
+  "form": "name",
+  "callee": "CaseInsensitiveDict",
+  "in": "default_headers"
+ },
+ {
+  "file": "utils.py",
+  "line": 957,
+  "col": 26,
+  "name": "default_user_agent",
+  "form": "name",
+  "callee": "default_user_agent",
+  "in": "default_headers"
+ },
+ {
+  "file": "utils.py",
+  "line": 977,
+  "col": 18,
+  "name": "strip",
+  "form": "attr",
+  "callee": "value.strip",
+  "in": "parse_header_links"
+ },
+ {
+  "file": "utils.py",
+  "line": 981,
+  "col": 18,
+  "name": "split",
+  "form": "attr",
+  "callee": "re.split",
+  "in": "parse_header_links"
+ },
+ {
+  "file": "utils.py",
+  "line": 983,
+  "col": 30,
+  "name": "split",
+  "form": "attr",
+  "callee": "val.split",
+  "in": "parse_header_links"
+ },
+ {
+  "file": "utils.py",
+  "line": 987,
+  "col": 43,
+  "name": "strip",
+  "form": "attr",
+  "callee": "url.strip",
+  "in": "parse_header_links"
+ },
+ {
+  "file": "utils.py",
+  "line": 989,
+  "col": 28,
+  "name": "split",
+  "form": "attr",
+  "callee": "params.split",
+  "in": "parse_header_links"
+ },
+ {
+  "file": "utils.py",
+  "line": 991,
+  "col": 35,
+  "name": "split",
+  "form": "attr",
+  "callee": "param.split",
+  "in": "parse_header_links"
+ },
+ {
+  "file": "utils.py",
+  "line": 995,
+  "col": 21,
+  "name": "strip",
+  "form": "attr",
+  "callee": "key.strip",
+  "in": "parse_header_links"
+ },
+ {
+  "file": "utils.py",
+  "line": 995,
+  "col": 51,
+  "name": "strip",
+  "form": "attr",
+  "callee": "value.strip",
+  "in": "parse_header_links"
+ },
+ {
+  "file": "utils.py",
+  "line": 997,
+  "col": 14,
+  "name": "append",
+  "form": "attr",
+  "callee": "links.append",
+  "in": "parse_header_links"
+ },
+ {
+  "file": "utils.py",
+  "line": 1003,
+  "col": 15,
+  "name": "encode",
+  "form": "attr",
+  "callee": "'\\x00'.encode",
+  "in": ""
+ },
+ {
+  "file": "utils.py",
+  "line": 1022,
+  "col": 23,
+  "name": "count",
+  "form": "attr",
+  "callee": "sample.count",
+  "in": "guess_json_utf"
+ },
+ {
+  "file": "utils.py",
+  "line": 1046,
+  "col": 13,
+  "name": "parse_url",
+  "form": "name",
+  "callee": "parse_url",
+  "in": "prepend_scheme_if_needed"
+ },
+ {
+  "file": "utils.py",
+  "line": 1060,
+  "col": 17,
+  "name": "cast",
+  "form": "name",
+  "callee": "cast",
+  "in": "prepend_scheme_if_needed"
+ },
+ {
+  "file": "utils.py",
+  "line": 1061,
+  "col": 21,
+  "name": "join",
+  "form": "attr",
+  "callee": "'@'.join",
+  "in": "prepend_scheme_if_needed"
+ },
+ {
+  "file": "utils.py",
+  "line": 1067,
+  "col": 11,
+  "name": "urlunparse",
+  "form": "name",
+  "callee": "urlunparse",
+  "in": "prepend_scheme_if_needed"
+ },
+ {
+  "file": "utils.py",
+  "line": 1076,
+  "col": 13,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "get_auth_from_url"
+ },
+ {
+  "file": "utils.py",
+  "line": 1080,
+  "col": 16,
+  "name": "unquote",
+  "form": "name",
+  "callee": "unquote",
+  "in": "get_auth_from_url"
+ },
+ {
+  "file": "utils.py",
+  "line": 1080,
+  "col": 42,
+  "name": "unquote",
+  "form": "name",
+  "callee": "unquote",
+  "in": "get_auth_from_url"
+ },
+ {
+  "file": "utils.py",
+  "line": 1094,
+  "col": 4,
+  "name": "_validate_header_part",
+  "form": "name",
+  "callee": "_validate_header_part",
+  "in": "check_header_validity"
+ },
+ {
+  "file": "utils.py",
+  "line": 1095,
+  "col": 4,
+  "name": "_validate_header_part",
+  "form": "name",
+  "callee": "_validate_header_part",
+  "in": "check_header_validity"
+ },
+ {
+  "file": "utils.py",
+  "line": 1103,
+  "col": 7,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "_validate_header_part"
+ },
+ {
+  "file": "utils.py",
+  "line": 1105,
+  "col": 9,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "_validate_header_part"
+ },
+ {
+  "file": "utils.py",
+  "line": 1109,
+  "col": 14,
+  "name": "InvalidHeader",
+  "form": "name",
+  "callee": "InvalidHeader",
+  "in": "_validate_header_part"
+ },
+ {
+  "file": "utils.py",
+  "line": 1111,
+  "col": 49,
+  "name": "type",
+  "form": "name",
+  "callee": "type",
+  "in": "_validate_header_part"
+ },
+ {
+  "file": "utils.py",
+  "line": 1114,
+  "col": 21,
+  "name": "match",
+  "form": "attr",
+  "callee": "validator.match",
+  "in": "_validate_header_part"
+ },
+ {
+  "file": "utils.py",
+  "line": 1116,
+  "col": 14,
+  "name": "InvalidHeader",
+  "form": "name",
+  "callee": "InvalidHeader",
+  "in": "_validate_header_part"
+ },
+ {
+  "file": "utils.py",
+  "line": 1128,
+  "col": 53,
+  "name": "urlparse",
+  "form": "name",
+  "callee": "urlparse",
+  "in": "urldefragauth"
+ },
+ {
+  "file": "utils.py",
+  "line": 1134,
+  "col": 20,
+  "name": "rsplit",
+  "form": "attr",
+  "callee": "netloc.rsplit",
+  "in": "urldefragauth"
+ },
+ {
+  "file": "utils.py",
+  "line": 1136,
+  "col": 11,
+  "name": "urlunparse",
+  "form": "name",
+  "callee": "urlunparse",
+  "in": "urldefragauth"
+ },
+ {
+  "file": "utils.py",
+  "line": 1143,
+  "col": 16,
+  "name": "getattr",
+  "form": "name",
+  "callee": "getattr",
+  "in": "rewind_body"
+ },
+ {
+  "file": "utils.py",
+  "line": 1144,
+  "col": 33,
+  "name": "isinstance",
+  "form": "name",
+  "callee": "isinstance",
+  "in": "rewind_body"
+ },
+ {
+  "file": "utils.py",
+  "line": 1149,
+  "col": 12,
+  "name": "body_seek",
+  "form": "name",
+  "callee": "body_seek",
+  "in": "rewind_body"
+ },
+ {
+  "file": "utils.py",
+  "line": 1151,
+  "col": 18,
+  "name": "UnrewindableBodyError",
+  "form": "name",
+  "callee": "UnrewindableBodyError",
+  "in": "rewind_body"
+ },
+ {
+  "file": "utils.py",
+  "line": 1155,
+  "col": 14,
+  "name": "UnrewindableBodyError",
+  "form": "name",
+  "callee": "UnrewindableBodyError",
+  "in": "rewind_body"
+ },
+ {
+  "file": "_types.py",
+  "line": 27,
+  "col": 1,
+  "name": "runtime_checkable",
+  "form": "decorator",
+  "callee": "runtime_checkable",
+  "in": "SupportsRead"
+ },
+ {
+  "file": "_types.py",
+  "line": 37,
+  "col": 1,
+  "name": "runtime_checkable",
+  "form": "decorator",
+  "callee": "runtime_checkable",
+  "in": "SupportsItems"
+ },
+ {
+  "file": "auth.py",
+  "line": 91,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "__init__"
+ },
+ {
+  "file": "auth.py",
+  "line": 93,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "__init__"
+ },
+ {
+  "file": "auth.py",
+  "line": 136,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "__init__"
+ },
+ {
+  "file": "auth.py",
+  "line": 138,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "__init__"
+ },
+ {
+  "file": "cookies.py",
+  "line": 563,
+  "col": 1,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "cookiejar_from_dict"
+ },
+ {
+  "file": "cookies.py",
+  "line": 571,
+  "col": 1,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "cookiejar_from_dict"
+ },
+ {
+  "file": "cookies.py",
+  "line": 101,
+  "col": 5,
+  "name": "property",
+  "form": "decorator",
+  "callee": "property",
+  "in": "unverifiable"
+ },
+ {
+  "file": "cookies.py",
+  "line": 105,
+  "col": 5,
+  "name": "property",
+  "form": "decorator",
+  "callee": "property",
+  "in": "origin_req_host"
+ },
+ {
+  "file": "cookies.py",
+  "line": 109,
+  "col": 5,
+  "name": "property",
+  "form": "decorator",
+  "callee": "property",
+  "in": "host"
+ },
+ {
+  "file": "models.py",
+  "line": 111,
+  "col": 5,
+  "name": "property",
+  "form": "decorator",
+  "callee": "property",
+  "in": "path_url"
+ },
+ {
+  "file": "models.py",
+  "line": 132,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "_encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 133,
+  "col": 5,
+  "name": "staticmethod",
+  "form": "decorator",
+  "callee": "staticmethod",
+  "in": "_encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 136,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "_encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 137,
+  "col": 5,
+  "name": "staticmethod",
+  "form": "decorator",
+  "callee": "staticmethod",
+  "in": "_encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 140,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "_encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 141,
+  "col": 5,
+  "name": "staticmethod",
+  "form": "decorator",
+  "callee": "staticmethod",
+  "in": "_encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 146,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "_encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 147,
+  "col": 5,
+  "name": "staticmethod",
+  "form": "decorator",
+  "callee": "staticmethod",
+  "in": "_encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 150,
+  "col": 5,
+  "name": "staticmethod",
+  "form": "decorator",
+  "callee": "staticmethod",
+  "in": "_encode_params"
+ },
+ {
+  "file": "models.py",
+  "line": 182,
+  "col": 5,
+  "name": "staticmethod",
+  "form": "decorator",
+  "callee": "staticmethod",
+  "in": "_encode_files"
+ },
+ {
+  "file": "models.py",
+  "line": 473,
+  "col": 5,
+  "name": "staticmethod",
+  "form": "decorator",
+  "callee": "staticmethod",
+  "in": "_get_idna_encoded_host"
+ },
+ {
+  "file": "models.py",
+  "line": 861,
+  "col": 5,
+  "name": "property",
+  "form": "decorator",
+  "callee": "property",
+  "in": "ok"
+ },
+ {
+  "file": "models.py",
+  "line": 876,
+  "col": 5,
+  "name": "property",
+  "form": "decorator",
+  "callee": "property",
+  "in": "is_redirect"
+ },
+ {
+  "file": "models.py",
+  "line": 883,
+  "col": 5,
+  "name": "property",
+  "form": "decorator",
+  "callee": "property",
+  "in": "is_permanent_redirect"
+ },
+ {
+  "file": "models.py",
+  "line": 891,
+  "col": 5,
+  "name": "property",
+  "form": "decorator",
+  "callee": "property",
+  "in": "next"
+ },
+ {
+  "file": "models.py",
+  "line": 896,
+  "col": 5,
+  "name": "property",
+  "form": "decorator",
+  "callee": "property",
+  "in": "apparent_encoding"
+ },
+ {
+  "file": "models.py",
+  "line": 906,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "iter_content"
+ },
+ {
+  "file": "models.py",
+  "line": 910,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "iter_content"
+ },
+ {
+  "file": "models.py",
+  "line": 979,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "iter_lines"
+ },
+ {
+  "file": "models.py",
+  "line": 986,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "iter_lines"
+ },
+ {
+  "file": "models.py",
+  "line": 1034,
+  "col": 5,
+  "name": "property",
+  "form": "decorator",
+  "callee": "property",
+  "in": "content"
+ },
+ {
+  "file": "models.py",
+  "line": 1053,
+  "col": 5,
+  "name": "property",
+  "form": "decorator",
+  "callee": "property",
+  "in": "text"
+ },
+ {
+  "file": "models.py",
+  "line": 1126,
+  "col": 5,
+  "name": "property",
+  "form": "decorator",
+  "callee": "property",
+  "in": "links"
+ },
+ {
+  "file": "structures.py",
+  "line": 123,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "get"
+ },
+ {
+  "file": "structures.py",
+  "line": 126,
+  "col": 5,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "get"
+ },
+ {
+  "file": "utils.py",
+  "line": 328,
+  "col": 12,
+  "name": "contextmanager",
+  "form": "decorator",
+  "callee": "contextlib.contextmanager",
+  "in": "atomic_open"
+ },
+ {
+  "file": "utils.py",
+  "line": 370,
+  "col": 1,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "to_key_val_list"
+ },
+ {
+  "file": "utils.py",
+  "line": 372,
+  "col": 1,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "to_key_val_list"
+ },
+ {
+  "file": "utils.py",
+  "line": 613,
+  "col": 1,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "iter_slices"
+ },
+ {
+  "file": "utils.py",
+  "line": 617,
+  "col": 1,
+  "name": "overload",
+  "form": "decorator",
+  "callee": "overload",
+  "in": "iter_slices"
+ },
+ {
+  "file": "utils.py",
+  "line": 787,
+  "col": 12,
+  "name": "contextmanager",
+  "form": "decorator",
+  "callee": "contextlib.contextmanager",
+  "in": "set_environ"
+ }
+]

@@ -1,0 +1,28 @@
+== determinism: six runs, every file opened before any query ==
+run 2 equals run 1 (all fields except timing, stats, latency): True
+run 3 equals run 1 (all fields except timing, stats, latency): True
+run 4 equals run 1 (all fields except timing, stats, latency): True
+run 5 equals run 1 (all fields except timing, stats, latency): True
+run 6 equals run 1 (all fields except timing, stats, latency): True
+
+== open-mode: files opened only for their own query ('none') vs every file opened first ('all') ==
+none run 1 vs all run 1: 11 of 52 targets differ: ['utils.py:231 get_netrc_auth', 'utils.py:373 to_key_val_list', 'models.py:1173 Response.close', 'exceptions.py:118 InvalidURL', 'auth.py:85 HTTPBasicAuth', 'exceptions.py:114 InvalidSchema', 'models.py:456 PreparedRequest.copy', '_types.py:47 is_prepared', 'exceptions.py:78 SSLError', '_types.py:38 SupportsItems', 'models.py:378 PreparedRequest']
+none run 2 vs all run 1: 11 of 52 targets differ: ['utils.py:231 get_netrc_auth', 'utils.py:373 to_key_val_list', 'models.py:1173 Response.close', 'exceptions.py:118 InvalidURL', 'auth.py:85 HTTPBasicAuth', 'exceptions.py:114 InvalidSchema', 'models.py:456 PreparedRequest.copy', '_types.py:47 is_prepared', 'exceptions.py:78 SSLError', '_types.py:38 SupportsItems', 'models.py:378 PreparedRequest']
+none run 1 vs none run 2: []
+workspace/symbol recall, all: 298/320
+workspace/symbol recall, none run 1: 43/320
+
+== timing: cold server start each run, idle machine ==
+run  initMs  allDocumentSymbolsMs  totalMs  requests
+  1      80                   190     3660  1496
+  2      78                   171     3610  1496
+  3      81                   176     3882  1496
+  4      82                   176     3820  1496
+  5      78                   180     3647  1496
+  6      79                   167     3608  1496
+with the per-symbol outgoingCalls pass: totalMs 3636, requests 2031
+textDocument/prepareCallHierarchy: mean of means 0.4 ms (range 0.1-1.5), max 72 ms, n/run 52
+callHierarchy/incomingCalls: mean of means 15.4 ms (range 12.8-18.5), max 231 ms, n/run 51
+callHierarchy/outgoingCalls: mean of means 3.8 ms (range 2.0-4.8), max 106 ms, n/run 51
+textDocument/references: mean of means 2.9 ms (range 0.8-6.1), max 110 ms, n/run 52
+textDocument/definition: mean of means 2.1 ms (range 2.0-2.2), max 23 ms, n/run 1028

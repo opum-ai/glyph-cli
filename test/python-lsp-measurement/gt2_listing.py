@@ -1,6 +1,7 @@
-import json
-D = "/private/tmp/claude-501/-Volumes-external-repos-glyph-cli/f49f7d09-3ac6-45aa-b911-af683fb9e242/scratchpad/py/"
-ROOT = D + "requests/src/requests/"
+import json, sys
+# usage: python3 -I gt2_listing.py <package-src-dir> <dir holding allcalls.json, symbols.json, targets.json>
+ROOT = sys.argv[1].rstrip("/") + "/"
+D = sys.argv[2].rstrip("/") + "/"
 allcalls = json.load(open(D + "allcalls.json"))
 symbols = json.load(open(D + "symbols.json"))
 targets = json.load(open(D + "targets.json"))

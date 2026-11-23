@@ -1,13 +1,14 @@
 """Ground-truth step 1 (no pyright involved): enumerate symbols and candidate call sites with Python's ast.
 
-Run: python3 -I gt1_enumerate.py
-Writes symbols.json, targets.json, candidates.json next to this file.
+Run: python3 -I gt1_enumerate.py <package-src-dir> <out-dir>
+Writes symbols.json, allcalls.json, targets.json into <out-dir>.
 Targets are chosen by a seeded stratified sample (seed 303) fixed BEFORE pyright is run.
 """
 import ast, json, os, random, sys
 
-ROOT = "/private/tmp/claude-501/-Volumes-external-repos-glyph-cli/f49f7d09-3ac6-45aa-b911-af683fb9e242/scratchpad/py/requests/src/requests"
-OUT = "/private/tmp/claude-501/-Volumes-external-repos-glyph-cli/f49f7d09-3ac6-45aa-b911-af683fb9e242/scratchpad/py/"
+ROOT = sys.argv[1].rstrip("/")
+OUT = sys.argv[2].rstrip("/") + "/"
+os.makedirs(OUT, exist_ok=True)
 files = sorted(f for f in os.listdir(ROOT) if f.endswith(".py"))
 trees = {}
 srcs = {}
@@ -139,7 +140,7 @@ targets += [dict(s, stratum="overridden") for s in over if s["qualname"] + s["fi
 zero = [s for s in symbols if s["category"] in ("function", "method") and s["name"] not in by_name and not s["name"].startswith("__")]
 rng.shuffle(zero)
 targets += [dict(s, stratum="zero-candidates") for s in zero[:3]]
-# super().__init__ chains are covered by the 'super' stratum: two named base __init__ methods
+# three __init__ definitions (constructor and super().__init__ sites)
 inits = [s for s in symbols if s["name"] == "__init__"]
 rng.shuffle(inits)
 targets += [dict(s, stratum="init") for s in inits[:3]]

@@ -1,51 +1,54 @@
 # Python language-server measurement (GCLI-66, DEC-303, ADR 0008)
 
-A recorded artifact, not part of the test suite and not shipped: it is the evidence behind
-`docs/adr/0008-...` so the numbers can be re-derived when pyright is upgraded.
+A recorded artifact, not part of the test suite and not shipped: the evidence behind `docs/adr/0008-...`, so the
+numbers can be checked, re-scored without the language server, and re-derived when pyright is upgraded.
 
 Pins: pyright 1.1.414 (`npm install pyright@1.1.414 --ignore-scripts`; registry integrity
 `sha512-FPZZb51jepDX4eP7TEYDeNFtmE3WgwkkEcJpvH3/QmUSsj0EAy3LXu+xB4T/FWDejtsXlCfFr/rbWFjwuwuXww==`),
-psf/requests at `3c7baaa05ab4aa49cc819ce3a819d260de19c157`, Node v24.22.2, git 2.56.0, host Python 3.15.2.
+psf/requests at `3c7baaa05ab4aa49cc819ce3a819d260de19c157` (`src/requests`), Node v24.22.2, git 2.56.0, host Python 3.15.2.
 
-Order of work, which is what makes the ground truth independent of pyright:
+## What is here
 
-1. `gt1_enumerate.py` enumerates definitions and syntactic calls with Python's `ast` and draws the
-   target sample (seed 303). `gt2_listing.py` prints the candidate sites for hand classification.
-2. `gt_rules.md` and `gt3_classified.json` (requests) and `fixtures/expected.json` (fixtures) were
-   written and committed in a scratch repository before the first pyright request.
-3. `harness.mjs` drives `pyright-langserver --stdio`; `score.py` and `strata.py` compare its output
-   with the ground truth. `results/` holds the scored output of the runs the ADR quotes.
+| path | what |
+|---|---|
+| `gt_rules.md`, `gt3_classified.json`, `fixtures/expected.json` | the ground truth, byte-identical to what was committed before pyright ran (`results/ground-truth-provenance.txt` has the scratch log and blob ids) |
+| `gt_rules_addendum.md`, `gt4_alias.json` | what was learned or decided after the first results, including the post-hoc alias set and the post-hoc constructor mapping; read it before quoting any number |
+| `gt1_enumerate.py`, `gt2_listing.py`, `alias_enum.py`, `fx_enum.py` | enumerate definitions and call sites with Python's `ast`, draw the seeded sample, print candidates, build the alias set |
+| `harness.mjs` | the LSP client (JSON-RPC over `pyright-langserver --stdio`); exits non-zero if no request is answered, any request errors, or every `prepareCallHierarchy` is null |
+| `score.py`, `union.py`, `strata.py`, `compare_runs.py` | scoring (per site and per target, recall and precision, Wilson intervals), determinism, open-mode and timing |
+| `derived/` | the deterministic inputs the scorers read: `symbols.json`, `targets.json`, `allcalls.json`, `listing.txt`, `alias_targets.json`, `targets_combined.json`, `cls_targets.json`, the `fx_*` files |
+| `fixtures/pkg/` | the fixture package |
+| `results/` | scored output of every run the ADR quotes; `results/raw/` the gzipped raw harness output |
 
-The scripts keep the absolute paths of the session's scratch directory (`ROOT`, `OUT`, `BIN`, the
-fixture paths in `fx_enum.py`). Edit those constants to run them; nothing here is imported by
-glyph. Raw per-run JSON (about 750 KB each) is not kept; re-run the harness to regenerate it:
+Every script takes its paths as arguments (nothing is hard-coded to a machine).
 
-```sh
-node harness.mjs <rootDir> targets.json allcalls.json symbols.json <all|none> out.json <srcSubdir>
-python3 -I score.py out.json gt3_classified.json symbols.json <srcRoot> --verbose
-```
-
-`all` opens every file before any query (the mode the ADR recommends); `none` opens each file only
-for its own query and is the mode that gave non-reproducible incoming calls. `OUT_ALL=1` adds the
-per-symbol `outgoingCalls` pass.
-
-## Re-scoring without the language server
-
-Needs only `python3` and `gunzip`. The raw harness output of the runs the ADR quotes is kept gzipped
-in `results/raw/`; the derived symbol and target lists are in `derived/`. From this directory:
+## Re-scoring without the language server (needs `python3` and `gunzip`)
 
 ```sh
-gunzip -c results/raw/real-allplatform-1.json.gz > /tmp/raw.json   # or real-all-1 for the default platform
-python3 -I score.py /tmp/raw.json gt3_classified.json derived/symbols.json /nonexistent
-python3 -I score.py <fx raw> fixtures/expected.json derived/fx_symbols.json /nonexistent
+mkdir /tmp/py-raw && for f in results/raw/*.gz; do gunzip -c "$f" > /tmp/py-raw/$(basename "$f" .gz); done
+python3 -I score.py /tmp/py-raw/real-allplat-out.json gt3_classified.json derived/symbols.json /nonexistent --verbose
+python3 -I union.py /tmp/py-raw/real-default-out.json gt3_classified.json derived/targets_combined.json derived/symbols.json gt4_alias.json
+python3 -I union.py /tmp/py-raw/fx-default-out.json fixtures/expected.json derived/fx_targets.json derived/fx_symbols.json
+python3 -I compare_runs.py /tmp/py-raw derived/symbols.json
+python3 -I strata.py /tmp/py-raw/real-default-out.json gt3_classified.json derived/targets.json
 ```
 
-(`/nonexistent` as the source root only blanks the source-line text that `--verbose` prints.) The
-output of `real-allplatform-1` reproduces `results/score-real-allplatform-1.txt` exactly apart from
-timings. `strata.py` additionally needs `derived/targets.json` as `targets.json` in its working
-directory. Re-running the LSP needs `node`, the pinned pyright and the pinned requests checkout.
+The output reproduces `results/*.txt` apart from timings. `/nonexistent` as a source root only blanks the source-line
+text `--verbose` prints. `score.py` refuses (exit 2) to score a run with no answered request, with request errors, or with a
+missing target record.
 
-The union of incoming and outgoing calls and the constructor-site check (ADR 0008, "Outgoing calls,
-and the union") are `union.py` over `results/raw/real-allplatform-1`, `real-out-1`, `fx-all-1`,
-`fx-out-1` with `derived/targets.json` and `derived/fx_targets.json`; the class query is
-`results/raw/cls-1` with `derived/cls_targets.json`.
+## Re-running the language server
+
+Needs `node`, the pinned pyright, and a checkout of the pinned requests commit; set `PYRIGHT_LANGSERVER` to
+`.../node_modules/.bin/pyright-langserver`.
+
+```sh
+python3 -I gt1_enumerate.py <requests>/src/requests <out>        # seed 303 regenerates derived/targets.json and symbols.json
+python3 -I alias_enum.py <requests>/src/requests derived/symbols.json <out>
+node harness.mjs <requests> <targets> derived/allcalls.json derived/symbols.json all <out.json> src/requests   # OUT_ALL=1 adds outgoingCalls
+```
+
+`all` opens every file before any query; `none` opens each file only for its own query. `pythonPlatform: "All"` is set by a
+`pyrightconfig.json` containing `{"pythonPlatform":"All"}` in the analysis root (the harness answers the server's
+`workspace/configuration` request with empty settings, so the config file is the only source of it). The fixtures' analysis
+root is the `fixtures` directory itself (`harness.mjs fixtures <targets> ... all out.json`).
