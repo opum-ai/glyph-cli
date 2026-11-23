@@ -17,7 +17,13 @@ generated:
 
 ## Status
 
-**Proposed.** It awaits opum-doc's acceptance of the measurement below (DEC-303 item 4: "opum-doc accepts the
+**SUPERSEDED, kept as the measurement baseline (GCLI-68).** DEC-303 (a1) (operator first-party, via opum-doc) replaced the
+language-server route with a native in-process indexer; the design in this record (sections 1-8, D1-D5 as written) is not the
+one to build. `docs/adr/0008-add-python-through-a-native-in-process-indexer.md` is the live record. This file is the former
+ADR 0008 text, moved here unchanged apart from this status, because its results tables, ground-truth discussion and pyright
+layout findings are the baseline the native indexer's gate compares against.
+
+Original status: **Proposed.** It awaits opum-doc's acceptance of the measurement below (DEC-303 item 4: "opum-doc accepts the
 measurement before the build slices start"). It names DEC-303, which ruled on 2026-11-23 on the operator's first-party
 instruction ("Python in 0.1.0") that glyph 0.1.0 adds Python through pyright's language server behind a language-neutral
 LSP adapter, and that glyph-cli measures first. This record is a measurement and a design; it contains no build code.

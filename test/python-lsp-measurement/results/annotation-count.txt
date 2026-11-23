@@ -1,0 +1,7 @@
+annotation_count.py (python3 -I), host Python Python 3.15.2. A def is annotated if any parameter or its return has an annotation. Source roots are scratch checkouts of the pinned commits; paths shown are the scratch ones.
+pallets/click 1784558ed7c75c65764d2a434bd9cbb206ca939d (tag 7.1.2), src/click
+/private/tmp/claude-501/-Volumes-external-repos-glyph-cli/853a7a5b-4f9a-4db1-a4ee-350fab922cd1/scratchpad/click-7.1.2/src/click files 17 defs 474 annotated 0 0.000 classes 58 calls 1669
+pallets/click 934813e4d421071a1b3db3973c02fe2721359a6e (tag 8.1.8), src/click
+/private/tmp/claude-501/-Volumes-external-repos-glyph-cli/853a7a5b-4f9a-4db1-a4ee-350fab922cd1/scratchpad/click-clone/src/click files 16 defs 512 annotated 501 0.979 classes 67 calls 1755
+psf/requests 3c7baaa05ab4aa49cc819ce3a819d260de19c157, src/requests (the pinned gate repository)
+/private/tmp/claude-501/-Volumes-external-repos-glyph-cli/853a7a5b-4f9a-4db1-a4ee-350fab922cd1/scratchpad/req/src/requests files 19 defs 268 annotated 265 0.989 classes 52 calls 986

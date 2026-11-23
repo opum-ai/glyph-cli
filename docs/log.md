@@ -44,3 +44,11 @@
 - 2026-11-22T16:33:18-06:00 79c0d49788293eebeb92a810acd38461e4207c04 feat(GCLI-45): stream callers, impact and code-map (DEC-299) (#95)
 - 2026-11-22T16:39:43-06:00 a7aa53c7f7c02a7ccdd1fba736cca0c2ecff4bfc feat(GCLI-46): Node >=24 bundle and release route (DEC-299) (#94)
 - 2026-11-22T17:24:07-06:00 a544c9edde4cc2b22479c694c3bd77394e2bdcc5 fix(GCLI-47): bind the release digest, tighten the negative control, correct wording (#98)
+- 2026-11-23T09:25:18-06:00 6bced9a74ce6d4d879b171c805439e0c7e93b90a docs(GCLI-66): ADR 0008 proposed - Python through pyright's language server (DEC-303), with the measurement artifact
+- 2026-11-23T09:29:54-06:00 4c221e0bbb04daf9e4f1fd10fab73bfb7d1a3396 docs(GCLI-66): state which quantity the bar scores, score the union strictly, withdraw the loose outgoing figure
+- 2026-11-23T09:45:43-06:00 be54633a843f497f4b1027be93f01dbc5c8102e8 docs(GCLI-66): revise ADR 0008 and the measurement artifact after the Opus review
+- 2026-11-23T09:46:44-06:00 89d423cf5deae917bae2e047d68eba6221c76260 docs(GCLI-66): say the 65/65 is an in-sample fit, propose a held-out test, state what can credit a wrong edge
+- 2026-11-23T10:01:25-06:00 512167b04654e637e73313855d5845751883d840 docs(GCLI-66): round 2 - platform channel measured, cluster-robust bar, exact-span definition check, design gaps named, D2-D4 decision-ready
+- 2026-11-23T10:14:40-06:00 739710305ab489d7e1fd1bc171b1eb250005e3d1 docs(GCLI-66): round 3 - shipped layout scored, absolute-import fixture, one constructor rule, fail-closed unreachable code, decorator rule, D4 shaped
+- 2026-11-23T10:24:53-06:00 9df14a7879833da08901fb5bcf50a4903f5d4aec docs(GCLI-66): round 4 - first-party import fail-closed check measured, callee rule, unreachable limits, label and provenance corrections
+- 2026-11-23T10:33:51-06:00 ac186a651340c1da3e6c1eaf5f3683eb79ef47df docs(GCLI-66): round 5 - first-party import rule specified, D5 added, callee rule tightened, reproduction wording corrected

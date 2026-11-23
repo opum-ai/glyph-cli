@@ -1,6 +1,6 @@
 # Python language-server measurement (GCLI-66, DEC-303, ADR 0008)
 
-A recorded artifact, not part of the test suite and not shipped: the evidence behind `docs/adr/0008-...`, so the
+A recorded artifact, not part of the test suite and not shipped: the baseline for `docs/adr/0008-...` (the native design, DEC-303 (a1)); this directory is the pyright language-server measurement that design is scored against, and `lsp-design-record.md` is the superseded former ADR 0008. It lets the
 numbers can be checked, re-scored without the language server, and re-derived when pyright is upgraded.
 
 Pins: pyright 1.1.414 (`npm install pyright@1.1.414 --ignore-scripts`; registry integrity
