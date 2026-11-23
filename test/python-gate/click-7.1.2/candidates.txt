@@ -1,0 +1,795 @@
+# candidate call sites per target, NOT classified. package /private/tmp/claude-501/-Volumes-external-repos-glyph-cli/853a7a5b-4f9a-4db1-a4ee-350fab922cd1/scratchpad/click-7.1.2/src/click; 17 files, 532 symbols, 1669 calls, 26 decorator sites, 3 import aliases
+
+## batch 0 [function] _compat.py:248 get_text_stdin (function, function) names=get_text_stdin candidates=1
+_compat.py:525:15 [name] via get_text_stdin in open_stream :: return get_text_stdin(encoding=encoding, errors=errors), False
+
+## batch 0 [function] _compat.py:640 _is_jupyter_kernel_output (function, function) names=_is_jupyter_kernel_output candidates=1
+_compat.py:656:42 [name] via _is_jupyter_kernel_output in should_strip_ansi :: return not isatty(stream) and not _is_jupyter_kernel_output(stream)
+
+## batch 0 [function] termui.py:75 prompt (function, function) names=prompt candidates=1
+core.py:1933:15 [name] via prompt in Option.prompt_for_value :: return prompt(
+
+## batch 0 [function] _compat.py:738 term_len (function, function) names=term_len candidates=10
+_termui_impl.py:240:29 [name] via term_len in ProgressBar.render_progress :: clutter_length = term_len(self.format_progress_line())
+_termui_impl.py:254:19 [name] via term_len in ProgressBar.render_progress :: line_len = term_len(line)
+formatting.py:15:50 [name] via term_len in measure_table :: widths[idx] = max(widths.get(idx, 0), term_len(col))
+formatting.py:77:27 [name] via term_len in wrap_text :: orig_len = term_len(line)
+formatting.py:79:36 [name] via term_len in wrap_text :: indent = orig_len - term_len(line)
+formatting.py:140:26 [name] via term_len in HelpFormatter.write_usage :: if text_width >= (term_len(usage_prefix) + 20):
+formatting.py:142:27 [name] via term_len in HelpFormatter.write_usage :: indent = " " * term_len(usage_prefix)
+formatting.py:155:53 [name] via term_len in HelpFormatter.write_usage :: indent = " " * (max(self.current_indent, term_len(prefix)) + 4)
+formatting.py:211:15 [name] via term_len in HelpFormatter.write_dl :: if term_len(first) <= first_col - col_spacing:
+formatting.py:212:46 [name] via term_len in HelpFormatter.write_dl :: self.write(" " * (first_col - term_len(first)))
+
+## batch 0 [function] _compat.py:44 is_ascii_encoding (function, function) names=is_ascii_encoding candidates=2
+_compat.py:55:7 [name] via is_ascii_encoding in get_best_encoding :: if is_ascii_encoding(rv):
+_compat.py:344:15 [name] via is_ascii_encoding in _stream_is_misconfigured :: return is_ascii_encoding(getattr(stream, "encoding", None) or "ascii")
+
+## batch 0 [function] utils.py:179 echo (function, function) names=echo candidates=26
+_bashcomplete.py:335:8 [name] via echo in do_complete :: echo(item[0])
+_bashcomplete.py:340:12 [name] via echo in do_complete :: echo(item[1] if item[1] else "_")
+_bashcomplete.py:352:12 [name] via echo in do_complete_fish :: echo("{arg}\t{desc}".format(arg=item[0], desc=item[1]))
+_bashcomplete.py:354:12 [name] via echo in do_complete_fish :: echo(item[0])
+_bashcomplete.py:367:8 [name] via echo in bashcomplete :: echo(get_completion_script(prog_name, complete_var, shell))
+_termui_impl.py:265:12 [name] via echo in ProgressBar.render_progress :: echo(line, file=self.file, color=self.color, nl=False)
+core.py:50:8 [name] via echo in _maybe_show_deprecated_notice :: echo(style(DEPRECATED_INVOKE_NOTICE % {"name": cmd.name}, fg="red"), err=True)
+core.py:794:16 [name] via echo in BaseCommand.main :: echo(file=sys.stderr)
+core.py:824:12 [name] via echo in BaseCommand.main :: echo("Aborted!", file=sys.stderr)
+core.py:950:16 [name] via echo in Command.get_help_option.show_help :: echo(ctx.get_help(), color=ctx.color)
+core.py:1041:12 [name] via echo in Command.parse_args :: echo(ctx.get_help(), color=ctx.color)
+core.py:1209:12 [name] via echo in MultiCommand.parse_args :: echo(ctx.get_help(), color=ctx.color)
+decorators.py:296:12 [name] via echo in version_option.decorator.callback :: echo(message % {"prog": prog, "version": ver}, color=ctx.color)
+decorators.py:323:16 [name] via echo in help_option.decorator.callback :: echo(ctx.get_help(), color=ctx.color)
+exceptions.py:42:8 [name] via echo in ClickException.show :: echo("Error: {}".format(self.format_message()), file=file)
+exceptions.py:72:12 [name] via echo in UsageError.show :: echo("{}\n{}".format(self.ctx.get_usage(), hint), file=file, color=color)
+exceptions.py:73:8 [name] via echo in UsageError.show :: echo("Error: {}".format(self.format_message()), file=file, color=color)
+termui.py:128:12 [name] via echo in prompt.prompt_func :: echo(text, nl=False, err=err)
+termui.py:135:16 [name] via echo in prompt.prompt_func :: echo(None, err=err)
+termui.py:159:12 [name] via echo in prompt :: echo("Error: {}".format(e.message), err=err)  # noqa: B306
+termui.py:169:8 [name] via echo in prompt :: echo("Error: the two entered values do not match", err=err)
+termui.py:199:12 [name] via echo in confirm :: echo(prompt, nl=False, err=err)
+termui.py:210:12 [name] via echo in confirm :: echo("Error: invalid input", err=err)
+termui.py:548:11 [name] via echo in secho :: return echo(message, file=file, nl=nl, err=err, color=color)
+termui.py:674:12 [name] via echo in pause :: echo(info, nl=False, err=err)
+termui.py:681:12 [name] via echo in pause :: echo(err=err)
+
+## batch 0 [function] _bashcomplete.py:160 is_incomplete_option (function, function) names=is_incomplete_option candidates=1
+_bashcomplete.py:313:11 [name] via is_incomplete_option in get_choices :: if is_incomplete_option(all_args, param):
+
+## batch 0 [function] globals.py:33 pop_context (function, function) names=pop_context candidates=1
+core.py:405:8 [name] via pop_context in Context.__exit__ :: pop_context()
+
+## batch 0 [function] core.py:108 invoke_param_callback (function, function) names=invoke_param_callback candidates=1
+core.py:1630:28 [name] via invoke_param_callback in Parameter.handle_parse_result :: value = invoke_param_callback(self.callback, ctx, self, value)
+
+## batch 0 [function] _compat.py:652 should_strip_ansi (function, function) names=should_strip_ansi candidates=2
+_compat.py:703:20 [name] via should_strip_ansi in auto_wrap_for_ansi :: strip = should_strip_ansi(stream, color)
+utils.py:263:11 [name] via should_strip_ansi in echo :: if should_strip_ansi(file, color):
+
+## batch 0 [method] exceptions.py:129 MissingParameter.format_message (function, method) names=format_message candidates=2
+exceptions.py:42:37 [attr] via format_message in ClickException.show :: echo("Error: {}".format(self.format_message()), file=file)
+exceptions.py:73:37 [attr] via format_message in UsageError.show :: echo("Error: {}".format(self.format_message()), file=file, color=color)
+
+## batch 0 [method] core.py:1414 CommandCollection.list_commands (function, method) names=list_commands candidates=3
+_bashcomplete.py:240:25 [attr] via list_commands in get_visible_commands_starting_with :: for c in ctx.command.list_commands(ctx):
+core.py:1184:31 [attr] via list_commands in MultiCommand.format_commands :: for subcommand in self.list_commands(ctx):
+core.py:1417:29 [attr] via list_commands in CommandCollection.list_commands :: rv.update(source.list_commands(ctx))
+
+## batch 0 [method] core.py:566 Context.get_help (function, method) names=get_help candidates=5
+core.py:570:28 [attr] via get_help in Context.get_help :: return self.command.get_help(self)
+core.py:950:25 [attr] via get_help in Command.get_help_option.show_help :: echo(ctx.get_help(), color=ctx.color)
+core.py:1041:21 [attr] via get_help in Command.parse_args :: echo(ctx.get_help(), color=ctx.color)
+core.py:1209:21 [attr] via get_help in MultiCommand.parse_args :: echo(ctx.get_help(), color=ctx.color)
+decorators.py:323:25 [attr] via get_help in help_option.decorator.callback :: echo(ctx.get_help(), color=ctx.color)
+
+## batch 0 [method] _textwrap.py:19 TextWrapper.extra_indent (function, method) names=extra_indent candidates=1
+formatting.py:85:21 [attr] via extra_indent in wrap_text :: with wrapper.extra_indent(" " * indent):
+
+## batch 0 [method] parser.py:152 Option.process (function, method) names=process candidates=3
+parser.py:282:16 [attr] via process in OptionParser._process_args_for_args :: arg.process(pargs[idx], state)
+parser.py:352:15 [attr] via process in OptionParser._match_long_opt :: option.process(value, state)
+parser.py:389:19 [attr] via process in OptionParser._match_short_opt :: option.process(value, state)
+
+## batch 0 [method] types.py:409 BoolParamType.convert (function, method) names=convert candidates=3
+types.py:46:24 [attr] via convert in ParamType.__call__ :: return self.convert(value, param, ctx)
+types.py:290:26 [attr] via convert in IntRange.convert :: rv = IntParamType.convert(self, value, param, ctx)
+types.py:364:28 [attr] via convert in FloatRange.convert :: rv = FloatParamType.convert(self, value, param, ctx)
+
+## batch 0 [method] parser.py:276 OptionParser._process_args_for_args (function, method) names=_process_args_for_args candidates=1
+parser.py:270:17 [attr] via _process_args_for_args in OptionParser.parse_args :: self._process_args_for_args(state)
+
+## batch 0 [method] types.py:51 ParamType.get_missing_message (function, method) names=get_missing_message candidates=1
+exceptions.py:144:40 [attr] via get_missing_message in MissingParameter.format_message :: msg_extra = self.param.type.get_missing_message(self.param)
+
+## batch 0 [method] parser.py:174 Argument.process (function, method) names=process candidates=3
+parser.py:282:16 [attr] via process in OptionParser._process_args_for_args :: arg.process(pargs[idx], state)
+parser.py:352:15 [attr] via process in OptionParser._match_long_opt :: option.process(value, state)
+parser.py:389:19 [attr] via process in OptionParser._match_short_opt :: option.process(value, state)
+
+## batch 0 [method] exceptions.py:39 ClickException.show (function, method) names=show candidates=1
+core.py:799:18 [attr] via show in BaseCommand.main :: e.show()
+
+## batch 0 [method] _termui_impl.py:294 ProgressBar.finish (function, method) names=finish candidates=1
+_termui_impl.py:322:17 [attr] via finish in ProgressBar.generator :: self.finish()
+
+## batch 0 [method] _compat.py:97 _NonClosingTextIOWrapper.isatty (function, method) names=isatty candidates=13
+_compat.py:99:28 [attr] via isatty in _NonClosingTextIOWrapper.isatty :: return self._stream.isatty()
+_compat.py:656:19 [name] via isatty in should_strip_ansi :: return not isatty(stream) and not _is_jupyter_kernel_output(stream)
+_compat.py:744:22 [attr] via isatty in isatty :: return stream.isatty()
+_termui_impl.py:103:29 [name] via isatty in ProgressBar.__init__ :: self.is_hidden = not isatty(self.file)
+_termui_impl.py:329:11 [name] via isatty in pager :: if not isatty(sys.stdin) or not isatty(stdout):
+_termui_impl.py:329:36 [name] via isatty in pager :: if not isatty(sys.stdin) or not isatty(stdout):
+_termui_impl.py:631:15 [name] via isatty in raw_terminal :: if not isatty(sys.stdin):
+_termui_impl.py:654:24 [name] via isatty in getchar :: if echo and isatty(sys.stdout):
+_winconsole.py:126:21 [attr] via isatty in _WindowsConsoleRawIOBase.isatty :: io.RawIOBase.isatty(self)
+_winconsole.py:223:27 [attr] via isatty in ConsoleStream.isatty :: return self.buffer.isatty()
+termui.py:422:11 [name] via isatty in clear :: if not isatty(sys.stdout):
+termui.py:670:11 [name] via isatty in pause :: if not isatty(sys.stdin) or not isatty(sys.stdout):
+termui.py:670:36 [name] via isatty in pause :: if not isatty(sys.stdin) or not isatty(sys.stdout):
+
+## batch 0 [staticmethod] _winconsole.py:170 _WindowsConsoleWriter._get_error_message (function, staticmethod) names=_get_error_message candidates=1
+_winconsole.py:193:31 [attr] via _get_error_message in _WindowsConsoleWriter.write :: raise OSError(self._get_error_message(GetLastError()))
+
+## batch 0 [class] _compat.py:102 _FixupStream (class, class) names=_FixupStream candidates=1
+   bases: object
+_compat.py:70:32 [name] via _FixupStream in _NonClosingTextIOWrapper.__init__ :: self._stream = stream = _FixupStream(stream, force_readable, force_writable)
+
+## batch 0 [class] testing.py:23 EchoingStdin (class, class) names=EchoingStdin candidates=2
+   bases: object
+testing.py:190:24 [name] via EchoingStdin in CliRunner.isolation :: input = EchoingStdin(input, bytes_output)
+testing.py:198:24 [name] via EchoingStdin in CliRunner.isolation :: input = EchoingStdin(input, bytes_output)
+
+## batch 0 [class] _winconsole.py:130 _WindowsConsoleReader (class, class) names=_WindowsConsoleReader candidates=1
+   bases: _WindowsConsoleRawIOBase
+_winconsole.py:272:26 [name] via _WindowsConsoleReader in _get_text_stdin :: io.BufferedReader(_WindowsConsoleReader(STDIN_HANDLE)),
+
+## batch 0 [class] types.py:113 StringParamType (class, class) names=StringParamType candidates=1
+   bases: ParamType
+types.py:747:9 [name] via StringParamType in <module> :: STRING = StringParamType()
+
+## batch 0 [class] exceptions.py:172 NoSuchOption (class, class) names=NoSuchOption candidates=2
+   bases: UsageError
+parser.py:326:18 [name] via NoSuchOption in OptionParser._match_long_opt :: raise NoSuchOption(opt, possibilities=possibilities, ctx=self.ctx)
+parser.py:369:22 [name] via NoSuchOption in OptionParser._match_short_opt :: raise NoSuchOption(opt, ctx=self.ctx)
+
+## batch 0 [class] _compat.py:595 _AtomicFile (class, class) names=_AtomicFile candidates=1
+   bases: object
+_compat.py:583:11 [name] via _AtomicFile in open_stream :: return _AtomicFile(f, tmp_filename, os.path.realpath(filename)), True
+
+## batch 0 [class] _compat.py:60 _NonClosingTextIOWrapper (class, class) names=_NonClosingTextIOWrapper candidates=4
+   bases: io.TextIOWrapper
+_compat.py:34:11 [name] via _NonClosingTextIOWrapper in _make_text_stream :: return _NonClosingTextIOWrapper(
+_winconsole.py:271:18 [name] via _NonClosingTextIOWrapper in _get_text_stdin :: text_stream = _NonClosingTextIOWrapper(
+_winconsole.py:281:18 [name] via _NonClosingTextIOWrapper in _get_text_stdout :: text_stream = _NonClosingTextIOWrapper(
+_winconsole.py:291:18 [name] via _NonClosingTextIOWrapper in _get_text_stderr :: text_stream = _NonClosingTextIOWrapper(
+
+## batch 0 [class] parser.py:168 Argument (class, class) names=Argument candidates=1
+   bases: object
+parser.py:258:26 [name] via Argument in OptionParser.add_argument :: self._args.append(Argument(dest=dest, nargs=nargs, obj=obj))
+
+## batch 0 [nested] core.py:1563 Parameter.type_cast_value._convert (function, nested) names=_convert candidates=2
+core.py:1566:25 [name] via _convert in Parameter.type_cast_value._convert :: return tuple(_convert(x, level - 1) for x in value or ())
+core.py:1568:15 [name] via _convert in Parameter.type_cast_value :: return _convert(value, (self.nargs != 1) + bool(self.multiple))
+
+## batch 0 [nested] formatting.py:62 wrap_text._flush_par (function, nested) names=_flush_par candidates=2
+formatting.py:73:12 [name] via _flush_par in wrap_text :: _flush_par()
+formatting.py:81:4 [name] via _flush_par in wrap_text :: _flush_par()
+
+## batch 0 [overridden] testing.py:275 CliRunner.invoke (function, method) names=invoke candidates=11
+core.py:628:20 [attr] via invoke in Context.forward :: return self.invoke(cmd, **kwargs)
+core.py:782:30 [attr] via invoke in BaseCommand.main :: rv = self.invoke(ctx)
+core.py:1066:23 [attr] via invoke in Command.invoke :: return ctx.invoke(self.callback, **ctx.params)
+core.py:1224:28 [attr] via invoke in MultiCommand.invoke._process_result :: value = ctx.invoke(self.result_callback, value, **ctx.params)
+core.py:1236:35 [attr] via invoke in MultiCommand.invoke :: return Command.invoke(self, ctx)
+core.py:1238:28 [attr] via invoke in MultiCommand.invoke :: Command.invoke(self, ctx)
+core.py:1256:24 [attr] via invoke in MultiCommand.invoke :: Command.invoke(self, ctx)
+core.py:1259:59 [attr] via invoke in MultiCommand.invoke :: return _process_result(sub_ctx.command.invoke(sub_ctx))
+core.py:1268:20 [attr] via invoke in MultiCommand.invoke :: Command.invoke(self, ctx)
+core.py:1289:46 [attr] via invoke in MultiCommand.invoke :: rv.append(sub_ctx.command.invoke(sub_ctx))
+decorators.py:73:23 [attr] via invoke in make_pass_decorator.decorator.new_func :: return ctx.invoke(f, obj, *args, **kwargs)
+
+## batch 0 [overridden] core.py:1536 Parameter.add_to_parser (function, method) names=add_to_parser candidates=1
+core.py:966:18 [attr] via add_to_parser in Command.make_parser :: param.add_to_parser(parser, ctx)
+
+## batch 0 [overridden] core.py:1780 Option._parse_decls (function, method) names=_parse_decls candidates=1
+core.py:1482:57 [attr] via _parse_decls in Parameter.__init__ :: self.name, self.opts, self.secondary_opts = self._parse_decls(
+
+## batch 0 [overridden] exceptions.py:61 UsageError.show (function, method) names=show candidates=1
+core.py:799:18 [attr] via show in BaseCommand.main :: e.show()
+
+## batch 0 [overridden] core.py:677 BaseCommand.get_help (function, method) names=get_help candidates=5
+core.py:570:28 [attr] via get_help in Context.get_help :: return self.command.get_help(self)
+core.py:950:25 [attr] via get_help in Command.get_help_option.show_help :: echo(ctx.get_help(), color=ctx.color)
+core.py:1041:21 [attr] via get_help in Command.parse_args :: echo(ctx.get_help(), color=ctx.color)
+core.py:1209:21 [attr] via get_help in MultiCommand.parse_args :: echo(ctx.get_help(), color=ctx.color)
+decorators.py:323:25 [attr] via get_help in help_option.decorator.callback :: echo(ctx.get_help(), color=ctx.color)
+
+## batch 0 [overridden] core.py:1353 Group.command (function, method) names=command candidates=2
+core.py:1362:18 [name] via command in Group.command.decorator :: cmd = command(*args, **kwargs)(f)
+decorators.py:143:11 [name] via command in group :: return command(name, **attrs)
+
+## batch 0 [zero-candidates] decorators.py:309 help_option (function, function) names=help_option candidates=0
+
+## batch 0 [zero-candidates] _winconsole.py:131 _WindowsConsoleReader.readable (function, method) names=readable candidates=0
+
+## batch 0 [zero-candidates] _winconsole.py:166 _WindowsConsoleWriter.writable (function, method) names=writable candidates=0
+
+## batch 0 [init] core.py:865 Command.__init__ (function, method) names=Command,__init__ candidates=15
+   bases: -
+_compat.py:71:25 [attr] via __init__ in _NonClosingTextIOWrapper.__init__ :: io.TextIOWrapper.__init__(self, stream, encoding, errors, **extra)
+core.py:880:20 [attr] via __init__ in Command.__init__ :: BaseCommand.__init__(self, name, context_settings)
+core.py:1106:16 [attr] via __init__ in MultiCommand.__init__ :: Command.__init__(self, name, **attrs)
+core.py:1339:21 [attr] via __init__ in Group.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1398:21 [attr] via __init__ in CommandCollection.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1714:18 [attr] via __init__ in Option.__init__ :: Parameter.__init__(self, param_decls, type=type, **attrs)
+core.py:1984:18 [attr] via __init__ in Argument.__init__ :: Parameter.__init__(self, param_decls, required=required, **attrs)
+exceptions.py:24:18 [attr] via __init__ in ClickException.__init__ :: Exception.__init__(self, ctor_msg)
+exceptions.py:57:23 [attr] via __init__ in UsageError.__init__ :: ClickException.__init__(self, message)
+exceptions.py:95:19 [attr] via __init__ in BadParameter.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:126:21 [attr] via __init__ in MissingParameter.__init__ :: BadParameter.__init__(self, message, ctx, param, param_hint)
+exceptions.py:182:19 [attr] via __init__ in NoSuchOption.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:208:19 [attr] via __init__ in BadOptionUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:221:19 [attr] via __init__ in BadArgumentUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:231:23 [attr] via __init__ in FileError.__init__ :: ClickException.__init__(self, hint)
+
+## batch 0 [init] exceptions.py:252 Exit.__init__ (function, method) names=Exit,__init__ candidates=16
+   bases: -
+_compat.py:71:25 [attr] via __init__ in _NonClosingTextIOWrapper.__init__ :: io.TextIOWrapper.__init__(self, stream, encoding, errors, **extra)
+core.py:558:14 [name] via Exit in Context.exit :: raise Exit(code)
+core.py:880:20 [attr] via __init__ in Command.__init__ :: BaseCommand.__init__(self, name, context_settings)
+core.py:1106:16 [attr] via __init__ in MultiCommand.__init__ :: Command.__init__(self, name, **attrs)
+core.py:1339:21 [attr] via __init__ in Group.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1398:21 [attr] via __init__ in CommandCollection.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1714:18 [attr] via __init__ in Option.__init__ :: Parameter.__init__(self, param_decls, type=type, **attrs)
+core.py:1984:18 [attr] via __init__ in Argument.__init__ :: Parameter.__init__(self, param_decls, required=required, **attrs)
+exceptions.py:24:18 [attr] via __init__ in ClickException.__init__ :: Exception.__init__(self, ctor_msg)
+exceptions.py:57:23 [attr] via __init__ in UsageError.__init__ :: ClickException.__init__(self, message)
+exceptions.py:95:19 [attr] via __init__ in BadParameter.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:126:21 [attr] via __init__ in MissingParameter.__init__ :: BadParameter.__init__(self, message, ctx, param, param_hint)
+exceptions.py:182:19 [attr] via __init__ in NoSuchOption.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:208:19 [attr] via __init__ in BadOptionUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:221:19 [attr] via __init__ in BadArgumentUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:231:23 [attr] via __init__ in FileError.__init__ :: ClickException.__init__(self, hint)
+
+## batch 0 [init] exceptions.py:94 BadParameter.__init__ (function, method) names=BadParameter,__init__ candidates=16
+   bases: -
+_compat.py:71:25 [attr] via __init__ in _NonClosingTextIOWrapper.__init__ :: io.TextIOWrapper.__init__(self, stream, encoding, errors, **extra)
+core.py:880:20 [attr] via __init__ in Command.__init__ :: BaseCommand.__init__(self, name, context_settings)
+core.py:1106:16 [attr] via __init__ in MultiCommand.__init__ :: Command.__init__(self, name, **attrs)
+core.py:1339:21 [attr] via __init__ in Group.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1398:21 [attr] via __init__ in CommandCollection.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1714:18 [attr] via __init__ in Option.__init__ :: Parameter.__init__(self, param_decls, type=type, **attrs)
+core.py:1984:18 [attr] via __init__ in Argument.__init__ :: Parameter.__init__(self, param_decls, required=required, **attrs)
+exceptions.py:24:18 [attr] via __init__ in ClickException.__init__ :: Exception.__init__(self, ctor_msg)
+exceptions.py:57:23 [attr] via __init__ in UsageError.__init__ :: ClickException.__init__(self, message)
+exceptions.py:95:19 [attr] via __init__ in BadParameter.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:126:21 [attr] via __init__ in MissingParameter.__init__ :: BadParameter.__init__(self, message, ctx, param, param_hint)
+exceptions.py:182:19 [attr] via __init__ in NoSuchOption.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:208:19 [attr] via __init__ in BadOptionUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:221:19 [attr] via __init__ in BadArgumentUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:231:23 [attr] via __init__ in FileError.__init__ :: ClickException.__init__(self, hint)
+types.py:76:14 [name] via BadParameter in ParamType.fail :: raise BadParameter(message, ctx=ctx, param=param)
+
+## batch 1 [function] _compat.py:209 set_binary_mode (function, function) names=set_binary_mode candidates=3
+_compat.py:238:15 [name] via set_binary_mode in get_binary_stdin :: return set_binary_mode(sys.stdin)
+_compat.py:242:15 [name] via set_binary_mode in get_binary_stdout :: return set_binary_mode(sys.stdout)
+_compat.py:246:15 [name] via set_binary_mode in get_binary_stderr :: return set_binary_mode(sys.stderr)
+
+## batch 1 [function] _termui_impl.py:581 getchar (function, function) names=f,getchar candidates=8
+_compat.py:123:19 [name] via f in _FixupStream.read1 :: return f(size)
+core.py:1172:23 [name] via f in MultiCommand.resultcallback.decorator.function :: return f(old_callback(__value, *args, **kwargs), *args, **kwargs)
+decorators.py:21:15 [name] via f in pass_context.new_func :: return f(get_current_context(), *args, **kwargs)
+decorators.py:33:15 [name] via f in pass_obj.new_func :: return f(get_current_context().obj, *args, **kwargs)
+termui.py:129:19 [name] via f in prompt.prompt_func :: return f("")
+termui.py:646:11 [name] via f in getchar :: return f(echo)
+termui.py:652:11 [name] via f in raw_terminal :: return f()
+termui.py:676:12 [name] via getchar in pause :: getchar()
+
+## batch 1 [function] _termui_impl.py:578 raw_terminal (function, function) names=f,raw_terminal candidates=8
+_compat.py:123:19 [name] via f in _FixupStream.read1 :: return f(size)
+_termui_impl.py:651:13 [name] via raw_terminal in getchar :: with raw_terminal() as fd:
+core.py:1172:23 [name] via f in MultiCommand.resultcallback.decorator.function :: return f(old_callback(__value, *args, **kwargs), *args, **kwargs)
+decorators.py:21:15 [name] via f in pass_context.new_func :: return f(get_current_context(), *args, **kwargs)
+decorators.py:33:15 [name] via f in pass_obj.new_func :: return f(get_current_context().obj, *args, **kwargs)
+termui.py:129:19 [name] via f in prompt.prompt_func :: return f("")
+termui.py:646:11 [name] via f in getchar :: return f(echo)
+termui.py:652:11 [name] via f in raw_terminal :: return f()
+
+## batch 1 [function] core.py:143 iter_params_for_processing (function, function) names=iter_params_for_processing candidates=1
+core.py:1047:21 [name] via iter_params_for_processing in Command.parse_args :: for param in iter_params_for_processing(param_order, self.get_params(ctx)):
+
+## batch 1 [function] _termui_impl.py:326 pager (function, function) names=pager candidates=1
+termui.py:291:11 [name] via pager in echo_via_pager :: return pager(itertools.chain(text_generator, "\n"), color)
+
+## batch 1 [function] _termui_impl.py:34 _length_hint (function, function) names=_length_hint candidates=1
+_termui_impl.py:87:21 [name] via _length_hint in ProgressBar.__init__ :: length = _length_hint(iterable)
+
+## batch 1 [function] _winconsole.py:302 _hash_py_argv (function, function) names=_hash_py_argv candidates=2
+_winconsole.py:305:25 [name] via _hash_py_argv in <module> :: _initial_argv_hash = _hash_py_argv()
+utils.py:358:45 [name] via _hash_py_argv in get_os_args :: if PY2 and WIN and _initial_argv_hash == _hash_py_argv():
+
+## batch 1 [function] utils.py:58 make_default_short_help (function, function) names=make_default_short_help candidates=1
+core.py:985:16 [name] via make_default_short_help in Command.get_short_help_str :: and make_default_short_help(self.help, limit)
+
+## batch 1 [function] _compat.py:288 _is_binary_reader (function, function) names=_is_binary_reader candidates=2
+_compat.py:313:11 [name] via _is_binary_reader in _find_binary_reader :: if _is_binary_reader(stream, False):
+_compat.py:320:31 [name] via _is_binary_reader in _find_binary_reader :: if buf is not None and _is_binary_reader(buf, True):
+
+## batch 1 [function] core.py:48 _maybe_show_deprecated_notice (function, function) names=_maybe_show_deprecated_notice candidates=1
+core.py:1064:8 [name] via _maybe_show_deprecated_notice in Command.invoke :: _maybe_show_deprecated_notice(self)
+
+## batch 1 [method] core.py:1855 Option.get_help_record (function, method) names=get_help_record candidates=1
+core.py:1024:23 [attr] via get_help_record in Command.format_options :: rv = param.get_help_record(ctx)
+
+## batch 1 [method] utils.py:445 PacifyFlushWrapper.flush (function, method) names=flush candidates=16
+_compat.py:81:25 [attr] via flush in _NonClosingTextIOWrapper.write :: self.flush()
+_compat.py:677:23 [attr] via flush in raw_input :: sys.stderr.flush()
+_termui_impl.py:139:18 [attr] via flush in ProgressBar.render_finish :: self.file.flush()
+_termui_impl.py:266:22 [attr] via flush in ProgressBar.render_progress :: self.file.flush()
+_termui_impl.py:644:27 [attr] via flush in raw_terminal :: sys.stdout.flush()
+_winconsole.py:210:17 [attr] via flush in ConsoleStream.write :: self.flush()
+core.py:57:15 [attr] via flush in fast_exit :: sys.stdout.flush()
+core.py:58:15 [attr] via flush in fast_exit :: sys.stderr.flush()
+testing.py:214:23 [attr] via flush in CliRunner.isolation.visible_input :: sys.stdout.flush()
+testing.py:219:23 [attr] via flush in CliRunner.isolation.hidden_input :: sys.stdout.flush()
+testing.py:226:27 [attr] via flush in CliRunner.isolation._getchar :: sys.stdout.flush()
+testing.py:351:27 [attr] via flush in CliRunner.invoke :: sys.stdout.flush()
+utils.py:251:17 [attr] via flush in echo :: file.flush()
+utils.py:253:24 [attr] via flush in echo :: binary_file.flush()
+utils.py:273:9 [attr] via flush in echo :: file.flush()
+utils.py:447:25 [attr] via flush in PacifyFlushWrapper.flush :: self.wrapped.flush()
+
+## batch 1 [method] formatting.py:126 HelpFormatter.dedent (function, method) names=dedent candidates=2
+formatting.py:250:17 [attr] via dedent in HelpFormatter.section :: self.dedent()
+formatting.py:259:17 [attr] via dedent in HelpFormatter.indentation :: self.dedent()
+
+## batch 1 [method] core.py:969 Command.get_help (function, method) names=get_help candidates=5
+core.py:570:28 [attr] via get_help in Context.get_help :: return self.command.get_help(self)
+core.py:950:25 [attr] via get_help in Command.get_help_option.show_help :: echo(ctx.get_help(), color=ctx.color)
+core.py:1041:21 [attr] via get_help in Command.parse_args :: echo(ctx.get_help(), color=ctx.color)
+core.py:1209:21 [attr] via get_help in MultiCommand.parse_args :: echo(ctx.get_help(), color=ctx.color)
+decorators.py:323:25 [attr] via get_help in help_option.decorator.callback :: echo(ctx.get_help(), color=ctx.color)
+
+## batch 1 [method] testing.py:35 EchoingStdin.read (function, method) names=read candidates=7
+_compat.py:129:28 [attr] via read in _FixupStream.read1 :: return self._stream.read(size)
+_compat.py:138:25 [attr] via read in _FixupStream.readable :: self._stream.read(0)
+_compat.py:290:37 [attr] via read in _is_binary_reader :: return isinstance(stream.read(0), bytes)
+_termui_impl.py:498:23 [attr] via read in Editor.edit :: rv = f.read()
+_termui_impl.py:652:20 [attr] via read in getchar :: ch = os.read(fd, 32)
+testing.py:36:38 [attr] via read in EchoingStdin.read :: return self._echo(self._input.read(n))
+testing.py:223:29 [attr] via read in CliRunner.isolation._getchar :: char = sys.stdin.read(1)
+
+## batch 1 [method] core.py:1951 Option.value_from_envvar (function, method) names=value_from_envvar candidates=1
+core.py:1542:25 [attr] via value_from_envvar in Parameter.consume_value :: value = self.value_from_envvar(ctx)
+
+## batch 1 [method] _termui_impl.py:299 ProgressBar.generator (function, method) names=generator candidates=1
+_termui_impl.py:119:20 [attr] via generator in ProgressBar.__iter__ :: return self.generator()
+
+## batch 1 [method] core.py:1006 Command.format_help_text (function, method) names=format_help_text candidates=1
+core.py:1002:13 [attr] via format_help_text in Command.format_help :: self.format_help_text(ctx, formatter)
+
+## batch 1 [method] _termui_impl.py:451 Editor.edit_file (function, method) names=edit_file candidates=2
+_termui_impl.py:491:17 [attr] via edit_file in Editor.edit :: self.edit_file(name)
+termui.py:588:11 [attr] via edit_file in edit :: editor.edit_file(filename)
+
+## batch 1 [method] core.py:1645 Parameter.get_error_hint (function, method) names=get_error_hint candidates=2
+exceptions.py:103:36 [attr] via get_error_hint in BadParameter.format_message :: param_hint = self.param.get_error_hint(self.ctx)
+exceptions.py:133:36 [attr] via get_error_hint in MissingParameter.format_message :: param_hint = self.param.get_error_hint(self.ctx)
+
+## batch 1 [method] formatting.py:130 HelpFormatter.write_usage (function, method) names=write_usage candidates=1
+core.py:923:18 [attr] via write_usage in Command.format_usage :: formatter.write_usage(ctx.command_path, " ".join(pieces))
+
+## batch 1 [method] core.py:479 Context.call_on_close (function, method) names=call_on_close candidates=3
+types.py:500:24 [attr] via call_on_close in File.convert :: ctx.call_on_close(f.close_intelligently)
+types.py:513:24 [attr] via call_on_close in File.convert :: ctx.call_on_close(safecall(f.close))
+types.py:515:24 [attr] via call_on_close in File.convert :: ctx.call_on_close(safecall(f.flush))
+
+## batch 1 [class] types.py:273 IntRange (class, class) names=IntRange candidates=1
+   bases: IntParamType
+core.py:1749:28 [name] via IntRange in Option.__init__ :: self.type = IntRange(min=0)
+
+## batch 1 [class] utils.py:83 LazyFile (class, class) names=LazyFile candidates=2
+   bases: object
+types.py:496:20 [name] via LazyFile in File.convert :: f = LazyFile(
+utils.py:335:15 [name] via LazyFile in open_file :: return LazyFile(filename, mode, encoding, errors, atomic=atomic)
+
+## batch 1 [class] exceptions.py:45 UsageError (class, class) names=UsageError candidates=1
+   bases: ClickException
+core.py:550:14 [name] via UsageError in Context.fail :: raise UsageError(message, self)
+
+## batch 1 [class] types.py:103 UnprocessedParamType (class, class) names=UnprocessedParamType candidates=1
+   bases: ParamType
+types.py:743:14 [name] via UnprocessedParamType in <module> :: UNPROCESSED = UnprocessedParamType()
+
+## batch 1 [class] _winconsole.py:165 _WindowsConsoleWriter (class, class) names=_WindowsConsoleWriter candidates=2
+   bases: _WindowsConsoleRawIOBase
+_winconsole.py:282:26 [name] via _WindowsConsoleWriter in _get_text_stdout :: io.BufferedWriter(_WindowsConsoleWriter(STDOUT_HANDLE)),
+_winconsole.py:292:26 [name] via _WindowsConsoleWriter in _get_text_stderr :: io.BufferedWriter(_WindowsConsoleWriter(STDERR_HANDLE)),
+
+## batch 1 [class] _termui_impl.py:52 ProgressBar (class, class) names=ProgressBar candidates=1
+   bases: object
+termui.py:397:11 [name] via ProgressBar in progressbar :: return ProgressBar(
+
+## batch 1 [class] exceptions.py:76 BadParameter (class, class) names=BadParameter candidates=1
+   bases: UsageError
+types.py:76:14 [name] via BadParameter in ParamType.fail :: raise BadParameter(message, ctx=ctx, param=param)
+
+## batch 1 [class] utils.py:433 PacifyFlushWrapper (class, class) names=PacifyFlushWrapper candidates=2
+   bases: object
+core.py:803:33 [name] via PacifyFlushWrapper in BaseCommand.main :: sys.stdout = PacifyFlushWrapper(sys.stdout)
+core.py:804:33 [name] via PacifyFlushWrapper in BaseCommand.main :: sys.stderr = PacifyFlushWrapper(sys.stderr)
+
+## batch 1 [nested] decorators.py:217 confirmation_option.decorator.callback (function, nested) names=callback candidates=3
+core.py:121:15 [name] via callback in invoke_param_callback :: return callback(ctx, value)
+core.py:123:11 [name] via callback in invoke_param_callback :: return callback(ctx, param, value)
+core.py:610:23 [name] via callback in Context.invoke :: return callback(*args, **kwargs)
+
+## batch 1 [nested] testing.py:231 CliRunner.isolation.should_strip_ansi (function, nested) names=should_strip_ansi candidates=2
+_compat.py:703:20 [name] via should_strip_ansi in auto_wrap_for_ansi :: strip = should_strip_ansi(stream, color)
+utils.py:263:11 [name] via should_strip_ansi in echo :: if should_strip_ansi(file, color):
+
+## batch 1 [overridden] types.py:335 FloatParamType.convert (function, method) names=convert candidates=3
+types.py:46:24 [attr] via convert in ParamType.__call__ :: return self.convert(value, param, ctx)
+types.py:290:26 [attr] via convert in IntRange.convert :: rv = IntParamType.convert(self, value, param, ctx)
+types.py:364:28 [attr] via convert in FloatRange.convert :: rv = FloatParamType.convert(self, value, param, ctx)
+
+## batch 1 [overridden] core.py:1135 MultiCommand.format_options (function, method) names=format_options candidates=2
+core.py:1003:13 [attr] via format_options in Command.format_help :: self.format_options(ctx, formatter)
+core.py:1136:16 [attr] via format_options in MultiCommand.format_options :: Command.format_options(self, ctx, formatter)
+
+## batch 1 [overridden] core.py:1642 Parameter.get_usage_pieces (function, method) names=get_usage_pieces candidates=1
+core.py:931:28 [attr] via get_usage_pieces in Command.collect_usage_pieces :: rv.extend(param.get_usage_pieces(ctx))
+
+## batch 1 [overridden] core.py:2026 Argument.get_error_hint (function, method) names=get_error_hint candidates=2
+exceptions.py:103:36 [attr] via get_error_hint in BadParameter.format_message :: param_hint = self.param.get_error_hint(self.ctx)
+exceptions.py:133:36 [attr] via get_error_hint in MissingParameter.format_message :: param_hint = self.param.get_error_hint(self.ctx)
+
+## batch 1 [overridden] core.py:2008 Argument._parse_decls (function, method) names=_parse_decls candidates=1
+core.py:1482:57 [attr] via _parse_decls in Parameter.__init__ :: self.name, self.opts, self.secondary_opts = self._parse_decls(
+
+## batch 1 [overridden] types.py:74 ParamType.fail (function, method) names=fail candidates=22
+core.py:1051:16 [attr] via fail in Command.parse_args :: ctx.fail(
+core.py:1240:16 [attr] via fail in MultiCommand.invoke :: ctx.fail("Missing command.")
+core.py:1314:16 [attr] via fail in MultiCommand.resolve_command :: ctx.fail("No such command '{}'.".format(original_cmd_name))
+types.py:100:17 [attr] via fail in FuncParamType.convert :: self.fail(value, param, ctx)
+types.py:196:13 [attr] via fail in Choice.convert :: self.fail(
+types.py:250:13 [attr] via fail in DateTime.convert :: self.fail(
+types.py:267:17 [attr] via fail in IntParamType.convert :: self.fail("{} is not a valid integer".format(value), param, ctx)
+types.py:303:21 [attr] via fail in IntRange.convert :: self.fail(
+types.py:311:21 [attr] via fail in IntRange.convert :: self.fail(
+types.py:319:21 [attr] via fail in IntRange.convert :: self.fail(
+types.py:339:17 [attr] via fail in FloatParamType.convert :: self.fail(
+types.py:377:21 [attr] via fail in FloatRange.convert :: self.fail(
+types.py:385:21 [attr] via fail in FloatRange.convert :: self.fail(
+types.py:393:21 [attr] via fail in FloatRange.convert :: self.fail(
+types.py:417:13 [attr] via fail in BoolParamType.convert :: self.fail("{} is not a valid boolean".format(value), param, ctx)
+types.py:434:17 [attr] via fail in UUIDParameterType.convert :: self.fail("{} is not a valid UUID value".format(value), param, ctx)
+types.py:518:17 [attr] via fail in File.convert :: self.fail(
+types.py:612:21 [attr] via fail in Path.convert :: self.fail(
+types.py:621:21 [attr] via fail in Path.convert :: self.fail(
+types.py:627:21 [attr] via fail in Path.convert :: self.fail(
+types.py:635:21 [attr] via fail in Path.convert :: self.fail(
+types.py:643:21 [attr] via fail in Path.convert :: self.fail(
+
+## batch 1 [zero-candidates] decorators.py:38 make_pass_decorator (function, function) names=make_pass_decorator candidates=0
+
+## batch 1 [zero-candidates] _compat.py:120 _FixupStream.read1 (function, method) names=read1 candidates=0
+
+## batch 1 [zero-candidates] utils.py:292 get_text_stream (function, function) names=get_text_stream candidates=0
+
+## batch 1 [init] types.py:284 IntRange.__init__ (function, method) names=IntRange,__init__ candidates=16
+   bases: -
+_compat.py:71:25 [attr] via __init__ in _NonClosingTextIOWrapper.__init__ :: io.TextIOWrapper.__init__(self, stream, encoding, errors, **extra)
+core.py:880:20 [attr] via __init__ in Command.__init__ :: BaseCommand.__init__(self, name, context_settings)
+core.py:1106:16 [attr] via __init__ in MultiCommand.__init__ :: Command.__init__(self, name, **attrs)
+core.py:1339:21 [attr] via __init__ in Group.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1398:21 [attr] via __init__ in CommandCollection.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1714:18 [attr] via __init__ in Option.__init__ :: Parameter.__init__(self, param_decls, type=type, **attrs)
+core.py:1749:28 [name] via IntRange in Option.__init__ :: self.type = IntRange(min=0)
+core.py:1984:18 [attr] via __init__ in Argument.__init__ :: Parameter.__init__(self, param_decls, required=required, **attrs)
+exceptions.py:24:18 [attr] via __init__ in ClickException.__init__ :: Exception.__init__(self, ctor_msg)
+exceptions.py:57:23 [attr] via __init__ in UsageError.__init__ :: ClickException.__init__(self, message)
+exceptions.py:95:19 [attr] via __init__ in BadParameter.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:126:21 [attr] via __init__ in MissingParameter.__init__ :: BadParameter.__init__(self, message, ctx, param, param_hint)
+exceptions.py:182:19 [attr] via __init__ in NoSuchOption.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:208:19 [attr] via __init__ in BadOptionUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:221:19 [attr] via __init__ in BadArgumentUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:231:23 [attr] via __init__ in FileError.__init__ :: ClickException.__init__(self, hint)
+
+## batch 1 [init] types.py:668 Tuple.__init__ (function, method) names=Tuple,__init__ candidates=16
+   bases: -
+_compat.py:71:25 [attr] via __init__ in _NonClosingTextIOWrapper.__init__ :: io.TextIOWrapper.__init__(self, stream, encoding, errors, **extra)
+core.py:880:20 [attr] via __init__ in Command.__init__ :: BaseCommand.__init__(self, name, context_settings)
+core.py:1106:16 [attr] via __init__ in MultiCommand.__init__ :: Command.__init__(self, name, **attrs)
+core.py:1339:21 [attr] via __init__ in Group.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1398:21 [attr] via __init__ in CommandCollection.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1714:18 [attr] via __init__ in Option.__init__ :: Parameter.__init__(self, param_decls, type=type, **attrs)
+core.py:1984:18 [attr] via __init__ in Argument.__init__ :: Parameter.__init__(self, param_decls, required=required, **attrs)
+exceptions.py:24:18 [attr] via __init__ in ClickException.__init__ :: Exception.__init__(self, ctor_msg)
+exceptions.py:57:23 [attr] via __init__ in UsageError.__init__ :: ClickException.__init__(self, message)
+exceptions.py:95:19 [attr] via __init__ in BadParameter.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:126:21 [attr] via __init__ in MissingParameter.__init__ :: BadParameter.__init__(self, message, ctx, param, param_hint)
+exceptions.py:182:19 [attr] via __init__ in NoSuchOption.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:208:19 [attr] via __init__ in BadOptionUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:221:19 [attr] via __init__ in BadArgumentUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:231:23 [attr] via __init__ in FileError.__init__ :: ClickException.__init__(self, hint)
+types.py:701:15 [name] via Tuple in convert_type :: return Tuple(ty)
+
+## batch 1 [init] parser.py:188 ParsingState.__init__ (function, method) names=ParsingState,__init__ candidates=16
+   bases: -
+_compat.py:71:25 [attr] via __init__ in _NonClosingTextIOWrapper.__init__ :: io.TextIOWrapper.__init__(self, stream, encoding, errors, **extra)
+core.py:880:20 [attr] via __init__ in Command.__init__ :: BaseCommand.__init__(self, name, context_settings)
+core.py:1106:16 [attr] via __init__ in MultiCommand.__init__ :: Command.__init__(self, name, **attrs)
+core.py:1339:21 [attr] via __init__ in Group.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1398:21 [attr] via __init__ in CommandCollection.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1714:18 [attr] via __init__ in Option.__init__ :: Parameter.__init__(self, param_decls, type=type, **attrs)
+core.py:1984:18 [attr] via __init__ in Argument.__init__ :: Parameter.__init__(self, param_decls, required=required, **attrs)
+exceptions.py:24:18 [attr] via __init__ in ClickException.__init__ :: Exception.__init__(self, ctor_msg)
+exceptions.py:57:23 [attr] via __init__ in UsageError.__init__ :: ClickException.__init__(self, message)
+exceptions.py:95:19 [attr] via __init__ in BadParameter.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:126:21 [attr] via __init__ in MissingParameter.__init__ :: BadParameter.__init__(self, message, ctx, param, param_hint)
+exceptions.py:182:19 [attr] via __init__ in NoSuchOption.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:208:19 [attr] via __init__ in BadOptionUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:221:19 [attr] via __init__ in BadArgumentUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:231:23 [attr] via __init__ in FileError.__init__ :: ClickException.__init__(self, hint)
+parser.py:267:16 [name] via ParsingState in OptionParser.parse_args :: state = ParsingState(args)
+
+## batch 2 [function] _compat.py:261 get_text_stderr (function, function) names=get_text_stderr candidates=2
+exceptions.py:41:19 [name] via get_text_stderr in ClickException.show :: file = get_text_stderr()
+exceptions.py:63:19 [name] via get_text_stderr in UsageError.show :: file = get_text_stderr()
+
+## batch 2 [function] _compat.py:636 strip_ansi (function, function) names=strip_ansi candidates=7
+_compat.py:739:15 [name] via strip_ansi in term_len :: return len(strip_ansi(x))
+_termui_impl.py:379:23 [name] via strip_ansi in _pipepager :: text = strip_ansi(text)
+_termui_impl.py:412:15 [name] via strip_ansi in _tempfilepager :: text = strip_ansi(text)
+_termui_impl.py:426:19 [name] via strip_ansi in _nullpager :: text = strip_ansi(text)
+termui.py:531:11 [name] via strip_ansi in unstyle :: return strip_ansi(text)
+utils.py:264:22 [name] via strip_ansi in echo :: message = strip_ansi(message)
+utils.py:269:26 [name] via strip_ansi in echo :: message = strip_ansi(message)
+
+## batch 2 [function] decorators.py:174 option (function, function) names=option candidates=4
+decorators.py:226:15 [name] via option in confirmation_option.decorator :: return option(*(param_decls or ("--yes",)), **attrs)(f)
+decorators.py:248:15 [name] via option in password_option.decorator :: return option(*(param_decls or ("--password",)), **attrs)(f)
+decorators.py:304:15 [name] via option in version_option.decorator :: return option(*(param_decls or ("--version",)), **attrs)(f)
+decorators.py:331:15 [name] via option in help_option.decorator :: return option(*(param_decls or ("--help",)), **attrs)(f)
+
+## batch 2 [function] _compat.py:240 get_binary_stdout (function, function) names=get_binary_stdout candidates=1
+_compat.py:521:23 [name] via get_binary_stdout in open_stream :: return get_binary_stdout(), False
+
+## batch 2 [function] _termui_impl.py:506 open_url (function, function) names=open_url candidates=1
+termui.py:615:11 [name] via open_url in launch :: return open_url(url, wait=wait, locate=locate)
+
+## batch 2 [function] _termui_impl.py:422 _nullpager (function, function) names=_nullpager candidates=3
+_termui_impl.py:330:15 [name] via _nullpager in pager :: return _nullpager(stdout, generator, color)
+_termui_impl.py:337:15 [name] via _nullpager in pager :: return _nullpager(stdout, generator, color)
+_termui_impl.py:350:15 [name] via _nullpager in pager :: return _nullpager(stdout, generator, color)
+
+## batch 2 [function] _compat.py:424 get_binary_stdin (function, function) names=get_binary_stdin candidates=1
+_compat.py:524:19 [name] via get_binary_stdin in open_stream :: return get_binary_stdin(), False
+
+## batch 2 [function] termui.py:623 getchar (function, function) names=f,getchar candidates=8
+_compat.py:123:19 [name] via f in _FixupStream.read1 :: return f(size)
+core.py:1172:23 [name] via f in MultiCommand.resultcallback.decorator.function :: return f(old_callback(__value, *args, **kwargs), *args, **kwargs)
+decorators.py:21:15 [name] via f in pass_context.new_func :: return f(get_current_context(), *args, **kwargs)
+decorators.py:33:15 [name] via f in pass_obj.new_func :: return f(get_current_context().obj, *args, **kwargs)
+termui.py:129:19 [name] via f in prompt.prompt_func :: return f("")
+termui.py:646:11 [name] via f in getchar :: return f(echo)
+termui.py:652:11 [name] via f in raw_terminal :: return f()
+termui.py:676:12 [name] via getchar in pause :: getchar()
+
+## batch 2 [function] testing.py:51 make_input_stream (function, function) names=make_input_stream candidates=1
+testing.py:177:16 [name] via make_input_stream in CliRunner.isolation :: input = make_input_stream(input, self.charset)
+
+## batch 2 [function] _compat.py:430 get_binary_stdout (function, function) names=get_binary_stdout candidates=1
+_compat.py:521:23 [name] via get_binary_stdout in open_stream :: return get_binary_stdout(), False
+
+## batch 2 [method] types.py:426 UUIDParameterType.convert (function, method) names=convert candidates=3
+types.py:46:24 [attr] via convert in ParamType.__call__ :: return self.convert(value, param, ctx)
+types.py:290:26 [attr] via convert in IntRange.convert :: rv = IntParamType.convert(self, value, param, ctx)
+types.py:364:28 [attr] via convert in FloatRange.convert :: rv = FloatParamType.convert(self, value, param, ctx)
+
+## batch 2 [method] types.py:163 Choice.get_missing_message (function, method) names=get_missing_message candidates=1
+exceptions.py:144:40 [attr] via get_missing_message in MissingParameter.format_message :: msg_extra = self.param.type.get_missing_message(self.param)
+
+## batch 2 [method] exceptions.py:27 ClickException.format_message (function, method) names=format_message candidates=2
+exceptions.py:42:37 [attr] via format_message in ClickException.show :: echo("Error: {}".format(self.format_message()), file=file)
+exceptions.py:73:37 [attr] via format_message in UsageError.show :: echo("Error: {}".format(self.format_message()), file=file, color=color)
+
+## batch 2 [method] _termui_impl.py:290 ProgressBar.update (function, method) names=update candidates=5
+_termui_impl.py:321:21 [attr] via update in ProgressBar.generator :: self.update(1)
+_termui_impl.py:457:20 [attr] via update in Editor.edit_file :: environ.update(self.env)
+core.py:1417:15 [attr] via update in CommandCollection.list_commands :: rv.update(source.list_commands(ctx))
+parser.py:244:27 [attr] via update in OptionParser.add_option :: self._opt_prefixes.update(option.prefixes)
+testing.py:156:15 [attr] via update in CliRunner.make_env :: rv.update(overrides)
+
+## batch 2 [method] formatting.py:164 HelpFormatter.write_heading (function, method) names=write_heading candidates=1
+formatting.py:245:13 [attr] via write_heading in HelpFormatter.section :: self.write_heading(name)
+
+## batch 2 [method] core.py:1943 Option.resolve_envvar_value (function, method) names=resolve_envvar_value candidates=3
+core.py:1614:18 [attr] via resolve_envvar_value in Parameter.value_from_envvar :: rv = self.resolve_envvar_value(ctx)
+core.py:1944:23 [attr] via resolve_envvar_value in Option.resolve_envvar_value :: rv = Parameter.resolve_envvar_value(self, ctx)
+core.py:1952:18 [attr] via resolve_envvar_value in Option.value_from_envvar :: rv = self.resolve_envvar_value(ctx)
+
+## batch 2 [method] core.py:1207 MultiCommand.parse_args (function, method) names=parse_args candidates=4
+core.py:700:17 [attr] via parse_args in BaseCommand.make_context :: self.parse_args(ctx, args)
+core.py:1045:41 [attr] via parse_args in Command.parse_args :: opts, args, param_order = parser.parse_args(args=args)
+core.py:1212:23 [attr] via parse_args in MultiCommand.parse_args :: rest = Command.parse_args(self, ctx, args)
+core.py:1313:21 [attr] via parse_args in MultiCommand.resolve_command :: self.parse_args(ctx, ctx.args)
+
+## batch 2 [method] types.py:116 StringParamType.convert (function, method) names=convert candidates=3
+types.py:46:24 [attr] via convert in ParamType.__call__ :: return self.convert(value, param, ctx)
+types.py:290:26 [attr] via convert in IntRange.convert :: rv = IntParamType.convert(self, value, param, ctx)
+types.py:364:28 [attr] via convert in FloatRange.convert :: rv = FloatParamType.convert(self, value, param, ctx)
+
+## batch 2 [method] _termui_impl.py:135 ProgressBar.render_finish (function, method) names=render_finish candidates=1
+_termui_impl.py:113:13 [attr] via render_finish in ProgressBar.__exit__ :: self.render_finish()
+
+## batch 2 [method] types.py:92 FuncParamType.convert (function, method) names=convert candidates=3
+types.py:46:24 [attr] via convert in ParamType.__call__ :: return self.convert(value, param, ctx)
+types.py:290:26 [attr] via convert in IntRange.convert :: rv = IntParamType.convert(self, value, param, ctx)
+types.py:364:28 [attr] via convert in FloatRange.convert :: rv = FloatParamType.convert(self, value, param, ctx)
+
+## batch 2 [method] core.py:473 Context.make_formatter (function, method) names=make_formatter candidates=2
+core.py:906:24 [attr] via make_formatter in Command.get_usage :: formatter = ctx.make_formatter()
+core.py:974:24 [attr] via make_formatter in Command.get_help :: formatter = ctx.make_formatter()
+
+## batch 2 [method] core.py:560 Context.get_usage (function, method) names=get_usage candidates=2
+core.py:564:28 [attr] via get_usage in Context.get_usage :: return self.command.get_usage(self)
+exceptions.py:72:42 [attr] via get_usage in UsageError.show :: echo("{}\n{}".format(self.ctx.get_usage(), hint), file=file, color=color)
+
+## batch 2 [class] parser.py:122 Option (class, class) names=Option candidates=2
+   bases: object
+core.py:953:15 [name] via Option in Command.get_help_option :: return Option(
+parser.py:243:17 [name] via Option in OptionParser.add_option :: option = Option(opts, dest, action=action, nargs=nargs, const=const, obj=obj)
+
+## batch 2 [class] exceptions.py:224 FileError (class, class) names=FileError candidates=1
+   bases: ClickException
+utils.py:132:18 [name] via FileError in LazyFile.open :: raise FileError(self.name, hint=get_streerror(e))
+
+## batch 2 [class] _winconsole.py:197 ConsoleStream (class, class) names=ConsoleStream candidates=3
+   bases: object
+_winconsole.py:277:11 [name] via ConsoleStream in _get_text_stdin :: return ConsoleStream(text_stream, buffer_stream)
+_winconsole.py:287:11 [name] via ConsoleStream in _get_text_stdout :: return ConsoleStream(text_stream, buffer_stream)
+_winconsole.py:297:11 [name] via ConsoleStream in _get_text_stderr :: return ConsoleStream(text_stream, buffer_stream)
+
+## batch 2 [class] _winconsole.py:231 WindowsChunkedWriter (class, class) names=WindowsChunkedWriter candidates=1
+   bases: object
+_winconsole.py:266:27 [name] via WindowsChunkedWriter in _wrap_std_stream :: setattr(sys, name, WindowsChunkedWriter(getattr(sys, name)))
+
+## batch 2 [class] _winconsole.py:85 Py_buffer (class, class) names=Py_buffer candidates=1
+   bases: ctypes.Structure
+_winconsole.py:111:14 [name] via Py_buffer in get_buffer :: buf = Py_buffer()
+
+## batch 2 [class] exceptions.py:243 Exit (class, class) names=Exit candidates=1
+   bases: RuntimeError
+core.py:558:14 [name] via Exit in Context.exit :: raise Exit(code)
+
+## batch 2 [class] types.py:406 BoolParamType (class, class) names=BoolParamType candidates=1
+   bases: ParamType
+types.py:759:7 [name] via BoolParamType in <module> :: BOOL = BoolParamType()
+
+## batch 2 [class] types.py:260 IntParamType (class, class) names=IntParamType candidates=1
+   bases: ParamType
+types.py:751:6 [name] via IntParamType in <module> :: INT = IntParamType()
+
+## batch 2 [nested] _termui_impl.py:509 open_url._unquote_file (function, nested) names=_unquote_file candidates=6
+_termui_impl.py:524:20 [name] via _unquote_file in open_url :: args.append(_unquote_file(url))
+_termui_impl.py:532:18 [name] via _unquote_file in open_url :: url = _unquote_file(url)
+_termui_impl.py:533:50 [name] via _unquote_file in open_url :: args = 'explorer /select,"{}"'.format(_unquote_file(url.replace('"', "")))
+_termui_impl.py:541:18 [name] via _unquote_file in open_url :: url = _unquote_file(url)
+_termui_impl.py:549:34 [name] via _unquote_file in open_url :: url = os.path.dirname(_unquote_file(url)) or "."
+_termui_impl.py:551:18 [name] via _unquote_file in open_url :: url = _unquote_file(url)
+
+## batch 2 [nested] core.py:1860 Option.get_help_record._write_opts (function, nested) names=_write_opts candidates=2
+core.py:1868:14 [name] via _write_opts in Option.get_help_record :: rv = [_write_opts(self.opts)]
+core.py:1870:22 [name] via _write_opts in Option.get_help_record :: rv.append(_write_opts(self.secondary_opts))
+
+## batch 2 [overridden] core.py:1996 Argument.make_metavar (function, method) names=make_metavar candidates=3
+core.py:1865:40 [attr] via make_metavar in Option.get_help_record._write_opts :: rv += " {}".format(self.make_metavar())
+core.py:2024:21 [attr] via make_metavar in Argument.get_usage_pieces :: return [self.make_metavar()]
+core.py:2027:25 [attr] via make_metavar in Argument.get_error_hint :: return repr(self.make_metavar())
+
+## batch 2 [overridden] core.py:544 Context.fail (function, method) names=fail candidates=22
+core.py:1051:16 [attr] via fail in Command.parse_args :: ctx.fail(
+core.py:1240:16 [attr] via fail in MultiCommand.invoke :: ctx.fail("Missing command.")
+core.py:1314:16 [attr] via fail in MultiCommand.resolve_command :: ctx.fail("No such command '{}'.".format(original_cmd_name))
+types.py:100:17 [attr] via fail in FuncParamType.convert :: self.fail(value, param, ctx)
+types.py:196:13 [attr] via fail in Choice.convert :: self.fail(
+types.py:250:13 [attr] via fail in DateTime.convert :: self.fail(
+types.py:267:17 [attr] via fail in IntParamType.convert :: self.fail("{} is not a valid integer".format(value), param, ctx)
+types.py:303:21 [attr] via fail in IntRange.convert :: self.fail(
+types.py:311:21 [attr] via fail in IntRange.convert :: self.fail(
+types.py:319:21 [attr] via fail in IntRange.convert :: self.fail(
+types.py:339:17 [attr] via fail in FloatParamType.convert :: self.fail(
+types.py:377:21 [attr] via fail in FloatRange.convert :: self.fail(
+types.py:385:21 [attr] via fail in FloatRange.convert :: self.fail(
+types.py:393:21 [attr] via fail in FloatRange.convert :: self.fail(
+types.py:417:13 [attr] via fail in BoolParamType.convert :: self.fail("{} is not a valid boolean".format(value), param, ctx)
+types.py:434:17 [attr] via fail in UUIDParameterType.convert :: self.fail("{} is not a valid UUID value".format(value), param, ctx)
+types.py:518:17 [attr] via fail in File.convert :: self.fail(
+types.py:612:21 [attr] via fail in Path.convert :: self.fail(
+types.py:621:21 [attr] via fail in Path.convert :: self.fail(
+types.py:627:21 [attr] via fail in Path.convert :: self.fail(
+types.py:635:21 [attr] via fail in Path.convert :: self.fail(
+types.py:643:21 [attr] via fail in Path.convert :: self.fail(
+
+## batch 2 [overridden] types.py:48 ParamType.get_metavar (function, method) names=get_metavar candidates=2
+core.py:1520:28 [attr] via get_metavar in Parameter.make_metavar :: metavar = self.type.get_metavar(self)
+core.py:1999:24 [attr] via get_metavar in Argument.make_metavar :: var = self.type.get_metavar(self)
+
+## batch 2 [overridden] types.py:363 FloatRange.convert (function, method) names=convert candidates=3
+types.py:46:24 [attr] via convert in ParamType.__call__ :: return self.convert(value, param, ctx)
+types.py:290:26 [attr] via convert in IntRange.convert :: rv = IntParamType.convert(self, value, param, ctx)
+types.py:364:28 [attr] via convert in FloatRange.convert :: rv = FloatParamType.convert(self, value, param, ctx)
+
+## batch 2 [overridden] parser.py:260 OptionParser.parse_args (function, method) names=parse_args candidates=4
+core.py:700:17 [attr] via parse_args in BaseCommand.make_context :: self.parse_args(ctx, args)
+core.py:1045:41 [attr] via parse_args in Command.parse_args :: opts, args, param_order = parser.parse_args(args=args)
+core.py:1212:23 [attr] via parse_args in MultiCommand.parse_args :: rest = Command.parse_args(self, ctx, args)
+core.py:1313:21 [attr] via parse_args in MultiCommand.resolve_command :: self.parse_args(ctx, ctx.args)
+
+## batch 2 [overridden] core.py:925 Command.collect_usage_pieces (function, method) names=collect_usage_pieces candidates=2
+core.py:922:22 [attr] via collect_usage_pieces in Command.format_usage :: pieces = self.collect_usage_pieces(ctx)
+core.py:1131:21 [attr] via collect_usage_pieces in MultiCommand.collect_usage_pieces :: rv = Command.collect_usage_pieces(self, ctx)
+
+## batch 2 [zero-candidates] _compat.py:438 get_binary_stderr (function, function) names=get_binary_stderr candidates=0
+
+## batch 2 [zero-candidates] _compat.py:244 get_binary_stderr (function, function) names=get_binary_stderr candidates=0
+
+## batch 2 [zero-candidates] termui.py:294 progressbar (function, function) names=progressbar candidates=0
+
+## batch 2 [init] core.py:1397 CommandCollection.__init__ (function, method) names=CommandCollection,__init__ candidates=15
+   bases: -
+_compat.py:71:25 [attr] via __init__ in _NonClosingTextIOWrapper.__init__ :: io.TextIOWrapper.__init__(self, stream, encoding, errors, **extra)
+core.py:880:20 [attr] via __init__ in Command.__init__ :: BaseCommand.__init__(self, name, context_settings)
+core.py:1106:16 [attr] via __init__ in MultiCommand.__init__ :: Command.__init__(self, name, **attrs)
+core.py:1339:21 [attr] via __init__ in Group.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1398:21 [attr] via __init__ in CommandCollection.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1714:18 [attr] via __init__ in Option.__init__ :: Parameter.__init__(self, param_decls, type=type, **attrs)
+core.py:1984:18 [attr] via __init__ in Argument.__init__ :: Parameter.__init__(self, param_decls, required=required, **attrs)
+exceptions.py:24:18 [attr] via __init__ in ClickException.__init__ :: Exception.__init__(self, ctor_msg)
+exceptions.py:57:23 [attr] via __init__ in UsageError.__init__ :: ClickException.__init__(self, message)
+exceptions.py:95:19 [attr] via __init__ in BadParameter.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:126:21 [attr] via __init__ in MissingParameter.__init__ :: BadParameter.__init__(self, message, ctx, param, param_hint)
+exceptions.py:182:19 [attr] via __init__ in NoSuchOption.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:208:19 [attr] via __init__ in BadOptionUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:221:19 [attr] via __init__ in BadArgumentUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:231:23 [attr] via __init__ in FileError.__init__ :: ClickException.__init__(self, hint)
+
+## batch 2 [init] types.py:358 FloatRange.__init__ (function, method) names=FloatRange,__init__ candidates=15
+   bases: -
+_compat.py:71:25 [attr] via __init__ in _NonClosingTextIOWrapper.__init__ :: io.TextIOWrapper.__init__(self, stream, encoding, errors, **extra)
+core.py:880:20 [attr] via __init__ in Command.__init__ :: BaseCommand.__init__(self, name, context_settings)
+core.py:1106:16 [attr] via __init__ in MultiCommand.__init__ :: Command.__init__(self, name, **attrs)
+core.py:1339:21 [attr] via __init__ in Group.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1398:21 [attr] via __init__ in CommandCollection.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1714:18 [attr] via __init__ in Option.__init__ :: Parameter.__init__(self, param_decls, type=type, **attrs)
+core.py:1984:18 [attr] via __init__ in Argument.__init__ :: Parameter.__init__(self, param_decls, required=required, **attrs)
+exceptions.py:24:18 [attr] via __init__ in ClickException.__init__ :: Exception.__init__(self, ctor_msg)
+exceptions.py:57:23 [attr] via __init__ in UsageError.__init__ :: ClickException.__init__(self, message)
+exceptions.py:95:19 [attr] via __init__ in BadParameter.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:126:21 [attr] via __init__ in MissingParameter.__init__ :: BadParameter.__init__(self, message, ctx, param, param_hint)
+exceptions.py:182:19 [attr] via __init__ in NoSuchOption.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:208:19 [attr] via __init__ in BadOptionUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:221:19 [attr] via __init__ in BadArgumentUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:231:23 [attr] via __init__ in FileError.__init__ :: ClickException.__init__(self, hint)
+
+## batch 2 [init] core.py:245 Context.__init__ (function, method) names=Context,__init__ candidates=17
+   bases: -
+_compat.py:71:25 [attr] via __init__ in _NonClosingTextIOWrapper.__init__ :: io.TextIOWrapper.__init__(self, stream, encoding, errors, **extra)
+core.py:597:18 [name] via Context in Context.invoke :: ctx = Context(other_cmd, info_name=other_cmd.name, parent=self)
+core.py:698:14 [name] via Context in BaseCommand.make_context :: ctx = Context(self, info_name=info_name, parent=parent, **extra)
+core.py:880:20 [attr] via __init__ in Command.__init__ :: BaseCommand.__init__(self, name, context_settings)
+core.py:1106:16 [attr] via __init__ in MultiCommand.__init__ :: Command.__init__(self, name, **attrs)
+core.py:1339:21 [attr] via __init__ in Group.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1398:21 [attr] via __init__ in CommandCollection.__init__ :: MultiCommand.__init__(self, name, **attrs)
+core.py:1714:18 [attr] via __init__ in Option.__init__ :: Parameter.__init__(self, param_decls, type=type, **attrs)
+core.py:1984:18 [attr] via __init__ in Argument.__init__ :: Parameter.__init__(self, param_decls, required=required, **attrs)
+exceptions.py:24:18 [attr] via __init__ in ClickException.__init__ :: Exception.__init__(self, ctor_msg)
+exceptions.py:57:23 [attr] via __init__ in UsageError.__init__ :: ClickException.__init__(self, message)
+exceptions.py:95:19 [attr] via __init__ in BadParameter.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:126:21 [attr] via __init__ in MissingParameter.__init__ :: BadParameter.__init__(self, message, ctx, param, param_hint)
+exceptions.py:182:19 [attr] via __init__ in NoSuchOption.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:208:19 [attr] via __init__ in BadOptionUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:221:19 [attr] via __init__ in BadArgumentUsage.__init__ :: UsageError.__init__(self, message, ctx)
+exceptions.py:231:23 [attr] via __init__ in FileError.__init__ :: ClickException.__init__(self, hint)

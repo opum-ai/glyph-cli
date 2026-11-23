@@ -1,0 +1,7 @@
+{
+ "_note": "Absolute first-party imports under a src layout; written before the run. keys: 'file:defline qualname' relative to fixtures-abs/src. Used to test the out-of-repository analysis-root layout (ADR 0008 section 5).",
+ "app/b.py:1 helper": {"true": ["app/a.py:7", "app/a.py:8"]},
+ "app/b.py:5 Box": {"true": ["app/a.py:6"]},
+ "app/b.py:6 Box.__init__": {"true": ["app/a.py:6"]},
+ "app/b.py:9 Box.get": {"true": ["app/a.py:7"]}
+}

@@ -1,0 +1,7765 @@
+[
+ {
+  "file": "_compat.py",
+  "name": "get_text_stdin",
+  "qualname": "get_text_stdin",
+  "kind": "function",
+  "category": "function",
+  "line": 248,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 525,
+    "col": 15,
+    "name": "get_text_stdin",
+    "form": "name",
+    "call_start_line": 525,
+    "callee": "get_text_stdin",
+    "in": "open_stream",
+    "via": "get_text_stdin"
+   }
+  ],
+  "candidate_names": [
+   "get_text_stdin"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "_is_jupyter_kernel_output",
+  "qualname": "_is_jupyter_kernel_output",
+  "kind": "function",
+  "category": "function",
+  "line": 640,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 656,
+    "col": 42,
+    "name": "_is_jupyter_kernel_output",
+    "form": "name",
+    "call_start_line": 656,
+    "callee": "_is_jupyter_kernel_output",
+    "in": "should_strip_ansi",
+    "via": "_is_jupyter_kernel_output"
+   }
+  ],
+  "candidate_names": [
+   "_is_jupyter_kernel_output"
+  ]
+ },
+ {
+  "file": "termui.py",
+  "name": "prompt",
+  "qualname": "prompt",
+  "kind": "function",
+  "category": "function",
+  "line": 75,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1933,
+    "col": 15,
+    "name": "prompt",
+    "form": "name",
+    "call_start_line": 1933,
+    "callee": "prompt",
+    "in": "Option.prompt_for_value",
+    "via": "prompt"
+   }
+  ],
+  "candidate_names": [
+   "prompt"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "term_len",
+  "qualname": "term_len",
+  "kind": "function",
+  "category": "function",
+  "line": 738,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_termui_impl.py",
+    "line": 240,
+    "col": 29,
+    "name": "term_len",
+    "form": "name",
+    "call_start_line": 240,
+    "callee": "term_len",
+    "in": "ProgressBar.render_progress",
+    "via": "term_len"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 254,
+    "col": 19,
+    "name": "term_len",
+    "form": "name",
+    "call_start_line": 254,
+    "callee": "term_len",
+    "in": "ProgressBar.render_progress",
+    "via": "term_len"
+   },
+   {
+    "file": "formatting.py",
+    "line": 15,
+    "col": 50,
+    "name": "term_len",
+    "form": "name",
+    "call_start_line": 15,
+    "callee": "term_len",
+    "in": "measure_table",
+    "via": "term_len"
+   },
+   {
+    "file": "formatting.py",
+    "line": 77,
+    "col": 27,
+    "name": "term_len",
+    "form": "name",
+    "call_start_line": 77,
+    "callee": "term_len",
+    "in": "wrap_text",
+    "via": "term_len"
+   },
+   {
+    "file": "formatting.py",
+    "line": 79,
+    "col": 36,
+    "name": "term_len",
+    "form": "name",
+    "call_start_line": 79,
+    "callee": "term_len",
+    "in": "wrap_text",
+    "via": "term_len"
+   },
+   {
+    "file": "formatting.py",
+    "line": 140,
+    "col": 26,
+    "name": "term_len",
+    "form": "name",
+    "call_start_line": 140,
+    "callee": "term_len",
+    "in": "HelpFormatter.write_usage",
+    "via": "term_len"
+   },
+   {
+    "file": "formatting.py",
+    "line": 142,
+    "col": 27,
+    "name": "term_len",
+    "form": "name",
+    "call_start_line": 142,
+    "callee": "term_len",
+    "in": "HelpFormatter.write_usage",
+    "via": "term_len"
+   },
+   {
+    "file": "formatting.py",
+    "line": 155,
+    "col": 53,
+    "name": "term_len",
+    "form": "name",
+    "call_start_line": 155,
+    "callee": "term_len",
+    "in": "HelpFormatter.write_usage",
+    "via": "term_len"
+   },
+   {
+    "file": "formatting.py",
+    "line": 211,
+    "col": 15,
+    "name": "term_len",
+    "form": "name",
+    "call_start_line": 211,
+    "callee": "term_len",
+    "in": "HelpFormatter.write_dl",
+    "via": "term_len"
+   },
+   {
+    "file": "formatting.py",
+    "line": 212,
+    "col": 46,
+    "name": "term_len",
+    "form": "name",
+    "call_start_line": 212,
+    "callee": "term_len",
+    "in": "HelpFormatter.write_dl",
+    "via": "term_len"
+   }
+  ],
+  "candidate_names": [
+   "term_len"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "is_ascii_encoding",
+  "qualname": "is_ascii_encoding",
+  "kind": "function",
+  "category": "function",
+  "line": 44,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 55,
+    "col": 7,
+    "name": "is_ascii_encoding",
+    "form": "name",
+    "call_start_line": 55,
+    "callee": "is_ascii_encoding",
+    "in": "get_best_encoding",
+    "via": "is_ascii_encoding"
+   },
+   {
+    "file": "_compat.py",
+    "line": 344,
+    "col": 15,
+    "name": "is_ascii_encoding",
+    "form": "name",
+    "call_start_line": 344,
+    "callee": "is_ascii_encoding",
+    "in": "_stream_is_misconfigured",
+    "via": "is_ascii_encoding"
+   }
+  ],
+  "candidate_names": [
+   "is_ascii_encoding"
+  ]
+ },
+ {
+  "file": "utils.py",
+  "name": "echo",
+  "qualname": "echo",
+  "kind": "function",
+  "category": "function",
+  "line": 179,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_bashcomplete.py",
+    "line": 335,
+    "col": 8,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 335,
+    "callee": "echo",
+    "in": "do_complete",
+    "via": "echo"
+   },
+   {
+    "file": "_bashcomplete.py",
+    "line": 340,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 340,
+    "callee": "echo",
+    "in": "do_complete",
+    "via": "echo"
+   },
+   {
+    "file": "_bashcomplete.py",
+    "line": 352,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 352,
+    "callee": "echo",
+    "in": "do_complete_fish",
+    "via": "echo"
+   },
+   {
+    "file": "_bashcomplete.py",
+    "line": 354,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 354,
+    "callee": "echo",
+    "in": "do_complete_fish",
+    "via": "echo"
+   },
+   {
+    "file": "_bashcomplete.py",
+    "line": 367,
+    "col": 8,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 367,
+    "callee": "echo",
+    "in": "bashcomplete",
+    "via": "echo"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 265,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 265,
+    "callee": "echo",
+    "in": "ProgressBar.render_progress",
+    "via": "echo"
+   },
+   {
+    "file": "core.py",
+    "line": 50,
+    "col": 8,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 50,
+    "callee": "echo",
+    "in": "_maybe_show_deprecated_notice",
+    "via": "echo"
+   },
+   {
+    "file": "core.py",
+    "line": 794,
+    "col": 16,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 794,
+    "callee": "echo",
+    "in": "BaseCommand.main",
+    "via": "echo"
+   },
+   {
+    "file": "core.py",
+    "line": 824,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 824,
+    "callee": "echo",
+    "in": "BaseCommand.main",
+    "via": "echo"
+   },
+   {
+    "file": "core.py",
+    "line": 950,
+    "col": 16,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 950,
+    "callee": "echo",
+    "in": "Command.get_help_option.show_help",
+    "via": "echo"
+   },
+   {
+    "file": "core.py",
+    "line": 1041,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 1041,
+    "callee": "echo",
+    "in": "Command.parse_args",
+    "via": "echo"
+   },
+   {
+    "file": "core.py",
+    "line": 1209,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 1209,
+    "callee": "echo",
+    "in": "MultiCommand.parse_args",
+    "via": "echo"
+   },
+   {
+    "file": "decorators.py",
+    "line": 296,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 296,
+    "callee": "echo",
+    "in": "version_option.decorator.callback",
+    "via": "echo"
+   },
+   {
+    "file": "decorators.py",
+    "line": 323,
+    "col": 16,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 323,
+    "callee": "echo",
+    "in": "help_option.decorator.callback",
+    "via": "echo"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 42,
+    "col": 8,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 42,
+    "callee": "echo",
+    "in": "ClickException.show",
+    "via": "echo"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 72,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 72,
+    "callee": "echo",
+    "in": "UsageError.show",
+    "via": "echo"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 73,
+    "col": 8,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 73,
+    "callee": "echo",
+    "in": "UsageError.show",
+    "via": "echo"
+   },
+   {
+    "file": "termui.py",
+    "line": 128,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 128,
+    "callee": "echo",
+    "in": "prompt.prompt_func",
+    "via": "echo"
+   },
+   {
+    "file": "termui.py",
+    "line": 135,
+    "col": 16,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 135,
+    "callee": "echo",
+    "in": "prompt.prompt_func",
+    "via": "echo"
+   },
+   {
+    "file": "termui.py",
+    "line": 159,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 159,
+    "callee": "echo",
+    "in": "prompt",
+    "via": "echo"
+   },
+   {
+    "file": "termui.py",
+    "line": 169,
+    "col": 8,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 169,
+    "callee": "echo",
+    "in": "prompt",
+    "via": "echo"
+   },
+   {
+    "file": "termui.py",
+    "line": 199,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 199,
+    "callee": "echo",
+    "in": "confirm",
+    "via": "echo"
+   },
+   {
+    "file": "termui.py",
+    "line": 210,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 210,
+    "callee": "echo",
+    "in": "confirm",
+    "via": "echo"
+   },
+   {
+    "file": "termui.py",
+    "line": 548,
+    "col": 11,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 548,
+    "callee": "echo",
+    "in": "secho",
+    "via": "echo"
+   },
+   {
+    "file": "termui.py",
+    "line": 674,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 674,
+    "callee": "echo",
+    "in": "pause",
+    "via": "echo"
+   },
+   {
+    "file": "termui.py",
+    "line": 681,
+    "col": 12,
+    "name": "echo",
+    "form": "name",
+    "call_start_line": 681,
+    "callee": "echo",
+    "in": "pause",
+    "via": "echo"
+   }
+  ],
+  "candidate_names": [
+   "echo"
+  ]
+ },
+ {
+  "file": "_bashcomplete.py",
+  "name": "is_incomplete_option",
+  "qualname": "is_incomplete_option",
+  "kind": "function",
+  "category": "function",
+  "line": 160,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_bashcomplete.py",
+    "line": 313,
+    "col": 11,
+    "name": "is_incomplete_option",
+    "form": "name",
+    "call_start_line": 313,
+    "callee": "is_incomplete_option",
+    "in": "get_choices",
+    "via": "is_incomplete_option"
+   }
+  ],
+  "candidate_names": [
+   "is_incomplete_option"
+  ]
+ },
+ {
+  "file": "globals.py",
+  "name": "pop_context",
+  "qualname": "pop_context",
+  "kind": "function",
+  "category": "function",
+  "line": 33,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 405,
+    "col": 8,
+    "name": "pop_context",
+    "form": "name",
+    "call_start_line": 405,
+    "callee": "pop_context",
+    "in": "Context.__exit__",
+    "via": "pop_context"
+   }
+  ],
+  "candidate_names": [
+   "pop_context"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "invoke_param_callback",
+  "qualname": "invoke_param_callback",
+  "kind": "function",
+  "category": "function",
+  "line": 108,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1630,
+    "col": 28,
+    "name": "invoke_param_callback",
+    "form": "name",
+    "call_start_line": 1630,
+    "callee": "invoke_param_callback",
+    "in": "Parameter.handle_parse_result",
+    "via": "invoke_param_callback"
+   }
+  ],
+  "candidate_names": [
+   "invoke_param_callback"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "should_strip_ansi",
+  "qualname": "should_strip_ansi",
+  "kind": "function",
+  "category": "function",
+  "line": 652,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 703,
+    "col": 20,
+    "name": "should_strip_ansi",
+    "form": "name",
+    "call_start_line": 703,
+    "callee": "should_strip_ansi",
+    "in": "auto_wrap_for_ansi",
+    "via": "should_strip_ansi"
+   },
+   {
+    "file": "utils.py",
+    "line": 263,
+    "col": 11,
+    "name": "should_strip_ansi",
+    "form": "name",
+    "call_start_line": 263,
+    "callee": "should_strip_ansi",
+    "in": "echo",
+    "via": "should_strip_ansi"
+   }
+  ],
+  "candidate_names": [
+   "should_strip_ansi"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "format_message",
+  "qualname": "MissingParameter.format_message",
+  "kind": "function",
+  "category": "method",
+  "line": 129,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "exceptions.py",
+    "line": 42,
+    "col": 37,
+    "name": "format_message",
+    "form": "attr",
+    "call_start_line": 42,
+    "callee": "self.format_message",
+    "in": "ClickException.show",
+    "via": "format_message"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 73,
+    "col": 37,
+    "name": "format_message",
+    "form": "attr",
+    "call_start_line": 73,
+    "callee": "self.format_message",
+    "in": "UsageError.show",
+    "via": "format_message"
+   }
+  ],
+  "candidate_names": [
+   "format_message"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "list_commands",
+  "qualname": "CommandCollection.list_commands",
+  "kind": "function",
+  "category": "method",
+  "line": 1414,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_bashcomplete.py",
+    "line": 240,
+    "col": 25,
+    "name": "list_commands",
+    "form": "attr",
+    "call_start_line": 240,
+    "callee": "ctx.command.list_commands",
+    "in": "get_visible_commands_starting_with",
+    "via": "list_commands"
+   },
+   {
+    "file": "core.py",
+    "line": 1184,
+    "col": 31,
+    "name": "list_commands",
+    "form": "attr",
+    "call_start_line": 1184,
+    "callee": "self.list_commands",
+    "in": "MultiCommand.format_commands",
+    "via": "list_commands"
+   },
+   {
+    "file": "core.py",
+    "line": 1417,
+    "col": 29,
+    "name": "list_commands",
+    "form": "attr",
+    "call_start_line": 1417,
+    "callee": "source.list_commands",
+    "in": "CommandCollection.list_commands",
+    "via": "list_commands"
+   }
+  ],
+  "candidate_names": [
+   "list_commands"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "get_help",
+  "qualname": "Context.get_help",
+  "kind": "function",
+  "category": "method",
+  "line": 566,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 570,
+    "col": 28,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 570,
+    "callee": "self.command.get_help",
+    "in": "Context.get_help",
+    "via": "get_help"
+   },
+   {
+    "file": "core.py",
+    "line": 950,
+    "col": 25,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 950,
+    "callee": "ctx.get_help",
+    "in": "Command.get_help_option.show_help",
+    "via": "get_help"
+   },
+   {
+    "file": "core.py",
+    "line": 1041,
+    "col": 21,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 1041,
+    "callee": "ctx.get_help",
+    "in": "Command.parse_args",
+    "via": "get_help"
+   },
+   {
+    "file": "core.py",
+    "line": 1209,
+    "col": 21,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 1209,
+    "callee": "ctx.get_help",
+    "in": "MultiCommand.parse_args",
+    "via": "get_help"
+   },
+   {
+    "file": "decorators.py",
+    "line": 323,
+    "col": 25,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 323,
+    "callee": "ctx.get_help",
+    "in": "help_option.decorator.callback",
+    "via": "get_help"
+   }
+  ],
+  "candidate_names": [
+   "get_help"
+  ]
+ },
+ {
+  "file": "_textwrap.py",
+  "name": "extra_indent",
+  "qualname": "TextWrapper.extra_indent",
+  "kind": "function",
+  "category": "method",
+  "line": 19,
+  "decorators": [
+   "contextmanager"
+  ],
+  "bases": [],
+  "stratum": "method",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "formatting.py",
+    "line": 85,
+    "col": 21,
+    "name": "extra_indent",
+    "form": "attr",
+    "call_start_line": 85,
+    "callee": "wrapper.extra_indent",
+    "in": "wrap_text",
+    "via": "extra_indent"
+   }
+  ],
+  "candidate_names": [
+   "extra_indent"
+  ]
+ },
+ {
+  "file": "parser.py",
+  "name": "process",
+  "qualname": "Option.process",
+  "kind": "function",
+  "category": "method",
+  "line": 152,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "parser.py",
+    "line": 282,
+    "col": 16,
+    "name": "process",
+    "form": "attr",
+    "call_start_line": 282,
+    "callee": "arg.process",
+    "in": "OptionParser._process_args_for_args",
+    "via": "process"
+   },
+   {
+    "file": "parser.py",
+    "line": 352,
+    "col": 15,
+    "name": "process",
+    "form": "attr",
+    "call_start_line": 352,
+    "callee": "option.process",
+    "in": "OptionParser._match_long_opt",
+    "via": "process"
+   },
+   {
+    "file": "parser.py",
+    "line": 389,
+    "col": 19,
+    "name": "process",
+    "form": "attr",
+    "call_start_line": 389,
+    "callee": "option.process",
+    "in": "OptionParser._match_short_opt",
+    "via": "process"
+   }
+  ],
+  "candidate_names": [
+   "process"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "BoolParamType.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 409,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "types.py",
+    "line": 46,
+    "col": 24,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 46,
+    "callee": "self.convert",
+    "in": "ParamType.__call__",
+    "via": "convert"
+   },
+   {
+    "file": "types.py",
+    "line": 290,
+    "col": 26,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 290,
+    "callee": "IntParamType.convert",
+    "in": "IntRange.convert",
+    "via": "convert"
+   },
+   {
+    "file": "types.py",
+    "line": 364,
+    "col": 28,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 364,
+    "callee": "FloatParamType.convert",
+    "in": "FloatRange.convert",
+    "via": "convert"
+   }
+  ],
+  "candidate_names": [
+   "convert"
+  ]
+ },
+ {
+  "file": "parser.py",
+  "name": "_process_args_for_args",
+  "qualname": "OptionParser._process_args_for_args",
+  "kind": "function",
+  "category": "method",
+  "line": 276,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "parser.py",
+    "line": 270,
+    "col": 17,
+    "name": "_process_args_for_args",
+    "form": "attr",
+    "call_start_line": 270,
+    "callee": "self._process_args_for_args",
+    "in": "OptionParser.parse_args",
+    "via": "_process_args_for_args"
+   }
+  ],
+  "candidate_names": [
+   "_process_args_for_args"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "get_missing_message",
+  "qualname": "ParamType.get_missing_message",
+  "kind": "function",
+  "category": "method",
+  "line": 51,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "exceptions.py",
+    "line": 144,
+    "col": 40,
+    "name": "get_missing_message",
+    "form": "attr",
+    "call_start_line": 144,
+    "callee": "self.param.type.get_missing_message",
+    "in": "MissingParameter.format_message",
+    "via": "get_missing_message"
+   }
+  ],
+  "candidate_names": [
+   "get_missing_message"
+  ]
+ },
+ {
+  "file": "parser.py",
+  "name": "process",
+  "qualname": "Argument.process",
+  "kind": "function",
+  "category": "method",
+  "line": 174,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "parser.py",
+    "line": 282,
+    "col": 16,
+    "name": "process",
+    "form": "attr",
+    "call_start_line": 282,
+    "callee": "arg.process",
+    "in": "OptionParser._process_args_for_args",
+    "via": "process"
+   },
+   {
+    "file": "parser.py",
+    "line": 352,
+    "col": 15,
+    "name": "process",
+    "form": "attr",
+    "call_start_line": 352,
+    "callee": "option.process",
+    "in": "OptionParser._match_long_opt",
+    "via": "process"
+   },
+   {
+    "file": "parser.py",
+    "line": 389,
+    "col": 19,
+    "name": "process",
+    "form": "attr",
+    "call_start_line": 389,
+    "callee": "option.process",
+    "in": "OptionParser._match_short_opt",
+    "via": "process"
+   }
+  ],
+  "candidate_names": [
+   "process"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "show",
+  "qualname": "ClickException.show",
+  "kind": "function",
+  "category": "method",
+  "line": 39,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 799,
+    "col": 18,
+    "name": "show",
+    "form": "attr",
+    "call_start_line": 799,
+    "callee": "e.show",
+    "in": "BaseCommand.main",
+    "via": "show"
+   }
+  ],
+  "candidate_names": [
+   "show"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "finish",
+  "qualname": "ProgressBar.finish",
+  "kind": "function",
+  "category": "method",
+  "line": 294,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_termui_impl.py",
+    "line": 322,
+    "col": 17,
+    "name": "finish",
+    "form": "attr",
+    "call_start_line": 322,
+    "callee": "self.finish",
+    "in": "ProgressBar.generator",
+    "via": "finish"
+   }
+  ],
+  "candidate_names": [
+   "finish"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "isatty",
+  "qualname": "_NonClosingTextIOWrapper.isatty",
+  "kind": "function",
+  "category": "method",
+  "line": 97,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 99,
+    "col": 28,
+    "name": "isatty",
+    "form": "attr",
+    "call_start_line": 99,
+    "callee": "self._stream.isatty",
+    "in": "_NonClosingTextIOWrapper.isatty",
+    "via": "isatty"
+   },
+   {
+    "file": "_compat.py",
+    "line": 656,
+    "col": 19,
+    "name": "isatty",
+    "form": "name",
+    "call_start_line": 656,
+    "callee": "isatty",
+    "in": "should_strip_ansi",
+    "via": "isatty"
+   },
+   {
+    "file": "_compat.py",
+    "line": 744,
+    "col": 22,
+    "name": "isatty",
+    "form": "attr",
+    "call_start_line": 744,
+    "callee": "stream.isatty",
+    "in": "isatty",
+    "via": "isatty"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 103,
+    "col": 29,
+    "name": "isatty",
+    "form": "name",
+    "call_start_line": 103,
+    "callee": "isatty",
+    "in": "ProgressBar.__init__",
+    "via": "isatty"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 329,
+    "col": 11,
+    "name": "isatty",
+    "form": "name",
+    "call_start_line": 329,
+    "callee": "isatty",
+    "in": "pager",
+    "via": "isatty"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 329,
+    "col": 36,
+    "name": "isatty",
+    "form": "name",
+    "call_start_line": 329,
+    "callee": "isatty",
+    "in": "pager",
+    "via": "isatty"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 631,
+    "col": 15,
+    "name": "isatty",
+    "form": "name",
+    "call_start_line": 631,
+    "callee": "isatty",
+    "in": "raw_terminal",
+    "via": "isatty"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 654,
+    "col": 24,
+    "name": "isatty",
+    "form": "name",
+    "call_start_line": 654,
+    "callee": "isatty",
+    "in": "getchar",
+    "via": "isatty"
+   },
+   {
+    "file": "_winconsole.py",
+    "line": 126,
+    "col": 21,
+    "name": "isatty",
+    "form": "attr",
+    "call_start_line": 126,
+    "callee": "io.RawIOBase.isatty",
+    "in": "_WindowsConsoleRawIOBase.isatty",
+    "via": "isatty"
+   },
+   {
+    "file": "_winconsole.py",
+    "line": 223,
+    "col": 27,
+    "name": "isatty",
+    "form": "attr",
+    "call_start_line": 223,
+    "callee": "self.buffer.isatty",
+    "in": "ConsoleStream.isatty",
+    "via": "isatty"
+   },
+   {
+    "file": "termui.py",
+    "line": 422,
+    "col": 11,
+    "name": "isatty",
+    "form": "name",
+    "call_start_line": 422,
+    "callee": "isatty",
+    "in": "clear",
+    "via": "isatty"
+   },
+   {
+    "file": "termui.py",
+    "line": 670,
+    "col": 11,
+    "name": "isatty",
+    "form": "name",
+    "call_start_line": 670,
+    "callee": "isatty",
+    "in": "pause",
+    "via": "isatty"
+   },
+   {
+    "file": "termui.py",
+    "line": 670,
+    "col": 36,
+    "name": "isatty",
+    "form": "name",
+    "call_start_line": 670,
+    "callee": "isatty",
+    "in": "pause",
+    "via": "isatty"
+   }
+  ],
+  "candidate_names": [
+   "isatty"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_get_error_message",
+  "qualname": "_WindowsConsoleWriter._get_error_message",
+  "kind": "function",
+  "category": "staticmethod",
+  "line": 170,
+  "decorators": [
+   "staticmethod"
+  ],
+  "bases": [],
+  "stratum": "staticmethod",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_winconsole.py",
+    "line": 193,
+    "col": 31,
+    "name": "_get_error_message",
+    "form": "attr",
+    "call_start_line": 193,
+    "callee": "self._get_error_message",
+    "in": "_WindowsConsoleWriter.write",
+    "via": "_get_error_message"
+   }
+  ],
+  "candidate_names": [
+   "_get_error_message"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "_FixupStream",
+  "qualname": "_FixupStream",
+  "kind": "class",
+  "category": "class",
+  "line": 102,
+  "decorators": [],
+  "bases": [
+   "object"
+  ],
+  "stratum": "class",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 70,
+    "col": 32,
+    "name": "_FixupStream",
+    "form": "name",
+    "call_start_line": 70,
+    "callee": "_FixupStream",
+    "in": "_NonClosingTextIOWrapper.__init__",
+    "via": "_FixupStream"
+   }
+  ],
+  "candidate_names": [
+   "_FixupStream"
+  ]
+ },
+ {
+  "file": "testing.py",
+  "name": "EchoingStdin",
+  "qualname": "EchoingStdin",
+  "kind": "class",
+  "category": "class",
+  "line": 23,
+  "decorators": [],
+  "bases": [
+   "object"
+  ],
+  "stratum": "class",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "testing.py",
+    "line": 190,
+    "col": 24,
+    "name": "EchoingStdin",
+    "form": "name",
+    "call_start_line": 190,
+    "callee": "EchoingStdin",
+    "in": "CliRunner.isolation",
+    "via": "EchoingStdin"
+   },
+   {
+    "file": "testing.py",
+    "line": 198,
+    "col": 24,
+    "name": "EchoingStdin",
+    "form": "name",
+    "call_start_line": 198,
+    "callee": "EchoingStdin",
+    "in": "CliRunner.isolation",
+    "via": "EchoingStdin"
+   }
+  ],
+  "candidate_names": [
+   "EchoingStdin"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_WindowsConsoleReader",
+  "qualname": "_WindowsConsoleReader",
+  "kind": "class",
+  "category": "class",
+  "line": 130,
+  "decorators": [],
+  "bases": [
+   "_WindowsConsoleRawIOBase"
+  ],
+  "stratum": "class",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_winconsole.py",
+    "line": 272,
+    "col": 26,
+    "name": "_WindowsConsoleReader",
+    "form": "name",
+    "call_start_line": 272,
+    "callee": "_WindowsConsoleReader",
+    "in": "_get_text_stdin",
+    "via": "_WindowsConsoleReader"
+   }
+  ],
+  "candidate_names": [
+   "_WindowsConsoleReader"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "StringParamType",
+  "qualname": "StringParamType",
+  "kind": "class",
+  "category": "class",
+  "line": 113,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ],
+  "stratum": "class",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "types.py",
+    "line": 747,
+    "col": 9,
+    "name": "StringParamType",
+    "form": "name",
+    "call_start_line": 747,
+    "callee": "StringParamType",
+    "in": "",
+    "via": "StringParamType"
+   }
+  ],
+  "candidate_names": [
+   "StringParamType"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "NoSuchOption",
+  "qualname": "NoSuchOption",
+  "kind": "class",
+  "category": "class",
+  "line": 172,
+  "decorators": [],
+  "bases": [
+   "UsageError"
+  ],
+  "stratum": "class",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "parser.py",
+    "line": 326,
+    "col": 18,
+    "name": "NoSuchOption",
+    "form": "name",
+    "call_start_line": 326,
+    "callee": "NoSuchOption",
+    "in": "OptionParser._match_long_opt",
+    "via": "NoSuchOption"
+   },
+   {
+    "file": "parser.py",
+    "line": 369,
+    "col": 22,
+    "name": "NoSuchOption",
+    "form": "name",
+    "call_start_line": 369,
+    "callee": "NoSuchOption",
+    "in": "OptionParser._match_short_opt",
+    "via": "NoSuchOption"
+   }
+  ],
+  "candidate_names": [
+   "NoSuchOption"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "_AtomicFile",
+  "qualname": "_AtomicFile",
+  "kind": "class",
+  "category": "class",
+  "line": 595,
+  "decorators": [],
+  "bases": [
+   "object"
+  ],
+  "stratum": "class",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 583,
+    "col": 11,
+    "name": "_AtomicFile",
+    "form": "name",
+    "call_start_line": 583,
+    "callee": "_AtomicFile",
+    "in": "open_stream",
+    "via": "_AtomicFile"
+   }
+  ],
+  "candidate_names": [
+   "_AtomicFile"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "_NonClosingTextIOWrapper",
+  "qualname": "_NonClosingTextIOWrapper",
+  "kind": "class",
+  "category": "class",
+  "line": 60,
+  "decorators": [],
+  "bases": [
+   "io.TextIOWrapper"
+  ],
+  "stratum": "class",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 34,
+    "col": 11,
+    "name": "_NonClosingTextIOWrapper",
+    "form": "name",
+    "call_start_line": 34,
+    "callee": "_NonClosingTextIOWrapper",
+    "in": "_make_text_stream",
+    "via": "_NonClosingTextIOWrapper"
+   },
+   {
+    "file": "_winconsole.py",
+    "line": 271,
+    "col": 18,
+    "name": "_NonClosingTextIOWrapper",
+    "form": "name",
+    "call_start_line": 271,
+    "callee": "_NonClosingTextIOWrapper",
+    "in": "_get_text_stdin",
+    "via": "_NonClosingTextIOWrapper"
+   },
+   {
+    "file": "_winconsole.py",
+    "line": 281,
+    "col": 18,
+    "name": "_NonClosingTextIOWrapper",
+    "form": "name",
+    "call_start_line": 281,
+    "callee": "_NonClosingTextIOWrapper",
+    "in": "_get_text_stdout",
+    "via": "_NonClosingTextIOWrapper"
+   },
+   {
+    "file": "_winconsole.py",
+    "line": 291,
+    "col": 18,
+    "name": "_NonClosingTextIOWrapper",
+    "form": "name",
+    "call_start_line": 291,
+    "callee": "_NonClosingTextIOWrapper",
+    "in": "_get_text_stderr",
+    "via": "_NonClosingTextIOWrapper"
+   }
+  ],
+  "candidate_names": [
+   "_NonClosingTextIOWrapper"
+  ]
+ },
+ {
+  "file": "parser.py",
+  "name": "Argument",
+  "qualname": "Argument",
+  "kind": "class",
+  "category": "class",
+  "line": 168,
+  "decorators": [],
+  "bases": [
+   "object"
+  ],
+  "stratum": "class",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "parser.py",
+    "line": 258,
+    "col": 26,
+    "name": "Argument",
+    "form": "name",
+    "call_start_line": 258,
+    "callee": "Argument",
+    "in": "OptionParser.add_argument",
+    "via": "Argument"
+   }
+  ],
+  "candidate_names": [
+   "Argument"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "_convert",
+  "qualname": "Parameter.type_cast_value._convert",
+  "kind": "function",
+  "category": "nested",
+  "line": 1563,
+  "decorators": [],
+  "bases": [],
+  "stratum": "nested",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1566,
+    "col": 25,
+    "name": "_convert",
+    "form": "name",
+    "call_start_line": 1566,
+    "callee": "_convert",
+    "in": "Parameter.type_cast_value._convert",
+    "via": "_convert"
+   },
+   {
+    "file": "core.py",
+    "line": 1568,
+    "col": 15,
+    "name": "_convert",
+    "form": "name",
+    "call_start_line": 1568,
+    "callee": "_convert",
+    "in": "Parameter.type_cast_value",
+    "via": "_convert"
+   }
+  ],
+  "candidate_names": [
+   "_convert"
+  ]
+ },
+ {
+  "file": "formatting.py",
+  "name": "_flush_par",
+  "qualname": "wrap_text._flush_par",
+  "kind": "function",
+  "category": "nested",
+  "line": 62,
+  "decorators": [],
+  "bases": [],
+  "stratum": "nested",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "formatting.py",
+    "line": 73,
+    "col": 12,
+    "name": "_flush_par",
+    "form": "name",
+    "call_start_line": 73,
+    "callee": "_flush_par",
+    "in": "wrap_text",
+    "via": "_flush_par"
+   },
+   {
+    "file": "formatting.py",
+    "line": 81,
+    "col": 4,
+    "name": "_flush_par",
+    "form": "name",
+    "call_start_line": 81,
+    "callee": "_flush_par",
+    "in": "wrap_text",
+    "via": "_flush_par"
+   }
+  ],
+  "candidate_names": [
+   "_flush_par"
+  ]
+ },
+ {
+  "file": "testing.py",
+  "name": "invoke",
+  "qualname": "CliRunner.invoke",
+  "kind": "function",
+  "category": "method",
+  "line": 275,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 628,
+    "col": 20,
+    "name": "invoke",
+    "form": "attr",
+    "call_start_line": 628,
+    "callee": "self.invoke",
+    "in": "Context.forward",
+    "via": "invoke"
+   },
+   {
+    "file": "core.py",
+    "line": 782,
+    "col": 30,
+    "name": "invoke",
+    "form": "attr",
+    "call_start_line": 782,
+    "callee": "self.invoke",
+    "in": "BaseCommand.main",
+    "via": "invoke"
+   },
+   {
+    "file": "core.py",
+    "line": 1066,
+    "col": 23,
+    "name": "invoke",
+    "form": "attr",
+    "call_start_line": 1066,
+    "callee": "ctx.invoke",
+    "in": "Command.invoke",
+    "via": "invoke"
+   },
+   {
+    "file": "core.py",
+    "line": 1224,
+    "col": 28,
+    "name": "invoke",
+    "form": "attr",
+    "call_start_line": 1224,
+    "callee": "ctx.invoke",
+    "in": "MultiCommand.invoke._process_result",
+    "via": "invoke"
+   },
+   {
+    "file": "core.py",
+    "line": 1236,
+    "col": 35,
+    "name": "invoke",
+    "form": "attr",
+    "call_start_line": 1236,
+    "callee": "Command.invoke",
+    "in": "MultiCommand.invoke",
+    "via": "invoke"
+   },
+   {
+    "file": "core.py",
+    "line": 1238,
+    "col": 28,
+    "name": "invoke",
+    "form": "attr",
+    "call_start_line": 1238,
+    "callee": "Command.invoke",
+    "in": "MultiCommand.invoke",
+    "via": "invoke"
+   },
+   {
+    "file": "core.py",
+    "line": 1256,
+    "col": 24,
+    "name": "invoke",
+    "form": "attr",
+    "call_start_line": 1256,
+    "callee": "Command.invoke",
+    "in": "MultiCommand.invoke",
+    "via": "invoke"
+   },
+   {
+    "file": "core.py",
+    "line": 1259,
+    "col": 59,
+    "name": "invoke",
+    "form": "attr",
+    "call_start_line": 1259,
+    "callee": "sub_ctx.command.invoke",
+    "in": "MultiCommand.invoke",
+    "via": "invoke"
+   },
+   {
+    "file": "core.py",
+    "line": 1268,
+    "col": 20,
+    "name": "invoke",
+    "form": "attr",
+    "call_start_line": 1268,
+    "callee": "Command.invoke",
+    "in": "MultiCommand.invoke",
+    "via": "invoke"
+   },
+   {
+    "file": "core.py",
+    "line": 1289,
+    "col": 46,
+    "name": "invoke",
+    "form": "attr",
+    "call_start_line": 1289,
+    "callee": "sub_ctx.command.invoke",
+    "in": "MultiCommand.invoke",
+    "via": "invoke"
+   },
+   {
+    "file": "decorators.py",
+    "line": 73,
+    "col": 23,
+    "name": "invoke",
+    "form": "attr",
+    "call_start_line": 73,
+    "callee": "ctx.invoke",
+    "in": "make_pass_decorator.decorator.new_func",
+    "via": "invoke"
+   }
+  ],
+  "candidate_names": [
+   "invoke"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "add_to_parser",
+  "qualname": "Parameter.add_to_parser",
+  "kind": "function",
+  "category": "method",
+  "line": 1536,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 966,
+    "col": 18,
+    "name": "add_to_parser",
+    "form": "attr",
+    "call_start_line": 966,
+    "callee": "param.add_to_parser",
+    "in": "Command.make_parser",
+    "via": "add_to_parser"
+   }
+  ],
+  "candidate_names": [
+   "add_to_parser"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "_parse_decls",
+  "qualname": "Option._parse_decls",
+  "kind": "function",
+  "category": "method",
+  "line": 1780,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1482,
+    "col": 57,
+    "name": "_parse_decls",
+    "form": "attr",
+    "call_start_line": 1482,
+    "callee": "self._parse_decls",
+    "in": "Parameter.__init__",
+    "via": "_parse_decls"
+   }
+  ],
+  "candidate_names": [
+   "_parse_decls"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "show",
+  "qualname": "UsageError.show",
+  "kind": "function",
+  "category": "method",
+  "line": 61,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 799,
+    "col": 18,
+    "name": "show",
+    "form": "attr",
+    "call_start_line": 799,
+    "callee": "e.show",
+    "in": "BaseCommand.main",
+    "via": "show"
+   }
+  ],
+  "candidate_names": [
+   "show"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "get_help",
+  "qualname": "BaseCommand.get_help",
+  "kind": "function",
+  "category": "method",
+  "line": 677,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 570,
+    "col": 28,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 570,
+    "callee": "self.command.get_help",
+    "in": "Context.get_help",
+    "via": "get_help"
+   },
+   {
+    "file": "core.py",
+    "line": 950,
+    "col": 25,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 950,
+    "callee": "ctx.get_help",
+    "in": "Command.get_help_option.show_help",
+    "via": "get_help"
+   },
+   {
+    "file": "core.py",
+    "line": 1041,
+    "col": 21,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 1041,
+    "callee": "ctx.get_help",
+    "in": "Command.parse_args",
+    "via": "get_help"
+   },
+   {
+    "file": "core.py",
+    "line": 1209,
+    "col": 21,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 1209,
+    "callee": "ctx.get_help",
+    "in": "MultiCommand.parse_args",
+    "via": "get_help"
+   },
+   {
+    "file": "decorators.py",
+    "line": 323,
+    "col": 25,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 323,
+    "callee": "ctx.get_help",
+    "in": "help_option.decorator.callback",
+    "via": "get_help"
+   }
+  ],
+  "candidate_names": [
+   "get_help"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "command",
+  "qualname": "Group.command",
+  "kind": "function",
+  "category": "method",
+  "line": 1353,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1362,
+    "col": 18,
+    "name": "command",
+    "form": "name",
+    "call_start_line": 1362,
+    "callee": "command",
+    "in": "Group.command.decorator",
+    "via": "command"
+   },
+   {
+    "file": "decorators.py",
+    "line": 143,
+    "col": 11,
+    "name": "command",
+    "form": "name",
+    "call_start_line": 143,
+    "callee": "command",
+    "in": "group",
+    "via": "command"
+   }
+  ],
+  "candidate_names": [
+   "command"
+  ]
+ },
+ {
+  "file": "decorators.py",
+  "name": "help_option",
+  "qualname": "help_option",
+  "kind": "function",
+  "category": "function",
+  "line": 309,
+  "decorators": [],
+  "bases": [],
+  "stratum": "zero-candidates",
+  "batch": 0,
+  "candidates": [],
+  "candidate_names": [
+   "help_option"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "readable",
+  "qualname": "_WindowsConsoleReader.readable",
+  "kind": "function",
+  "category": "method",
+  "line": 131,
+  "decorators": [],
+  "bases": [],
+  "stratum": "zero-candidates",
+  "batch": 0,
+  "candidates": [],
+  "candidate_names": [
+   "readable"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "writable",
+  "qualname": "_WindowsConsoleWriter.writable",
+  "kind": "function",
+  "category": "method",
+  "line": 166,
+  "decorators": [],
+  "bases": [],
+  "stratum": "zero-candidates",
+  "batch": 0,
+  "candidates": [],
+  "candidate_names": [
+   "writable"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "__init__",
+  "qualname": "Command.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 865,
+  "decorators": [],
+  "bases": [],
+  "stratum": "init",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 71,
+    "col": 25,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 71,
+    "callee": "io.TextIOWrapper.__init__",
+    "in": "_NonClosingTextIOWrapper.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 880,
+    "col": 20,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 880,
+    "callee": "BaseCommand.__init__",
+    "in": "Command.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1106,
+    "col": 16,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1106,
+    "callee": "Command.__init__",
+    "in": "MultiCommand.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1339,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1339,
+    "callee": "MultiCommand.__init__",
+    "in": "Group.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1398,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1398,
+    "callee": "MultiCommand.__init__",
+    "in": "CommandCollection.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1714,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1714,
+    "callee": "Parameter.__init__",
+    "in": "Option.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1984,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1984,
+    "callee": "Parameter.__init__",
+    "in": "Argument.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 24,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 24,
+    "callee": "Exception.__init__",
+    "in": "ClickException.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 57,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 57,
+    "callee": "ClickException.__init__",
+    "in": "UsageError.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 95,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 95,
+    "callee": "UsageError.__init__",
+    "in": "BadParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 126,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 126,
+    "callee": "BadParameter.__init__",
+    "in": "MissingParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 182,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 182,
+    "callee": "UsageError.__init__",
+    "in": "NoSuchOption.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 208,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 208,
+    "callee": "UsageError.__init__",
+    "in": "BadOptionUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 221,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 221,
+    "callee": "UsageError.__init__",
+    "in": "BadArgumentUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 231,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 231,
+    "callee": "ClickException.__init__",
+    "in": "FileError.__init__",
+    "via": "__init__"
+   }
+  ],
+  "candidate_names": [
+   "Command",
+   "__init__"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__init__",
+  "qualname": "Exit.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 252,
+  "decorators": [],
+  "bases": [],
+  "stratum": "init",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 71,
+    "col": 25,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 71,
+    "callee": "io.TextIOWrapper.__init__",
+    "in": "_NonClosingTextIOWrapper.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 558,
+    "col": 14,
+    "name": "Exit",
+    "form": "name",
+    "call_start_line": 558,
+    "callee": "Exit",
+    "in": "Context.exit",
+    "via": "Exit"
+   },
+   {
+    "file": "core.py",
+    "line": 880,
+    "col": 20,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 880,
+    "callee": "BaseCommand.__init__",
+    "in": "Command.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1106,
+    "col": 16,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1106,
+    "callee": "Command.__init__",
+    "in": "MultiCommand.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1339,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1339,
+    "callee": "MultiCommand.__init__",
+    "in": "Group.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1398,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1398,
+    "callee": "MultiCommand.__init__",
+    "in": "CommandCollection.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1714,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1714,
+    "callee": "Parameter.__init__",
+    "in": "Option.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1984,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1984,
+    "callee": "Parameter.__init__",
+    "in": "Argument.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 24,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 24,
+    "callee": "Exception.__init__",
+    "in": "ClickException.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 57,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 57,
+    "callee": "ClickException.__init__",
+    "in": "UsageError.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 95,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 95,
+    "callee": "UsageError.__init__",
+    "in": "BadParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 126,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 126,
+    "callee": "BadParameter.__init__",
+    "in": "MissingParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 182,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 182,
+    "callee": "UsageError.__init__",
+    "in": "NoSuchOption.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 208,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 208,
+    "callee": "UsageError.__init__",
+    "in": "BadOptionUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 221,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 221,
+    "callee": "UsageError.__init__",
+    "in": "BadArgumentUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 231,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 231,
+    "callee": "ClickException.__init__",
+    "in": "FileError.__init__",
+    "via": "__init__"
+   }
+  ],
+  "candidate_names": [
+   "Exit",
+   "__init__"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__init__",
+  "qualname": "BadParameter.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 94,
+  "decorators": [],
+  "bases": [],
+  "stratum": "init",
+  "batch": 0,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 71,
+    "col": 25,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 71,
+    "callee": "io.TextIOWrapper.__init__",
+    "in": "_NonClosingTextIOWrapper.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 880,
+    "col": 20,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 880,
+    "callee": "BaseCommand.__init__",
+    "in": "Command.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1106,
+    "col": 16,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1106,
+    "callee": "Command.__init__",
+    "in": "MultiCommand.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1339,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1339,
+    "callee": "MultiCommand.__init__",
+    "in": "Group.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1398,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1398,
+    "callee": "MultiCommand.__init__",
+    "in": "CommandCollection.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1714,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1714,
+    "callee": "Parameter.__init__",
+    "in": "Option.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1984,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1984,
+    "callee": "Parameter.__init__",
+    "in": "Argument.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 24,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 24,
+    "callee": "Exception.__init__",
+    "in": "ClickException.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 57,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 57,
+    "callee": "ClickException.__init__",
+    "in": "UsageError.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 95,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 95,
+    "callee": "UsageError.__init__",
+    "in": "BadParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 126,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 126,
+    "callee": "BadParameter.__init__",
+    "in": "MissingParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 182,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 182,
+    "callee": "UsageError.__init__",
+    "in": "NoSuchOption.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 208,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 208,
+    "callee": "UsageError.__init__",
+    "in": "BadOptionUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 221,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 221,
+    "callee": "UsageError.__init__",
+    "in": "BadArgumentUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 231,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 231,
+    "callee": "ClickException.__init__",
+    "in": "FileError.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "types.py",
+    "line": 76,
+    "col": 14,
+    "name": "BadParameter",
+    "form": "name",
+    "call_start_line": 76,
+    "callee": "BadParameter",
+    "in": "ParamType.fail",
+    "via": "BadParameter"
+   }
+  ],
+  "candidate_names": [
+   "BadParameter",
+   "__init__"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "set_binary_mode",
+  "qualname": "set_binary_mode",
+  "kind": "function",
+  "category": "function",
+  "line": 209,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 238,
+    "col": 15,
+    "name": "set_binary_mode",
+    "form": "name",
+    "call_start_line": 238,
+    "callee": "set_binary_mode",
+    "in": "get_binary_stdin",
+    "via": "set_binary_mode"
+   },
+   {
+    "file": "_compat.py",
+    "line": 242,
+    "col": 15,
+    "name": "set_binary_mode",
+    "form": "name",
+    "call_start_line": 242,
+    "callee": "set_binary_mode",
+    "in": "get_binary_stdout",
+    "via": "set_binary_mode"
+   },
+   {
+    "file": "_compat.py",
+    "line": 246,
+    "col": 15,
+    "name": "set_binary_mode",
+    "form": "name",
+    "call_start_line": 246,
+    "callee": "set_binary_mode",
+    "in": "get_binary_stderr",
+    "via": "set_binary_mode"
+   }
+  ],
+  "candidate_names": [
+   "set_binary_mode"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "getchar",
+  "qualname": "getchar",
+  "kind": "function",
+  "category": "function",
+  "line": 581,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 123,
+    "col": 19,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 123,
+    "callee": "f",
+    "in": "_FixupStream.read1",
+    "via": "f"
+   },
+   {
+    "file": "core.py",
+    "line": 1172,
+    "col": 23,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 1172,
+    "callee": "f",
+    "in": "MultiCommand.resultcallback.decorator.function",
+    "via": "f"
+   },
+   {
+    "file": "decorators.py",
+    "line": 21,
+    "col": 15,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 21,
+    "callee": "f",
+    "in": "pass_context.new_func",
+    "via": "f"
+   },
+   {
+    "file": "decorators.py",
+    "line": 33,
+    "col": 15,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 33,
+    "callee": "f",
+    "in": "pass_obj.new_func",
+    "via": "f"
+   },
+   {
+    "file": "termui.py",
+    "line": 129,
+    "col": 19,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 129,
+    "callee": "f",
+    "in": "prompt.prompt_func",
+    "via": "f"
+   },
+   {
+    "file": "termui.py",
+    "line": 646,
+    "col": 11,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 646,
+    "callee": "f",
+    "in": "getchar",
+    "via": "f"
+   },
+   {
+    "file": "termui.py",
+    "line": 652,
+    "col": 11,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 652,
+    "callee": "f",
+    "in": "raw_terminal",
+    "via": "f"
+   },
+   {
+    "file": "termui.py",
+    "line": 676,
+    "col": 12,
+    "name": "getchar",
+    "form": "name",
+    "call_start_line": 676,
+    "callee": "getchar",
+    "in": "pause",
+    "via": "getchar"
+   }
+  ],
+  "candidate_names": [
+   "f",
+   "getchar"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "raw_terminal",
+  "qualname": "raw_terminal",
+  "kind": "function",
+  "category": "function",
+  "line": 578,
+  "decorators": [
+   "contextlib.contextmanager"
+  ],
+  "bases": [],
+  "stratum": "function",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 123,
+    "col": 19,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 123,
+    "callee": "f",
+    "in": "_FixupStream.read1",
+    "via": "f"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 651,
+    "col": 13,
+    "name": "raw_terminal",
+    "form": "name",
+    "call_start_line": 651,
+    "callee": "raw_terminal",
+    "in": "getchar",
+    "via": "raw_terminal"
+   },
+   {
+    "file": "core.py",
+    "line": 1172,
+    "col": 23,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 1172,
+    "callee": "f",
+    "in": "MultiCommand.resultcallback.decorator.function",
+    "via": "f"
+   },
+   {
+    "file": "decorators.py",
+    "line": 21,
+    "col": 15,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 21,
+    "callee": "f",
+    "in": "pass_context.new_func",
+    "via": "f"
+   },
+   {
+    "file": "decorators.py",
+    "line": 33,
+    "col": 15,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 33,
+    "callee": "f",
+    "in": "pass_obj.new_func",
+    "via": "f"
+   },
+   {
+    "file": "termui.py",
+    "line": 129,
+    "col": 19,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 129,
+    "callee": "f",
+    "in": "prompt.prompt_func",
+    "via": "f"
+   },
+   {
+    "file": "termui.py",
+    "line": 646,
+    "col": 11,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 646,
+    "callee": "f",
+    "in": "getchar",
+    "via": "f"
+   },
+   {
+    "file": "termui.py",
+    "line": 652,
+    "col": 11,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 652,
+    "callee": "f",
+    "in": "raw_terminal",
+    "via": "f"
+   }
+  ],
+  "candidate_names": [
+   "f",
+   "raw_terminal"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "iter_params_for_processing",
+  "qualname": "iter_params_for_processing",
+  "kind": "function",
+  "category": "function",
+  "line": 143,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1047,
+    "col": 21,
+    "name": "iter_params_for_processing",
+    "form": "name",
+    "call_start_line": 1047,
+    "callee": "iter_params_for_processing",
+    "in": "Command.parse_args",
+    "via": "iter_params_for_processing"
+   }
+  ],
+  "candidate_names": [
+   "iter_params_for_processing"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "pager",
+  "qualname": "pager",
+  "kind": "function",
+  "category": "function",
+  "line": 326,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "termui.py",
+    "line": 291,
+    "col": 11,
+    "name": "pager",
+    "form": "name",
+    "call_start_line": 291,
+    "callee": "pager",
+    "in": "echo_via_pager",
+    "via": "pager"
+   }
+  ],
+  "candidate_names": [
+   "pager"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "_length_hint",
+  "qualname": "_length_hint",
+  "kind": "function",
+  "category": "function",
+  "line": 34,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_termui_impl.py",
+    "line": 87,
+    "col": 21,
+    "name": "_length_hint",
+    "form": "name",
+    "call_start_line": 87,
+    "callee": "_length_hint",
+    "in": "ProgressBar.__init__",
+    "via": "_length_hint"
+   }
+  ],
+  "candidate_names": [
+   "_length_hint"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_hash_py_argv",
+  "qualname": "_hash_py_argv",
+  "kind": "function",
+  "category": "function",
+  "line": 302,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_winconsole.py",
+    "line": 305,
+    "col": 25,
+    "name": "_hash_py_argv",
+    "form": "name",
+    "call_start_line": 305,
+    "callee": "_hash_py_argv",
+    "in": "",
+    "via": "_hash_py_argv"
+   },
+   {
+    "file": "utils.py",
+    "line": 358,
+    "col": 45,
+    "name": "_hash_py_argv",
+    "form": "name",
+    "call_start_line": 358,
+    "callee": "_hash_py_argv",
+    "in": "get_os_args",
+    "via": "_hash_py_argv"
+   }
+  ],
+  "candidate_names": [
+   "_hash_py_argv"
+  ]
+ },
+ {
+  "file": "utils.py",
+  "name": "make_default_short_help",
+  "qualname": "make_default_short_help",
+  "kind": "function",
+  "category": "function",
+  "line": 58,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 985,
+    "col": 16,
+    "name": "make_default_short_help",
+    "form": "name",
+    "call_start_line": 985,
+    "callee": "make_default_short_help",
+    "in": "Command.get_short_help_str",
+    "via": "make_default_short_help"
+   }
+  ],
+  "candidate_names": [
+   "make_default_short_help"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "_is_binary_reader",
+  "qualname": "_is_binary_reader",
+  "kind": "function",
+  "category": "function",
+  "line": 288,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 313,
+    "col": 11,
+    "name": "_is_binary_reader",
+    "form": "name",
+    "call_start_line": 313,
+    "callee": "_is_binary_reader",
+    "in": "_find_binary_reader",
+    "via": "_is_binary_reader"
+   },
+   {
+    "file": "_compat.py",
+    "line": 320,
+    "col": 31,
+    "name": "_is_binary_reader",
+    "form": "name",
+    "call_start_line": 320,
+    "callee": "_is_binary_reader",
+    "in": "_find_binary_reader",
+    "via": "_is_binary_reader"
+   }
+  ],
+  "candidate_names": [
+   "_is_binary_reader"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "_maybe_show_deprecated_notice",
+  "qualname": "_maybe_show_deprecated_notice",
+  "kind": "function",
+  "category": "function",
+  "line": 48,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1064,
+    "col": 8,
+    "name": "_maybe_show_deprecated_notice",
+    "form": "name",
+    "call_start_line": 1064,
+    "callee": "_maybe_show_deprecated_notice",
+    "in": "Command.invoke",
+    "via": "_maybe_show_deprecated_notice"
+   }
+  ],
+  "candidate_names": [
+   "_maybe_show_deprecated_notice"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "get_help_record",
+  "qualname": "Option.get_help_record",
+  "kind": "function",
+  "category": "method",
+  "line": 1855,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1024,
+    "col": 23,
+    "name": "get_help_record",
+    "form": "attr",
+    "call_start_line": 1024,
+    "callee": "param.get_help_record",
+    "in": "Command.format_options",
+    "via": "get_help_record"
+   }
+  ],
+  "candidate_names": [
+   "get_help_record"
+  ]
+ },
+ {
+  "file": "utils.py",
+  "name": "flush",
+  "qualname": "PacifyFlushWrapper.flush",
+  "kind": "function",
+  "category": "method",
+  "line": 445,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 81,
+    "col": 25,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 81,
+    "callee": "self.flush",
+    "in": "_NonClosingTextIOWrapper.write",
+    "via": "flush"
+   },
+   {
+    "file": "_compat.py",
+    "line": 677,
+    "col": 23,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 677,
+    "callee": "sys.stderr.flush",
+    "in": "raw_input",
+    "via": "flush"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 139,
+    "col": 18,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 139,
+    "callee": "self.file.flush",
+    "in": "ProgressBar.render_finish",
+    "via": "flush"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 266,
+    "col": 22,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 266,
+    "callee": "self.file.flush",
+    "in": "ProgressBar.render_progress",
+    "via": "flush"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 644,
+    "col": 27,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 644,
+    "callee": "sys.stdout.flush",
+    "in": "raw_terminal",
+    "via": "flush"
+   },
+   {
+    "file": "_winconsole.py",
+    "line": 210,
+    "col": 17,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 210,
+    "callee": "self.flush",
+    "in": "ConsoleStream.write",
+    "via": "flush"
+   },
+   {
+    "file": "core.py",
+    "line": 57,
+    "col": 15,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 57,
+    "callee": "sys.stdout.flush",
+    "in": "fast_exit",
+    "via": "flush"
+   },
+   {
+    "file": "core.py",
+    "line": 58,
+    "col": 15,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 58,
+    "callee": "sys.stderr.flush",
+    "in": "fast_exit",
+    "via": "flush"
+   },
+   {
+    "file": "testing.py",
+    "line": 214,
+    "col": 23,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 214,
+    "callee": "sys.stdout.flush",
+    "in": "CliRunner.isolation.visible_input",
+    "via": "flush"
+   },
+   {
+    "file": "testing.py",
+    "line": 219,
+    "col": 23,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 219,
+    "callee": "sys.stdout.flush",
+    "in": "CliRunner.isolation.hidden_input",
+    "via": "flush"
+   },
+   {
+    "file": "testing.py",
+    "line": 226,
+    "col": 27,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 226,
+    "callee": "sys.stdout.flush",
+    "in": "CliRunner.isolation._getchar",
+    "via": "flush"
+   },
+   {
+    "file": "testing.py",
+    "line": 351,
+    "col": 27,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 351,
+    "callee": "sys.stdout.flush",
+    "in": "CliRunner.invoke",
+    "via": "flush"
+   },
+   {
+    "file": "utils.py",
+    "line": 251,
+    "col": 17,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 251,
+    "callee": "file.flush",
+    "in": "echo",
+    "via": "flush"
+   },
+   {
+    "file": "utils.py",
+    "line": 253,
+    "col": 24,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 253,
+    "callee": "binary_file.flush",
+    "in": "echo",
+    "via": "flush"
+   },
+   {
+    "file": "utils.py",
+    "line": 273,
+    "col": 9,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 273,
+    "callee": "file.flush",
+    "in": "echo",
+    "via": "flush"
+   },
+   {
+    "file": "utils.py",
+    "line": 447,
+    "col": 25,
+    "name": "flush",
+    "form": "attr",
+    "call_start_line": 447,
+    "callee": "self.wrapped.flush",
+    "in": "PacifyFlushWrapper.flush",
+    "via": "flush"
+   }
+  ],
+  "candidate_names": [
+   "flush"
+  ]
+ },
+ {
+  "file": "formatting.py",
+  "name": "dedent",
+  "qualname": "HelpFormatter.dedent",
+  "kind": "function",
+  "category": "method",
+  "line": 126,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "formatting.py",
+    "line": 250,
+    "col": 17,
+    "name": "dedent",
+    "form": "attr",
+    "call_start_line": 250,
+    "callee": "self.dedent",
+    "in": "HelpFormatter.section",
+    "via": "dedent"
+   },
+   {
+    "file": "formatting.py",
+    "line": 259,
+    "col": 17,
+    "name": "dedent",
+    "form": "attr",
+    "call_start_line": 259,
+    "callee": "self.dedent",
+    "in": "HelpFormatter.indentation",
+    "via": "dedent"
+   }
+  ],
+  "candidate_names": [
+   "dedent"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "get_help",
+  "qualname": "Command.get_help",
+  "kind": "function",
+  "category": "method",
+  "line": 969,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 570,
+    "col": 28,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 570,
+    "callee": "self.command.get_help",
+    "in": "Context.get_help",
+    "via": "get_help"
+   },
+   {
+    "file": "core.py",
+    "line": 950,
+    "col": 25,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 950,
+    "callee": "ctx.get_help",
+    "in": "Command.get_help_option.show_help",
+    "via": "get_help"
+   },
+   {
+    "file": "core.py",
+    "line": 1041,
+    "col": 21,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 1041,
+    "callee": "ctx.get_help",
+    "in": "Command.parse_args",
+    "via": "get_help"
+   },
+   {
+    "file": "core.py",
+    "line": 1209,
+    "col": 21,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 1209,
+    "callee": "ctx.get_help",
+    "in": "MultiCommand.parse_args",
+    "via": "get_help"
+   },
+   {
+    "file": "decorators.py",
+    "line": 323,
+    "col": 25,
+    "name": "get_help",
+    "form": "attr",
+    "call_start_line": 323,
+    "callee": "ctx.get_help",
+    "in": "help_option.decorator.callback",
+    "via": "get_help"
+   }
+  ],
+  "candidate_names": [
+   "get_help"
+  ]
+ },
+ {
+  "file": "testing.py",
+  "name": "read",
+  "qualname": "EchoingStdin.read",
+  "kind": "function",
+  "category": "method",
+  "line": 35,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 129,
+    "col": 28,
+    "name": "read",
+    "form": "attr",
+    "call_start_line": 129,
+    "callee": "self._stream.read",
+    "in": "_FixupStream.read1",
+    "via": "read"
+   },
+   {
+    "file": "_compat.py",
+    "line": 138,
+    "col": 25,
+    "name": "read",
+    "form": "attr",
+    "call_start_line": 138,
+    "callee": "self._stream.read",
+    "in": "_FixupStream.readable",
+    "via": "read"
+   },
+   {
+    "file": "_compat.py",
+    "line": 290,
+    "col": 37,
+    "name": "read",
+    "form": "attr",
+    "call_start_line": 290,
+    "callee": "stream.read",
+    "in": "_is_binary_reader",
+    "via": "read"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 498,
+    "col": 23,
+    "name": "read",
+    "form": "attr",
+    "call_start_line": 498,
+    "callee": "f.read",
+    "in": "Editor.edit",
+    "via": "read"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 652,
+    "col": 20,
+    "name": "read",
+    "form": "attr",
+    "call_start_line": 652,
+    "callee": "os.read",
+    "in": "getchar",
+    "via": "read"
+   },
+   {
+    "file": "testing.py",
+    "line": 36,
+    "col": 38,
+    "name": "read",
+    "form": "attr",
+    "call_start_line": 36,
+    "callee": "self._input.read",
+    "in": "EchoingStdin.read",
+    "via": "read"
+   },
+   {
+    "file": "testing.py",
+    "line": 223,
+    "col": 29,
+    "name": "read",
+    "form": "attr",
+    "call_start_line": 223,
+    "callee": "sys.stdin.read",
+    "in": "CliRunner.isolation._getchar",
+    "via": "read"
+   }
+  ],
+  "candidate_names": [
+   "read"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "value_from_envvar",
+  "qualname": "Option.value_from_envvar",
+  "kind": "function",
+  "category": "method",
+  "line": 1951,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1542,
+    "col": 25,
+    "name": "value_from_envvar",
+    "form": "attr",
+    "call_start_line": 1542,
+    "callee": "self.value_from_envvar",
+    "in": "Parameter.consume_value",
+    "via": "value_from_envvar"
+   }
+  ],
+  "candidate_names": [
+   "value_from_envvar"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "generator",
+  "qualname": "ProgressBar.generator",
+  "kind": "function",
+  "category": "method",
+  "line": 299,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_termui_impl.py",
+    "line": 119,
+    "col": 20,
+    "name": "generator",
+    "form": "attr",
+    "call_start_line": 119,
+    "callee": "self.generator",
+    "in": "ProgressBar.__iter__",
+    "via": "generator"
+   }
+  ],
+  "candidate_names": [
+   "generator"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "format_help_text",
+  "qualname": "Command.format_help_text",
+  "kind": "function",
+  "category": "method",
+  "line": 1006,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1002,
+    "col": 13,
+    "name": "format_help_text",
+    "form": "attr",
+    "call_start_line": 1002,
+    "callee": "self.format_help_text",
+    "in": "Command.format_help",
+    "via": "format_help_text"
+   }
+  ],
+  "candidate_names": [
+   "format_help_text"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "edit_file",
+  "qualname": "Editor.edit_file",
+  "kind": "function",
+  "category": "method",
+  "line": 451,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_termui_impl.py",
+    "line": 491,
+    "col": 17,
+    "name": "edit_file",
+    "form": "attr",
+    "call_start_line": 491,
+    "callee": "self.edit_file",
+    "in": "Editor.edit",
+    "via": "edit_file"
+   },
+   {
+    "file": "termui.py",
+    "line": 588,
+    "col": 11,
+    "name": "edit_file",
+    "form": "attr",
+    "call_start_line": 588,
+    "callee": "editor.edit_file",
+    "in": "edit",
+    "via": "edit_file"
+   }
+  ],
+  "candidate_names": [
+   "edit_file"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "get_error_hint",
+  "qualname": "Parameter.get_error_hint",
+  "kind": "function",
+  "category": "method",
+  "line": 1645,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "exceptions.py",
+    "line": 103,
+    "col": 36,
+    "name": "get_error_hint",
+    "form": "attr",
+    "call_start_line": 103,
+    "callee": "self.param.get_error_hint",
+    "in": "BadParameter.format_message",
+    "via": "get_error_hint"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 133,
+    "col": 36,
+    "name": "get_error_hint",
+    "form": "attr",
+    "call_start_line": 133,
+    "callee": "self.param.get_error_hint",
+    "in": "MissingParameter.format_message",
+    "via": "get_error_hint"
+   }
+  ],
+  "candidate_names": [
+   "get_error_hint"
+  ]
+ },
+ {
+  "file": "formatting.py",
+  "name": "write_usage",
+  "qualname": "HelpFormatter.write_usage",
+  "kind": "function",
+  "category": "method",
+  "line": 130,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 923,
+    "col": 18,
+    "name": "write_usage",
+    "form": "attr",
+    "call_start_line": 923,
+    "callee": "formatter.write_usage",
+    "in": "Command.format_usage",
+    "via": "write_usage"
+   }
+  ],
+  "candidate_names": [
+   "write_usage"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "call_on_close",
+  "qualname": "Context.call_on_close",
+  "kind": "function",
+  "category": "method",
+  "line": 479,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "types.py",
+    "line": 500,
+    "col": 24,
+    "name": "call_on_close",
+    "form": "attr",
+    "call_start_line": 500,
+    "callee": "ctx.call_on_close",
+    "in": "File.convert",
+    "via": "call_on_close"
+   },
+   {
+    "file": "types.py",
+    "line": 513,
+    "col": 24,
+    "name": "call_on_close",
+    "form": "attr",
+    "call_start_line": 513,
+    "callee": "ctx.call_on_close",
+    "in": "File.convert",
+    "via": "call_on_close"
+   },
+   {
+    "file": "types.py",
+    "line": 515,
+    "col": 24,
+    "name": "call_on_close",
+    "form": "attr",
+    "call_start_line": 515,
+    "callee": "ctx.call_on_close",
+    "in": "File.convert",
+    "via": "call_on_close"
+   }
+  ],
+  "candidate_names": [
+   "call_on_close"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "IntRange",
+  "qualname": "IntRange",
+  "kind": "class",
+  "category": "class",
+  "line": 273,
+  "decorators": [],
+  "bases": [
+   "IntParamType"
+  ],
+  "stratum": "class",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1749,
+    "col": 28,
+    "name": "IntRange",
+    "form": "name",
+    "call_start_line": 1749,
+    "callee": "IntRange",
+    "in": "Option.__init__",
+    "via": "IntRange"
+   }
+  ],
+  "candidate_names": [
+   "IntRange"
+  ]
+ },
+ {
+  "file": "utils.py",
+  "name": "LazyFile",
+  "qualname": "LazyFile",
+  "kind": "class",
+  "category": "class",
+  "line": 83,
+  "decorators": [],
+  "bases": [
+   "object"
+  ],
+  "stratum": "class",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "types.py",
+    "line": 496,
+    "col": 20,
+    "name": "LazyFile",
+    "form": "name",
+    "call_start_line": 496,
+    "callee": "LazyFile",
+    "in": "File.convert",
+    "via": "LazyFile"
+   },
+   {
+    "file": "utils.py",
+    "line": 335,
+    "col": 15,
+    "name": "LazyFile",
+    "form": "name",
+    "call_start_line": 335,
+    "callee": "LazyFile",
+    "in": "open_file",
+    "via": "LazyFile"
+   }
+  ],
+  "candidate_names": [
+   "LazyFile"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "UsageError",
+  "qualname": "UsageError",
+  "kind": "class",
+  "category": "class",
+  "line": 45,
+  "decorators": [],
+  "bases": [
+   "ClickException"
+  ],
+  "stratum": "class",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 550,
+    "col": 14,
+    "name": "UsageError",
+    "form": "name",
+    "call_start_line": 550,
+    "callee": "UsageError",
+    "in": "Context.fail",
+    "via": "UsageError"
+   }
+  ],
+  "candidate_names": [
+   "UsageError"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "UnprocessedParamType",
+  "qualname": "UnprocessedParamType",
+  "kind": "class",
+  "category": "class",
+  "line": 103,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ],
+  "stratum": "class",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "types.py",
+    "line": 743,
+    "col": 14,
+    "name": "UnprocessedParamType",
+    "form": "name",
+    "call_start_line": 743,
+    "callee": "UnprocessedParamType",
+    "in": "",
+    "via": "UnprocessedParamType"
+   }
+  ],
+  "candidate_names": [
+   "UnprocessedParamType"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_WindowsConsoleWriter",
+  "qualname": "_WindowsConsoleWriter",
+  "kind": "class",
+  "category": "class",
+  "line": 165,
+  "decorators": [],
+  "bases": [
+   "_WindowsConsoleRawIOBase"
+  ],
+  "stratum": "class",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_winconsole.py",
+    "line": 282,
+    "col": 26,
+    "name": "_WindowsConsoleWriter",
+    "form": "name",
+    "call_start_line": 282,
+    "callee": "_WindowsConsoleWriter",
+    "in": "_get_text_stdout",
+    "via": "_WindowsConsoleWriter"
+   },
+   {
+    "file": "_winconsole.py",
+    "line": 292,
+    "col": 26,
+    "name": "_WindowsConsoleWriter",
+    "form": "name",
+    "call_start_line": 292,
+    "callee": "_WindowsConsoleWriter",
+    "in": "_get_text_stderr",
+    "via": "_WindowsConsoleWriter"
+   }
+  ],
+  "candidate_names": [
+   "_WindowsConsoleWriter"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "ProgressBar",
+  "qualname": "ProgressBar",
+  "kind": "class",
+  "category": "class",
+  "line": 52,
+  "decorators": [],
+  "bases": [
+   "object"
+  ],
+  "stratum": "class",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "termui.py",
+    "line": 397,
+    "col": 11,
+    "name": "ProgressBar",
+    "form": "name",
+    "call_start_line": 397,
+    "callee": "ProgressBar",
+    "in": "progressbar",
+    "via": "ProgressBar"
+   }
+  ],
+  "candidate_names": [
+   "ProgressBar"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "BadParameter",
+  "qualname": "BadParameter",
+  "kind": "class",
+  "category": "class",
+  "line": 76,
+  "decorators": [],
+  "bases": [
+   "UsageError"
+  ],
+  "stratum": "class",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "types.py",
+    "line": 76,
+    "col": 14,
+    "name": "BadParameter",
+    "form": "name",
+    "call_start_line": 76,
+    "callee": "BadParameter",
+    "in": "ParamType.fail",
+    "via": "BadParameter"
+   }
+  ],
+  "candidate_names": [
+   "BadParameter"
+  ]
+ },
+ {
+  "file": "utils.py",
+  "name": "PacifyFlushWrapper",
+  "qualname": "PacifyFlushWrapper",
+  "kind": "class",
+  "category": "class",
+  "line": 433,
+  "decorators": [],
+  "bases": [
+   "object"
+  ],
+  "stratum": "class",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 803,
+    "col": 33,
+    "name": "PacifyFlushWrapper",
+    "form": "name",
+    "call_start_line": 803,
+    "callee": "PacifyFlushWrapper",
+    "in": "BaseCommand.main",
+    "via": "PacifyFlushWrapper"
+   },
+   {
+    "file": "core.py",
+    "line": 804,
+    "col": 33,
+    "name": "PacifyFlushWrapper",
+    "form": "name",
+    "call_start_line": 804,
+    "callee": "PacifyFlushWrapper",
+    "in": "BaseCommand.main",
+    "via": "PacifyFlushWrapper"
+   }
+  ],
+  "candidate_names": [
+   "PacifyFlushWrapper"
+  ]
+ },
+ {
+  "file": "decorators.py",
+  "name": "callback",
+  "qualname": "confirmation_option.decorator.callback",
+  "kind": "function",
+  "category": "nested",
+  "line": 217,
+  "decorators": [],
+  "bases": [],
+  "stratum": "nested",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 121,
+    "col": 15,
+    "name": "callback",
+    "form": "name",
+    "call_start_line": 121,
+    "callee": "callback",
+    "in": "invoke_param_callback",
+    "via": "callback"
+   },
+   {
+    "file": "core.py",
+    "line": 123,
+    "col": 11,
+    "name": "callback",
+    "form": "name",
+    "call_start_line": 123,
+    "callee": "callback",
+    "in": "invoke_param_callback",
+    "via": "callback"
+   },
+   {
+    "file": "core.py",
+    "line": 610,
+    "col": 23,
+    "name": "callback",
+    "form": "name",
+    "call_start_line": 610,
+    "callee": "callback",
+    "in": "Context.invoke",
+    "via": "callback"
+   }
+  ],
+  "candidate_names": [
+   "callback"
+  ]
+ },
+ {
+  "file": "testing.py",
+  "name": "should_strip_ansi",
+  "qualname": "CliRunner.isolation.should_strip_ansi",
+  "kind": "function",
+  "category": "nested",
+  "line": 231,
+  "decorators": [],
+  "bases": [],
+  "stratum": "nested",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 703,
+    "col": 20,
+    "name": "should_strip_ansi",
+    "form": "name",
+    "call_start_line": 703,
+    "callee": "should_strip_ansi",
+    "in": "auto_wrap_for_ansi",
+    "via": "should_strip_ansi"
+   },
+   {
+    "file": "utils.py",
+    "line": 263,
+    "col": 11,
+    "name": "should_strip_ansi",
+    "form": "name",
+    "call_start_line": 263,
+    "callee": "should_strip_ansi",
+    "in": "echo",
+    "via": "should_strip_ansi"
+   }
+  ],
+  "candidate_names": [
+   "should_strip_ansi"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "FloatParamType.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 335,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "types.py",
+    "line": 46,
+    "col": 24,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 46,
+    "callee": "self.convert",
+    "in": "ParamType.__call__",
+    "via": "convert"
+   },
+   {
+    "file": "types.py",
+    "line": 290,
+    "col": 26,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 290,
+    "callee": "IntParamType.convert",
+    "in": "IntRange.convert",
+    "via": "convert"
+   },
+   {
+    "file": "types.py",
+    "line": 364,
+    "col": 28,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 364,
+    "callee": "FloatParamType.convert",
+    "in": "FloatRange.convert",
+    "via": "convert"
+   }
+  ],
+  "candidate_names": [
+   "convert"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "format_options",
+  "qualname": "MultiCommand.format_options",
+  "kind": "function",
+  "category": "method",
+  "line": 1135,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1003,
+    "col": 13,
+    "name": "format_options",
+    "form": "attr",
+    "call_start_line": 1003,
+    "callee": "self.format_options",
+    "in": "Command.format_help",
+    "via": "format_options"
+   },
+   {
+    "file": "core.py",
+    "line": 1136,
+    "col": 16,
+    "name": "format_options",
+    "form": "attr",
+    "call_start_line": 1136,
+    "callee": "Command.format_options",
+    "in": "MultiCommand.format_options",
+    "via": "format_options"
+   }
+  ],
+  "candidate_names": [
+   "format_options"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "get_usage_pieces",
+  "qualname": "Parameter.get_usage_pieces",
+  "kind": "function",
+  "category": "method",
+  "line": 1642,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 931,
+    "col": 28,
+    "name": "get_usage_pieces",
+    "form": "attr",
+    "call_start_line": 931,
+    "callee": "param.get_usage_pieces",
+    "in": "Command.collect_usage_pieces",
+    "via": "get_usage_pieces"
+   }
+  ],
+  "candidate_names": [
+   "get_usage_pieces"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "get_error_hint",
+  "qualname": "Argument.get_error_hint",
+  "kind": "function",
+  "category": "method",
+  "line": 2026,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "exceptions.py",
+    "line": 103,
+    "col": 36,
+    "name": "get_error_hint",
+    "form": "attr",
+    "call_start_line": 103,
+    "callee": "self.param.get_error_hint",
+    "in": "BadParameter.format_message",
+    "via": "get_error_hint"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 133,
+    "col": 36,
+    "name": "get_error_hint",
+    "form": "attr",
+    "call_start_line": 133,
+    "callee": "self.param.get_error_hint",
+    "in": "MissingParameter.format_message",
+    "via": "get_error_hint"
+   }
+  ],
+  "candidate_names": [
+   "get_error_hint"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "_parse_decls",
+  "qualname": "Argument._parse_decls",
+  "kind": "function",
+  "category": "method",
+  "line": 2008,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1482,
+    "col": 57,
+    "name": "_parse_decls",
+    "form": "attr",
+    "call_start_line": 1482,
+    "callee": "self._parse_decls",
+    "in": "Parameter.__init__",
+    "via": "_parse_decls"
+   }
+  ],
+  "candidate_names": [
+   "_parse_decls"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "fail",
+  "qualname": "ParamType.fail",
+  "kind": "function",
+  "category": "method",
+  "line": 74,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1051,
+    "col": 16,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 1051,
+    "callee": "ctx.fail",
+    "in": "Command.parse_args",
+    "via": "fail"
+   },
+   {
+    "file": "core.py",
+    "line": 1240,
+    "col": 16,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 1240,
+    "callee": "ctx.fail",
+    "in": "MultiCommand.invoke",
+    "via": "fail"
+   },
+   {
+    "file": "core.py",
+    "line": 1314,
+    "col": 16,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 1314,
+    "callee": "ctx.fail",
+    "in": "MultiCommand.resolve_command",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 100,
+    "col": 17,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 100,
+    "callee": "self.fail",
+    "in": "FuncParamType.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 196,
+    "col": 13,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 196,
+    "callee": "self.fail",
+    "in": "Choice.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 250,
+    "col": 13,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 250,
+    "callee": "self.fail",
+    "in": "DateTime.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 267,
+    "col": 17,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 267,
+    "callee": "self.fail",
+    "in": "IntParamType.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 303,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 303,
+    "callee": "self.fail",
+    "in": "IntRange.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 311,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 311,
+    "callee": "self.fail",
+    "in": "IntRange.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 319,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 319,
+    "callee": "self.fail",
+    "in": "IntRange.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 339,
+    "col": 17,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 339,
+    "callee": "self.fail",
+    "in": "FloatParamType.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 377,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 377,
+    "callee": "self.fail",
+    "in": "FloatRange.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 385,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 385,
+    "callee": "self.fail",
+    "in": "FloatRange.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 393,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 393,
+    "callee": "self.fail",
+    "in": "FloatRange.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 417,
+    "col": 13,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 417,
+    "callee": "self.fail",
+    "in": "BoolParamType.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 434,
+    "col": 17,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 434,
+    "callee": "self.fail",
+    "in": "UUIDParameterType.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 518,
+    "col": 17,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 518,
+    "callee": "self.fail",
+    "in": "File.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 612,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 612,
+    "callee": "self.fail",
+    "in": "Path.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 621,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 621,
+    "callee": "self.fail",
+    "in": "Path.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 627,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 627,
+    "callee": "self.fail",
+    "in": "Path.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 635,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 635,
+    "callee": "self.fail",
+    "in": "Path.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 643,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 643,
+    "callee": "self.fail",
+    "in": "Path.convert",
+    "via": "fail"
+   }
+  ],
+  "candidate_names": [
+   "fail"
+  ]
+ },
+ {
+  "file": "decorators.py",
+  "name": "make_pass_decorator",
+  "qualname": "make_pass_decorator",
+  "kind": "function",
+  "category": "function",
+  "line": 38,
+  "decorators": [],
+  "bases": [],
+  "stratum": "zero-candidates",
+  "batch": 1,
+  "candidates": [],
+  "candidate_names": [
+   "make_pass_decorator"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "read1",
+  "qualname": "_FixupStream.read1",
+  "kind": "function",
+  "category": "method",
+  "line": 120,
+  "decorators": [],
+  "bases": [],
+  "stratum": "zero-candidates",
+  "batch": 1,
+  "candidates": [],
+  "candidate_names": [
+   "read1"
+  ]
+ },
+ {
+  "file": "utils.py",
+  "name": "get_text_stream",
+  "qualname": "get_text_stream",
+  "kind": "function",
+  "category": "function",
+  "line": 292,
+  "decorators": [],
+  "bases": [],
+  "stratum": "zero-candidates",
+  "batch": 1,
+  "candidates": [],
+  "candidate_names": [
+   "get_text_stream"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "__init__",
+  "qualname": "IntRange.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 284,
+  "decorators": [],
+  "bases": [],
+  "stratum": "init",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 71,
+    "col": 25,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 71,
+    "callee": "io.TextIOWrapper.__init__",
+    "in": "_NonClosingTextIOWrapper.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 880,
+    "col": 20,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 880,
+    "callee": "BaseCommand.__init__",
+    "in": "Command.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1106,
+    "col": 16,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1106,
+    "callee": "Command.__init__",
+    "in": "MultiCommand.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1339,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1339,
+    "callee": "MultiCommand.__init__",
+    "in": "Group.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1398,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1398,
+    "callee": "MultiCommand.__init__",
+    "in": "CommandCollection.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1714,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1714,
+    "callee": "Parameter.__init__",
+    "in": "Option.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1749,
+    "col": 28,
+    "name": "IntRange",
+    "form": "name",
+    "call_start_line": 1749,
+    "callee": "IntRange",
+    "in": "Option.__init__",
+    "via": "IntRange"
+   },
+   {
+    "file": "core.py",
+    "line": 1984,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1984,
+    "callee": "Parameter.__init__",
+    "in": "Argument.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 24,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 24,
+    "callee": "Exception.__init__",
+    "in": "ClickException.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 57,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 57,
+    "callee": "ClickException.__init__",
+    "in": "UsageError.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 95,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 95,
+    "callee": "UsageError.__init__",
+    "in": "BadParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 126,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 126,
+    "callee": "BadParameter.__init__",
+    "in": "MissingParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 182,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 182,
+    "callee": "UsageError.__init__",
+    "in": "NoSuchOption.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 208,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 208,
+    "callee": "UsageError.__init__",
+    "in": "BadOptionUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 221,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 221,
+    "callee": "UsageError.__init__",
+    "in": "BadArgumentUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 231,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 231,
+    "callee": "ClickException.__init__",
+    "in": "FileError.__init__",
+    "via": "__init__"
+   }
+  ],
+  "candidate_names": [
+   "IntRange",
+   "__init__"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "__init__",
+  "qualname": "Tuple.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 668,
+  "decorators": [],
+  "bases": [],
+  "stratum": "init",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 71,
+    "col": 25,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 71,
+    "callee": "io.TextIOWrapper.__init__",
+    "in": "_NonClosingTextIOWrapper.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 880,
+    "col": 20,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 880,
+    "callee": "BaseCommand.__init__",
+    "in": "Command.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1106,
+    "col": 16,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1106,
+    "callee": "Command.__init__",
+    "in": "MultiCommand.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1339,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1339,
+    "callee": "MultiCommand.__init__",
+    "in": "Group.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1398,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1398,
+    "callee": "MultiCommand.__init__",
+    "in": "CommandCollection.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1714,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1714,
+    "callee": "Parameter.__init__",
+    "in": "Option.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1984,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1984,
+    "callee": "Parameter.__init__",
+    "in": "Argument.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 24,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 24,
+    "callee": "Exception.__init__",
+    "in": "ClickException.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 57,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 57,
+    "callee": "ClickException.__init__",
+    "in": "UsageError.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 95,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 95,
+    "callee": "UsageError.__init__",
+    "in": "BadParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 126,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 126,
+    "callee": "BadParameter.__init__",
+    "in": "MissingParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 182,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 182,
+    "callee": "UsageError.__init__",
+    "in": "NoSuchOption.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 208,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 208,
+    "callee": "UsageError.__init__",
+    "in": "BadOptionUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 221,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 221,
+    "callee": "UsageError.__init__",
+    "in": "BadArgumentUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 231,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 231,
+    "callee": "ClickException.__init__",
+    "in": "FileError.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "types.py",
+    "line": 701,
+    "col": 15,
+    "name": "Tuple",
+    "form": "name",
+    "call_start_line": 701,
+    "callee": "Tuple",
+    "in": "convert_type",
+    "via": "Tuple"
+   }
+  ],
+  "candidate_names": [
+   "Tuple",
+   "__init__"
+  ]
+ },
+ {
+  "file": "parser.py",
+  "name": "__init__",
+  "qualname": "ParsingState.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 188,
+  "decorators": [],
+  "bases": [],
+  "stratum": "init",
+  "batch": 1,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 71,
+    "col": 25,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 71,
+    "callee": "io.TextIOWrapper.__init__",
+    "in": "_NonClosingTextIOWrapper.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 880,
+    "col": 20,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 880,
+    "callee": "BaseCommand.__init__",
+    "in": "Command.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1106,
+    "col": 16,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1106,
+    "callee": "Command.__init__",
+    "in": "MultiCommand.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1339,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1339,
+    "callee": "MultiCommand.__init__",
+    "in": "Group.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1398,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1398,
+    "callee": "MultiCommand.__init__",
+    "in": "CommandCollection.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1714,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1714,
+    "callee": "Parameter.__init__",
+    "in": "Option.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1984,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1984,
+    "callee": "Parameter.__init__",
+    "in": "Argument.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 24,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 24,
+    "callee": "Exception.__init__",
+    "in": "ClickException.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 57,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 57,
+    "callee": "ClickException.__init__",
+    "in": "UsageError.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 95,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 95,
+    "callee": "UsageError.__init__",
+    "in": "BadParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 126,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 126,
+    "callee": "BadParameter.__init__",
+    "in": "MissingParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 182,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 182,
+    "callee": "UsageError.__init__",
+    "in": "NoSuchOption.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 208,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 208,
+    "callee": "UsageError.__init__",
+    "in": "BadOptionUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 221,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 221,
+    "callee": "UsageError.__init__",
+    "in": "BadArgumentUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 231,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 231,
+    "callee": "ClickException.__init__",
+    "in": "FileError.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "parser.py",
+    "line": 267,
+    "col": 16,
+    "name": "ParsingState",
+    "form": "name",
+    "call_start_line": 267,
+    "callee": "ParsingState",
+    "in": "OptionParser.parse_args",
+    "via": "ParsingState"
+   }
+  ],
+  "candidate_names": [
+   "ParsingState",
+   "__init__"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_text_stderr",
+  "qualname": "get_text_stderr",
+  "kind": "function",
+  "category": "function",
+  "line": 261,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "exceptions.py",
+    "line": 41,
+    "col": 19,
+    "name": "get_text_stderr",
+    "form": "name",
+    "call_start_line": 41,
+    "callee": "get_text_stderr",
+    "in": "ClickException.show",
+    "via": "get_text_stderr"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 63,
+    "col": 19,
+    "name": "get_text_stderr",
+    "form": "name",
+    "call_start_line": 63,
+    "callee": "get_text_stderr",
+    "in": "UsageError.show",
+    "via": "get_text_stderr"
+   }
+  ],
+  "candidate_names": [
+   "get_text_stderr"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "strip_ansi",
+  "qualname": "strip_ansi",
+  "kind": "function",
+  "category": "function",
+  "line": 636,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 739,
+    "col": 15,
+    "name": "strip_ansi",
+    "form": "name",
+    "call_start_line": 739,
+    "callee": "strip_ansi",
+    "in": "term_len",
+    "via": "strip_ansi"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 379,
+    "col": 23,
+    "name": "strip_ansi",
+    "form": "name",
+    "call_start_line": 379,
+    "callee": "strip_ansi",
+    "in": "_pipepager",
+    "via": "strip_ansi"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 412,
+    "col": 15,
+    "name": "strip_ansi",
+    "form": "name",
+    "call_start_line": 412,
+    "callee": "strip_ansi",
+    "in": "_tempfilepager",
+    "via": "strip_ansi"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 426,
+    "col": 19,
+    "name": "strip_ansi",
+    "form": "name",
+    "call_start_line": 426,
+    "callee": "strip_ansi",
+    "in": "_nullpager",
+    "via": "strip_ansi"
+   },
+   {
+    "file": "termui.py",
+    "line": 531,
+    "col": 11,
+    "name": "strip_ansi",
+    "form": "name",
+    "call_start_line": 531,
+    "callee": "strip_ansi",
+    "in": "unstyle",
+    "via": "strip_ansi"
+   },
+   {
+    "file": "utils.py",
+    "line": 264,
+    "col": 22,
+    "name": "strip_ansi",
+    "form": "name",
+    "call_start_line": 264,
+    "callee": "strip_ansi",
+    "in": "echo",
+    "via": "strip_ansi"
+   },
+   {
+    "file": "utils.py",
+    "line": 269,
+    "col": 26,
+    "name": "strip_ansi",
+    "form": "name",
+    "call_start_line": 269,
+    "callee": "strip_ansi",
+    "in": "echo",
+    "via": "strip_ansi"
+   }
+  ],
+  "candidate_names": [
+   "strip_ansi"
+  ]
+ },
+ {
+  "file": "decorators.py",
+  "name": "option",
+  "qualname": "option",
+  "kind": "function",
+  "category": "function",
+  "line": 174,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "decorators.py",
+    "line": 226,
+    "col": 15,
+    "name": "option",
+    "form": "name",
+    "call_start_line": 226,
+    "callee": "option",
+    "in": "confirmation_option.decorator",
+    "via": "option"
+   },
+   {
+    "file": "decorators.py",
+    "line": 248,
+    "col": 15,
+    "name": "option",
+    "form": "name",
+    "call_start_line": 248,
+    "callee": "option",
+    "in": "password_option.decorator",
+    "via": "option"
+   },
+   {
+    "file": "decorators.py",
+    "line": 304,
+    "col": 15,
+    "name": "option",
+    "form": "name",
+    "call_start_line": 304,
+    "callee": "option",
+    "in": "version_option.decorator",
+    "via": "option"
+   },
+   {
+    "file": "decorators.py",
+    "line": 331,
+    "col": 15,
+    "name": "option",
+    "form": "name",
+    "call_start_line": 331,
+    "callee": "option",
+    "in": "help_option.decorator",
+    "via": "option"
+   }
+  ],
+  "candidate_names": [
+   "option"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_binary_stdout",
+  "qualname": "get_binary_stdout",
+  "kind": "function",
+  "category": "function",
+  "line": 240,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 521,
+    "col": 23,
+    "name": "get_binary_stdout",
+    "form": "name",
+    "call_start_line": 521,
+    "callee": "get_binary_stdout",
+    "in": "open_stream",
+    "via": "get_binary_stdout"
+   }
+  ],
+  "candidate_names": [
+   "get_binary_stdout"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "open_url",
+  "qualname": "open_url",
+  "kind": "function",
+  "category": "function",
+  "line": 506,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "termui.py",
+    "line": 615,
+    "col": 11,
+    "name": "open_url",
+    "form": "name",
+    "call_start_line": 615,
+    "callee": "open_url",
+    "in": "launch",
+    "via": "open_url"
+   }
+  ],
+  "candidate_names": [
+   "open_url"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "_nullpager",
+  "qualname": "_nullpager",
+  "kind": "function",
+  "category": "function",
+  "line": 422,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_termui_impl.py",
+    "line": 330,
+    "col": 15,
+    "name": "_nullpager",
+    "form": "name",
+    "call_start_line": 330,
+    "callee": "_nullpager",
+    "in": "pager",
+    "via": "_nullpager"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 337,
+    "col": 15,
+    "name": "_nullpager",
+    "form": "name",
+    "call_start_line": 337,
+    "callee": "_nullpager",
+    "in": "pager",
+    "via": "_nullpager"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 350,
+    "col": 15,
+    "name": "_nullpager",
+    "form": "name",
+    "call_start_line": 350,
+    "callee": "_nullpager",
+    "in": "pager",
+    "via": "_nullpager"
+   }
+  ],
+  "candidate_names": [
+   "_nullpager"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_binary_stdin",
+  "qualname": "get_binary_stdin",
+  "kind": "function",
+  "category": "function",
+  "line": 424,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 524,
+    "col": 19,
+    "name": "get_binary_stdin",
+    "form": "name",
+    "call_start_line": 524,
+    "callee": "get_binary_stdin",
+    "in": "open_stream",
+    "via": "get_binary_stdin"
+   }
+  ],
+  "candidate_names": [
+   "get_binary_stdin"
+  ]
+ },
+ {
+  "file": "termui.py",
+  "name": "getchar",
+  "qualname": "getchar",
+  "kind": "function",
+  "category": "function",
+  "line": 623,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 123,
+    "col": 19,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 123,
+    "callee": "f",
+    "in": "_FixupStream.read1",
+    "via": "f"
+   },
+   {
+    "file": "core.py",
+    "line": 1172,
+    "col": 23,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 1172,
+    "callee": "f",
+    "in": "MultiCommand.resultcallback.decorator.function",
+    "via": "f"
+   },
+   {
+    "file": "decorators.py",
+    "line": 21,
+    "col": 15,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 21,
+    "callee": "f",
+    "in": "pass_context.new_func",
+    "via": "f"
+   },
+   {
+    "file": "decorators.py",
+    "line": 33,
+    "col": 15,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 33,
+    "callee": "f",
+    "in": "pass_obj.new_func",
+    "via": "f"
+   },
+   {
+    "file": "termui.py",
+    "line": 129,
+    "col": 19,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 129,
+    "callee": "f",
+    "in": "prompt.prompt_func",
+    "via": "f"
+   },
+   {
+    "file": "termui.py",
+    "line": 646,
+    "col": 11,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 646,
+    "callee": "f",
+    "in": "getchar",
+    "via": "f"
+   },
+   {
+    "file": "termui.py",
+    "line": 652,
+    "col": 11,
+    "name": "f",
+    "form": "name",
+    "call_start_line": 652,
+    "callee": "f",
+    "in": "raw_terminal",
+    "via": "f"
+   },
+   {
+    "file": "termui.py",
+    "line": 676,
+    "col": 12,
+    "name": "getchar",
+    "form": "name",
+    "call_start_line": 676,
+    "callee": "getchar",
+    "in": "pause",
+    "via": "getchar"
+   }
+  ],
+  "candidate_names": [
+   "f",
+   "getchar"
+  ]
+ },
+ {
+  "file": "testing.py",
+  "name": "make_input_stream",
+  "qualname": "make_input_stream",
+  "kind": "function",
+  "category": "function",
+  "line": 51,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "testing.py",
+    "line": 177,
+    "col": 16,
+    "name": "make_input_stream",
+    "form": "name",
+    "call_start_line": 177,
+    "callee": "make_input_stream",
+    "in": "CliRunner.isolation",
+    "via": "make_input_stream"
+   }
+  ],
+  "candidate_names": [
+   "make_input_stream"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_binary_stdout",
+  "qualname": "get_binary_stdout",
+  "kind": "function",
+  "category": "function",
+  "line": 430,
+  "decorators": [],
+  "bases": [],
+  "stratum": "function",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 521,
+    "col": 23,
+    "name": "get_binary_stdout",
+    "form": "name",
+    "call_start_line": 521,
+    "callee": "get_binary_stdout",
+    "in": "open_stream",
+    "via": "get_binary_stdout"
+   }
+  ],
+  "candidate_names": [
+   "get_binary_stdout"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "UUIDParameterType.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 426,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "types.py",
+    "line": 46,
+    "col": 24,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 46,
+    "callee": "self.convert",
+    "in": "ParamType.__call__",
+    "via": "convert"
+   },
+   {
+    "file": "types.py",
+    "line": 290,
+    "col": 26,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 290,
+    "callee": "IntParamType.convert",
+    "in": "IntRange.convert",
+    "via": "convert"
+   },
+   {
+    "file": "types.py",
+    "line": 364,
+    "col": 28,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 364,
+    "callee": "FloatParamType.convert",
+    "in": "FloatRange.convert",
+    "via": "convert"
+   }
+  ],
+  "candidate_names": [
+   "convert"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "get_missing_message",
+  "qualname": "Choice.get_missing_message",
+  "kind": "function",
+  "category": "method",
+  "line": 163,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "exceptions.py",
+    "line": 144,
+    "col": 40,
+    "name": "get_missing_message",
+    "form": "attr",
+    "call_start_line": 144,
+    "callee": "self.param.type.get_missing_message",
+    "in": "MissingParameter.format_message",
+    "via": "get_missing_message"
+   }
+  ],
+  "candidate_names": [
+   "get_missing_message"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "format_message",
+  "qualname": "ClickException.format_message",
+  "kind": "function",
+  "category": "method",
+  "line": 27,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "exceptions.py",
+    "line": 42,
+    "col": 37,
+    "name": "format_message",
+    "form": "attr",
+    "call_start_line": 42,
+    "callee": "self.format_message",
+    "in": "ClickException.show",
+    "via": "format_message"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 73,
+    "col": 37,
+    "name": "format_message",
+    "form": "attr",
+    "call_start_line": 73,
+    "callee": "self.format_message",
+    "in": "UsageError.show",
+    "via": "format_message"
+   }
+  ],
+  "candidate_names": [
+   "format_message"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "update",
+  "qualname": "ProgressBar.update",
+  "kind": "function",
+  "category": "method",
+  "line": 290,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_termui_impl.py",
+    "line": 321,
+    "col": 21,
+    "name": "update",
+    "form": "attr",
+    "call_start_line": 321,
+    "callee": "self.update",
+    "in": "ProgressBar.generator",
+    "via": "update"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 457,
+    "col": 20,
+    "name": "update",
+    "form": "attr",
+    "call_start_line": 457,
+    "callee": "environ.update",
+    "in": "Editor.edit_file",
+    "via": "update"
+   },
+   {
+    "file": "core.py",
+    "line": 1417,
+    "col": 15,
+    "name": "update",
+    "form": "attr",
+    "call_start_line": 1417,
+    "callee": "rv.update",
+    "in": "CommandCollection.list_commands",
+    "via": "update"
+   },
+   {
+    "file": "parser.py",
+    "line": 244,
+    "col": 27,
+    "name": "update",
+    "form": "attr",
+    "call_start_line": 244,
+    "callee": "self._opt_prefixes.update",
+    "in": "OptionParser.add_option",
+    "via": "update"
+   },
+   {
+    "file": "testing.py",
+    "line": 156,
+    "col": 15,
+    "name": "update",
+    "form": "attr",
+    "call_start_line": 156,
+    "callee": "rv.update",
+    "in": "CliRunner.make_env",
+    "via": "update"
+   }
+  ],
+  "candidate_names": [
+   "update"
+  ]
+ },
+ {
+  "file": "formatting.py",
+  "name": "write_heading",
+  "qualname": "HelpFormatter.write_heading",
+  "kind": "function",
+  "category": "method",
+  "line": 164,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "formatting.py",
+    "line": 245,
+    "col": 13,
+    "name": "write_heading",
+    "form": "attr",
+    "call_start_line": 245,
+    "callee": "self.write_heading",
+    "in": "HelpFormatter.section",
+    "via": "write_heading"
+   }
+  ],
+  "candidate_names": [
+   "write_heading"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "resolve_envvar_value",
+  "qualname": "Option.resolve_envvar_value",
+  "kind": "function",
+  "category": "method",
+  "line": 1943,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1614,
+    "col": 18,
+    "name": "resolve_envvar_value",
+    "form": "attr",
+    "call_start_line": 1614,
+    "callee": "self.resolve_envvar_value",
+    "in": "Parameter.value_from_envvar",
+    "via": "resolve_envvar_value"
+   },
+   {
+    "file": "core.py",
+    "line": 1944,
+    "col": 23,
+    "name": "resolve_envvar_value",
+    "form": "attr",
+    "call_start_line": 1944,
+    "callee": "Parameter.resolve_envvar_value",
+    "in": "Option.resolve_envvar_value",
+    "via": "resolve_envvar_value"
+   },
+   {
+    "file": "core.py",
+    "line": 1952,
+    "col": 18,
+    "name": "resolve_envvar_value",
+    "form": "attr",
+    "call_start_line": 1952,
+    "callee": "self.resolve_envvar_value",
+    "in": "Option.value_from_envvar",
+    "via": "resolve_envvar_value"
+   }
+  ],
+  "candidate_names": [
+   "resolve_envvar_value"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "parse_args",
+  "qualname": "MultiCommand.parse_args",
+  "kind": "function",
+  "category": "method",
+  "line": 1207,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 700,
+    "col": 17,
+    "name": "parse_args",
+    "form": "attr",
+    "call_start_line": 700,
+    "callee": "self.parse_args",
+    "in": "BaseCommand.make_context",
+    "via": "parse_args"
+   },
+   {
+    "file": "core.py",
+    "line": 1045,
+    "col": 41,
+    "name": "parse_args",
+    "form": "attr",
+    "call_start_line": 1045,
+    "callee": "parser.parse_args",
+    "in": "Command.parse_args",
+    "via": "parse_args"
+   },
+   {
+    "file": "core.py",
+    "line": 1212,
+    "col": 23,
+    "name": "parse_args",
+    "form": "attr",
+    "call_start_line": 1212,
+    "callee": "Command.parse_args",
+    "in": "MultiCommand.parse_args",
+    "via": "parse_args"
+   },
+   {
+    "file": "core.py",
+    "line": 1313,
+    "col": 21,
+    "name": "parse_args",
+    "form": "attr",
+    "call_start_line": 1313,
+    "callee": "self.parse_args",
+    "in": "MultiCommand.resolve_command",
+    "via": "parse_args"
+   }
+  ],
+  "candidate_names": [
+   "parse_args"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "StringParamType.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 116,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "types.py",
+    "line": 46,
+    "col": 24,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 46,
+    "callee": "self.convert",
+    "in": "ParamType.__call__",
+    "via": "convert"
+   },
+   {
+    "file": "types.py",
+    "line": 290,
+    "col": 26,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 290,
+    "callee": "IntParamType.convert",
+    "in": "IntRange.convert",
+    "via": "convert"
+   },
+   {
+    "file": "types.py",
+    "line": 364,
+    "col": 28,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 364,
+    "callee": "FloatParamType.convert",
+    "in": "FloatRange.convert",
+    "via": "convert"
+   }
+  ],
+  "candidate_names": [
+   "convert"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "render_finish",
+  "qualname": "ProgressBar.render_finish",
+  "kind": "function",
+  "category": "method",
+  "line": 135,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_termui_impl.py",
+    "line": 113,
+    "col": 13,
+    "name": "render_finish",
+    "form": "attr",
+    "call_start_line": 113,
+    "callee": "self.render_finish",
+    "in": "ProgressBar.__exit__",
+    "via": "render_finish"
+   }
+  ],
+  "candidate_names": [
+   "render_finish"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "FuncParamType.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 92,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "types.py",
+    "line": 46,
+    "col": 24,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 46,
+    "callee": "self.convert",
+    "in": "ParamType.__call__",
+    "via": "convert"
+   },
+   {
+    "file": "types.py",
+    "line": 290,
+    "col": 26,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 290,
+    "callee": "IntParamType.convert",
+    "in": "IntRange.convert",
+    "via": "convert"
+   },
+   {
+    "file": "types.py",
+    "line": 364,
+    "col": 28,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 364,
+    "callee": "FloatParamType.convert",
+    "in": "FloatRange.convert",
+    "via": "convert"
+   }
+  ],
+  "candidate_names": [
+   "convert"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "make_formatter",
+  "qualname": "Context.make_formatter",
+  "kind": "function",
+  "category": "method",
+  "line": 473,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 906,
+    "col": 24,
+    "name": "make_formatter",
+    "form": "attr",
+    "call_start_line": 906,
+    "callee": "ctx.make_formatter",
+    "in": "Command.get_usage",
+    "via": "make_formatter"
+   },
+   {
+    "file": "core.py",
+    "line": 974,
+    "col": 24,
+    "name": "make_formatter",
+    "form": "attr",
+    "call_start_line": 974,
+    "callee": "ctx.make_formatter",
+    "in": "Command.get_help",
+    "via": "make_formatter"
+   }
+  ],
+  "candidate_names": [
+   "make_formatter"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "get_usage",
+  "qualname": "Context.get_usage",
+  "kind": "function",
+  "category": "method",
+  "line": 560,
+  "decorators": [],
+  "bases": [],
+  "stratum": "method",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 564,
+    "col": 28,
+    "name": "get_usage",
+    "form": "attr",
+    "call_start_line": 564,
+    "callee": "self.command.get_usage",
+    "in": "Context.get_usage",
+    "via": "get_usage"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 72,
+    "col": 42,
+    "name": "get_usage",
+    "form": "attr",
+    "call_start_line": 72,
+    "callee": "self.ctx.get_usage",
+    "in": "UsageError.show",
+    "via": "get_usage"
+   }
+  ],
+  "candidate_names": [
+   "get_usage"
+  ]
+ },
+ {
+  "file": "parser.py",
+  "name": "Option",
+  "qualname": "Option",
+  "kind": "class",
+  "category": "class",
+  "line": 122,
+  "decorators": [],
+  "bases": [
+   "object"
+  ],
+  "stratum": "class",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 953,
+    "col": 15,
+    "name": "Option",
+    "form": "name",
+    "call_start_line": 953,
+    "callee": "Option",
+    "in": "Command.get_help_option",
+    "via": "Option"
+   },
+   {
+    "file": "parser.py",
+    "line": 243,
+    "col": 17,
+    "name": "Option",
+    "form": "name",
+    "call_start_line": 243,
+    "callee": "Option",
+    "in": "OptionParser.add_option",
+    "via": "Option"
+   }
+  ],
+  "candidate_names": [
+   "Option"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "FileError",
+  "qualname": "FileError",
+  "kind": "class",
+  "category": "class",
+  "line": 224,
+  "decorators": [],
+  "bases": [
+   "ClickException"
+  ],
+  "stratum": "class",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "utils.py",
+    "line": 132,
+    "col": 18,
+    "name": "FileError",
+    "form": "name",
+    "call_start_line": 132,
+    "callee": "FileError",
+    "in": "LazyFile.open",
+    "via": "FileError"
+   }
+  ],
+  "candidate_names": [
+   "FileError"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "ConsoleStream",
+  "qualname": "ConsoleStream",
+  "kind": "class",
+  "category": "class",
+  "line": 197,
+  "decorators": [],
+  "bases": [
+   "object"
+  ],
+  "stratum": "class",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_winconsole.py",
+    "line": 277,
+    "col": 11,
+    "name": "ConsoleStream",
+    "form": "name",
+    "call_start_line": 277,
+    "callee": "ConsoleStream",
+    "in": "_get_text_stdin",
+    "via": "ConsoleStream"
+   },
+   {
+    "file": "_winconsole.py",
+    "line": 287,
+    "col": 11,
+    "name": "ConsoleStream",
+    "form": "name",
+    "call_start_line": 287,
+    "callee": "ConsoleStream",
+    "in": "_get_text_stdout",
+    "via": "ConsoleStream"
+   },
+   {
+    "file": "_winconsole.py",
+    "line": 297,
+    "col": 11,
+    "name": "ConsoleStream",
+    "form": "name",
+    "call_start_line": 297,
+    "callee": "ConsoleStream",
+    "in": "_get_text_stderr",
+    "via": "ConsoleStream"
+   }
+  ],
+  "candidate_names": [
+   "ConsoleStream"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "WindowsChunkedWriter",
+  "qualname": "WindowsChunkedWriter",
+  "kind": "class",
+  "category": "class",
+  "line": 231,
+  "decorators": [],
+  "bases": [
+   "object"
+  ],
+  "stratum": "class",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_winconsole.py",
+    "line": 266,
+    "col": 27,
+    "name": "WindowsChunkedWriter",
+    "form": "name",
+    "call_start_line": 266,
+    "callee": "WindowsChunkedWriter",
+    "in": "_wrap_std_stream",
+    "via": "WindowsChunkedWriter"
+   }
+  ],
+  "candidate_names": [
+   "WindowsChunkedWriter"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "Py_buffer",
+  "qualname": "Py_buffer",
+  "kind": "class",
+  "category": "class",
+  "line": 85,
+  "decorators": [],
+  "bases": [
+   "ctypes.Structure"
+  ],
+  "stratum": "class",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_winconsole.py",
+    "line": 111,
+    "col": 14,
+    "name": "Py_buffer",
+    "form": "name",
+    "call_start_line": 111,
+    "callee": "Py_buffer",
+    "in": "get_buffer",
+    "via": "Py_buffer"
+   }
+  ],
+  "candidate_names": [
+   "Py_buffer"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "Exit",
+  "qualname": "Exit",
+  "kind": "class",
+  "category": "class",
+  "line": 243,
+  "decorators": [],
+  "bases": [
+   "RuntimeError"
+  ],
+  "stratum": "class",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 558,
+    "col": 14,
+    "name": "Exit",
+    "form": "name",
+    "call_start_line": 558,
+    "callee": "Exit",
+    "in": "Context.exit",
+    "via": "Exit"
+   }
+  ],
+  "candidate_names": [
+   "Exit"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "BoolParamType",
+  "qualname": "BoolParamType",
+  "kind": "class",
+  "category": "class",
+  "line": 406,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ],
+  "stratum": "class",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "types.py",
+    "line": 759,
+    "col": 7,
+    "name": "BoolParamType",
+    "form": "name",
+    "call_start_line": 759,
+    "callee": "BoolParamType",
+    "in": "",
+    "via": "BoolParamType"
+   }
+  ],
+  "candidate_names": [
+   "BoolParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "IntParamType",
+  "qualname": "IntParamType",
+  "kind": "class",
+  "category": "class",
+  "line": 260,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ],
+  "stratum": "class",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "types.py",
+    "line": 751,
+    "col": 6,
+    "name": "IntParamType",
+    "form": "name",
+    "call_start_line": 751,
+    "callee": "IntParamType",
+    "in": "",
+    "via": "IntParamType"
+   }
+  ],
+  "candidate_names": [
+   "IntParamType"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "_unquote_file",
+  "qualname": "open_url._unquote_file",
+  "kind": "function",
+  "category": "nested",
+  "line": 509,
+  "decorators": [],
+  "bases": [],
+  "stratum": "nested",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_termui_impl.py",
+    "line": 524,
+    "col": 20,
+    "name": "_unquote_file",
+    "form": "name",
+    "call_start_line": 524,
+    "callee": "_unquote_file",
+    "in": "open_url",
+    "via": "_unquote_file"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 532,
+    "col": 18,
+    "name": "_unquote_file",
+    "form": "name",
+    "call_start_line": 532,
+    "callee": "_unquote_file",
+    "in": "open_url",
+    "via": "_unquote_file"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 533,
+    "col": 50,
+    "name": "_unquote_file",
+    "form": "name",
+    "call_start_line": 533,
+    "callee": "_unquote_file",
+    "in": "open_url",
+    "via": "_unquote_file"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 541,
+    "col": 18,
+    "name": "_unquote_file",
+    "form": "name",
+    "call_start_line": 541,
+    "callee": "_unquote_file",
+    "in": "open_url",
+    "via": "_unquote_file"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 549,
+    "col": 34,
+    "name": "_unquote_file",
+    "form": "name",
+    "call_start_line": 549,
+    "callee": "_unquote_file",
+    "in": "open_url",
+    "via": "_unquote_file"
+   },
+   {
+    "file": "_termui_impl.py",
+    "line": 551,
+    "col": 18,
+    "name": "_unquote_file",
+    "form": "name",
+    "call_start_line": 551,
+    "callee": "_unquote_file",
+    "in": "open_url",
+    "via": "_unquote_file"
+   }
+  ],
+  "candidate_names": [
+   "_unquote_file"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "_write_opts",
+  "qualname": "Option.get_help_record._write_opts",
+  "kind": "function",
+  "category": "nested",
+  "line": 1860,
+  "decorators": [],
+  "bases": [],
+  "stratum": "nested",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1868,
+    "col": 14,
+    "name": "_write_opts",
+    "form": "name",
+    "call_start_line": 1868,
+    "callee": "_write_opts",
+    "in": "Option.get_help_record",
+    "via": "_write_opts"
+   },
+   {
+    "file": "core.py",
+    "line": 1870,
+    "col": 22,
+    "name": "_write_opts",
+    "form": "name",
+    "call_start_line": 1870,
+    "callee": "_write_opts",
+    "in": "Option.get_help_record",
+    "via": "_write_opts"
+   }
+  ],
+  "candidate_names": [
+   "_write_opts"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "make_metavar",
+  "qualname": "Argument.make_metavar",
+  "kind": "function",
+  "category": "method",
+  "line": 1996,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1865,
+    "col": 40,
+    "name": "make_metavar",
+    "form": "attr",
+    "call_start_line": 1865,
+    "callee": "self.make_metavar",
+    "in": "Option.get_help_record._write_opts",
+    "via": "make_metavar"
+   },
+   {
+    "file": "core.py",
+    "line": 2024,
+    "col": 21,
+    "name": "make_metavar",
+    "form": "attr",
+    "call_start_line": 2024,
+    "callee": "self.make_metavar",
+    "in": "Argument.get_usage_pieces",
+    "via": "make_metavar"
+   },
+   {
+    "file": "core.py",
+    "line": 2027,
+    "col": 25,
+    "name": "make_metavar",
+    "form": "attr",
+    "call_start_line": 2027,
+    "callee": "self.make_metavar",
+    "in": "Argument.get_error_hint",
+    "via": "make_metavar"
+   }
+  ],
+  "candidate_names": [
+   "make_metavar"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "fail",
+  "qualname": "Context.fail",
+  "kind": "function",
+  "category": "method",
+  "line": 544,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1051,
+    "col": 16,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 1051,
+    "callee": "ctx.fail",
+    "in": "Command.parse_args",
+    "via": "fail"
+   },
+   {
+    "file": "core.py",
+    "line": 1240,
+    "col": 16,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 1240,
+    "callee": "ctx.fail",
+    "in": "MultiCommand.invoke",
+    "via": "fail"
+   },
+   {
+    "file": "core.py",
+    "line": 1314,
+    "col": 16,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 1314,
+    "callee": "ctx.fail",
+    "in": "MultiCommand.resolve_command",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 100,
+    "col": 17,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 100,
+    "callee": "self.fail",
+    "in": "FuncParamType.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 196,
+    "col": 13,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 196,
+    "callee": "self.fail",
+    "in": "Choice.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 250,
+    "col": 13,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 250,
+    "callee": "self.fail",
+    "in": "DateTime.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 267,
+    "col": 17,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 267,
+    "callee": "self.fail",
+    "in": "IntParamType.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 303,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 303,
+    "callee": "self.fail",
+    "in": "IntRange.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 311,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 311,
+    "callee": "self.fail",
+    "in": "IntRange.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 319,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 319,
+    "callee": "self.fail",
+    "in": "IntRange.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 339,
+    "col": 17,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 339,
+    "callee": "self.fail",
+    "in": "FloatParamType.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 377,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 377,
+    "callee": "self.fail",
+    "in": "FloatRange.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 385,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 385,
+    "callee": "self.fail",
+    "in": "FloatRange.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 393,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 393,
+    "callee": "self.fail",
+    "in": "FloatRange.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 417,
+    "col": 13,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 417,
+    "callee": "self.fail",
+    "in": "BoolParamType.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 434,
+    "col": 17,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 434,
+    "callee": "self.fail",
+    "in": "UUIDParameterType.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 518,
+    "col": 17,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 518,
+    "callee": "self.fail",
+    "in": "File.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 612,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 612,
+    "callee": "self.fail",
+    "in": "Path.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 621,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 621,
+    "callee": "self.fail",
+    "in": "Path.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 627,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 627,
+    "callee": "self.fail",
+    "in": "Path.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 635,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 635,
+    "callee": "self.fail",
+    "in": "Path.convert",
+    "via": "fail"
+   },
+   {
+    "file": "types.py",
+    "line": 643,
+    "col": 21,
+    "name": "fail",
+    "form": "attr",
+    "call_start_line": 643,
+    "callee": "self.fail",
+    "in": "Path.convert",
+    "via": "fail"
+   }
+  ],
+  "candidate_names": [
+   "fail"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "get_metavar",
+  "qualname": "ParamType.get_metavar",
+  "kind": "function",
+  "category": "method",
+  "line": 48,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 1520,
+    "col": 28,
+    "name": "get_metavar",
+    "form": "attr",
+    "call_start_line": 1520,
+    "callee": "self.type.get_metavar",
+    "in": "Parameter.make_metavar",
+    "via": "get_metavar"
+   },
+   {
+    "file": "core.py",
+    "line": 1999,
+    "col": 24,
+    "name": "get_metavar",
+    "form": "attr",
+    "call_start_line": 1999,
+    "callee": "self.type.get_metavar",
+    "in": "Argument.make_metavar",
+    "via": "get_metavar"
+   }
+  ],
+  "candidate_names": [
+   "get_metavar"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "FloatRange.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 363,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "types.py",
+    "line": 46,
+    "col": 24,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 46,
+    "callee": "self.convert",
+    "in": "ParamType.__call__",
+    "via": "convert"
+   },
+   {
+    "file": "types.py",
+    "line": 290,
+    "col": 26,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 290,
+    "callee": "IntParamType.convert",
+    "in": "IntRange.convert",
+    "via": "convert"
+   },
+   {
+    "file": "types.py",
+    "line": 364,
+    "col": 28,
+    "name": "convert",
+    "form": "attr",
+    "call_start_line": 364,
+    "callee": "FloatParamType.convert",
+    "in": "FloatRange.convert",
+    "via": "convert"
+   }
+  ],
+  "candidate_names": [
+   "convert"
+  ]
+ },
+ {
+  "file": "parser.py",
+  "name": "parse_args",
+  "qualname": "OptionParser.parse_args",
+  "kind": "function",
+  "category": "method",
+  "line": 260,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 700,
+    "col": 17,
+    "name": "parse_args",
+    "form": "attr",
+    "call_start_line": 700,
+    "callee": "self.parse_args",
+    "in": "BaseCommand.make_context",
+    "via": "parse_args"
+   },
+   {
+    "file": "core.py",
+    "line": 1045,
+    "col": 41,
+    "name": "parse_args",
+    "form": "attr",
+    "call_start_line": 1045,
+    "callee": "parser.parse_args",
+    "in": "Command.parse_args",
+    "via": "parse_args"
+   },
+   {
+    "file": "core.py",
+    "line": 1212,
+    "col": 23,
+    "name": "parse_args",
+    "form": "attr",
+    "call_start_line": 1212,
+    "callee": "Command.parse_args",
+    "in": "MultiCommand.parse_args",
+    "via": "parse_args"
+   },
+   {
+    "file": "core.py",
+    "line": 1313,
+    "col": 21,
+    "name": "parse_args",
+    "form": "attr",
+    "call_start_line": 1313,
+    "callee": "self.parse_args",
+    "in": "MultiCommand.resolve_command",
+    "via": "parse_args"
+   }
+  ],
+  "candidate_names": [
+   "parse_args"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "collect_usage_pieces",
+  "qualname": "Command.collect_usage_pieces",
+  "kind": "function",
+  "category": "method",
+  "line": 925,
+  "decorators": [],
+  "bases": [],
+  "stratum": "overridden",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "core.py",
+    "line": 922,
+    "col": 22,
+    "name": "collect_usage_pieces",
+    "form": "attr",
+    "call_start_line": 922,
+    "callee": "self.collect_usage_pieces",
+    "in": "Command.format_usage",
+    "via": "collect_usage_pieces"
+   },
+   {
+    "file": "core.py",
+    "line": 1131,
+    "col": 21,
+    "name": "collect_usage_pieces",
+    "form": "attr",
+    "call_start_line": 1131,
+    "callee": "Command.collect_usage_pieces",
+    "in": "MultiCommand.collect_usage_pieces",
+    "via": "collect_usage_pieces"
+   }
+  ],
+  "candidate_names": [
+   "collect_usage_pieces"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_binary_stderr",
+  "qualname": "get_binary_stderr",
+  "kind": "function",
+  "category": "function",
+  "line": 438,
+  "decorators": [],
+  "bases": [],
+  "stratum": "zero-candidates",
+  "batch": 2,
+  "candidates": [],
+  "candidate_names": [
+   "get_binary_stderr"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_binary_stderr",
+  "qualname": "get_binary_stderr",
+  "kind": "function",
+  "category": "function",
+  "line": 244,
+  "decorators": [],
+  "bases": [],
+  "stratum": "zero-candidates",
+  "batch": 2,
+  "candidates": [],
+  "candidate_names": [
+   "get_binary_stderr"
+  ]
+ },
+ {
+  "file": "termui.py",
+  "name": "progressbar",
+  "qualname": "progressbar",
+  "kind": "function",
+  "category": "function",
+  "line": 294,
+  "decorators": [],
+  "bases": [],
+  "stratum": "zero-candidates",
+  "batch": 2,
+  "candidates": [],
+  "candidate_names": [
+   "progressbar"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "__init__",
+  "qualname": "CommandCollection.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 1397,
+  "decorators": [],
+  "bases": [],
+  "stratum": "init",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 71,
+    "col": 25,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 71,
+    "callee": "io.TextIOWrapper.__init__",
+    "in": "_NonClosingTextIOWrapper.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 880,
+    "col": 20,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 880,
+    "callee": "BaseCommand.__init__",
+    "in": "Command.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1106,
+    "col": 16,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1106,
+    "callee": "Command.__init__",
+    "in": "MultiCommand.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1339,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1339,
+    "callee": "MultiCommand.__init__",
+    "in": "Group.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1398,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1398,
+    "callee": "MultiCommand.__init__",
+    "in": "CommandCollection.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1714,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1714,
+    "callee": "Parameter.__init__",
+    "in": "Option.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1984,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1984,
+    "callee": "Parameter.__init__",
+    "in": "Argument.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 24,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 24,
+    "callee": "Exception.__init__",
+    "in": "ClickException.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 57,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 57,
+    "callee": "ClickException.__init__",
+    "in": "UsageError.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 95,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 95,
+    "callee": "UsageError.__init__",
+    "in": "BadParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 126,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 126,
+    "callee": "BadParameter.__init__",
+    "in": "MissingParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 182,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 182,
+    "callee": "UsageError.__init__",
+    "in": "NoSuchOption.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 208,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 208,
+    "callee": "UsageError.__init__",
+    "in": "BadOptionUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 221,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 221,
+    "callee": "UsageError.__init__",
+    "in": "BadArgumentUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 231,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 231,
+    "callee": "ClickException.__init__",
+    "in": "FileError.__init__",
+    "via": "__init__"
+   }
+  ],
+  "candidate_names": [
+   "CommandCollection",
+   "__init__"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "__init__",
+  "qualname": "FloatRange.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 358,
+  "decorators": [],
+  "bases": [],
+  "stratum": "init",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 71,
+    "col": 25,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 71,
+    "callee": "io.TextIOWrapper.__init__",
+    "in": "_NonClosingTextIOWrapper.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 880,
+    "col": 20,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 880,
+    "callee": "BaseCommand.__init__",
+    "in": "Command.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1106,
+    "col": 16,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1106,
+    "callee": "Command.__init__",
+    "in": "MultiCommand.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1339,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1339,
+    "callee": "MultiCommand.__init__",
+    "in": "Group.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1398,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1398,
+    "callee": "MultiCommand.__init__",
+    "in": "CommandCollection.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1714,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1714,
+    "callee": "Parameter.__init__",
+    "in": "Option.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1984,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1984,
+    "callee": "Parameter.__init__",
+    "in": "Argument.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 24,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 24,
+    "callee": "Exception.__init__",
+    "in": "ClickException.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 57,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 57,
+    "callee": "ClickException.__init__",
+    "in": "UsageError.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 95,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 95,
+    "callee": "UsageError.__init__",
+    "in": "BadParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 126,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 126,
+    "callee": "BadParameter.__init__",
+    "in": "MissingParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 182,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 182,
+    "callee": "UsageError.__init__",
+    "in": "NoSuchOption.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 208,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 208,
+    "callee": "UsageError.__init__",
+    "in": "BadOptionUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 221,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 221,
+    "callee": "UsageError.__init__",
+    "in": "BadArgumentUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 231,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 231,
+    "callee": "ClickException.__init__",
+    "in": "FileError.__init__",
+    "via": "__init__"
+   }
+  ],
+  "candidate_names": [
+   "FloatRange",
+   "__init__"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "__init__",
+  "qualname": "Context.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 245,
+  "decorators": [],
+  "bases": [],
+  "stratum": "init",
+  "batch": 2,
+  "candidates": [
+   {
+    "file": "_compat.py",
+    "line": 71,
+    "col": 25,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 71,
+    "callee": "io.TextIOWrapper.__init__",
+    "in": "_NonClosingTextIOWrapper.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 597,
+    "col": 18,
+    "name": "Context",
+    "form": "name",
+    "call_start_line": 597,
+    "callee": "Context",
+    "in": "Context.invoke",
+    "via": "Context"
+   },
+   {
+    "file": "core.py",
+    "line": 698,
+    "col": 14,
+    "name": "Context",
+    "form": "name",
+    "call_start_line": 698,
+    "callee": "Context",
+    "in": "BaseCommand.make_context",
+    "via": "Context"
+   },
+   {
+    "file": "core.py",
+    "line": 880,
+    "col": 20,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 880,
+    "callee": "BaseCommand.__init__",
+    "in": "Command.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1106,
+    "col": 16,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1106,
+    "callee": "Command.__init__",
+    "in": "MultiCommand.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1339,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1339,
+    "callee": "MultiCommand.__init__",
+    "in": "Group.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1398,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1398,
+    "callee": "MultiCommand.__init__",
+    "in": "CommandCollection.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1714,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1714,
+    "callee": "Parameter.__init__",
+    "in": "Option.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "core.py",
+    "line": 1984,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 1984,
+    "callee": "Parameter.__init__",
+    "in": "Argument.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 24,
+    "col": 18,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 24,
+    "callee": "Exception.__init__",
+    "in": "ClickException.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 57,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 57,
+    "callee": "ClickException.__init__",
+    "in": "UsageError.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 95,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 95,
+    "callee": "UsageError.__init__",
+    "in": "BadParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 126,
+    "col": 21,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 126,
+    "callee": "BadParameter.__init__",
+    "in": "MissingParameter.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 182,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 182,
+    "callee": "UsageError.__init__",
+    "in": "NoSuchOption.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 208,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 208,
+    "callee": "UsageError.__init__",
+    "in": "BadOptionUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 221,
+    "col": 19,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 221,
+    "callee": "UsageError.__init__",
+    "in": "BadArgumentUsage.__init__",
+    "via": "__init__"
+   },
+   {
+    "file": "exceptions.py",
+    "line": 231,
+    "col": 23,
+    "name": "__init__",
+    "form": "attr",
+    "call_start_line": 231,
+    "callee": "ClickException.__init__",
+    "in": "FileError.__init__",
+    "via": "__init__"
+   }
+  ],
+  "candidate_names": [
+   "Context",
+   "__init__"
+  ]
+ }
+]

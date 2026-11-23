@@ -1,0 +1,31 @@
+# worker's labels for the 30 blind-sample pairs (from classified-batch0.json, committed fd0fc6b)
+1. _compat.py:97 _NonClosingTextIOWrapper.isatty | termui.py:670:36 | other-definition
+2. utils.py:179 echo | termui.py:548:11 | true direct
+3. testing.py:275 CliRunner.invoke | core.py:628:20 | other-definition
+4. _compat.py:738 term_len | formatting.py:212:46 | true direct
+5. utils.py:179 echo | _bashcomplete.py:354:12 | true direct
+6. exceptions.py:252 Exit.__init__ | _compat.py:71:25 | other-definition
+7. utils.py:179 echo | core.py:950:16 | true direct
+8. _compat.py:60 _NonClosingTextIOWrapper | _winconsole.py:271:18 | true direct
+9. exceptions.py:252 Exit.__init__ | exceptions.py:182:19 | other-definition
+10. _compat.py:44 is_ascii_encoding | _compat.py:344:15 | true direct
+11. core.py:865 Command.__init__ | exceptions.py:24:18 | other-definition
+12. core.py:566 Context.get_help | core.py:1209:21 | true inferred
+13. _compat.py:738 term_len | formatting.py:142:27 | true direct
+14. utils.py:179 echo | core.py:794:16 | true direct
+15. testing.py:275 CliRunner.invoke | decorators.py:73:23 | other-definition
+16. testing.py:275 CliRunner.invoke | core.py:1256:24 | other-definition
+17. utils.py:179 echo | _bashcomplete.py:352:12 | true direct
+18. types.py:409 BoolParamType.convert | types.py:290:26 | other-definition
+19. utils.py:179 echo | core.py:824:12 | true direct
+20. exceptions.py:252 Exit.__init__ | core.py:1339:21 | other-definition
+21. testing.py:275 CliRunner.invoke | core.py:1259:59 | other-definition
+22. utils.py:179 echo | _bashcomplete.py:335:8 | true direct
+23. exceptions.py:252 Exit.__init__ | core.py:1984:18 | other-definition
+24. utils.py:179 echo | exceptions.py:73:8 | true direct
+25. parser.py:152 Option.process | parser.py:282:16 | other-definition
+26. exceptions.py:252 Exit.__init__ | exceptions.py:95:19 | other-definition
+27. exceptions.py:94 BadParameter.__init__ | exceptions.py:221:19 | other-definition
+28. exceptions.py:94 BadParameter.__init__ | exceptions.py:208:19 | other-definition
+29. _textwrap.py:19 TextWrapper.extra_indent | formatting.py:85:21 | true direct
+30. _compat.py:738 term_len | formatting.py:211:15 | true direct
