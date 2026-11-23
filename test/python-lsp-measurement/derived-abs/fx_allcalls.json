@@ -1,0 +1,30 @@
+[
+ {
+  "file": "app/a.py",
+  "line": 6,
+  "col": 10,
+  "name": "Box",
+  "form": "name"
+ },
+ {
+  "file": "app/a.py",
+  "line": 7,
+  "col": 12,
+  "name": "helper",
+  "form": "name"
+ },
+ {
+  "file": "app/a.py",
+  "line": 8,
+  "col": 19,
+  "name": "helper",
+  "form": "attr"
+ },
+ {
+  "file": "app/a.py",
+  "line": 7,
+  "col": 23,
+  "name": "get",
+  "form": "attr"
+ }
+]

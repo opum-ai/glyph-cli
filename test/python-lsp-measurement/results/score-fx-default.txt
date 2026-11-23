@@ -68,8 +68,8 @@
   ]
  ],
  "definition_in_package_name_mismatch_count": 6,
- "definition_at_true_sites_resolves_to_the_target (exact def spans, no window)": "20/20 = 1.000 (95% Wilson 0.839-1.000)",
- "definition_at_true_sites_not_checkable_by_name (aliases)": 8,
+ "definition_at_true_sites_resolves_to_the_target (exact def spans, no window)": "18/18 = 1.000 (95% Wilson 0.824-1.000)",
+ "definition_at_true_sites_not_checkable_by_name (distinct lines whose callee is not the target's name: aliases, constructor calls to a subclass, cls(...))": 8,
  "definition_at_true_sites_disagreements": [],
  "timing_ms": {
   "initMs": 82.691125,

@@ -18,3 +18,5 @@ The claim therefore rests on the commit hashes and times above, which a reader c
 seed 303 regenerates targets.json and symbols.json byte-identically: run gt1_enumerate.py and diff against derived/.
 
 The scratch repository is committed here as results/ground-truth.bundle (git bundle verify; git clone it to check the commits above).
+
+Caveat on the ordering claim: the commit times above are the scratch repository's own (self-asserted, and a bundle's commit dates can be rewritten), and the "first server output" times are file modification times of uncommitted scratch files. Neither is an independent timestamp. What the files do establish is that the committed blobs equal the files used and that the harness outputs were written after those commits; they cannot prove the classification was done before the first request.

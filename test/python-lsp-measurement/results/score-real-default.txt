@@ -341,7 +341,7 @@
  ],
  "definition_in_package_name_mismatch_count": 13,
  "definition_at_true_sites_resolves_to_the_target (exact def spans, no window)": "64/65 = 0.985 (95% Wilson 0.918-0.997)",
- "definition_at_true_sites_not_checkable_by_name (aliases)": 0,
+ "definition_at_true_sites_not_checkable_by_name (distinct lines whose callee is not the target's name: aliases, constructor calls to a subclass, cls(...))": 0,
  "definition_at_true_sites_disagreements": [
   [
    "utils.py:99 proxy_bypass_registry",

@@ -191,9 +191,9 @@ for key, tr in truth.items():
     if simple == "__init__":
         names.add(qual.split(".")[0])
         spans += spans_of(tfile, qual.rsplit(".", 1)[0])
-    for site in tr["true"]:
+    for site in sorted(set(tr["true"])):  # distinct lines; a line with two true sites is checked once per matching callee
         f, l = site.rsplit(":", 1)
-        cands = [d for d in tdefs.get((f, int(l)), []) if d["name"] in names]
+        cands = {(d["col"]): d for d in tdefs.get((f, int(l)), []) if d["name"] in names}.values()
         if not cands:
             dg_skipped += 1
             continue
@@ -204,7 +204,7 @@ for key, tr in truth.items():
             else:
                 dg_bad.append((key, site, d["targets"][:2]))
 res["definition_at_true_sites_resolves_to_the_target (exact def spans, no window)"] = fmt(dg_ok, dg_total)
-res["definition_at_true_sites_not_checkable_by_name (aliases)"] = dg_skipped
+res["definition_at_true_sites_not_checkable_by_name (distinct lines whose callee is not the target's name: aliases, constructor calls to a subclass, cls(...))"] = dg_skipped
 res["definition_at_true_sites_disagreements"] = dg_bad
 res["timing_ms"] = raw["timing"]
 res["latency_ms"] = {k: (None if v is None else {"n": v["n"], "mean": round(v["meanMs"], 1), "max": round(v["maxMs"], 1)}) for k, v in raw["latency"].items()}

@@ -341,7 +341,7 @@
  ],
  "definition_in_package_name_mismatch_count": 13,
  "definition_at_true_sites_resolves_to_the_target (exact def spans, no window)": "2/2 = 1.000 (95% Wilson 0.342-1.000)",
- "definition_at_true_sites_not_checkable_by_name (aliases)": 13,
+ "definition_at_true_sites_not_checkable_by_name (distinct lines whose callee is not the target's name: aliases, constructor calls to a subclass, cls(...))": 13,
  "definition_at_true_sites_disagreements": [],
  "timing_ms": {
   "initMs": 78.709333,

@@ -19,3 +19,4 @@ E4 shows the config can live outside the repository: the adapter's analysis root
 pyrightconfig.json whose `include` is the repository path; nothing is written into the repository.
 E5: a repository config that names no platform falls back to the host default (the macOS-style miss).
 NOT tested: merging a repository's own config into the generated one (pyright's `extends`); a first-slice requirement.
+Raw output is kept only for E1, E4 and E5 (results/raw/platform-channel-e1|e4|e5); E0, E2 and E3 were run and their two signals are quoted above, but their raw output was not kept.

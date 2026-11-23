@@ -31,9 +31,9 @@ python3 -I union.py /tmp/py-raw/real-default-out.json gt3_classified.json derive
 python3 -I union.py /tmp/py-raw/fx-default-out.json fixtures/expected.json derived/fx_targets.json derived/fx_symbols.json
 python3 -I compare_runs.py /tmp/py-raw derived/symbols.json
 python3 -I strata.py /tmp/py-raw/real-default-out.json gt3_classified.json derived/targets.json
-python3 -I score.py /tmp/py-raw/real-default-out.json gt3_classified.json derived/symbols.json /nonexistent       # results/score-real-default.txt
-python3 -I score.py /tmp/py-raw/fx-default-out.json fixtures/expected.json derived/fx_symbols.json /nonexistent   # results/score-fx-default.txt (and -allplat)
-python3 -I score.py /tmp/py-raw/real-default-out.json gt4_alias.json derived/symbols.json /nonexistent           # results/score-alias-default.txt
+python3 -I score.py /tmp/py-raw/real-default-out.json gt3_classified.json derived/symbols.json <requests>/src/requests --verbose   # results/score-real-default.txt
+python3 -I score.py /tmp/py-raw/fx-default-out.json fixtures/expected.json derived/fx_symbols.json fixtures --verbose   # results/score-fx-default.txt (and -allplat)
+python3 -I score.py /tmp/py-raw/real-default-out.json gt4_alias.json derived/symbols.json <requests>/src/requests --verbose   # results/score-alias-default.txt
 python3 -I union.py /tmp/py-raw/real-allplat-out.json gt3_classified.json derived/targets_combined.json derived/symbols.json gt4_alias.json   # results/union-real-allplat.txt
 python3 -I union.py /tmp/py-raw/fx-allplat-out.json fixtures/expected.json derived/fx_targets.json derived/fx_symbols.json                       # results/union-fx-allplat.txt
 ```
@@ -46,8 +46,9 @@ harness environment variables `CONFIG_RESPONSE` and `INIT_OPTIONS` plus a genera
 ground truth before pyright ran: `git bundle verify results/ground-truth.bundle` and `git clone` it to check the blob ids in
 `results/ground-truth-provenance.txt`.
 
-The output reproduces `results/*.txt` apart from timings. `/nonexistent` as a source root only blanks the source-line
-text `--verbose` prints. `score.py` refuses (exit 2) to score a run with no answered request, with request errors, or with a
+The output reproduces `results/*.txt` apart from timings, provided the `--verbose` commands are given the real source root
+(`<requests>` is a checkout of the pinned commit, `fixtures` is the directory here): the committed `score-*.txt` files contain a
+"-- per target" section with source text. With `/nonexistent` as the source root only that source text is blanked. `score.py` refuses (exit 2) to score a run with no answered request, with request errors, or with a
 missing target record.
 
 ## Re-running the language server
@@ -65,3 +66,11 @@ node harness.mjs <requests> <targets> derived/allcalls.json derived/symbols.json
 `pyrightconfig.json` containing `{"pythonPlatform":"All"}` in the analysis root (the harness answers the server's
 `workspace/configuration` request with empty settings, so the config file is the only source of it). The fixtures' analysis
 root is the `fixtures` directory itself (`harness.mjs fixtures <targets> ... all out.json`).
+
+## Layout, channel and absolute-import runs
+
+`results/layouts.txt` and `results/union-layout-*.txt`, `results/union-abs-*.txt` record the analysis-root layouts of ADR 0008
+section 5 (raw: `results/raw/lay-real-*`, `abs-*`); `fixtures-abs/` is the absolute-import fixture with its
+`expected.json`, and `derived-abs/` its derived inputs. The generated configs were
+`{"pythonPlatform":"All","include":[<package dir>],"extraPaths":[<src dir>]}` (and without `extraPaths`) in a directory outside
+the repository, and no config for the in-root run.

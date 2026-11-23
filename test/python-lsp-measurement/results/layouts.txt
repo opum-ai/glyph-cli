@@ -1,0 +1,15 @@
+Analysis-root layouts (ADR 0008 section 5). Same harness, all files open, pythonPlatform "All" in a pyrightconfig.json.
+
+real repository (psf/requests, relative intra-package imports), pre-registered 46 targets, 65 sites, union + ctor map:
+  config INSIDE the checkout (earlier runs)              : 65/65  (results/union-real-allplat.txt)
+  OUTSIDE the repository, include only                   : 65/65  (results/union-layout-real-noextra.txt)
+  OUTSIDE the repository, include + extraPaths -> src    : 65/65  (results/union-layout-real-shipped.txt)
+  -> the numbers in the ADR's bar table are reproduced under the shipped (out-of-repository) layout.
+
+absolute-import fixture (fixtures-abs, src layout, `from app.b import ...`, `import app.b`), 4 targets, 5 sites, union + ctor map:
+  analysis root = the fixture root, no config            : 5/5   (results/union-abs-inroot.txt)
+  OUTSIDE the repository, include only                   : 0/5   (results/union-abs-outroot-plain.txt)  <- every edge silently lost, no error
+  OUTSIDE the repository, include + extraPaths -> src    : 5/5   (results/union-abs-outroot-extra.txt)
+  -> the generated config MUST set extraPaths (or an execution root) back to the repository and its src directory.
+Not tested: stubPath (the default `typings` resolves against the config directory, so repository-local stubs may be lost),
+`extends` of a repository config, tests that import the project by its installed name, --ref materialisation.
