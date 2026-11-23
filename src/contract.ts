@@ -215,6 +215,11 @@ export function streamItemKinds(): string[] {
 export const GLOBAL_FLAGS: readonly GlobalFlagSpec[] = Object.freeze([
 	{ name: "json", takesValue: false, summary: "emit the machine-readable JSON envelope" },
 	{ name: "repo", takesValue: true, summary: "repository directory to analyze (default: current directory)" },
+	{
+		name: "language",
+		takesValue: true,
+		summary: "index this language instead of the one detection picks (registered: typescript)",
+	},
 	{ name: "version", takesValue: false, summary: "print the version and exit", kind: "version.info" },
 	{ name: "help", takesValue: false, summary: "show help and exit", kind: "help.usage" },
 ]);

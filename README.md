@@ -47,6 +47,9 @@ bun run glyph callers buildReport --repo /path/to/repo
 
 `--repo <dir>` points at the repository to analyze (default: the current
 directory). `--json` switches any command to the machine envelope.
+`--language <id>` indexes one language instead of the one detection picks (see
+[Languages](#languages)); it is accepted by `callers`, `impact` and `diff`, the
+commands that read the shared index.
 
 ## Commands
 
@@ -183,6 +186,27 @@ Show or clear this repository's local cache directory.
 Emit the live command manifest — every command's dotted `kind`, its flags and
 exit codes, and the exit-code taxonomy. The manifest is built from the
 same registry the commands use, so it cannot drift from the handlers.
+
+## Languages
+
+Glyph indexes one language per run. Detection picks it from the file extensions
+present, preferring TypeScript; `--language <id>` overrides the pick. TypeScript
+(with JavaScript) is the only language registered so far; the Python indexer is
+a later slice of the same decision.
+
+- A recognised language that has files but no registered indexer — Python until
+  its indexer lands — is named, with its file count, as not indexed. The human
+  coverage line ends `; language not indexed: python (2 files)`, and the JSON
+  `index` block carries `language` (the indexed language) and `notIndexed`
+  (`[{language, files}]`). It is never dropped silently.
+- A repository whose only recognised language has no indexer is `indeterminate`
+  (exit 7) rather than an empty answer.
+- An explicit `--language` naming an unregistered language is a usage error
+  (exit 2) listing the registered languages; naming a registered language that
+  has no files is `not_found` (exit 3) naming it.
+- When a repository has no non-TypeScript source, the `index` block carries
+  neither `language` nor `notIndexed` — both are omitted, not `null` or a
+  constant — so that answer is byte-for-byte the one earlier releases produced.
 
 ## Streaming (`--stream`)
 

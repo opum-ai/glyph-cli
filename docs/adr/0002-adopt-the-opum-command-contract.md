@@ -122,3 +122,43 @@ and covers codes 2-7 only. `EXIT_OK` (0) and `EXIT_UNCAUGHT` (1) are separate
 constants beside it, and `exitCodeTaxonomy()` in `src/contract.ts` combines the
 three into the published `ok`, `uncaught` and error-type taxonomy. The decision
 and the code values are unchanged; the body text above is left as written.
+
+## Amendment, 2026-11-23 (GCLI-70)
+
+The Python indexer record (ADR 0008) permits additive contract entries under one
+language-per-run (its ruled items 4 and 5) and lists the ones it drafts
+("Drafted by glyph-cli"). This amendment records the subset the language seam
+ships, and the shape it takes so a TypeScript-only repository's answers stay
+byte-identical.
+
+- **`--language <id>` is a global option**, declared in `GLOBAL_FLAGS` and so
+  published by `glyph help --json` beside `--json` and `--repo`. It selects one
+  language for the run; detection selects one when it is absent. It is accepted
+  only by the commands whose answer is read from the shared index (`callers`,
+  `impact`, `diff`); every other command — `code-map` included, whose tier-3
+  index is a byte-parity contract and does not expose the seam, and `help` and
+  `cache`, which read no index — rejects it as a usage error (exit 2) rather
+  than ignoring it.
+- **`language` in the `index` block**: the language whose indexer produced the
+  answer.
+- **`notIndexed` in the `index` block**: the recognised languages present in
+  scope with no registered indexer, each as `{language, files}`. The human
+  coverage line carries the same fact as a trailing
+  `; language not indexed: <id> (<n> files)`.
+- **`not_found` answers name the language** where language selection produced
+  them: an explicitly requested, registered language with no files is exit 3
+  naming it. An explicitly requested language that is *not* registered is a
+  usage error (exit 2) naming the registered languages, never a silent empty
+  answer (ADR 0008's item 2). A repository whose only recognised language has
+  no indexer is `indeterminate` (exit 7), naming the language and its file
+  count.
+- **On a repository with no non-TypeScript source, every one of these entries is
+  ABSENT** — not `null`, not a constant — so that answer is byte-for-byte what
+  it was before this amendment. A golden captured from the pre-seam build
+  (`test/language-goldens.ts`) holds it.
+
+The remaining drafted entries — a `decorator` site kind, an
+unresolved-first-party-import count and a per-answer constructor note — are
+left to the slices that produce them. Declaring a union member or field no code
+emits would contradict how this contract treats an absent field (omit it, do not
+declare a constant).

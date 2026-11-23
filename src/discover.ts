@@ -61,9 +61,21 @@ function hasSourceExtension(path: string): boolean {
 
 /** Repository-relative paths of every TS/JS source in scope, sorted. */
 export function discoverSources(repoRoot: string): string[] {
+	return discoverFiles(repoRoot, hasSourceExtension);
+}
+
+/**
+ * Repository-relative paths of every file `accept` selects, sorted.
+ *
+ * The selection is exactly {@link discoverSources}'s — Git's tracked plus
+ * unignored-untracked set inside a repository, a fixed-directory walk outside
+ * one — so language detection and the index always agree about what is in
+ * scope. An excluded path contributes no file to any language.
+ */
+export function discoverFiles(repoRoot: string, accept: (path: string) => boolean): string[] {
 	const inside = gitRun(repoRoot, ["rev-parse", "--is-inside-work-tree"]);
 	if (inside.code !== 0) {
-		if (/not a git repository/i.test(inside.stderr)) return walkSources(repoRoot);
+		if (/not a git repository/i.test(inside.stderr)) return walkFiles(repoRoot, accept);
 		throw indeterminateError(`git could not read ${repoRoot}: ${firstLine(inside.stderr)}`);
 	}
 
@@ -73,7 +85,7 @@ export function discoverSources(repoRoot: string): string[] {
 	}
 	const found = new Set<string>();
 	for (const path of listed.stdout.split("\0")) {
-		if (path === "" || !hasSourceExtension(path)) continue;
+		if (path === "" || !accept(path)) continue;
 		try {
 			if (!statSync(join(repoRoot, path)).isFile()) continue;
 		} catch {
@@ -84,7 +96,7 @@ export function discoverSources(repoRoot: string): string[] {
 	return [...found].sort();
 }
 
-function walkSources(repoRoot: string): string[] {
+function walkFiles(repoRoot: string, accept: (path: string) => boolean): string[] {
 	const found: string[] = [];
 
 	const walk = (dir: string): void => {
@@ -104,7 +116,7 @@ function walkSources(repoRoot: string): string[] {
 			}
 			if (isDirectory) {
 				if (!EXCLUDED_DIRS.has(entry)) walk(absolute);
-			} else if (hasSourceExtension(entry)) {
+			} else if (accept(entry)) {
 				found.push(toPosix(relative(repoRoot, absolute)));
 			}
 		}
