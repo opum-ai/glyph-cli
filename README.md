@@ -15,7 +15,7 @@ recorded in [ADR 0001](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0
 - **A local cache, and nothing else.** Glyph writes nothing into the
   repository it analyzes.
 - **No UI.** stdout carries either human text or JSON: one envelope per command, or
-  one line per item under `--stream`.
+  one line per item then one result line under `--stream`.
 
 ## Run it
 
@@ -150,7 +150,8 @@ $ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref
   file precedes a referencing one. A path found by more than one tier keeps its
   best; ties break by score, then path. A file the symbol tier pushes out of the
   20-file cap is named in `omissions`. With the index absent or failing the
-  symbol tier is empty and the output is the deterministic producer's. A pointer is
+  symbol tier is empty and the output is what the deterministic tiers alone
+  (named paths, changed files, identifiers) produce. A pointer is
   a path, line ranges and one line of reason, never a file body.
 - The output is bounded to 20 files and 2,000 tokens (`ceil(length / 4)`), and
   every candidate or read bound it drops is named in `omissions`. The same
@@ -194,7 +195,7 @@ and `impact` emits only once its walk completes (its `cycle` flags are decided
 after the search); `callers` and `code-map` stream while they work.
 
 - `--stream` implies `--json`. Combining it with `--plain` is a usage error
-  (exit 2), and so is passing it to a command that does not declare it.
+  (exit 2; Glyph has no `--plain` mode, the flag is only rejected), and so is passing it to a command that does not declare it.
 - stdout carries one compact success envelope per line, each newline-terminated
   and flushed when written, with `principal` last. Item lines carry
   `<command>.item` (published as `itemKind` in `help --json`); exactly one
@@ -226,8 +227,10 @@ $ glyph callers helper --stream
 Glyph follows a shared command contract for Opum tools
 and records that obligation in [ADR 0002](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0002-adopt-the-opum-command-contract.md).
 stdout carries exactly one success envelope per command — JSON under `--json`,
-human text otherwise (`--stream` instead emits one line per item, below). On failure stdout stays **empty**, and stderr carries the error
-envelope:
+human text otherwise (`--stream` instead emits one line per item, then one result
+line, below). On failure stdout carries no success envelope (under `--stream`,
+item lines already written stay and no result line follows), and stderr carries
+the error envelope:
 
 ```json
 { "schemaVersion": 1, "kind": "callers.result", "data": { }, "principal": null }
