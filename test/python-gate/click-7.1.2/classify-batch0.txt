@@ -61,7 +61,7 @@ T _compat.py:652 should_strip_ansi
 + _compat.py:703:20 direct
 + utils.py:263:11 direct
 T exceptions.py:129 MissingParameter.format_message
-p exceptions.py:42:37
+# corrected after the second blind pass: exceptions.py:42:37 (ClickException.show) is other-definition, not poly; see second-pass-comparison.txt
 p exceptions.py:73:37
 T core.py:1414 CommandCollection.list_commands
 p _bashcomplete.py:240:25

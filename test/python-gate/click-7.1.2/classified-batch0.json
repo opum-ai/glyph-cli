@@ -4,9 +4,9 @@
   "true": 81,
   "true_direct": 71,
   "true_inferred": 10,
-  "poly": 8,
+  "poly": 7,
   "excluded": 2,
-  "other_definition": 78,
+  "other_definition": 79,
   "targets_with_a_true_site": 33,
   "zero_truth_targets": 12
  },
@@ -371,18 +371,13 @@
    "true": [],
    "poly": [
     {
-     "site": "exceptions.py:42:37",
-     "call_start_line": 42,
-     "form": "attr"
-    },
-    {
      "site": "exceptions.py:73:37",
      "call_start_line": 73,
      "form": "attr"
     }
    ],
    "excluded": [],
-   "other_definition": 0,
+   "other_definition": 1,
    "batch": 0
   },
   "core.py:1414 CommandCollection.list_commands": {
