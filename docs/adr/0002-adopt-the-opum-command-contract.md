@@ -133,6 +133,11 @@ TypeScript indexes are unchanged and a consumer that ignores unknown fields is
 unaffected. `container` keeps its documented meaning (the nearest
 class/interface/enum); symbol identity uses `qualname`, not `container` + `name`.
 The Python gate scorer (`test/python-gate/gate_score.py`) reads `qualname` and
-treats a symbol without it as a missing target (exit 6). This is an additive
-contract entry under this record: a new optional field, no existing field changed.
+treats a symbol without it as a missing target (exit 6). `qualname` is the dotted
+enclosing path with **no** PEP 3155 `<locals>` segment: an indexer that emitted a
+symbol's `__qualname__` verbatim would carry `<locals>` and exit 6 on the nested
+targets — for example `Parameter.type_cast_value._convert`,
+`wrap_text._flush_par`, `should_bypass_proxies.get_proxy` and `_init.doc`. This is
+an additive contract entry under this record: a new optional field, no existing
+field changed.
 

@@ -27,6 +27,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
@@ -98,6 +99,24 @@ def copy_click_truth(tmp):
         "targets.json",
         "classified-batch0.json",
         "non-true-site-evidence-batch0.json",
+    ):
+        with open(os.path.join(source, name), "rb") as fh:
+            data = fh.read()
+        with open(os.path.join(destination, name), "wb") as fh:
+            fh.write(data)
+    return destination
+
+
+def copy_requests_truth(tmp):
+    """Copy the four requests ground-truth files into ``tmp/requests-3c7baaa/``."""
+    source = os.path.join(TRUTH_DIR, "requests-3c7baaa")
+    destination = os.path.join(tmp, "requests-3c7baaa")
+    os.makedirs(destination)
+    for name in (
+        "targets.json",
+        "classified-requests-independent.json",
+        "non-true-site-evidence.json",
+        "overload-groups.json",
     ):
         with open(os.path.join(source, name), "rb") as fh:
             data = fh.read()
@@ -203,19 +222,17 @@ class GateScoreTest(unittest.TestCase):
             self.requests_truth, stub.index(), REQUESTS_PACKAGE, mutations=mutations
         )
 
-    def render_click(self, result, non_gating=False):
+    def render_click(self, result):
         return capture_stdout(
             lambda: gate_score.render_click_report(
                 result, self.truth, self.truth["sources"], GATE_SCORE,
-                non_gating=non_gating,
             )
         )
 
-    def render_requests(self, result, non_gating=False):
+    def render_requests(self, result):
         return capture_stdout(
             lambda: gate_score.render_requests_report(
                 result, self.requests_truth, self.requests_truth["sources"], GATE_SCORE,
-                non_gating=non_gating,
             )
         )
 
@@ -815,9 +832,15 @@ class GateScoreTest(unittest.TestCase):
         )
         self.assertIn("REPOSITORY VERDICT: FAIL", self.render_requests(independent_fails))
 
-        # The reverse is not realisable on requests: the two recall sets coincide
-        # and the independent precision side counts every edge the comparable one
-        # does (plus inferred ones), so a comparable failure is also independent.
+        # The reverse is not realisable on requests, by integer arithmetic. The
+        # precision floor 0.95 is `19 * fp <= tp`; the independent side passes only
+        # when `19 * fp_i <= tp_i`, the comparable side fails only when
+        # `19 * fp_c >= tp_c + 1`. With one inferred true site `tp_i <= tp_c + 1`,
+        # and `fp_i >= fp_c`, so `19*fp_c <= 19*fp_i <= tp_i <= tp_c + 1` forces
+        # `19*fp_c = tp_c + 1`, i.e. `tp_c` is 18 (mod 19). Independent recall needs
+        # `tp_i/65 >= 0.9`, so `tp_i >= 59` and `tp_c >= 58`; the direct true sites
+        # cap `tp_c` at 64. No integer in [58, 64] is 18 (mod 19) (they are 56 and
+        # 75), so the comparable side cannot fail precision while independent passes.
         # A plain failing case still yields FAIL.
         stub = self.requests_perfect()
         for key, site in stub_index.first_n_requests_direct_true_sites(TRUTH_DIR, 8):
@@ -835,13 +858,14 @@ class GateScoreTest(unittest.TestCase):
         self.assertLess(truth["summary"]["true"], gate_score.MIN_TRUE_SITES)
         result = gate_score.score_click(truth, self.perfect().index(), PACKAGE_DIR)
         self.assertFalse(result["suitable"])
+        # An unsuitable truth has no verdict: not False (a FAIL), None.
+        self.assertIsNone(result["repository_verdict"])
         out = capture_stdout(
             lambda: gate_score.render_click_report(
-                result, truth, truth["sources"], GATE_SCORE, non_gating=True
+                result, truth, truth["sources"], GATE_SCORE
             )
         )
         self.assertIn("UNSUITABLE", out)
-        self.assertIn("NON-GATING", out)
         self.assertNotIn("REPOSITORY VERDICT", out)
 
     # -- truth integrity and index-integrity exit-6 cases --------------------
@@ -855,6 +879,39 @@ class GateScoreTest(unittest.TestCase):
                 gate_score.load_click_truth(tmp)  # verify_hashes defaults True
         self.assertEqual(context.exception.code, 6)
         self.assertIn("does not match the pinned", str(context.exception))
+
+    def test_requests_sha_mismatch_exits_6(self):
+        # Every requests input is pinned; a stray byte is exit 6 naming the file.
+        for name in (
+            "targets.json",
+            "classified-requests-independent.json",
+            "non-true-site-evidence.json",
+            "overload-groups.json",
+        ):
+            with self.subTest(input=name), tempfile.TemporaryDirectory() as tmp:
+                base = copy_requests_truth(tmp)
+                with open(os.path.join(base, name), "ab") as fh:
+                    fh.write(b" ")
+                with self.assertRaises(gate_score.GateError) as context:
+                    gate_score.load_requests_truth(tmp)  # verify_hashes defaults True
+                self.assertEqual(context.exception.code, 6)
+                self.assertIn("does not match the pinned", str(context.exception))
+
+    def test_gt3_sha_mismatch_exits_6(self):
+        # gt3 lives outside --truth-dir (pinned from THIS script's directory too);
+        # a stray byte in it is exit 6, and the real requests files still match.
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = os.path.join(tmp, "gt3_classified.json")
+            with open(gate_score.GT3_PATH, "rb") as fh:
+                data = fh.read()
+            with open(bad, "wb") as fh:
+                fh.write(data + b" ")
+            with mock.patch.object(gate_score, "GT3_PATH", bad):
+                with self.assertRaises(gate_score.GateError) as context:
+                    gate_score.load_requests_truth(TRUTH_DIR)
+        self.assertEqual(context.exception.code, 6)
+        self.assertIn("does not match the pinned", str(context.exception))
+        self.assertIn("gt3", str(context.exception))
 
     def test_duplicate_true_site_exits_6(self):
         with tempfile.TemporaryDirectory() as tmp:

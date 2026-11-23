@@ -57,8 +57,10 @@ along the MRO. On click the two constructor sites (Exit, BadParameter) give
 **Overload groups (requests, Addendum 6 item 1).** A target keyed to an `@overload`
 stub maps to the index symbol at the implementation line in
 `overload-groups.json`; `targets.json` and the classification stay keyed at the
-stub line. A symbol at the stub line only is a missing symbol (exit 6). Click has
-no overloads.
+stub line. A symbol at the stub line only is a missing symbol (exit 6). An emitted
+edge attributed to the `@overload` stub symbol itself is counted as `not_seeded`
+(the seeded signature is the implementation line): it credits no hit and is a
+recall miss, not a false positive. Click has no overloads.
 
 ```sh
 python3 -I gate_score.py click <click-index.json>        # package src/click
@@ -83,9 +85,13 @@ the excluded and poly counts, and the sha256 of every input.
 
 **Input and index integrity.** The sha256 of the 3 click and 5 requests inputs is
 pinned in `gate_score.py`; a mismatch is exit 6 naming the file and both hashes.
-A site listed twice in `true`, or in both `true` and `poly`/`excluded`, is exit 6;
-so are two symbols matching one target, a duplicate symbol id, an unknown
-`calleeId`, and an unknown site kind.
+**A pinned hash changes only in the same reviewed commit as the ground-truth change
+it tracks, and the old and new hashes are recorded on the task** — a re-generation
+or stray edit must never silently become the ground truth. The tests cover a
+mismatch in a click input, in each of the four requests inputs, and in the gt3
+baseline. A site listed twice in `true`, or in both `true` and `poly`/`excluded`,
+is exit 6; so are two symbols matching one target, a duplicate symbol id, an
+unknown `calleeId`, and an unknown site kind.
 
 **Lines with both a true and a non-true candidate.** The line convention ignores
 columns, so a line holding both a true and a non-true candidate of one target would
@@ -116,7 +122,7 @@ PY
 analyzer) and pins the expected numbers. From this directory:
 
 ```sh
-python3 -I test_gate_score.py                                  # 39 tests
+python3 -I test_gate_score.py                                  # 41 tests
 python3 -I -m unittest discover -s . -p 'test_gate_score.py'   # same, via unittest
 ```
 

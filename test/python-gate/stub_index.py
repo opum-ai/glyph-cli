@@ -5,11 +5,14 @@ No analyzer runs here: the stubs are assembled from the ground-truth files so
 known. The builder reads the ground truth directly (it does not import the
 scorer), so the expected values in the tests do not come from the code under test.
 
-A symbol's qualified name is reconstructed by the scorer as ``container + "." +
-name`` (or ``name`` when ``container`` is null). ``_symbol`` therefore splits the
-target's qualname at its last dot: the last segment is ``name`` and the rest is
-``container``. A nested function such as ``Parameter.type_cast_value._convert``
-gets ``container = "Parameter.type_cast_value"``.
+Every symbol keeps the target's full dotted ``qualname`` (the scorer reads that,
+not ``container``). ``name`` is the last segment; ``container`` is the nearest
+enclosing class/interface/enum, or ``None`` when a function has no enclosing class
+— the ``SymbolEntry.container`` meaning in ``src/types.ts`` and ADR 0002 — read
+from the committed ``symbols.json`` kinds. So
+``Parameter.type_cast_value._convert`` keeps that ``qualname`` and gets
+``container = "Parameter"``, while ``wrap_text._flush_par`` gets ``container =
+None`` because ``wrap_text`` is a function.
 
 For requests, a target keyed to an ``@overload`` stub gets its symbol at the
 implementation line from ``overload-groups.json`` (Addendum 6 item 1); the
@@ -18,7 +21,6 @@ classification and ``targets.json`` stay keyed at the stub line.
 
 from __future__ import annotations
 
-import collections
 import json
 import os
 
@@ -60,11 +62,39 @@ def target_key(target):
     return f"{target['file']}:{target['line']} {target['qualname']}"
 
 
-def _symbol(target, package_dir, kind="function", line=None):
+# Kinds that own a `container` in `SymbolEntry.container` (src/types.ts).
+_CONTAINER_KINDS = ("class", "interface", "enum")
+
+
+def load_symbol_kinds(truth_dir, subdir):
+    """Map every committed ``symbols.json`` qualname to the set of its kinds."""
+    path = os.path.join(truth_dir, subdir, "symbols.json")
+    with open(path, encoding="utf-8") as fh:
+        symbols = json.load(fh)
+    kinds = {}
+    for symbol in symbols:
+        qualname = symbol.get("qualname")
+        if qualname is None:
+            continue
+        kinds.setdefault(qualname, set()).add(symbol.get("kind"))
+    return kinds
+
+
+def nearest_enclosing_class(full, kinds):
+    """The nearest class/interface/enum enclosing ``full``, or ``None``."""
+    parts = full.split(".")
+    for end in range(len(parts) - 1, 0, -1):
+        prefix = ".".join(parts[:end])
+        if kinds.get(prefix, set()) & set(_CONTAINER_KINDS):
+            return prefix
+    return None
+
+
+def _symbol(target, package_dir, kind="function", line=None, kinds=None):
     full = target["qualname"]
-    # DEC-303 (a5) Q6: the symbol carries the full enclosing qualified name in
-    # `qualname`; `container` keeps its documented meaning (nearest class/enum).
-    container = full.split(".", 1)[0] if "." in full else None
+    # DEC-303 (a5) Q6: `qualname` is the full enclosing qualified name; `container`
+    # keeps its documented meaning (nearest class/interface/enum, else null).
+    container = nearest_enclosing_class(full, kinds or {})
     name = full.rsplit(".", 1)[-1]
     if line is None:
         line = target["line"]
@@ -108,10 +138,11 @@ def minimal_index():
 class _StubBase:
     """Shared mutable index over a classification's targets and candidates."""
 
-    def __init__(self, package_dir, targets, classified, symbol_line):
+    def __init__(self, package_dir, targets, classified, symbol_line, kinds):
         self.package_dir = package_dir
         self.targets = targets
         self.classified = classified
+        self.kinds = kinds
         self.symbols = []
         self.sites = []
         self.ids = {}
@@ -130,7 +161,9 @@ class _StubBase:
     # -- symbols -------------------------------------------------------------
 
     def _add_symbol(self, key, line):
-        symbol = _symbol(self._targets_by_key[key], self.package_dir, line=line)
+        symbol = _symbol(
+            self._targets_by_key[key], self.package_dir, line=line, kinds=self.kinds
+        )
         self.symbols.append(symbol)
         if key not in self.ids:
             self.ids[key] = symbol["id"]
@@ -142,7 +175,7 @@ class _StubBase:
 
     def add_raw_symbol(self, file_rel, line, qualname, kind="class"):
         """Append a symbol that is not a seeded target (e.g. a construction's class)."""
-        container = qualname.split(".", 1)[0] if "." in qualname else None
+        container = nearest_enclosing_class(qualname, self.kinds)
         name = qualname.rsplit(".", 1)[-1]
         file = self._index_file(file_rel)
         symbol = {
@@ -301,7 +334,11 @@ class Stub(_StubBase):
 
     def __init__(self, truth_dir, package_dir="src/click"):
         targets, classified = load_ground_truth(truth_dir)
-        super().__init__(package_dir, targets, classified, lambda _key, target: target["line"])
+        super().__init__(
+            package_dir, targets, classified,
+            lambda _key, target: target["line"],
+            load_symbol_kinds(truth_dir, CLICK_SUBDIR),
+        )
 
 
 class RequestsStub(_StubBase):
@@ -313,6 +350,7 @@ class RequestsStub(_StubBase):
         super().__init__(
             package_dir, targets, classified,
             lambda key, target: overloads.get(key, target["line"]),
+            load_symbol_kinds(truth_dir, REQUESTS_SUBDIR),
         )
 
 

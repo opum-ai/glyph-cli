@@ -993,9 +993,10 @@ def _score_classified(truth, index, package_dir, mutations=frozenset()):
 
     # DEC-303 (a5) Q5 arm B: the REPOSITORY verdict is the INDEPENDENT side only;
     # the comparable side is a baseline comparison. The floor (a2 item 8) is 62
-    # true sites; below it there is no verdict.
+    # true sites; below it there is no verdict, so the verdict is None (not the
+    # independent side's boolean, which would still read as a FAIL below the floor).
     suitable = true_total >= MIN_TRUE_SITES
-    repository_verdict = verdict_all["pass"]
+    repository_verdict = verdict_all["pass"] if suitable else None
 
     return {
         "kind": truth.get("kind", "click"),
@@ -1411,11 +1412,8 @@ def _render_header(result, sources, scorer_path, title):
     print()
 
 
-def _report_floor_and_flags(result, non_gating):
-    """Emit the non-gating flag and the floor; return False when no verdict follows."""
-    if non_gating:
-        print("NON-GATING (non-default truth dir): verdict lines suppressed")
-        print()
+def _report_floor_and_flags(result):
+    """Emit the floor; return False when no verdict line follows."""
     if not result["suitable"]:
         print(
             f"UNSUITABLE (below the {MIN_TRUE_SITES}-site floor): "
@@ -1425,9 +1423,9 @@ def _report_floor_and_flags(result, non_gating):
     return True
 
 
-def render_click_report(result, truth, sources, scorer_path, non_gating=False):
+def render_click_report(result, truth, sources, scorer_path):
     _render_header(result, sources, scorer_path, "held-out click 7.1.2 (batch 0)")
-    if not _report_floor_and_flags(result, non_gating):
+    if not _report_floor_and_flags(result):
         return
     target_level = result["target_level"]
     _print_denominator(
@@ -1444,14 +1442,13 @@ def render_click_report(result, truth, sources, scorer_path, non_gating=False):
         target_level["fully_correct_comparable"],
         target_level["targets_with_comparable"],
     )
-    if not non_gating:
-        print(
-            "REPOSITORY VERDICT: "
-            + ("PASS" if result["repository_verdict"] else "FAIL")
-        )
+    print(
+        "REPOSITORY VERDICT: "
+        + ("PASS" if result["repository_verdict"] else "FAIL")
+    )
 
 
-def render_requests_report(result, truth, sources, scorer_path, non_gating=False):
+def render_requests_report(result, truth, sources, scorer_path):
     _render_header(result, sources, scorer_path, "held-out requests 3c7baaa (batch 0)")
     totals = result["totals"]
     print(
@@ -1460,7 +1457,7 @@ def render_requests_report(result, truth, sources, scorer_path, non_gating=False
         f"direct-only {result['direct_only']}/{totals['true']} (information)"
     )
     print()
-    if not _report_floor_and_flags(result, non_gating):
+    if not _report_floor_and_flags(result):
         return
     target_level = result["target_level"]
     _print_denominator(
@@ -1477,11 +1474,10 @@ def render_requests_report(result, truth, sources, scorer_path, non_gating=False
         target_level["fully_correct_comparable"],
         target_level["targets_with_comparable"],
     )
-    if not non_gating:
-        print(
-            "REPOSITORY VERDICT: "
-            + ("PASS" if result["repository_verdict"] else "FAIL")
-        )
+    print(
+        "REPOSITORY VERDICT: "
+        + ("PASS" if result["repository_verdict"] else "FAIL")
+    )
 
 
 # --- CLI --------------------------------------------------------------------
