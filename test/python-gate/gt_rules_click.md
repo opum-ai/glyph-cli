@@ -156,3 +156,26 @@ and report it. glyph-cli records each such convention in gt_rules with its label
 whether a repository PASSES the gate." Applied as an instruction: a further convention is recorded here as a dated addendum with its label effect on
 the committed counts; a convention that would change whether a repository passes the gate (its recall, its Wilson lower bound or its precision crossing
 0.9, 0.8 or 0.95 on either denominator) goes to the leader before it is applied. It is not used to relabel batch 0 beyond what (a3) states.
+
+## Addendum 5, 2026-11-23T20:48Z: requests under the independent denominator (GCLI-74 / S0b); standing-rule conventions
+
+Applied to the 46 pre-registered requests targets at `3c7baaa`, `src/requests`: candidate list `requests-3c7baaa/candidates.txt` (197 sites, committed a0f7eba before any
+label), classification `requests-3c7baaa/classified-requests-independent.json` built by `build_requests_classified.py` from `gt3_classified.json` (read, never written;
+byte-identical) plus a re-read of every candidate against the pinned source. Result: **65 true sites (62 direct, 3 inferred), 1 polymorphic, 131 other-definition,
+0 excluded, 0 newly attributable beyond the 65**; 37 targets with a true site, 9 zero-truth. The re-read found NO site that R1 had left undecidable
+among the candidates: requests is annotated (265 of 268 defs, 399 of 399 non-`self` parameters, `results/annotation-count.txt`), so every candidate receiver
+was attributable. The three `inferred` true sites are `models.py:460` (`self.headers.copy()`, an attribute of `self`), `sessions.py:886` (`v.close()`, a loop variable
+over `self.adapters.values()`) and `auth.py:302` (`r.request.copy()`, an attribute of an annotated parameter). The 1 polymorphic site is `v.close()` for
+`HTTPAdapter.close` (downward dispatch from the `BaseAdapter` receiver; (a3) Q4, not scored).
+
+Conventions decided under the standing rule (each with its effect; none changes whether a repository passes the gate, since no analyzer has run):
+1. **Denominators on requests.** The pyright-comparable recall denominator is `gt3_classified.json`'s 65 (R1 as written, the set pyright's baseline was scored on, kept
+   byte-identical). The independent denominator is the new file's 65 (identical: no new site). The `direct`-only count, 62, is reported beside them as information.
+   Effect: the two recall denominators coincide on requests; the sides can differ only in PRECISION (Q3). No label changes.
+2. **Evidence on non-true sites uses annotated parameters.** `derive_site_evidence.py` takes an optional package directory; a plain-name receiver that is an
+   annotated parameter of the enclosing function is `direct` (R1 treats an annotated receiver as decidable, so the pyright-comparable side must too). On click
+   (no annotations) the output is byte-identical with or without the directory (checked: 70 direct, 19 inferred, unchanged); on requests it gives 132 non-true pairs
+   (58 direct, 74 inferred) in `requests-3c7baaa/non-true-site-evidence.json`. Effect: the comparable precision side drops an emitted edge at a site flagged
+   `inferred`, so for requests it ignores the analyzer's edges at 74 non-true sites and at the 3 true `inferred` ones; the independent side counts them all.
+3. **Control.** Because the candidate re-read produced no site beyond the 65, the "newly attributable" part of the blind control is empty; the control is the seeded sample of
+   30 pairs (`requests-3c7baaa/blind-sample.txt`, seed 7), classified blind by an independent reader before it sees any of this file.
