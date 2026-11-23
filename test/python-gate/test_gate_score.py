@@ -19,6 +19,8 @@ scorer existed, and the 72/80 lower bound is also the row ``wilson-floor.txt``
 prints; they are hard-coded rather than read back from the scorer under test.
 """
 
+import contextlib
+import io
 import json
 import os
 import subprocess
@@ -80,6 +82,103 @@ def run_cli_requests(index):
         )
 
 
+def capture_stdout(function):
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        function()
+    return buffer.getvalue()
+
+
+def copy_click_truth(tmp):
+    """Copy the three click ground-truth files into ``tmp/click-7.1.2/``."""
+    source = os.path.join(TRUTH_DIR, "click-7.1.2")
+    destination = os.path.join(tmp, "click-7.1.2")
+    os.makedirs(destination)
+    for name in (
+        "targets.json",
+        "classified-batch0.json",
+        "non-true-site-evidence-batch0.json",
+    ):
+        with open(os.path.join(source, name), "rb") as fh:
+            data = fh.read()
+        with open(os.path.join(destination, name), "wb") as fh:
+            fh.write(data)
+    return destination
+
+
+def write_truncated_click_truth(tmp, keep=10):
+    """Write a valid click truth keeping only the first ``keep`` true sites.
+
+    Used only to exercise the 62-site floor: the loader is called with
+    ``verify_hashes=False`` because the truncated files are not the committed ones.
+    """
+    base = copy_click_truth(tmp)
+    with open(os.path.join(base, "targets.json"), encoding="utf-8") as fh:
+        targets = json.load(fh)
+    with open(os.path.join(base, "classified-batch0.json"), encoding="utf-8") as fh:
+        classified = json.load(fh)
+    with open(os.path.join(base, "non-true-site-evidence-batch0.json"), encoding="utf-8") as fh:
+        evidence = json.load(fh)
+
+    kept = 0
+    removed = []
+    for key, entry in classified["targets"].items():
+        kept_true = []
+        for item in entry["true"]:
+            if kept < keep:
+                kept_true.append(item)
+                kept += 1
+            else:
+                removed.append((key, item["site"], item["receiver_evidence"]))
+        entry["true"] = kept_true
+    for key, site, flag in removed:
+        evidence[f"{key} | {site}"] = flag
+
+    candidates_by_key = {
+        f"{t['file']}:{t['line']} {t['qualname']}": t["candidates"] for t in targets
+    }
+    total_true = total_direct = total_inferred = total_poly = total_excluded = 0
+    total_other = 0
+    with_true = 0
+    for key, entry in classified["targets"].items():
+        candidates = {
+            f"{c['file']}:{c['line']}:{c['col']}" for c in candidates_by_key[key]
+        }
+        listed = (
+            {e["site"] for e in entry["true"]}
+            | {e["site"] for e in entry["poly"]}
+            | {e["site"] for e in entry["excluded"]}
+        )
+        entry["other_definition"] = len(candidates) - len(listed)
+        total_true += len(entry["true"])
+        total_direct += sum(1 for e in entry["true"] if e["receiver_evidence"] == "direct")
+        total_inferred += sum(1 for e in entry["true"] if e["receiver_evidence"] == "inferred")
+        total_poly += len(entry["poly"])
+        total_excluded += len(entry["excluded"])
+        total_other += entry["other_definition"]
+        if entry["true"]:
+            with_true += 1
+    classified["summary"] = {
+        "targets": len(classified["targets"]),
+        "true": total_true,
+        "true_direct": total_direct,
+        "true_inferred": total_inferred,
+        "poly": total_poly,
+        "excluded": total_excluded,
+        "other_definition": total_other,
+        "targets_with_a_true_site": with_true,
+        "zero_truth_targets": len(classified["targets"]) - with_true,
+    }
+    for name, payload in (
+        ("targets.json", targets),
+        ("classified-batch0.json", classified),
+        ("non-true-site-evidence-batch0.json", evidence),
+    ):
+        with open(os.path.join(base, name), "w", encoding="utf-8") as fh:
+            json.dump(payload, fh)
+    return tmp
+
+
 class GateScoreTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -102,6 +201,22 @@ class GateScoreTest(unittest.TestCase):
     def score_requests(self, stub, mutations=frozenset()):
         return gate_score.score_requests(
             self.requests_truth, stub.index(), REQUESTS_PACKAGE, mutations=mutations
+        )
+
+    def render_click(self, result, non_gating=False):
+        return capture_stdout(
+            lambda: gate_score.render_click_report(
+                result, self.truth, self.truth["sources"], GATE_SCORE,
+                non_gating=non_gating,
+            )
+        )
+
+    def render_requests(self, result, non_gating=False):
+        return capture_stdout(
+            lambda: gate_score.render_requests_report(
+                result, self.requests_truth, self.requests_truth["sources"], GATE_SCORE,
+                non_gating=non_gating,
+            )
         )
 
     # -- (a) a perfect index -------------------------------------------------
@@ -327,23 +442,122 @@ class GateScoreTest(unittest.TestCase):
         self.assertEqual(mutated["totals"]["tp_independent"], 80)
         self.assertEqual(mutated["totals"]["fp_independent"], 0)
 
-    # -- mapping requirement: full enclosing qualname ------------------------
+    # -- symbol identity: the additive qualname (DEC-303 (a5) Q6) ------------
 
-    def test_nested_function_container_must_carry_full_qualname(self):
-        # A nested function needs container = the whole enclosing qualified name,
-        # not merely the nearest class, or the target has no matching symbol (exit 6).
+    def test_symbol_without_qualname_is_missing(self):
+        # The scorer reads the additive `qualname`; a nested function whose symbol
+        # carries only `container` has no matching symbol (exit 6).
         stub = self.perfect()
-        edited = None
-        for symbol in stub.symbols:
-            if symbol["file"].endswith("core.py") and symbol["line"] == 1563:
-                symbol["container"] = "Parameter"  # nearest class only -> wrong qualname
-                edited = symbol
-                break
-        self.assertIsNotNone(edited)
+        symbol = next(
+            s
+            for s in stub.symbols
+            if s["file"].endswith("core.py") and s["line"] == 1563
+        )
+        saved = symbol.pop("qualname")
         completed = run_cli(stub.index())
         self.assertEqual(completed.returncode, 6)
         self.assertIn("core.py:1563", completed.stderr)
         self.assertIn("Parameter.type_cast_value._convert", completed.stderr)
+        # With `qualname` restored the target scores.
+        symbol["qualname"] = saved
+        self.assertEqual(run_cli(stub.index()).returncode, 0)
+
+    # -- constructor crediting (ruling 1): two edges per construction --------
+
+    CLICK_CONSTRUCTIONS = {
+        "exceptions.py:252 Exit.__init__": (
+            "Exit", "exceptions.py", 243, ["core.py:558:14"]
+        ),
+        "exceptions.py:94 BadParameter.__init__": (
+            "BadParameter", "exceptions.py", 76, ["types.py:76:14"]
+        ),
+    }
+
+    def test_click_one_edge_per_construction_scores_at_most_one_hit(self):
+        two_edge = self.score(self.perfect())
+        self.assertEqual(two_edge["totals"]["tp_independent"], 80)
+        self.assertEqual(two_edge["totals"]["found_comparable"], 70)
+
+        stub = self.perfect()
+        for key, (class_name, class_file, class_line, sites) in self.CLICK_CONSTRUCTIONS.items():
+            class_id = stub.add_raw_symbol(class_file, class_line, class_name, "class")
+            for site in sites:
+                candidate = stub._site_records[key][site]
+                stub.drop_at(key, site)
+                if not stub.has_edge(class_id, candidate["file"], candidate["call_start_line"]):
+                    stub.add_edge_to(
+                        class_id, candidate["file"], candidate["call_start_line"],
+                        column=candidate["col"],
+                    )
+        one_edge = self.score(stub)
+        self.assertEqual(one_edge["totals"]["tp_independent"], 78)
+        self.assertEqual(
+            (
+                round(one_edge["verdict"]["all_attributable"]["wilson"][0], 4),
+                round(one_edge["verdict"]["all_attributable"]["wilson"][1], 4),
+            ),
+            (0.9134, 0.9931),
+        )
+        self.assertEqual(one_edge["totals"]["found_comparable"], 68)
+        self.assertEqual(
+            (
+                round(one_edge["verdict"]["pyright_comparable"]["wilson"][0], 4),
+                round(one_edge["verdict"]["pyright_comparable"]["wilson"][1], 4),
+            ),
+            (0.9017, 0.9921),
+        )
+
+    REQUESTS_CONSTRUCTIONS = {
+        "models.py:407 PreparedRequest.__init__": (
+            "PreparedRequest.__init__", "models.py", 378,
+            ["models.py:362:12", "models.py:457:12", "sessions.py:540:12"],
+        ),
+        "auth.py:96 HTTPBasicAuth.__init__": (
+            "HTTPBasicAuth.__init__", None, None, ["models.py:685:31"],
+        ),
+        "cookies.py:45 MockRequest.__init__": (
+            "MockRequest.__init__", "cookies.py", 31,
+            ["cookies.py:147:10", "cookies.py:159:8"],
+        ),
+    }
+
+    def test_requests_one_edge_per_construction_scores_59_of_65(self):
+        two_edge = self.score_requests(self.requests_perfect())
+        self.assertEqual(two_edge["totals"]["tp_independent"], 65)
+        self.assertEqual(two_edge["totals"]["found_comparable"], 65)
+
+        stub = self.requests_perfect()
+        class_ids = {"HTTPBasicAuth.__init__": stub.ids["auth.py:85 HTTPBasicAuth"]}
+        for key, (label, class_file, class_line, _sites) in self.REQUESTS_CONSTRUCTIONS.items():
+            if class_file is not None:
+                class_ids[label] = stub.add_raw_symbol(class_file, class_line, label.split(".")[0], "class")
+        for key, (label, _cf, _cl, sites) in self.REQUESTS_CONSTRUCTIONS.items():
+            class_id = class_ids[label]
+            for site in sites:
+                candidate = stub._site_records[key][site]
+                stub.drop_at(key, site)
+                if not stub.has_edge(class_id, candidate["file"], candidate["call_start_line"]):
+                    stub.add_edge_to(
+                        class_id, candidate["file"], candidate["call_start_line"],
+                        column=candidate["col"],
+                    )
+        one_edge = self.score_requests(stub)
+        self.assertEqual(one_edge["totals"]["tp_independent"], 59)
+        self.assertEqual(
+            (
+                round(one_edge["verdict"]["all_attributable"]["wilson"][0], 4),
+                round(one_edge["verdict"]["all_attributable"]["wilson"][1], 4),
+            ),
+            (0.8129, 0.9570),
+        )
+        self.assertEqual(one_edge["totals"]["found_comparable"], 59)
+        self.assertEqual(
+            (
+                round(one_edge["verdict"]["pyright_comparable"]["wilson"][0], 4),
+                round(one_edge["verdict"]["pyright_comparable"]["wilson"][1], 4),
+            ),
+            (0.8129, 0.9570),
+        )
 
     # -- requests: full scoring under both denominators ---------------------
 
@@ -495,8 +709,10 @@ class GateScoreTest(unittest.TestCase):
     def test_requests_cli_prints_full_report(self):
         completed = run_cli_requests(self.requests_perfect().index())
         self.assertEqual(completed.returncode, 0)
-        self.assertIn("GATE INDEPENDENT", completed.stdout)
-        self.assertIn("GATE PYRIGHT-COMPARABLE", completed.stdout)
+        self.assertIn("INDEPENDENT", completed.stdout)
+        self.assertIn("BASELINE COMPARISON", completed.stdout)
+        self.assertIn("REPOSITORY VERDICT: PASS", completed.stdout)
+        self.assertNotIn("REPOSITORY VERDICT: FAIL", completed.stdout)
         self.assertIn("direct-only 64/65", completed.stdout)
         self.assertIn("inputs read", completed.stdout)
         self.assertIn("overloads", completed.stdout)
@@ -533,6 +749,233 @@ class GateScoreTest(unittest.TestCase):
             ),
             (63, 64),
         )
+
+    # -- repository verdict (DEC-303 (a5) Q5 arm B: independent side only) ---
+
+    def test_repository_verdict_click_uses_only_the_independent_side(self):
+        perfect = self.score(self.perfect())
+        self.assertTrue(perfect["repository_verdict"])
+        self.assertTrue(perfect["suitable"])
+        out = self.render_click(perfect)
+        self.assertIn("REPOSITORY VERDICT: PASS", out)
+        self.assertIn("BASELINE COMPARISON", out)
+
+        # Independent FAILS while the comparable side passes: drop all 10 inferred
+        # true sites (the comparable denominator is the direct-only set).
+        stub = self.perfect()
+        inferred = [
+            (key, site["site"])
+            for key, entry in stub.classified["targets"].items()
+            for site in entry["true"]
+            if site["receiver_evidence"] == "inferred"
+        ]
+        self.assertEqual(len(inferred), 10)
+        for key, site in inferred:
+            stub.drop_at(key, site)
+        independent_fails = self.score(stub)
+        self.assertFalse(independent_fails["repository_verdict"])
+        self.assertTrue(independent_fails["verdict"]["pyright_comparable"]["pass"])
+        out = self.render_click(independent_fails)
+        self.assertIn("REPOSITORY VERDICT: FAIL", out)
+        self.assertNotIn("REPOSITORY VERDICT: PASS", out)
+
+        # Independent PASSES while the comparable side fails: drop 8 direct sites.
+        stub = self.perfect()
+        for key, site in stub_index.first_n_direct_true_sites(TRUTH_DIR, 8):
+            stub.drop_at(key, site)
+        comparable_fails = self.score(stub)
+        self.assertTrue(comparable_fails["repository_verdict"])
+        self.assertFalse(comparable_fails["verdict"]["pyright_comparable"]["pass"])
+        self.assertIn("REPOSITORY VERDICT: PASS", self.render_click(comparable_fails))
+
+    def test_repository_verdict_requests_uses_only_the_independent_side(self):
+        perfect = self.score_requests(self.requests_perfect())
+        self.assertTrue(perfect["repository_verdict"])
+        out = self.render_requests(perfect)
+        self.assertIn("REPOSITORY VERDICT: PASS", out)
+        self.assertIn("BASELINE COMPARISON", out)
+
+        # Independent FAILS on independent precision while the comparable side
+        # passes: 4 emitted edges at inferred non-true sites, which the comparable
+        # precision side drops.
+        inferred_sites = [
+            ("structures.py:127 LookupDict.get", "auth.py:164:38"),
+            ("structures.py:127 LookupDict.get", "auth.py:165:44"),
+            ("structures.py:127 LookupDict.get", "auth.py:166:41"),
+            ("structures.py:127 LookupDict.get", "cookies.py:63:31"),
+        ]
+        stub = self.requests_perfect()
+        for key, site in inferred_sites:
+            stub.add_at(key, site)
+        independent_fails = self.score_requests(stub)
+        self.assertFalse(independent_fails["repository_verdict"])
+        self.assertTrue(independent_fails["verdict"]["pyright_comparable"]["pass"])
+        self.assertLess(
+            independent_fails["verdict"]["all_attributable"]["precision"], 0.95
+        )
+        self.assertIn("REPOSITORY VERDICT: FAIL", self.render_requests(independent_fails))
+
+        # The reverse is not realisable on requests: the two recall sets coincide
+        # and the independent precision side counts every edge the comparable one
+        # does (plus inferred ones), so a comparable failure is also independent.
+        # A plain failing case still yields FAIL.
+        stub = self.requests_perfect()
+        for key, site in stub_index.first_n_requests_direct_true_sites(TRUTH_DIR, 8):
+            stub.drop_at(key, site)
+        both_fail = self.score_requests(stub)
+        self.assertFalse(both_fail["repository_verdict"])
+        self.assertFalse(both_fail["verdict"]["pyright_comparable"]["pass"])
+
+    # -- the 62-site floor ---------------------------------------------------
+
+    def test_below_floor_is_unsuitable_and_has_no_verdict(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            write_truncated_click_truth(tmp, keep=10)
+            truth = gate_score.load_click_truth(tmp, verify_hashes=False)
+        self.assertLess(truth["summary"]["true"], gate_score.MIN_TRUE_SITES)
+        result = gate_score.score_click(truth, self.perfect().index(), PACKAGE_DIR)
+        self.assertFalse(result["suitable"])
+        out = capture_stdout(
+            lambda: gate_score.render_click_report(
+                result, truth, truth["sources"], GATE_SCORE, non_gating=True
+            )
+        )
+        self.assertIn("UNSUITABLE", out)
+        self.assertIn("NON-GATING", out)
+        self.assertNotIn("REPOSITORY VERDICT", out)
+
+    # -- truth integrity and index-integrity exit-6 cases --------------------
+
+    def test_sha_mismatch_exits_6(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = copy_click_truth(tmp)
+            with open(os.path.join(base, "classified-batch0.json"), "ab") as fh:
+                fh.write(b" ")
+            with self.assertRaises(gate_score.GateError) as context:
+                gate_score.load_click_truth(tmp)  # verify_hashes defaults True
+        self.assertEqual(context.exception.code, 6)
+        self.assertIn("does not match the pinned", str(context.exception))
+
+    def test_duplicate_true_site_exits_6(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = copy_click_truth(tmp)
+            path = os.path.join(base, "classified-batch0.json")
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+            key = next(k for k, v in data["targets"].items() if v["true"])
+            data["targets"][key]["true"].append(dict(data["targets"][key]["true"][0]))
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(data, fh)
+            with self.assertRaises(gate_score.GateError) as context:
+                gate_score.load_click_truth(tmp, verify_hashes=False)
+        self.assertEqual(context.exception.code, 6)
+        self.assertIn("twice", str(context.exception))
+
+    def test_true_and_poly_overlap_exits_6(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = copy_click_truth(tmp)
+            path = os.path.join(base, "classified-batch0.json")
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+            key = next(k for k, v in data["targets"].items() if v["true"])
+            data["targets"][key]["poly"].append(
+                {"site": data["targets"][key]["true"][0]["site"]}
+            )
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(data, fh)
+            with self.assertRaises(gate_score.GateError) as context:
+                gate_score.load_click_truth(tmp, verify_hashes=False)
+        self.assertEqual(context.exception.code, 6)
+        self.assertIn("twice", str(context.exception))
+
+    def test_unknown_site_kind_exits_6(self):
+        stub = self.perfect()
+        stub.sites.append({
+            "calleeId": next(iter(stub.ids.values())),
+            "callerId": None,
+            "file": "src/click/core.py",
+            "line": 1,
+            "column": 0,
+            "kind": "bogus",
+        })
+        completed = run_cli(stub.index())
+        self.assertEqual(completed.returncode, 6)
+        self.assertIn("not a known SiteKind", completed.stderr)
+
+    def test_unknown_callee_id_exits_6(self):
+        stub = self.perfect()
+        stub.sites.append({
+            "calleeId": "no-such-symbol",
+            "callerId": None,
+            "file": "src/click/core.py",
+            "line": 1,
+            "column": 0,
+            "kind": "call",
+        })
+        completed = run_cli(stub.index())
+        self.assertEqual(completed.returncode, 6)
+        self.assertIn("unknown calleeId", completed.stderr)
+
+    def test_duplicate_symbol_id_exits_6(self):
+        stub = self.perfect()
+        duplicate = dict(stub.symbols[0])
+        duplicate["line"] = 99999  # same id bytes, different line: not a 2-symbol match
+        duplicate["startLine"] = 99999
+        stub.symbols.append(duplicate)
+        completed = run_cli(stub.index())
+        self.assertEqual(completed.returncode, 6)
+        self.assertIn("two symbols with id", completed.stderr)
+
+    def test_two_symbols_matching_one_target_exits_6(self):
+        stub = self.perfect()
+        key = "decorators.py:309 help_option"
+        symbol = next(s for s in stub.symbols if s["id"] == stub.ids[key])
+        duplicate = dict(symbol)
+        duplicate["id"] = symbol["id"] + ":dup"
+        duplicate["column"] = symbol["column"] + 1
+        stub.symbols.append(duplicate)
+        completed = run_cli(stub.index())
+        self.assertEqual(completed.returncode, 6)
+        self.assertIn("matches 2 symbols", completed.stderr)
+
+    def test_two_seeds_sharing_a_symbol_signature_exit_6(self):
+        # A hand-built truth with two targets on one symbol signature; the scorer
+        # must refuse to collapse them rather than let one shadow the other.
+        truth = {
+            "kind": "click",
+            "seeds": {
+                "a.py:1 f": {"file": "a.py", "line": 1, "symbol_line": 1, "qualname": "f"},
+                "a.py:1 g": {"file": "a.py", "line": 1, "symbol_line": 1, "qualname": "f"},
+            },
+            "summary": {"poly": 0, "excluded": 0},
+            "excluded_reasons": {},
+        }
+        index = stub_index.minimal_index()
+        index["symbols"] = [
+            {"id": "src/click/a.py:1:1", "name": "f", "qualname": "f",
+             "file": "src/click/a.py", "line": 1}
+        ]
+        index["sites"] = [
+            {"calleeId": "src/click/a.py:1:1", "callerId": None,
+             "file": "src/click/a.py", "line": 2, "column": 0, "kind": "call"}
+        ]
+        with self.assertRaises(gate_score.GateError) as context:
+            gate_score.score_click(truth, index, PACKAGE_DIR)
+        self.assertEqual(context.exception.code, 6)
+        self.assertIn("share the symbol signature", str(context.exception))
+
+    def test_non_default_truth_dir_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "index.json")
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(self.perfect().index(), fh)
+            completed = subprocess.run(
+                [sys.executable, "-I", GATE_SCORE, path, "--truth-dir", tmp],
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(completed.returncode, 2)
+        self.assertIn("may not be overridden", completed.stderr)
 
 
 if __name__ == "__main__":

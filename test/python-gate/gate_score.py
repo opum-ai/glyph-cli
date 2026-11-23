@@ -13,15 +13,15 @@ Mapping (ADR 0008, "The gate", conventions; fixed before any analyzer run)
 A ground-truth target is identified by file + def/class keyword line + qualname
 (``targets.json``; Addendum 5 of ``gt_rules_click.md`` fixes the line as the
 ``def``/``class`` keyword line, which is ``ast``'s ``lineno`` under Python 3.8+).
-``SymbolEntry`` in ``src/types.ts`` carries no ``qualname`` field, so the reading
-used here is: the symbol's qualified name is ``name`` when ``container`` is null
-and ``container + "." + name`` otherwise. A target maps to the one index symbol
-with the same package-relative ``file``, the same ``line`` and that reconstructed
-qualified name. A nested function therefore needs its ``container`` to be the
-enclosing qualified name (for ``Parameter.type_cast_value._convert``,
-``container = "Parameter.type_cast_value"``), not merely the nearest class; a
-target with no such symbol is reported and the run fails (exit 6) rather than
-being scored as a miss.
+Per DEC-303 (a5) Q6 (arm A), the Python indexer emits an additive, optional
+``qualname`` field on symbols carrying the full enclosing qualified name; it is
+absent for TypeScript and recorded in ADR 0002. The scorer reads ``qualname`` (it
+does not reconstruct it from ``container`` + ``name``; ``container`` keeps its
+documented meaning). A target maps to the one index symbol with the same
+package-relative ``file``, the same ``line`` and the same ``qualname``; a symbol
+without ``qualname`` for a target (for example the nested function
+``Parameter.type_cast_value._convert``) is a missing symbol, named, and the run
+fails (exit 6) rather than scoring it as a miss.
 
 A ground-truth site matches a glyph edge when the file and the first line of the
 call expression (``call_start_line`` in ``classified-batch0.json``) agree; sites
@@ -48,8 +48,13 @@ Conventions (each ruling cited where it is implemented)
   site with ``receiver_evidence = inferred``, or a non-true site flagged
   ``inferred`` in ``non-true-site-evidence-batch0.json``). Precision is a point
   value gated at >= 0.95; its Wilson interval is printed as information only.
-* Gate per denominator: recall >= 0.9 AND Wilson lower bound >= 0.8 AND precision
+* Gate components: recall >= 0.9 AND Wilson lower bound >= 0.8 AND precision
   >= 0.95 on the matching precision side.
+* REPOSITORY VERDICT (DEC-303 (a5) Q5, arm B): the INDEPENDENT (all-attributable)
+  side alone decides -- its recall >= 0.9, its Wilson lower bound >= 0.8 and its
+  precision >= 0.95. The pyright-comparable side is printed as a baseline
+  comparison only and contributes no verdict. A truth below 62 true sites
+  (DEC-303 (a2) item 8) is UNSUITABLE and yields no verdict.
 * Requests denominators (Addendum 5 item 1): the pyright-comparable recall
   denominator is ``gt3_classified.json``'s 65 (the set pyright's baseline was
   scored on, kept byte-identical); the independent denominator is
@@ -65,8 +70,10 @@ Conventions (each ruling cited where it is implemented)
 Exit codes
 ----------
 0  the score ran (the verdict is in the output, pass or fail)
-2  usage error (argparse)
-6  an input is malformed, or a ground-truth target has no matching symbol
+2  usage error (argparse), including a refused non-default ``--truth-dir``
+6  an input is malformed (including a sha256 mismatch, a duplicated or overlapping
+   site, or a non-unique target symbol), or a ground-truth target has no matching
+   symbol
 7  the index holds zero invocation edges inside the scored package (a scored run
    that read nothing must fail rather than pass: the positive-control rule)
 
@@ -98,6 +105,32 @@ PRECISION_FLOOR = 0.95
 DEFAULT_CLICK_PACKAGE_DIR = "src/click"
 DEFAULT_REQUESTS_PACKAGE_DIR = "src/requests"
 CLICK_TRUTH_SUBDIR = "click-7.1.2"
+REQUESTS_TRUTH_SUBDIR = "requests-3c7baaa"
+
+# The requests pyright baseline is located from THIS script's directory, never
+# from --truth-dir, so a caller cannot point the scorer at a different baseline.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+GT3_PATH = os.path.normpath(
+    os.path.join(SCRIPT_DIR, "..", "python-lsp-measurement", "gt3_classified.json")
+)
+
+# DEC-303 (a2) item 8: the gate's minimum sample size is 62 true sites.
+MIN_TRUE_SITES = 62
+
+# Pinned sha256 of every committed input (S6 review). A mismatch is exit 6; the
+# pins keep a re-generation or a stray edit from silently becoming the ground truth.
+CLICK_SHA256 = {
+    "targets": "32edcc32582a2defed018297f314127be88223d4e17ee61ee51dce7b28d576b4",
+    "classified": "5ff358fe169cc91e48ae6106f54fd60232ce6b5fa8fcae356f328278aa80b5cb",
+    "evidence": "8639d06528a03503ea6040dfcaaa62d6c4ae827f8fce967121d9fe679dded4cd",
+}
+REQUESTS_SHA256 = {
+    "targets": "e68125d11de4309a279cdb044ecd314e310da3295d028c007e24369345c604e3",
+    "classified": "1aec41a9b32c79873c345e9dad142b1bca8a2f1f18a09a67273463c411e66ce0",
+    "evidence": "1667da89397a3c50bef533c60f491fd76ec4f51c895bbdf68b3a81a9aff07f8e",
+    "overloads": "26fa1b77e12dceba93f2f2f8b6192b468d62a12fe64387771a297588b6d45d17",
+    "gt3": "07ca3d6d5390efdf30f30cc03bd63f0444c5b3f655a374c54f378ed7b765542a",
+}
 
 EXIT_OK = 0
 EXIT_USAGE = 2
@@ -193,12 +226,14 @@ def package_relative(path, package_dir):
 
 
 def symbol_qualname(symbol):
-    """Reconstruct a symbol's qualified name from ``container`` and ``name``."""
-    name = symbol.get("name")
-    container = symbol.get("container")
-    if name is None:
-        return None
-    return f"{container}.{name}" if container else name
+    """The symbol's full enclosing qualified name (DEC-303 (a5) Q6, additive field).
+
+    The Python indexer emits an optional ``qualname`` (for example
+    ``Parameter.type_cast_value._convert``); it is absent for TypeScript. A symbol
+    without it does not match any ground-truth target (a missing symbol, exit 6).
+    ``container`` keeps its documented meaning and is not used for identity.
+    """
+    return symbol.get("qualname")
 
 
 def make_key(file, line, qualname):
@@ -280,15 +315,44 @@ def _require(condition, message, details=None):
         raise GateError(EXIT_MALFORMED, message, details)
 
 
+def _verify_pinned(paths, raw_by_label, pins):
+    """Exit 6 unless every input's sha256 equals its committed pin (S6 review)."""
+    for label, expected in pins.items():
+        actual = sha256_bytes(raw_by_label[label])
+        if actual != expected:
+            raise GateError(
+                EXIT_MALFORMED,
+                f"{label} sha256 {actual} does not match the pinned {expected}",
+                [
+                    f"file: {paths[label]}",
+                    f"actual: {actual}",
+                    f"pinned: {expected}",
+                ],
+            )
+
+
+def _list_site(seen, target_key, site, category):
+    """Record one site per target; a repeat or an overlap is exit 6 (S6 review)."""
+    if site in seen:
+        raise GateError(
+            EXIT_MALFORMED,
+            f"target {target_key!r} lists site {site!r} twice "
+            f"({seen[site]} and {category})",
+            ["a site may appear once, under exactly one of true / poly / excluded"],
+        )
+    seen[site] = category
+
+
 def _site_string(candidate):
     return f"{candidate['file']}:{candidate['line']}:{candidate['col']}"
 
 
-def load_click_truth(truth_dir):
+def load_click_truth(truth_dir=SCRIPT_DIR, verify_hashes=True):
     """Load and validate the committed click ground truth (batch 0).
 
     Returns a dict with the per-target scoring records, the committed summary, and
-    the source files (path, sha256, size) for the report.
+    the source files (path, sha256, size) for the report. ``verify_hashes=False``
+    is a test-only path (a truncated truth in a temp dir); the CLI always pins.
     """
     base = os.path.join(truth_dir, CLICK_TRUTH_SUBDIR)
     paths = {
@@ -301,6 +365,13 @@ def load_click_truth(truth_dir):
     evidence_raw, evidence_bytes = read_json(
         paths["evidence"], "non-true-site-evidence-batch0.json"
     )
+    raw_by_label = {
+        "targets": targets_bytes,
+        "classified": classified_bytes,
+        "evidence": evidence_bytes,
+    }
+    if verify_hashes:
+        _verify_pinned(paths, raw_by_label, CLICK_SHA256)
 
     _require(isinstance(targets_raw, list), "targets.json is not a list")
     _require(isinstance(classified_raw, dict), "classified-batch0.json is not an object")
@@ -358,17 +429,20 @@ def load_click_truth(truth_dir):
 
         true, poly, excluded = [], [], []
         listed = set()
+        seen = {}
 
         for entry in classification.get("true", []):
-            _require(entry.get("site") in cand_by_site, f"{key!r}: true site {entry.get('site')!r} is not a candidate")
-            candidate = cand_by_site[entry["site"]]
+            site = entry.get("site")
+            _require(site in cand_by_site, f"{key!r}: true site {site!r} is not a candidate")
+            _list_site(seen, key, site, "true")
+            candidate = cand_by_site[site]
             _require(
                 entry.get("receiver_evidence") in ("direct", "inferred"),
-                f"{key!r}: true site {entry['site']!r} has no receiver_evidence",
+                f"{key!r}: true site {site!r} has no receiver_evidence",
             )
-            listed.add(entry["site"])
+            listed.add(site)
             true.append({
-                "site": entry["site"],
+                "site": site,
                 "file": candidate["file"],
                 "line": candidate["call_start_line"],
                 "evidence": entry["receiver_evidence"],
@@ -378,6 +452,7 @@ def load_click_truth(truth_dir):
             for entry in classification.get(label, []):
                 site = entry.get("site")
                 _require(site in cand_by_site, f"{key!r}: {label} site {site!r} is not a candidate")
+                _list_site(seen, key, site, label)
                 candidate = cand_by_site[site]
                 flag = evidence_by_target.get(key, {}).get(site)
                 _require(flag is not None, f"{key!r}: {label} site {site!r} has no evidence flag")
@@ -448,9 +523,17 @@ def load_click_truth(truth_dir):
         totals["excluded"] += len(excluded)
         totals["other_definition"] += len(other_definition)
 
+    # Every batch-0 target must be classified (each classified key was already
+    # checked to be batch 0 above). The old check here was tautological.
+    unclassified = sorted(
+        key
+        for key, target in tinfo.items()
+        if target["batch"] == 0 and key not in batch_seen
+    )
     _require(
-        batch_seen == set(tinfo) or all(tinfo[key]["batch"] == 0 for key in batch_seen),
-        "classified-batch0.json must name only batch-0 targets",
+        not unclassified,
+        "batch-0 targets in targets.json are missing from classified-batch0.json",
+        unclassified,
     )
 
     summary = classified_raw["summary"]
@@ -622,10 +705,18 @@ def _match_target_symbols(index, truth, package_dir, mutations=frozenset()):
 def _map_emitted_edges(index, truth, package_dir, mutations):
     """Map emitted invocation edges to seeded targets, keyed by (site file, line)."""
     symbols_by_id = index_symbols_by_id(index)
-    signature_to_key = {
-        (seed["file"], _target_symbol_line(seed, mutations), seed["qualname"]): key
-        for key, seed in truth["seeds"].items()
-    }
+    # The signature must be unique: two seeds sharing it would silently collapse.
+    signature_to_key = {}
+    for key, seed in truth["seeds"].items():
+        signature = (seed["file"], _target_symbol_line(seed, mutations), seed["qualname"])
+        if signature in signature_to_key:
+            raise GateError(
+                EXIT_MALFORMED,
+                f"targets {signature_to_key[signature]!r} and {key!r} share the "
+                f"symbol signature {signature[0]}:{signature[1]} {signature[2]!r}",
+                ["each ground-truth target must map to a distinct symbol signature"],
+            )
+        signature_to_key[signature] = key
     emitted = collections.defaultdict(collections.Counter)
     stats = collections.Counter()
     for site in index["sites"]:
@@ -900,9 +991,17 @@ def _score_classified(truth, index, package_dir, mutations=frozenset()):
         tp_comparable, tp_comparable + fp_comparable,
     )
 
+    # DEC-303 (a5) Q5 arm B: the REPOSITORY verdict is the INDEPENDENT side only;
+    # the comparable side is a baseline comparison. The floor (a2 item 8) is 62
+    # true sites; below it there is no verdict.
+    suitable = true_total >= MIN_TRUE_SITES
+    repository_verdict = verdict_all["pass"]
+
     return {
         "kind": truth.get("kind", "click"),
         "package_dir": package_dir,
+        "suitable": suitable,
+        "repository_verdict": repository_verdict,
         "edges": dict(edge_stats),
         "unresolved": unresolved_report(index),
         "summary": dict(truth["summary"]),
@@ -954,9 +1053,6 @@ def score_click(truth, index, package_dir=DEFAULT_CLICK_PACKAGE_DIR, mutations=f
 
 # --- ground truth: requests -------------------------------------------------
 
-REQUESTS_TRUTH_SUBDIR = "requests-3c7baaa"
-REQUESTS_GT3 = os.path.join("..", "python-lsp-measurement", "gt3_classified.json")
-
 
 def _parse_gt3_true_sites(value, key):
     """Turn gt3's ``["file:line", ...]`` into a Counter of (file, line)."""
@@ -975,14 +1071,16 @@ def _parse_gt3_true_sites(value, key):
     return counter
 
 
-def load_requests_truth(truth_dir):
+def load_requests_truth(truth_dir=SCRIPT_DIR, verify_hashes=True):
     """Load and validate the requests classification and the gt3 baseline.
 
     Returns the same shape as :func:`load_click_truth`, plus the overload map. The
     classification (``classified-requests-independent.json``) is the independent
     recall set and the source of the precision categories; ``gt3_classified.json``
     is the pyright-comparable recall set (Addendum 5 item 1). The two coincide
-    today; both are read and scored independently.
+    today; both are read and scored independently. The gt3 file is located from
+    THIS script's directory, never from ``truth_dir``. ``verify_hashes=False`` is a
+    test-only path; the CLI always pins.
     """
     base = os.path.join(truth_dir, REQUESTS_TRUTH_SUBDIR)
     paths = {
@@ -990,7 +1088,7 @@ def load_requests_truth(truth_dir):
         "classified": os.path.join(base, "classified-requests-independent.json"),
         "evidence": os.path.join(base, "non-true-site-evidence.json"),
         "overloads": os.path.join(base, "overload-groups.json"),
-        "gt3": os.path.normpath(os.path.join(truth_dir, REQUESTS_GT3)),
+        "gt3": GT3_PATH,
     }
     targets_raw, targets_bytes = read_json(paths["targets"], "requests targets.json")
     classified_raw, classified_bytes = read_json(
@@ -1003,6 +1101,15 @@ def load_requests_truth(truth_dir):
         paths["overloads"], "requests overload-groups.json"
     )
     gt3_raw, gt3_bytes = read_json(paths["gt3"], "gt3_classified.json")
+    raw_by_label = {
+        "targets": targets_bytes,
+        "classified": classified_bytes,
+        "evidence": evidence_bytes,
+        "overloads": overloads_bytes,
+        "gt3": gt3_bytes,
+    }
+    if verify_hashes:
+        _verify_pinned(paths, raw_by_label, REQUESTS_SHA256)
 
     _require(isinstance(targets_raw, list), "requests targets.json is not a list")
     _require(
@@ -1082,16 +1189,19 @@ def load_requests_truth(truth_dir):
 
         true, poly, excluded = [], [], []
         listed = set()
+        seen = {}
         for entry in classification.get("true", []):
-            _require(entry.get("site") in cand_by_site, f"{key!r}: true site {entry.get('site')!r} is not a candidate")
-            candidate = cand_by_site[entry["site"]]
+            site = entry.get("site")
+            _require(site in cand_by_site, f"{key!r}: true site {site!r} is not a candidate")
+            _list_site(seen, key, site, "true")
+            candidate = cand_by_site[site]
             _require(
                 entry.get("receiver_evidence") in ("direct", "inferred"),
-                f"{key!r}: true site {entry['site']!r} has no receiver_evidence",
+                f"{key!r}: true site {site!r} has no receiver_evidence",
             )
-            listed.add(entry["site"])
+            listed.add(site)
             true.append({
-                "site": entry["site"],
+                "site": site,
                 "file": candidate["file"],
                 "line": candidate["call_start_line"],
                 "evidence": entry["receiver_evidence"],
@@ -1100,6 +1210,7 @@ def load_requests_truth(truth_dir):
             for entry in classification.get(label, []):
                 site = entry.get("site")
                 _require(site in cand_by_site, f"{key!r}: {label} site {site!r} is not a candidate")
+                _list_site(seen, key, site, label)
                 candidate = cand_by_site[site]
                 flag = evidence_by_target.get(key, {}).get(site)
                 _require(flag is not None, f"{key!r}: {label} site {site!r} has no evidence flag")
@@ -1252,15 +1363,14 @@ def _print_denominator(title, verdict, bootstrap, fully, total):
         )
     else:
         print("recall cluster bootstrap 95% [info] n/a")
-    mark = "PASS" if verdict["pass"] else "FAIL"
     print(
-        f"GATE {title}: {mark}  "
-        f"(recall {fmt_rate(verdict['recall'])} >= {RECALL_FLOOR}: "
+        "components: "
+        f"recall {fmt_rate(verdict['recall'])} >= {RECALL_FLOOR}: "
         f"{'yes' if verdict['recall_ok'] else 'no'}; "
         f"Wilson lower {fmt_rate(verdict['wilson'][0])} >= {WILSON_FLOOR}: "
         f"{'yes' if verdict['wilson_ok'] else 'no'}; "
         f"precision {fmt_rate(verdict['precision'])} >= {PRECISION_FLOOR}: "
-        f"{'yes' if verdict['precision_ok'] else 'no'})"
+        f"{'yes' if verdict['precision_ok'] else 'no'}"
     )
     print()
 
@@ -1301,26 +1411,47 @@ def _render_header(result, sources, scorer_path, title):
     print()
 
 
-def render_click_report(result, truth, sources, scorer_path):
+def _report_floor_and_flags(result, non_gating):
+    """Emit the non-gating flag and the floor; return False when no verdict follows."""
+    if non_gating:
+        print("NON-GATING (non-default truth dir): verdict lines suppressed")
+        print()
+    if not result["suitable"]:
+        print(
+            f"UNSUITABLE (below the {MIN_TRUE_SITES}-site floor): "
+            f"{result['totals']['true']} true sites; no repository verdict"
+        )
+        return False
+    return True
+
+
+def render_click_report(result, truth, sources, scorer_path, non_gating=False):
     _render_header(result, sources, scorer_path, "held-out click 7.1.2 (batch 0)")
+    if not _report_floor_and_flags(result, non_gating):
+        return
     target_level = result["target_level"]
     _print_denominator(
-        "ALL-ATTRIBUTABLE (recall = every true site)",
+        "INDEPENDENT / ALL-ATTRIBUTABLE (the repository verdict)",
         result["verdict"]["all_attributable"],
         result["bootstrap"]["independent"],
         target_level["fully_correct_independent"],
         target_level["targets_with_true"],
     )
     _print_denominator(
-        "PYRIGHT-COMPARABLE (recall = true sites with direct evidence)",
+        "BASELINE COMPARISON (pyright-comparable; reported, not a verdict)",
         result["verdict"]["pyright_comparable"],
         result["bootstrap"]["comparable"],
         target_level["fully_correct_comparable"],
         target_level["targets_with_comparable"],
     )
+    if not non_gating:
+        print(
+            "REPOSITORY VERDICT: "
+            + ("PASS" if result["repository_verdict"] else "FAIL")
+        )
 
 
-def render_requests_report(result, truth, sources, scorer_path):
+def render_requests_report(result, truth, sources, scorer_path, non_gating=False):
     _render_header(result, sources, scorer_path, "held-out requests 3c7baaa (batch 0)")
     totals = result["totals"]
     print(
@@ -1329,21 +1460,28 @@ def render_requests_report(result, truth, sources, scorer_path):
         f"direct-only {result['direct_only']}/{totals['true']} (information)"
     )
     print()
+    if not _report_floor_and_flags(result, non_gating):
+        return
     target_level = result["target_level"]
     _print_denominator(
-        "INDEPENDENT (recall = classified-requests-independent.json)",
+        "INDEPENDENT (classified-requests-independent.json; the repository verdict)",
         result["verdict"]["all_attributable"],
         result["bootstrap"]["independent"],
         target_level["fully_correct_independent"],
         target_level["targets_with_true"],
     )
     _print_denominator(
-        "PYRIGHT-COMPARABLE (recall = gt3_classified.json)",
+        "BASELINE COMPARISON (gt3_classified.json; reported, not a verdict)",
         result["verdict"]["pyright_comparable"],
         result["bootstrap"]["comparable"],
         target_level["fully_correct_comparable"],
         target_level["targets_with_comparable"],
     )
+    if not non_gating:
+        print(
+            "REPOSITORY VERDICT: "
+            + ("PASS" if result["repository_verdict"] else "FAIL")
+        )
 
 
 # --- CLI --------------------------------------------------------------------
@@ -1373,7 +1511,19 @@ def build_parser(mode):
     return parser
 
 
+def _require_default_truth_dir(truth_dir):
+    """Refuse a non-default --truth-dir: the sha256 pins are the committed files."""
+    if os.path.normpath(os.path.abspath(truth_dir)) != os.path.normpath(SCRIPT_DIR):
+        raise GateError(
+            EXIT_USAGE,
+            "--truth-dir may not be overridden: the sha256 pins apply to the "
+            "committed files beside this scorer",
+            [f"given: {truth_dir}", f"required: {SCRIPT_DIR}"],
+        )
+
+
 def _run_click(args):
+    _require_default_truth_dir(args.truth_dir)
     truth = load_click_truth(args.truth_dir)
     index, index_raw = read_json(args.index, "index")
     sources = list(truth["sources"])
@@ -1384,6 +1534,7 @@ def _run_click(args):
 
 
 def _run_requests(args):
+    _require_default_truth_dir(args.truth_dir)
     truth = load_requests_truth(args.truth_dir)
     index, index_raw = read_json(args.index, "index")
     sources = list(truth["sources"])

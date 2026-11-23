@@ -122,3 +122,17 @@ and covers codes 2-7 only. `EXIT_OK` (0) and `EXIT_UNCAUGHT` (1) are separate
 constants beside it, and `exitCodeTaxonomy()` in `src/contract.ts` combines the
 three into the published `ok`, `uncaught` and error-type taxonomy. The decision
 and the code values are unchanged; the body text above is left as written.
+
+## Amendment, 2026-11-23 (GCLI-72): the additive `qualname` symbol field
+
+DEC-303 (a5) Q6 (opum-ai/opum-doc#1932, commit 5b0781e4) rules arm A for
+qualified names: the Python indexer emits an additive, optional `qualname` field
+on every `SymbolEntry`, carrying the full enclosing qualified name (for example
+`Parameter.type_cast_value._convert`). It is absent for TypeScript, so existing
+TypeScript indexes are unchanged and a consumer that ignores unknown fields is
+unaffected. `container` keeps its documented meaning (the nearest
+class/interface/enum); symbol identity uses `qualname`, not `container` + `name`.
+The Python gate scorer (`test/python-gate/gate_score.py`) reads `qualname` and
+treats a symbol without it as a missing target (exit 6). This is an additive
+contract entry under this record: a new optional field, no existing field changed.
+

@@ -61,11 +61,11 @@ def target_key(target):
 
 
 def _symbol(target, package_dir, kind="function", line=None):
-    qualname = target["qualname"]
-    if "." in qualname:
-        container, name = qualname.rsplit(".", 1)
-    else:
-        container, name = None, qualname
+    full = target["qualname"]
+    # DEC-303 (a5) Q6: the symbol carries the full enclosing qualified name in
+    # `qualname`; `container` keeps its documented meaning (nearest class/enum).
+    container = full.split(".", 1)[0] if "." in full else None
+    name = full.rsplit(".", 1)[-1]
     if line is None:
         line = target["line"]
     file = f"{package_dir}/{target['file']}" if package_dir else target["file"]
@@ -74,6 +74,7 @@ def _symbol(target, package_dir, kind="function", line=None):
         "id": f"{file}:{line}:{column}",
         "name": name,
         "container": container,
+        "qualname": full,
         "kind": kind,
         "file": file,
         "startLine": line,
@@ -139,6 +140,27 @@ class _StubBase:
         """Add an extra symbol for ``key`` at ``line`` without changing its edge target."""
         return self._add_symbol(key, line)
 
+    def add_raw_symbol(self, file_rel, line, qualname, kind="class"):
+        """Append a symbol that is not a seeded target (e.g. a construction's class)."""
+        container = qualname.split(".", 1)[0] if "." in qualname else None
+        name = qualname.rsplit(".", 1)[-1]
+        file = self._index_file(file_rel)
+        symbol = {
+            "id": f"{file}:{line}:1",
+            "name": name,
+            "container": container,
+            "qualname": qualname,
+            "kind": kind,
+            "file": file,
+            "startLine": line,
+            "line": line,
+            "column": 1,
+            "endLine": line,
+            "exported": True,
+        }
+        self.symbols.append(symbol)
+        return symbol["id"]
+
     def remove_symbol(self, key):
         symbol_id = self.ids.pop(key)
         self.symbols = [s for s in self.symbols if s["id"] != symbol_id]
@@ -181,6 +203,28 @@ class _StubBase:
             "kind": kind,
         })
         return self
+
+    def add_edge_to(self, symbol_id, file_rel, line, column=0, kind="call"):
+        """Add an edge to any symbol id (including one that is not a seeded target)."""
+        self.sites.append({
+            "calleeId": symbol_id,
+            "callerId": None,
+            "file": self._index_file(file_rel),
+            "line": line,
+            "column": column,
+            "kind": kind,
+        })
+        return self
+
+    def has_edge(self, callee_id, file_rel, line):
+        """True when an edge to ``callee_id`` already exists at the caller file/line."""
+        file = self._index_file(file_rel)
+        return any(
+            site["calleeId"] == callee_id
+            and site["file"] == file
+            and site["line"] == line
+            for site in self.sites
+        )
 
     def drop_at(self, key, site):
         """Remove the edge at a classified site string (e.g. one true site)."""
