@@ -219,9 +219,12 @@ export function streamItemKinds(): string[] {
  * `help --json`; which commands accept it is documented, not a manifest field
  * (the frozen manifest has no slot for output fields).
  *
- * S7 note: this string is computed once, when `contract.ts` loads. A language
- * whose indexer is registered from a module that loads later will not appear
- * here until this summary is recomputed per manifest build.
+ * S7 note: only the `GLOBAL_FLAGS` entry's summary — the value `help --json`
+ * publishes — is fixed when `contract.ts` loads, because that array is built
+ * from this function's return value at module load. `buildProgram` calls this
+ * function itself, so it gets a live value. A language whose indexer is
+ * registered from a module that loads later therefore will not appear in the
+ * published `--language` summary.
  */
 export function languageFlagSummary(): string {
 	return `index this language instead of the one detection picks (registered: ${registeredLanguages().join(", ")})`;

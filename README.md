@@ -194,6 +194,13 @@ present, preferring TypeScript; `--language <id>` overrides the pick. TypeScript
 (with JavaScript) is the only language registered so far; the Python indexer is
 a later slice of the same decision.
 
+Python counting applies a directory rule: a tracked `.py` file under any `venv`,
+`.venv`, `__pycache__` or `.tox` path segment is not counted — a nested
+`tools/venv/x.py` or a package named `venv` is dropped — so a TypeScript
+repository whose only Python sits there gets no `notIndexed` entry, and a
+Python-only repository like that gets the "no TypeScript or JavaScript sources
+found" message.
+
 - A recognised language that has files but no registered indexer — Python until
   its indexer lands — is named, with its file count, as not indexed. The human
   coverage line ends `; language not indexed: python (2 files)`, and the JSON

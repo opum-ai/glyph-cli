@@ -147,9 +147,10 @@ break the docs check.
   usage error (exit 2) rather than ignoring it. The frozen manifest has no slot
   for output fields, so `help --json` publishes the flag but **not** a
   machine-readable statement of which commands accept it; that is documented here
-  and in the README. (This is why acceptance criterion 2 cannot be checked as
-  written: the manifest can only declare the flag, not the per-command
-  acceptance or the output fields the criterion names.)
+  and in the README. (Acceptance criterion 2 is checked against that split
+  surface: `--language` is declared in `help --json`; `language` and
+  `notIndexed` are declared in this amendment and the README, because the
+  manifest has no slot for output fields.)
 - **`language` in the `index` block**: the language whose indexer produced the
   answer, present only when the answer is not the plain TypeScript default.
 - **`notIndexed` in the `index` block**: the recognised languages present in

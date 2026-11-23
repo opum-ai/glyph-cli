@@ -91,6 +91,10 @@ export function discoverFiles(repoRoot: string, accept: (path: string) => boolea
 	}
 	const found = new Set<string>();
 	for (const path of listed.stdout.split("\0")) {
+		// The Git branch passes the repository-relative full path here, while the
+		// walk fallback below passes only the basename. Harmless for an extension
+		// check (both callers today), but a path-based accept would see different
+		// inputs per branch; slice S7 must keep that in mind.
 		if (path === "" || !accept(path)) continue;
 		try {
 			if (!statSync(join(repoRoot, path)).isFile()) continue;
