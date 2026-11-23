@@ -29,3 +29,17 @@ nothing in the original file is edited.
 7. **Overloads and platform branches.** An `@overload` stub is a definition in the ground truth (it is a `def`); pyright's
    `documentSymbol` reports the implementation only, so stubs count as missing symbols (20 of the 22 misses on the default
    platform; the other 2 are the Windows-only definitions, recovered by `pythonPlatform: "All"`).
+8. **Subclass constructor calls are invisible to the truth and the scorer unless the subclass is sampled.** `gt2_listing.py`
+   collects `__init__` candidates by the owning class's own name, and `union.py`'s constructor mapping credits a subclass
+   (one level down, with no `__init__` of its own) only if that subclass is a target in the run. A call to a subclass that
+   inherits `__init__` is therefore a true call to `C.__init__` that neither the ground truth nor the scorer can see. No effect
+   on this sample (the only subclass of a sampled `__init__` owner, `HTTPProxyAuth`, is never constructed); it is a blind spot
+   for any other repository.
+9. **The alias set is a census, not a sample.** It is every in-package relative `from .m import a as b` of a definition in `m`
+   (the narrow rule is the limit: absolute imports, `import m as n`, and aliases of names re-exported by `m` are not
+   listed). It carries counts, not confidence intervals. Its precision figures are scored against a complete truth for those
+   4 targets only.
+10. **The zero-candidates stratum can draw an alias-only function.** A definition called only through an alias has no candidate
+    by name, so it can land in the zero-candidates stratum (as a precision control with an empty truth) while having real
+    callers; its alias calls would then score as false positives. In this sample the three drawn (`list_paths`, `session`,
+    `Session.head`) have none; `is_prepared` is the kind of target that could have been drawn.

@@ -31,7 +31,20 @@ python3 -I union.py /tmp/py-raw/real-default-out.json gt3_classified.json derive
 python3 -I union.py /tmp/py-raw/fx-default-out.json fixtures/expected.json derived/fx_targets.json derived/fx_symbols.json
 python3 -I compare_runs.py /tmp/py-raw derived/symbols.json
 python3 -I strata.py /tmp/py-raw/real-default-out.json gt3_classified.json derived/targets.json
+python3 -I score.py /tmp/py-raw/real-default-out.json gt3_classified.json derived/symbols.json /nonexistent       # results/score-real-default.txt
+python3 -I score.py /tmp/py-raw/fx-default-out.json fixtures/expected.json derived/fx_symbols.json /nonexistent   # results/score-fx-default.txt (and -allplat)
+python3 -I score.py /tmp/py-raw/real-default-out.json gt4_alias.json derived/symbols.json /nonexistent           # results/score-alias-default.txt
+python3 -I union.py /tmp/py-raw/real-allplat-out.json gt3_classified.json derived/targets_combined.json derived/symbols.json gt4_alias.json   # results/union-real-allplat.txt
+python3 -I union.py /tmp/py-raw/fx-allplat-out.json fixtures/expected.json derived/fx_targets.json derived/fx_symbols.json                       # results/union-fx-allplat.txt
 ```
+
+`results/no-python-on-path.txt` and `results/platform-channels.txt` are written by hand from the runs named in them
+(`real-nopython-1`, `platform-channel-e1|e4|e5` in `results/raw/`; the experiments are `PATH` stripped to `node`, and the
+harness environment variables `CONFIG_RESPONSE` and `INIT_OPTIONS` plus a generated `pyrightconfig.json`). The
+648 + 2 split of definitions that land outside the package is printed by `score.py` ("external (typeshed or stdlib)",
+"external (installed package)"). `results/ground-truth.bundle` is a `git bundle` of the scratch repository that held the
+ground truth before pyright ran: `git bundle verify results/ground-truth.bundle` and `git clone` it to check the blob ids in
+`results/ground-truth-provenance.txt`.
 
 The output reproduces `results/*.txt` apart from timings. `/nonexistent` as a source root only blanks the source-line
 text `--verbose` prints. `score.py` refuses (exit 2) to score a run with no answered request, with request errors, or with a

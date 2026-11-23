@@ -4,12 +4,12 @@
 // or if every prepareCallHierarchy returned null (the stated controls).
 import { spawn } from "node:child_process";
 import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
 
 const [root0, targetsPath, allcallsPath, symbolsPath, openMode, outPath, srcSub = ""] = process.argv.slice(2);
 const root = resolve(root0);
-const srcDir = join(root, srcSub);
+const srcDir = isAbsolute(srcSub) ? srcSub : join(root, srcSub);
 const BIN = process.env.PYRIGHT_LANGSERVER;
 if (!BIN) throw new Error("set PYRIGHT_LANGSERVER to the pyright-langserver executable");
 
@@ -55,7 +55,7 @@ proc.stdout.on("data", (d) => {
 			ok(body);
 		} else if (body.id !== undefined && body.method) {
 			// server->client request (configuration, registerCapability): answer minimally
-			const result = body.method === "workspace/configuration" ? (body.params.items || []).map(() => ({})) : null;
+			const result = body.method === "workspace/configuration" ? (body.params.items || []).map(() => (process.env.CONFIG_RESPONSE ? JSON.parse(process.env.CONFIG_RESPONSE) : {})) : null;
 			send({ jsonrpc: "2.0", id: body.id, result });
 		}
 	}
@@ -82,6 +82,7 @@ const t0 = performance.now();
 const init = await request("initialize", {
 	processId: process.pid,
 	rootUri: pathToFileURL(root).href,
+	...(process.env.INIT_OPTIONS ? { initializationOptions: JSON.parse(process.env.INIT_OPTIONS) } : {}),
 	workspaceFolders: [{ uri: pathToFileURL(root).href, name: "w" }],
 	capabilities: {
 		textDocument: {

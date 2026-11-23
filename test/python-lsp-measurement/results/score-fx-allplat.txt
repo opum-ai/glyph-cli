@@ -18,7 +18,7 @@
  "references_extras_not_true_calls (hand-classify)": 12,
  "definition_at_call_site_total": 37,
  "definition_at_call_site_outcomes": {
-  "external": 10,
+  "external (typeshed or stdlib)": 10,
   "in-package": 26,
   "none": 1,
   "in-package, not at a def (variable/import/alias)": 3
@@ -68,7 +68,8 @@
   ]
  ],
  "definition_in_package_name_mismatch_count": 6,
- "definition_at_true_sites_resolves_to_the_target": "18/18 = 1.000 (95% Wilson 0.824-1.000)",
+ "definition_at_true_sites_resolves_to_the_target (exact def spans, no window)": "20/20 = 1.000 (95% Wilson 0.839-1.000)",
+ "definition_at_true_sites_not_checkable_by_name (aliases)": 8,
  "definition_at_true_sites_disagreements": [],
  "timing_ms": {
   "initMs": 80.058917,

@@ -151,7 +151,7 @@ for d in defs:
     if not d["targets"]:
         cats["none"] += 1
     elif all(t["file"].startswith("EXTERNAL:") for t in d["targets"]):
-        cats["external"] += 1
+        cats["external (typeshed or stdlib)" if "typeshed" in d["targets"][0]["file"] else "external (installed package)"] += 1
     else:
         cats["in-package"] += 1
         t = next(t for t in d["targets"] if not t["file"].startswith("EXTERNAL:"))
@@ -165,41 +165,46 @@ res["definition_at_call_site_outcomes"] = dict(cats)
 res["definition_in_package_name_mismatches (hand-review)"] = mism
 res["definition_in_package_name_mismatch_count"] = len(mism)
 
-# definition vs ground truth: at every ground-truth call site, does `definition` at a callee of that name resolve
-# to the target's own definition (same file, line within 3)? This catches a same-named wrong target, which the
-# name-mismatch check above cannot.
-tinfo_path = None
-dg_ok = dg_total = 0
-dg_bad = []
+# definition vs ground truth: at every ground-truth call site, does `definition` at a callee of that name resolve to the
+# target's own definition? The target's definition is the exact line span of any definition of its qualified name in its
+# file (an @overload stub and the implementation, `def` line or a decorator line above); for an `__init__` target the
+# class's own definition spans also count (a constructor call may resolve to the class). No line window: a window of +-3
+# conflated neighbouring definitions. Sites whose callee name is not the target's name (aliases) are not checkable by name
+# here and are counted separately.
+def spans_of(file, qualname):
+    return [(s["line"] - len(s.get("decorators", [])), s["line"]) for s in symbols if s["file"] == file and s["qualname"] == qualname]
+
+
 tdefs = collections.defaultdict(list)
 for d in defs:
     tdefs[(d["file"], d["line"])].append(d)
-tgt_by_key = {}
-if "targets_meta" in raw:
-    tgt_by_key = raw["targets_meta"]
+dg_ok = dg_total = dg_skipped = 0
+dg_bad = []
 for key, tr in truth.items():
     if key in ("_note", "symbols_expected_count"):
         continue
     loc, qual = key.split(" ", 1)
-    tfile, tline = loc.rsplit(":", 1)
-    tline = int(tline)
+    tfile = loc.rsplit(":", 1)[0]
     simple = qual.split(".")[-1]
     names = {simple}
+    spans = spans_of(tfile, qual)
     if simple == "__init__":
         names.add(qual.split(".")[0])
-    for site in set(tr["true"]):
+        spans += spans_of(tfile, qual.rsplit(".", 1)[0])
+    for site in tr["true"]:
         f, l = site.rsplit(":", 1)
         cands = [d for d in tdefs.get((f, int(l)), []) if d["name"] in names]
         if not cands:
-            continue  # alias or non-name callee: not checkable by name here
+            dg_skipped += 1
+            continue
         for d in cands:
             dg_total += 1
-            hit = any(t["file"] == tfile and abs(t["line"] - tline) <= 3 for t in d["targets"]) or (simple == "__init__" and d["targets"])
-            if hit:
+            if any(t["file"] == tfile and lo <= t["line"] <= hi for t in d["targets"] for lo, hi in spans):
                 dg_ok += 1
             else:
                 dg_bad.append((key, site, d["targets"][:2]))
-res["definition_at_true_sites_resolves_to_the_target"] = fmt(dg_ok, dg_total)
+res["definition_at_true_sites_resolves_to_the_target (exact def spans, no window)"] = fmt(dg_ok, dg_total)
+res["definition_at_true_sites_not_checkable_by_name (aliases)"] = dg_skipped
 res["definition_at_true_sites_disagreements"] = dg_bad
 res["timing_ms"] = raw["timing"]
 res["latency_ms"] = {k: (None if v is None else {"n": v["n"], "mean": round(v["meanMs"], 1), "max": round(v["maxMs"], 1)}) for k, v in raw["latency"].items()}

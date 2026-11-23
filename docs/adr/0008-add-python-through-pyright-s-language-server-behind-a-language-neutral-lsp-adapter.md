@@ -73,14 +73,17 @@ That directory is a recorded artifact and is not shipped (`package.json` `files`
   `documentSymbol` per file, `workspace/symbol` per name, `prepareCallHierarchy` then `incomingCalls` and `outgoingCalls`,
   `references` (includeDeclaration false), and `definition` at the callee of every syntactic call. It exits non-zero if no
   request is answered, any request errors, or every `prepareCallHierarchy` is null; `score.py` refuses a run with a missing
-  target record. `pythonPlatform: "All"` is set by a `pyrightconfig.json` in the analysis root (the harness answers
-  `workspace/configuration` with empty settings, so that file is the only source of it).
+  target record. `pythonPlatform: "All"` is set by a `pyrightconfig.json` in the analysis root. Channels tried (`results/platform-channels.txt`):
+  answering the server's `workspace/configuration` request with the setting (two shapes) and sending it in
+  `initializationOptions` did **not** change pyright 1.1.414's behaviour; a config file did, including one in a directory
+  outside the repository whose `include` is the absolute package path.
 
 ### Results
 
-Intervals are 95% Wilson. A site is one call; a line holding two true sites needs two found sites. Sites cluster by target,
-so a target-level figure is given beside each site-level one (a target is fully correct when every true site is found and
-nothing else is listed). `incoming` is the target's `incomingCalls`; `outgoing` is any function's `outgoingCalls` whose callee
+Intervals are 95% Wilson unless a table says otherwise. A site is one call; a line holding two true sites needs two found
+sites. Sites cluster by target, so a target-level figure is given beside each site-level one, over the 37 targets that have a
+true site (a target is fully correct when every true site is found and nothing else is listed; the 9 zero-truth targets are
+precision controls and would inflate a target-level recall), and the bar section adds a cluster bootstrap over those 37. `incoming` is the target's `incomingCalls`; `outgoing` is any function's `outgoingCalls` whose callee
 item is at the target's definition (matched by location, because an aliased import names the callee by its alias);
 `union` is the distinct sites of both; `+ ctor map` adds, for an `__init__` target, the union sites of its class and of
 subclasses with no `__init__` (a constructor call runs `C.__init__`). `union.py` computes all of them
@@ -88,15 +91,15 @@ subclasses with no `__init__` (a constructor call runs `C.__init__`). `union.py`
 
 **Pre-registered sample, `psf/requests`, 46 targets, 65 true sites.**
 
-| set | platform | site recall | site precision | targets fully correct |
+| set | platform | site recall | site precision | targets fully correct (of the 37 with a true site) |
 |---|---|---|---|---|
-| incoming | default (macOS) | 58/65 = 0.892 (0.794-0.947) | 58/58 = 1.000 (0.938-1.000) | 42/46 = 0.913 (0.797-0.966) |
-| incoming | `"All"` | 59/65 = 0.908 (0.813-0.957) | 59/59 = 1.000 (0.939-1.000) | 43/46 = 0.935 (0.825-0.978) |
-| outgoing | default | 56/65 = 0.862 (0.757-0.925) | 56/56 = 1.000 | 40/46 = 0.870 (0.743-0.939) |
-| outgoing | `"All"` | 57/65 = 0.877 (0.775-0.936) | 57/57 = 1.000 | 41/46 = 0.891 (0.770-0.953) |
+| incoming | default (macOS) | 58/65 = 0.892 (0.794-0.947) | 58/58 = 1.000 (0.938-1.000) | 33/37 = 0.892 (0.753-0.957) |
+| incoming | `"All"` | 59/65 = 0.908 (0.813-0.957) | 59/59 = 1.000 (0.939-1.000) | 34/37 = 0.919 (0.787-0.972) |
+| outgoing | default | 56/65 = 0.862 (0.757-0.925) | 56/56 = 1.000 | 31/37 = 0.838 (0.689-0.923) |
+| outgoing | `"All"` | 57/65 = 0.877 (0.775-0.936) | 57/57 = 1.000 | 32/37 = 0.865 (0.720-0.941) |
 | union | default / `"All"` | equal to incoming on both | equal to incoming on both | equal to incoming on both |
-| union + ctor map | default | 64/65 = 0.985 (0.918-0.997) | 64/64 = 1.000 (0.943-1.000) | 45/46 = 0.978 (0.887-0.996) |
-| union + ctor map | `"All"` | 65/65 = 1.000 (0.944-1.000) | 65/65 = 1.000 (0.944-1.000) | 46/46 = 1.000 (0.923-1.000) |
+| union + ctor map | default | 64/65 = 0.985 (0.918-0.997) | 64/64 = 1.000 (0.943-1.000) | 36/37 = 0.973 (0.862-0.995) |
+| union + ctor map | `"All"` | 65/65 = 1.000 (0.944-1.000) | 65/65 = 1.000 (0.944-1.000) | 37/37 = 1.000 (0.906-1.000) |
 
 Reading the table: the six sites missed by incoming and by the union on `"All"` are constructor calls to `__init__`
 (`PreparedRequest()` x3, `HTTPBasicAuth(...)`, `MockRequest(...)` x2); call hierarchy attributes a constructor call to the
@@ -111,7 +114,7 @@ and union edge to a sampled target was a true site (precision 1.000); the nine t
 site. By stratum (incoming, default): function 19/20, method 12/12, static method 3/3, class 17/17, nested 2/2, overridden
 5/5, zero-candidate 0 false sites, `__init__` 0/6.
 
-**Alias set, added after the first results (post hoc), 4 targets, 15 true sites.** The pre-registered sample could not
+**Alias set, added after the first results (post hoc), 4 targets, 15 true sites, a census, not a sample.** The pre-registered sample could not
 contain an aliased call (`gt2_listing.py` matches callee names only), so it could not show how pyright treats
 `from m import f as g`. `alias_enum.py` lists every in-package relative aliased import of a definition in its defining
 module and every call through the alias (13 sites on 3 targets), plus the direct calls of those targets (2 more) so
@@ -119,9 +122,12 @@ precision is scored against a complete truth.
 
 | set | site recall | site precision | targets fully correct |
 |---|---|---|---|
-| incoming | 2/15 = 0.133 (0.037-0.379) | 2/2 | 1/4 |
-| outgoing | 15/15 = 1.000 (0.796-1.000) | 15/15 = 1.000 (0.796-1.000) | 4/4 (0.510-1.000) |
+| incoming | 2/15 | 2/2 | 1/4 |
+| outgoing | 15/15 | 15/15 | 4/4 |
 | union | 15/15 | 15/15 | 4/4 |
+
+The alias set is every in-package relative `from .m import a as b` of a definition in `m` (the narrow rule is its limit), so
+it is a census of what that rule finds and carries counts, not intervals.
 
 Incoming calls and `references` miss every aliased call; outgoing calls find all of them. This is the one measured failure
 kind that incoming-only scoring on the pre-registered sample is structurally blind to.
@@ -162,7 +168,9 @@ base classes, `except` clauses, `__all__` strings and overload declarations).
 requests, default platform: 312 resolve inside the package (22 of those to a variable or alias rather than a def), 648 to
 typeshed or the stdlib, 2 to an installed package, 66 to nothing (uninstalled third-party packages, untyped attributes,
 Windows-only names); with `"All"`: 314, 657 and 57. At the 65 ground-truth call sites the definition resolves to the target's
-own definition in 64 (default) and 65 (`"All"`) cases; that check catches a same-named wrong target, which the 13 name
+own definition (the exact line spans of its definitions, no line window; for an `__init__` target the class's spans also
+count) in 64 (default) and 65 (`"All"`) cases; the same check on the fixtures gives 20/20 of the 20 sites checkable by
+name (8 are aliases or `cls(...)` and cannot be matched by name). That catches a same-named wrong target, which the 13 name
 mismatches (all import aliases) alone would not. The 22 results that land on a variable or alias were not individually checked.
 
 **Determinism, ordering and the open-file requirement.** Six runs with every file opened before any query returned
@@ -174,7 +182,8 @@ when files are not open. Pyright returned some incoming sites twice (20 duplicat
 client dedupes by (file, line, column). Whether pyright needs a readiness wait on a larger repository is not measured:
 the 6-of-6 determinism is on 19 files.
 
-**Time, 19-file repository, cold server start each run.** `initialize` 78-82 ms; the 19 `documentSymbol` answers together
+**Time, 19-file repository, cold server start each run.** The measured start-up (`initialize` plus all `documentSymbol`
+answers) is about 0.26 s; the 3.6-3.9 s below is the whole measurement run of 1,496 requests, not a cold start. `initialize` 78-82 ms; the 19 `documentSymbol` answers together
 167-190 ms; per-request means (six runs): `prepareCallHierarchy` 0.4 ms (0.1-1.5; max 72), `incomingCalls` 15.4 ms (12.8-18.5;
 max 231), `outgoingCalls` 3.8 ms (2.0-4.8; max 106), `references` 2.9 ms, `definition` 2.1 ms. The whole 1,496-request run
 (52 targets and 1,028 `definition` requests) took 3.6-3.9 s; the same run with the per-symbol `outgoingCalls` pass added
@@ -201,6 +210,8 @@ one pass; **an estimate**, not a measurement, for building it (a `prepareCallHie
   environments and `pythonPath`, `pythonVersion` host dependence, and uninstalled third-party packages are not measured.
 - **Scale and environment.** Memory use and first-analysis time on thousands of files are not measured; the host Python
   environment changes what resolves (measured only for the two certifi calls).
+- **Subclass constructors.** A call to a subclass that inherits `__init__` is invisible to the ground truth and to the scorer
+  unless the subclass is sampled (`gt_rules_addendum.md` item 8).
 - **Machine.** One idle machine; nothing here is measured under load.
 
 ## Decision
@@ -212,32 +223,34 @@ tree-sitter plus pyright) is **not** proposed. Whether the numbers are "poor" is
 
 The bar is proposed here, **after** the results were seen (no threshold was fixed in advance; the ground-truth rules say
 "not decided here"): *recall over all true call sites of at least 0.9, with a 95% lower bound above 0.8, on the
-pre-registered sample.* Applied to each quantity:
+pre-registered sample.* Sites cluster by target, so a site-level Wilson interval is optimistic; the table gives it beside a
+cluster bootstrap (10,000 resamples of the 37 targets that have a true site, fixed seed, `union.py`) and the target-level
+figure. A bootstrap of a perfect score has no variance (1.000-1.000), so the shipped row is judged on the target-level Wilson.
 
-| quantity (65 true sites) | recall (95% Wilson) | meets the bar |
-|---|---|---|
-| incoming calls, default platform | 58/65 = 0.892 (0.794-0.947) | **no** (point below 0.9, bound below 0.8) |
-| incoming calls, `"All"` | 59/65 = 0.908 (0.813-0.957) | yes |
-| union, `"All"` | 59/65 = 0.908 (0.813-0.957) | yes (equals incoming on this sample) |
-| union + constructor mapping, default | 64/65 = 0.985 (0.918-0.997) | yes |
-| union + constructor mapping, `"All"` (the shipped design) | 65/65 = 1.000 (0.944-1.000) | yes |
+| quantity (65 true sites, 37 targets with a site) | site recall, Wilson | recall, cluster bootstrap | targets fully correct (Wilson) | meets the bar: site-level / cluster-robust |
+|---|---|---|---|---|
+| incoming calls, default platform | 58/65 = 0.892 (0.794-0.947) | 0.768-0.985 | 33/37 = 0.892 (0.753-0.957) | no / no |
+| incoming calls, `"All"` | 59/65 = 0.908 (0.813-0.957) | 0.788-1.000 | 34/37 = 0.919 (0.787-0.972) | yes / **no** (0.788 and 0.787 are below 0.8) |
+| union, `"All"` | 59/65 = 0.908 (0.813-0.957) | 0.788-1.000 | 34/37 = 0.919 (0.787-0.972) | yes / **no** (equals incoming on this sample) |
+| union + constructor mapping, default | 64/65 = 0.985 (0.918-0.997) | 0.946-1.000 | 36/37 = 0.973 (0.862-0.995) | yes / yes |
+| union + constructor mapping, `"All"` (the shipped design) **in-sample fit** | 65/65 = 1.000 (0.944-1.000) | 1.000-1.000 (no variance) | 37/37 = 1.000 (0.906-1.000) | yes / yes, on target-level Wilson 0.906 |
 
-Target-level (46 targets): incoming default 0.913 (0.797-0.966) does not meet a 0.8 lower bound; incoming `"All"` 0.935
-(0.825-0.978) and union + constructor mapping 0.978 / 1.000 (0.887 / 0.923 lower) do. So "met" is true of the quantity the
-design ships (the union under `pythonPlatform: "All"`, constructor calls recorded against their class) and is **not** true
-of incoming calls alone on the default platform. It is also not true of the fixtures (union + constructor mapping 0.893,
-lower 0.728) and not true of the alias set for incoming calls alone (0.133); both are adversarial or post hoc and are
-reported, not scored against the bar. If opum-doc scores the bar on incoming calls alone, on the default platform, on the
-fixtures, or on target-level incoming on the default platform, it is **not** met and the alternatives return. The bar is
-not edited to fit the result; D3 is opum-doc's to rule.
+So "met" is true of the quantity the design ships (the union under `pythonPlatform: "All"` with constructor calls recorded
+against their class), and only because of the constructor mapping, which was designed on the six sites it then recovers.
+It is **not** true of incoming calls alone or of the union without the mapping under a cluster-robust interval (lower
+bound 0.788 on `"All"`, 0.768 on the default platform), and not on the default platform with incoming alone under any
+interval. It is not true of the fixtures (union + constructor mapping 0.893, lower 0.728) and not true of incoming calls on
+the alias set (2/15); both are adversarial or post hoc and are reported, not scored against the bar. The bar is not edited
+to fit the result; D3 is opum-doc's to rule.
 
-**The shipped 65/65 is a fit to this sample, not a held-out result.** The constructor mapping was designed after the
+**The shipped 65/65 is an in-sample fit, not a held-out result.** The constructor mapping was designed after the
 six constructor misses (and the fixtures' constructor misses) were seen, and is then scored on those same sites. The 6/6
 and the 65/65 therefore show that the mapping can reproduce what the data showed, not that it generalises. The fixtures are
-not held out either: they were run before the mapping was written. Proposed held-out test, to run before the build slices
-start: a **second real repository** (ideally unannotated, with class hierarchies and at least 20 constructor sites),
-measured with the mapping rule and the ground-truth rules committed first, scored by the same `union.py`. A result that
-repeats the pre-registered sample's 0.9 / 0.8 is evidence; this sample alone is not.
+not held out either: they were run before the mapping was written. Proposed held-out tests, both with the mapping rule and the ground-truth
+rules committed first and scored by the same `union.py`: (a) a **fresh seed** drawing only `__init__` and class targets
+from requests that the first sample did not draw (partially held out: same repository, same author of the rules); (b) a
+**second real repository**, ideally unannotated, with class hierarchies and at least 20 constructor sites (held out). A
+result that repeats 0.9 / 0.8 on (b) is evidence; this sample alone is not. Whether acceptance waits on them is D3.
 
 **Can the matching credit a wrong edge, and was precision measured?** Two matching rules could, and each was checked.
 (i) The callee-location match for outgoing calls began as a window of +-3 lines around the definition; that credited
@@ -273,7 +286,7 @@ uniformly to `callers`, `impact` and `code-map`.
   with a hard cap on one message's size; a malformed header or an oversized message is a protocol failure (exit 7).
 - **Requests.** One id map; a request resolves on its response and rejects on a response error, on its timeout, or on the
   server's exit. Server-to-client requests pyright sends (`workspace/configuration`, `client/registerCapability`,
-  `window/workDoneProgress/create`) are answered with an empty result; notifications are ignored.
+  `window/workDoneProgress/create`) are answered with an empty result (settings sent that way do not reach pyright, measured); notifications are ignored.
 - **Timeouts and the wall-time budget.** A request's timeout is the smaller of a per-request cap and the time the run's
   budget has left, the rule `src/codemap.ts` applies to its git reads. For `code-map`, a request the budget cuts off with
   the budget really spent is a stop and a `code-map#time-budget` omission (ADR 0005); a request that dies for another
@@ -302,6 +315,28 @@ uniformly to `callers`, `impact` and `code-map`.
   recorded against the class and, for the class's own or nearest inherited `__init__`, as a constructor edge to it, so
   `callers` of an `__init__` answers what a user expects. Decorator applications come from `references` (call hierarchy
   omits them). An `@overload` stub has no symbol of its own in `documentSymbol`; the index records the implementation.
+- **A partial index is never cached and never answered from.** The index build can be cut by the wall-time budget (the
+  estimated 6-7 s build is close to `code-map`'s 7.0 s, and the `references` pass decorators need is not in that estimate). If
+  the budget ends the build, no index is written to the cache, and every tier that depends on the index (`code-map`'s symbol
+  and one-hop tiers) is omitted and named in `omissions`, not answered from a partial graph; `callers`, `impact` and `diff`
+  have no budget and finish the build or fail.
+- **Symbols in unreachable code.** `prepareCallHierarchy` returns null, and `documentSymbol` omits the symbol, for code pyright
+  treats as unreachable (measured: `proxy_bypass_registry`). Left alone that makes `callers` answer `not_found` or an empty
+  list for a symbol that exists. The index records the unreachable ranges pyright reports (its unreachable-code hints via
+  `publishDiagnostics`; **not measured here**) and `callers`, `impact` and `diff` answer a name that falls in one as
+  `indeterminate` naming the range, never an empty answer; `"All"` removes the platform cases but not `if False`, a version
+  check or `TYPE_CHECKING`-guarded code.
+- **Decorator sites from `references`.** `references` also returns imports, annotations, base classes, `__all__` strings and
+  overload declarations (all 40 extras measured were of these kinds), so a reference is recorded as a decorator application
+  only if the line it is on, stripped, starts with `@` (measured on one fixture, `@traced`; a decorator continued on a later
+  line or an `@` inside a multi-line expression is not recognised, and that is a stated limit). Anything else stays a
+  reference and is not an edge.
+- **The constructor mapping applies to plain classes only.** A class with a class decorator (`@dataclass`, `attrs`), a
+  `metaclass=` keyword, a `__new__`, or a base whose construction is intercepted is not mapped to its `__init__`: the
+  constructor call stays an edge to the class and the limit is stated. This exclusion is a design rule, not something the
+  sample tested (it contains none of those).
+- **Edges whose callee lands on no symbol** (a variable, an alias binding, a re-export: 22 of the 312 in-package definition
+  results on requests) are not dropped silently: they are counted in the coverage line as `unattributed`, with the count.
 - **Consistency check.** Because no readiness signal was used, build slice 1 repeats the edge pass once on a larger repository
   and compares; if the design needs it at scale, a second pass whose result differs from the first is exit 7.
 
@@ -323,10 +358,16 @@ uniformly to `callers`, `impact` and `code-map`.
   threshold below which a language is skipped silently.
 - **`--language <typescript|python>`** (global, declared in `help --json`) overrides detection. An unknown value is a usage
   error (exit 2). A repository with no file of the chosen language answers `not_found` (exit 3) naming the language.
-- Pyright follows the repository's own configuration (`pyrightconfig.json`, `pyproject.toml [tool.pyright]`) when present.
-  Absent one, the adapter writes nothing into the repository and passes `pythonPlatform: "All"`. A repository config that
-  names a platform reinstates the macOS-style miss for platform-conditional code (measured: `proxy_bypass_registry`); that is
-  stated as a limit, not worked around.
+- **How `"All"` reaches the server.** Not through LSP settings (measured: `workspace/configuration` answers and
+  `initializationOptions` do nothing in 1.1.414); only through a config file. The adapter therefore never uses the repository
+  as the analysis root: it creates a temporary directory under the glyph cache, writes a generated `pyrightconfig.json` there
+  (`pythonPlatform: "All"` and an `include` of the repository's Python paths), and starts the server on that root, so
+  nothing is written into the repository (measured: `results/platform-channels.txt`, E4). A repository that has its own
+  `pyrightconfig.json` or `pyproject.toml [tool.pyright]` should be honoured by having the generated file `extends` it; pyright's
+  `extends` was **not tested here** and is a first-slice requirement, with the fallback that the repository's config is used
+  as the root and `"All"` is lost. A repository config that exists but names no platform falls back to the host default
+  platform (measured, E5: the macOS-style miss), so the host operating system is part of the cache key (section 6). A config
+  that names a platform reinstates the miss for platform-conditional code (`proxy_bypass_registry`); that is stated as a limit.
 
 ### 6. `--ref`, the cache and the environment
 
@@ -335,10 +376,14 @@ temporary directory under the glyph cache, using the same no-checkout object rea
 exit. Consequences stated now: an untracked virtual environment (`.venv`) is not in the commit, so `--ref` always resolves
 third-party packages from the host's current environment, never from the commit's; this is unmeasured as to cost and as to
 how often it changes an answer. The Python index cache key is (commit, language, **pyright version, resolved interpreter path
-and its version, a digest of the environment's installed distribution names and versions**, configuration digest), because
+and its version, a digest of the environment's installed distribution names and versions, the host operating system**, configuration digest), because
 the measurement shows the host environment changes what resolves and a cached index must never be reused across it. With no
 interpreter on PATH pyright still runs (measured: identical call answers, stdlib from its bundled typeshed), the interpreter
-part of the key is then "none".
+part of the key is then "none". The environment parts extend both cache paths: the commit-keyed index and the working-tree
+index (`src/cache.ts` keys the working-tree path on file stats, so the environment parts are added to that key too). How glyph
+learns which interpreter pyright resolved is **not measured**; the harness did not read it, and an LSP client has no request
+for it, so the first slice must resolve it the way pyright does (the configured `pythonPath`, else `python3` and `python` on
+PATH) and compare.
 
 ### 7. Packaging
 
@@ -365,6 +410,14 @@ resolved is `indeterminate` with the install hint, never a skipped language.
   not measured.
 - `.pyi`-only packages, namespace packages, notebooks, `src`-layout roots and metaclass, `dataclass` and `__new__`
   constructors are not measured.
+- **Measured false positive:** call hierarchy can list an attribute access that is never called as a call (`Cat("x").speak`,
+  called later through a variable), so a Python edge can be a reference.
+- **Aliased calls at module scope or in a class body** are found by neither source (incoming misses aliases; outgoing covers
+  only function symbols). This follows from how the two sources work; it was not run as a separate case.
+- **Absolute self-imports** (`import requests` inside the package, or a test that imports the project by its installed name)
+  can resolve to an installed copy in site-packages and become `external` rather than an in-repository edge; not measured.
+- **A subclass that inherits `__init__`** and is constructed is credited to the base `__init__` only one level down, and the
+  measurement could not see such calls (`gt_rules_addendum.md` item 8).
 
 ### Open decisions for opum-doc
 
@@ -374,27 +427,40 @@ resolved is `indeterminate` with the install hint, never a skipped language.
   enumerated, so the count is a lower bound; (B) add a syntactic pass (a tree-sitter Python grammar, or a lexical
   `identifier(` scan as an upper bound) for an exact or bounded count. B is DEC-303's alternative applied for a reason other
   than recall and adds a dependency.
-- **D2. Mixed-language repositories.** Recommended: one language per run (detection or `--language`), skipped languages named
-  in the coverage line, and "index both and merge" after 0.1.0.
-- **D3. The bar, and the quantity it applies to.** See "The bar, what it scores, and whether it is met". The proposed bar was
-  fixed after the results; it is met by the shipped union under `"All"` and not met by incoming calls alone on the default
-  platform, on the fixtures, or (for incoming alone) on the alias set. The 65/65 is an in-sample fit of the constructor mapping (see
-  above). A higher or differently-scored bar, and the held-out test of the mapping, need a second real repository, ideally
-  unannotated, measured by the same method (rules and mapping committed first) before the build slices start.
+- **D2. Mixed-language repositories.** (A, recommended) index one language per run (detection or `--language`), name every
+  skipped language and its file count in the coverage line, and defer "index both and merge" past 0.1.0: no new envelope
+  shape, cost nil beyond the coverage-line entry. (B) index both and merge by symbol id in 0.1.0: a repository with
+  TypeScript and Python (a very common shape) is answered whole, but every envelope needs a `language` per item, `impact`
+  and `callers` must define cross-language edges (there are none from this measurement), cache keys and budgets double, and
+  it needs its own measurement; it is a second build track, not a slice.
+- **D3. The bar, the quantity it applies to, and whether acceptance waits on a held-out test.** The proposed bar (recall over
+  all true sites at least 0.9, lower bound above 0.8) was fixed after the results. It is met by the shipped union plus
+  constructor mapping under `"All"`, which is an in-sample fit; it is not met by incoming calls or the union alone under a
+  cluster-robust interval, nor on the fixtures or the alias set. Options: (A, recommended) accept the measurement for the
+  shipped quantity and make the held-out tests a **gate inside build slice 1**: the fresh-seed `__init__`/class sample from
+  requests and a second real repository, both with the mapping and rules committed first, must reach the bar before the
+  Python slices merge toward a release; the architecture and the language-neutral client do not depend on the result, so
+  building them is not blocked. (B) require the second repository's measurement before any build slice starts: nothing is
+  built on an in-sample fit, at the cost of the slices waiting on a new ground-truth effort of roughly this one's size.
+  Alternatively opum-doc may set a different bar or a different quantity; the alternatives in DEC-303 item 4 return if the
+  bar is scored on incoming alone.
 - **D4. Command-contract additions.** DEC-303 item 2 says the contract is unchanged per language. The design as written
-  needs additions to the envelopes that TypeScript does not have: a `decorator` site kind (call hierarchy omits decorator
-  applications, `references` finds them), a field saying the unresolved-site count is a lower bound (`unresolvedKnown:
-  false`, or equivalent under D1), a `language` entry in the `index` block, and a "language not indexed" entry in the
-  coverage line (section 5). Each changes a published schema. Recommended: accept them as additive, optional fields that
-  TypeScript leaves absent or constant, and record them in ADR 0002's contract. If the contract is to stay byte-identical,
-  the decorator kind drops (decorators become ordinary call sites) and D1 has no field to carry the lower bound, so D1
-  option A loses its honest form.
+  needs additions that TypeScript does not have, each changing a published schema or the command surface:
+  a `decorator` site kind; a field saying the unresolved-site count is a lower bound (`unresolvedKnown: false`, or
+  equivalent under D1); a `language` entry, the resolved interpreter and the pyright version in the `index` block; a
+  "language not indexed" entry in the coverage line and an `unattributed` count; a `--language` global option declared in
+  `help --json`; and `not_found` (exit 3) answers that name the language. Recommended: accept them as additive, optional
+  fields and one new global option that TypeScript leaves absent or constant, and record them in ADR 0002's contract. If
+  the contract must stay byte-identical, the decorator kind drops (decorators become ordinary call sites), D1 has no field
+  to carry the lower bound so option A loses its honest form, and `--language` and the language-naming `not_found` have no
+  home, which makes D2 option A the only coherent choice.
 
 ## Consequences
 
-- Python adds one runtime dependency (pyright, from npm, 19.5 MB unpacked) and about 4 s of cold start for a 19-file package on
-  an idle machine, with an estimated 6-7 s to build the full union index there; the TypeScript path's measured cold build is
-  shorter. Warm runs rely on the same cache design, with the cache key above.
+- Python adds one runtime dependency (pyright, from npm, 19.5 MB unpacked), a server start-up of about 0.26 s on a 19-file
+  package on an idle machine, and an estimated 6-7 s to build the full union index there (not measured as one pass). ADR 0005
+  measured TypeScript cold builds of 0.485 s (glyph-cli), 1.429 s (opum-cli) and 2.085 s (lore-cli) p50 on repositories of
+  other sizes: not a like-for-like comparison, and no claim is made that either path is faster. Warm runs rely on the same cache design, with the cache key above.
 - The seam, the client and the pyright layer are separately testable: the client against a fake server that frames messages
   badly, hangs, crashes and answers errors (each a named exit-7 case with a both-ways test); the pyright layer against the
   fixtures here, with the ground truth in this record as the expected values; the measurement re-run in CI on the pinned

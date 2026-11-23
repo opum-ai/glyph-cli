@@ -14,7 +14,7 @@ Matching rules, stated once:
               C as a base and defines no `__init__` of its own (a constructor call to such a subclass runs C.__init__).
 A predicted site is a false positive if its line is not a true site of the target (poly and blind lines in the truth file are
 neutral and not counted as false). A predicted line with fewer sites than the truth has on it is a miss for the rest."""
-import collections, json, math, sys
+import collections, json, math, random, sys
 
 raw = json.load(open(sys.argv[1]))
 truths = [json.load(open(p)) for p in [sys.argv[2]] + sys.argv[5:]]
@@ -22,6 +22,8 @@ targets = json.load(open(sys.argv[3]))
 symbols = json.load(open(sys.argv[4]))
 if "outgoing" not in raw:
     sys.exit("ERROR: raw run has no outgoing pass (run the harness with OUT_ALL=1)")
+if raw["stats"]["answered"] == 0 or raw["stats"]["errors"] > 0:
+    sys.exit("ERROR: the raw run answered no request or had request errors; refusing to score")
 tinfo = {f'{t["file"]}:{t["line"]} {t["qualname"]}': t for t in targets}
 class_target = {(t["file"], t["name"]): f'{t["file"]}:{t["line"]} {t["qualname"]}' for t in targets if t.get("kind") == "class"}
 has_init = {(s["file"], s["qualname"].rsplit(".", 1)[0]) for s in symbols if s["name"] == "__init__"}
@@ -102,9 +104,28 @@ def score(sites, want, neutral):
     return tp, fp, sum(want.values()) - tp
 
 
+def cluster_bootstrap(rows, reps=10000, seed=20261123):
+    """95% percentile interval of sum(tp)/sum(tp+fn) (recall) and sum(tp)/sum(tp+fp) (precision), resampling TARGETS with
+    replacement (sites cluster by target). rows: list of (tp, fp, fn) per target."""
+    rng = random.Random(seed)
+    rec, prec = [], []
+    for _ in range(reps):
+        pick = [rows[rng.randrange(len(rows))] for _ in rows]
+        tp = sum(r[0] for r in pick)
+        fp = sum(r[1] for r in pick)
+        fn = sum(r[2] for r in pick)
+        if tp + fn:
+            rec.append(tp / (tp + fn))
+        if tp + fp:
+            prec.append(tp / (tp + fp))
+    q = lambda xs, p: sorted(xs)[int(p * (len(xs) - 1))]
+    return (q(rec, 0.025), q(rec, 0.975)), ((q(prec, 0.025), q(prec, 0.975)) if prec else (float("nan"), float("nan")))
+
+
 names = ["incoming", "outgoing", "union", "union + ctor map"]
 for ti, truth in enumerate(truths):
     agg = {n: [0, 0, 0] for n in names}
+    rows = {n: [] for n in names}  # per target (tp, fp, fn), only targets with at least one true site
     full = {n: 0 for n in names}
     ntargets = 0
     detail = []
@@ -123,6 +144,8 @@ for ti, truth in enumerate(truths):
             agg[n][0] += tp
             agg[n][1] += fp
             agg[n][2] += fn
+            if sum(want.values()) > 0:
+                rows[n].append((tp, fp, fn))
             ok = fp == 0 and fn == 0
             full[n] += ok
             row.append(f"{n}: tp={tp} fp={fp} fn={fn}")
@@ -132,6 +155,14 @@ for ti, truth in enumerate(truths):
     for n in names:
         tp, fp, fn = agg[n]
         print(f"{n:18} {fmt(tp, tp + fn):34} {fmt(tp, tp + fp):34} {fmt(full[n], ntargets):28}")
+    withtruth = len(rows["incoming"])
+    print(f"\ncluster view over the {withtruth} targets that have at least one true site (the zero-truth targets are precision controls and"
+          f" would inflate a target-level figure):")
+    print(f'{"set":18} {"targets fully correct":30} {"recall, cluster bootstrap 95%":34} {"precision, cluster bootstrap 95%":34}')
+    for n in names:
+        fully = sum(1 for tp, fp, fn in rows[n] if fp == 0 and fn == 0)
+        (rl, rh), (pl, ph) = cluster_bootstrap(rows[n])
+        print(f"{n:18} {fmt(fully, withtruth):30} {rl:.3f}-{rh:.3f}                       {pl:.3f}-{ph:.3f}")
     for key, row in detail:
         bad = [r for r in row if " fp=0 fn=0" not in r]
         if bad:
