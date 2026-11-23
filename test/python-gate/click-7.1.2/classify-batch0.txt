@@ -5,7 +5,7 @@
 #   x <site> <reason>            excluded and counted: dynamic | decorator-replaced | ambiguous-receiver | multiply-bound | outside-package
 # A candidate site of a target that is not listed is `other-definition` (textually a candidate, a different definition).
 T _compat.py:248 get_text_stdin
-x _compat.py:525:15 multiply-bound
+# DEC-303 (a3) Q2 A: 248 is in the `if PY2:` arm; the site binds the Python-3 definition at 446, so it is other-definition here
 T _compat.py:640 _is_jupyter_kernel_output
 + _compat.py:656:42 direct
 T termui.py:75 prompt
@@ -96,7 +96,8 @@ T _winconsole.py:170 _WindowsConsoleWriter._get_error_message
 T _compat.py:102 _FixupStream
 + _compat.py:70:32 direct
 T testing.py:23 EchoingStdin
-+ testing.py:190:24 direct
+# DEC-303 (a3) Q2 A: 190 is in the `if PY2:` arm, unreachable under Python 3
+x testing.py:190:24 unreachable-version-branch
 + testing.py:198:24 direct
 T _winconsole.py:130 _WindowsConsoleReader
 + _winconsole.py:272:26 direct

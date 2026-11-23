@@ -1,12 +1,12 @@
 {
  "summary": {
   "targets": 45,
-  "true": 81,
-  "true_direct": 71,
+  "true": 80,
+  "true_direct": 70,
   "true_inferred": 10,
   "poly": 7,
   "excluded": 2,
-  "other_definition": 79,
+  "other_definition": 80,
   "targets_with_a_true_site": 33,
   "zero_truth_targets": 12
  },
@@ -14,15 +14,8 @@
   "_compat.py:248 get_text_stdin": {
    "true": [],
    "poly": [],
-   "excluded": [
-    {
-     "site": "_compat.py:525:15",
-     "call_start_line": 525,
-     "form": "name",
-     "reason": "multiply-bound"
-    }
-   ],
-   "other_definition": 0,
+   "excluded": [],
+   "other_definition": 1,
    "batch": 0
   },
   "_compat.py:640 _is_jupyter_kernel_output": {
@@ -597,12 +590,6 @@
   "testing.py:23 EchoingStdin": {
    "true": [
     {
-     "site": "testing.py:190:24",
-     "call_start_line": 190,
-     "form": "name",
-     "receiver_evidence": "direct"
-    },
-    {
      "site": "testing.py:198:24",
      "call_start_line": 198,
      "form": "name",
@@ -610,7 +597,14 @@
     }
    ],
    "poly": [],
-   "excluded": [],
+   "excluded": [
+    {
+     "site": "testing.py:190:24",
+     "call_start_line": 190,
+     "form": "name",
+     "reason": "unreachable-version-branch"
+    }
+   ],
    "other_definition": 0,
    "batch": 0
   },
