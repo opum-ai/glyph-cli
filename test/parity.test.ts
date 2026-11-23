@@ -118,38 +118,39 @@ describe("byte parity with the deterministic producer", () => {
 		expect(on).not.toBe(off);
 	});
 
-	test("output does not depend on the caller's git config: a hostile global config gives the same bytes", () => {
-		// quotepath=false would unquote the non-ASCII grep path, color.ui and color.grep
-		// would put ANSI codes into the paths, and the diff.* and grep.* settings would
-		// move hunk boundaries and line numbers if the reads did not pin them.
-		const config = join(mkdtempSync(join(tmpdir(), "glyph-hostile-")), "gitconfig");
-		writeFileSync(
-			config,
-			[
-				"[core]\n\tquotepath = false",
-				"[color]\n\tui = always\n\tgrep = always",
-				"[diff]\n\talgorithm = patience\n\tindentHeuristic = true\n\tinterHunkContext = 5",
-				"[grep]\n\tlineNumber = false\n\tfullName = true",
-				"",
-			].join("\n"),
-		);
-		const saved = { global: process.env.GIT_CONFIG_GLOBAL, system: process.env.GIT_CONFIG_NOSYSTEM };
-		const withPlainConfig = (run: () => void): void => {
-			process.env.GIT_CONFIG_GLOBAL = "/dev/null";
+	// One test per fixture: the whole loop in one test ran past bun's 5 s default under load (GCLI-58).
+	for (const fixture of FIXTURES)
+		test(`output does not depend on the caller's git config: a hostile global config gives the same bytes (${fixture.name})`, () => {
+			// quotepath=false would unquote the non-ASCII grep path, color.ui and color.grep
+			// would put ANSI codes into the paths, and the diff.* and grep.* settings would
+			// move hunk boundaries and line numbers if the reads did not pin them.
+			const config = join(mkdtempSync(join(tmpdir(), "glyph-hostile-")), "gitconfig");
+			writeFileSync(
+				config,
+				[
+					"[core]\n\tquotepath = false",
+					"[color]\n\tui = always\n\tgrep = always",
+					"[diff]\n\talgorithm = patience\n\tindentHeuristic = true\n\tinterHunkContext = 5",
+					"[grep]\n\tlineNumber = false\n\tfullName = true",
+					"",
+				].join("\n"),
+			);
+			const saved = { global: process.env.GIT_CONFIG_GLOBAL, system: process.env.GIT_CONFIG_NOSYSTEM };
+			const withPlainConfig = (run: () => void): void => {
+				process.env.GIT_CONFIG_GLOBAL = "/dev/null";
+				try {
+					run();
+				} finally {
+					process.env.GIT_CONFIG_GLOBAL = config;
+				}
+			};
 			try {
-				run();
-			} finally {
+				// Positive control: the hostile environment is in force, so the equal bytes below
+				// were produced under it and not under git's defaults.
 				process.env.GIT_CONFIG_GLOBAL = config;
-			}
-		};
-		try {
-			// Positive control: the hostile environment is in force, so the equal bytes below
-			// were produced under it and not under git's defaults.
-			process.env.GIT_CONFIG_GLOBAL = config;
-			process.env.GIT_CONFIG_NOSYSTEM = "1";
-			const quotepath = spawnSync("git", ["config", "core.quotepath"], { encoding: "utf8", env: { ...process.env } });
-			expect(quotepath.stdout.trim()).toBe("false");
-			for (const fixture of FIXTURES) {
+				process.env.GIT_CONFIG_NOSYSTEM = "1";
+				const quotepath = spawnSync("git", ["config", "core.quotepath"], { encoding: "utf8", env: { ...process.env } });
+				expect(quotepath.stdout.trim()).toBe("false");
 				const { root, taskText, sourceRef } = builtFixture(fixture.name);
 				const output = produceCodeMap({ repositoryPath: root, sourceRef, taskText, symbols: false });
 				expect(JSON.stringify(output, null, 2)).toBe(JSON.stringify(goldens.fixtures[fixture.name]?.output, null, 2));
@@ -164,17 +165,16 @@ describe("byte parity with the deterministic producer", () => {
 					freshCache();
 					expect(hostileOn).toBe(JSON.stringify(produceCodeMap({ repositoryPath: root, sourceRef, taskText })));
 				});
+			} finally {
+				for (const [name, value] of [
+					["GIT_CONFIG_GLOBAL", saved.global],
+					["GIT_CONFIG_NOSYSTEM", saved.system],
+				] as const) {
+					if (value === undefined) delete process.env[name];
+					else process.env[name] = value;
+				}
 			}
-		} finally {
-			for (const [name, value] of [
-				["GIT_CONFIG_GLOBAL", saved.global],
-				["GIT_CONFIG_NOSYSTEM", saved.system],
-			] as const) {
-				if (value === undefined) delete process.env[name];
-				else process.env[name] = value;
-			}
-		}
-	});
+		});
 
 	test("the same repository state and task text yield byte-identical output twice", () => {
 		const { root, taskText, sourceRef } = builtFixture("clean");

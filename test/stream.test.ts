@@ -157,9 +157,9 @@ describe("--stream (contract §1a)", () => {
 		}
 	});
 
-	test("--stream combined with --plain exits 2 on each of the three commands", () => {
-		const repo = fixture();
-		for (const name of STREAMING) {
+	for (const name of STREAMING) {
+		test(`--stream combined with --plain exits 2 on each of the three commands (${name})`, () => {
+			const repo = fixture();
 			const spec = SPECS[name];
 			const result = runCli(repo.root, [...spec.stream, "--plain"], scratchCacheDir(), spec.stdin);
 			expect(result.code, name).toBe(2);
@@ -167,8 +167,8 @@ describe("--stream (contract §1a)", () => {
 			const error = JSON.parse(result.stderr) as { error_type: string; principal: null };
 			expect(error.error_type, name).toBe("usage");
 			expect(error.principal, name).toBeNull();
-		}
-	});
+		});
+	}
 
 	test("--stream is rejected with --version, --help and a bare invocation", () => {
 		const repo = fixture();
@@ -205,9 +205,9 @@ describe("--stream (contract §1a)", () => {
 		expect(error.principal).toBeNull();
 	});
 
-	test("every stdout line is a compact, newline-terminated §2 envelope with principal last", () => {
-		const repo = fixture();
-		for (const name of STREAMING) {
+	for (const name of STREAMING) {
+		test(`every stdout line is a compact, newline-terminated §2 envelope with principal last (${name})`, () => {
+			const repo = fixture();
 			const spec = SPECS[name];
 			const streamed = runCli(repo.root, spec.stream, scratchCacheDir(), spec.stdin);
 			expect(streamed.code, name).toBe(0);
@@ -221,12 +221,12 @@ describe("--stream (contract §1a)", () => {
 			);
 			const batchData = (JSON.parse(batch.stdout) as Envelope).data;
 			expect(checkStreamStdout(streamed.stdout, batchData, spec), name).toEqual([]);
-		}
-	});
+		});
+	}
 
-	test("the last line carries the result kind with itemCount, and every non-item field equals the batch answer", () => {
-		const repo = fixture();
-		for (const name of STREAMING) {
+	for (const name of STREAMING) {
+		test(`the last line carries the result kind with itemCount, and every non-item field equals the batch answer (${name})`, () => {
+			const repo = fixture();
 			const spec = SPECS[name];
 			const streamed = runCli(repo.root, spec.stream, scratchCacheDir(), spec.stdin);
 			const lines = envelopes(streamed.stdout);
@@ -249,12 +249,12 @@ describe("--stream (contract §1a)", () => {
 				if (key === spec.itemKey) continue;
 				expect(result?.data[key], `${name}.${key}`).toEqual(value);
 			}
-		}
-	});
+		});
+	}
 
-	test("the item multiset equals the non-stream answer, for each command", () => {
-		const repo = fixture();
-		for (const name of STREAMING) {
+	for (const name of STREAMING) {
+		test(`the item multiset equals the non-stream answer, for each command (${name})`, () => {
+			const repo = fixture();
 			const spec = SPECS[name];
 			const streamed = runCli(repo.root, spec.stream, scratchCacheDir(), spec.stdin);
 			const batch = runCli(
@@ -271,12 +271,12 @@ describe("--stream (contract §1a)", () => {
 			const batchItems = (batchData[spec.itemKey] as unknown[]).map((item) => JSON.stringify(item)).sort();
 			expect(streamedItems.length, name).toBeGreaterThan(0);
 			expect(streamedItems, name).toEqual(batchItems);
-		}
-	});
+		});
+	}
 
-	test("a forced mid-stream failure writes no result line, reports the error envelope, and exits 7", () => {
-		const repo = fixture();
-		for (const name of STREAMING) {
+	for (const name of STREAMING) {
+		test(`a forced mid-stream failure writes no result line, reports the error envelope, and exits 7 (${name})`, () => {
+			const repo = fixture();
 			const spec = SPECS[name];
 			const failed = runEntry(repo.root, spec.stream, scratchCacheDir(), spec.stdin, {
 				GLYPH_TEST_STREAM_FAIL_AFTER: "1",
@@ -295,8 +295,8 @@ describe("--stream (contract §1a)", () => {
 			expect(error.error_type, name).toBe("indeterminate");
 			expect(error.principal, name).toBeNull();
 			expect(error.message).toContain("forced mid-stream failure");
-		}
-	});
+		});
+	}
 
 	test("a one-item answer cannot slip a result line past the injected failure", () => {
 		// One call site means exactly one item. The injected throw lands on the
@@ -403,21 +403,22 @@ describe("--stream (contract §1a)", () => {
 		expect(collected).toEqual(output.pointers.map((pointer) => pointer.path));
 	});
 
-	test("a run without --stream emits exactly the pre-stream golden bytes", () => {
-		const repo = fixture();
-		for (const name of STREAMING) {
+	for (const name of STREAMING) {
+		test(`a run without --stream emits exactly the pre-stream golden bytes (${name})`, () => {
+			const repo = fixture();
 			const invocation = STREAM_BATCH_INVOCATIONS[name];
 			const batch = runCli(repo.root, invocation.args, scratchCacheDir(), invocation.stdin);
 			expect(batch.code, name).toBe(0);
 			expect(batch.stdout, name).toBe(STREAM_BATCH_GOLDENS[name]);
-		}
-	});
+		});
+	}
 
 	test("the README's streaming example is the fixture's actual output", () => {
 		const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8").split("\n");
 		const start = readme.findIndex((line) => line.startsWith("## Streaming"));
 		expect(start).toBeGreaterThanOrEqual(0);
 		let inFence = false;
+		let command = "";
 		const example: string[] = [];
 		for (let index = start + 1; index < readme.length; index += 1) {
 			const line = readme[index] ?? "";
@@ -426,9 +427,13 @@ describe("--stream (contract §1a)", () => {
 				continue;
 			}
 			if (line.trim() === "```") break;
-			if (line.startsWith("$ ")) continue;
+			if (line.startsWith("$ ")) {
+				command = line.slice(2);
+				continue;
+			}
 			example.push(line);
 		}
+		expect(command).toBe("glyph callers helper --stream");
 
 		const repo = fixture();
 		const streamed = runCli(repo.root, ["callers", "helper", "--stream"], scratchCacheDir());
