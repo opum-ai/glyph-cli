@@ -61,3 +61,42 @@ reported to opum-doc; it is not run. No other stopping rule, and no target is ad
 4. **Batch 0 reached the stopping rule** (cumulative true sites at or above 62), so batches 1 and 2 are not classified and are
    not scored: see `classified-batch0.json` `summary`. Two targets (`echo`, `term_len`) hold 36 of the true sites; the target-level
    figure and the cluster bootstrap are reported beside the site-level interval for that reason.
+
+## Addendum 2, 2026-11-23T20:39Z: rule gaps found by the blind classifier (batch-0 labels in `classified-batch0.json` are NOT changed)
+
+The independent blind unit agreed with all 30 labels of the seeded sample (15 true, 15 other-definition; receiver evidence agrees on
+all 14 direct and the 1 inferred). 30 pairs is a small sample: no agreement rate is quoted. It found five gaps in the rules. Each
+gets one rule below, the pair that motivated it, and its effect on the committed batch-0 counts (81 true, 71 direct, 10 inferred; 8
+polymorphic; 2 excluded). Where a gap is a design choice rather than a clarification it is an open question for opum-doc, the labels
+stay as committed, and the effect of the alternative is reported.
+
+1. **A decorator that returns a plain forwarding function (`@contextmanager`, `functools.wraps`-style).** Motivating pair: 29,
+   `TextWrapper.extra_indent` (`@contextmanager`). R5' `decorator-replaced` applies only when the call goes through a returned
+   OBJECT's `__call__` that does not forward to the decorated definition (click's `@command` replacing a function with a `Command`).
+   A forwarding wrapper keeps the call attributable to the decorated definition: **true**. *Open for opum-doc (design choice):*
+   (A, recommended) as stated, a forwarding decorator keeps attribution, so no label moves; (B) treat every decorator not provably
+   transparent as `decorator-replaced`, which moves one label: `formatting.py:85:21` for `extra_indent` true to excluded, 81 to 80 and
+   71 to 70, and `extra_indent` becomes a zero-truth target.
+2. **Platform and version branches.** Motivating pairs: 8 (Windows-only `_winconsole.py`) and 10 (a Python-3 branch). *Open for
+   opum-doc (design choice):* (A, recommended) a **version** branch (`PY2`) is evaluated under Python 3, so a site or definition in
+   the Python-2-only arm is unreachable and the site in an `else` arm is reached; a **platform** branch (`WIN`, `sys.platform`) is
+   treated as reachable (the `pythonPlatform: "All"` reading used for requests), and a callee defined in both arms of a platform
+   branch is `multiply-bound`. (B) every branch is reachable (the static view): both arms of `PY2` count. The committed labels
+   follow B. Under A exactly two labels move, found by an `ast` check of every batch-0 true, polymorphic and excluded site against
+   `PY2`, `not PY2`, `WIN` and `not WIN` branches: `testing.py:190:24` (`EchoingStdin`, in the `if PY2:` arm) true to excluded
+   (`unreachable-version-branch`), 81 to 80 and 71 to 70; and `_compat.py:525:15` (`get_text_stdin` at line 248, in the `if PY2:` arm)
+   excluded `multiply-bound` to other-definition (excluded 2 to 1). Excluded sites are ignored by both recall and precision, so the
+   analyzer is not penalised either way; the choice only fixes the denominator. The Windows sites (`_winconsole.py`, `_compat.py:703`)
+   are true under both.
+3. **Evidence on sites that are not true.** Motivating pairs: 15 and 25 needed flow tracing to reach other-definition, and the file
+   has no field for it. Rule: from the next classification onward a polymorphic or other-definition site whose attribution needed
+   flow or call-site tracing is flagged `inferred` too. *Open for opum-doc:* whether the pyright-comparable PRECISION side excludes
+   edges an analyzer lists at `inferred` sites (ruling 2 names the pair of denominators for recall; precision is not stated). Batch 0
+   is not re-labelled; no true-site count changes.
+4. **A receiver that can never be the target's class.** Motivating pair: 21 (`sub_ctx.command.invoke(...)`, target `CliRunner.invoke`).
+   Rule: `ambiguous-receiver` only when the receiver could be an instance of the target's class (or a subclass); when every class it
+   can be is provably not the target's, the site is `other-definition`. No batch-0 label moves (pair 21 was already
+   other-definition; the one `ambiguous-receiver`, `_compat.py:744:22`, can be a `_NonClosingTextIOWrapper`, a stdout wrapper, so it stays).
+5. **Which line identifies a decorated definition.** Rule: a symbol is identified by the line of its `def` or `class` keyword (the
+   `lineno` of the `ast` node under Python 3.8 or later; the host is 3.15.2), not by a decorator line above it; a decorator
+   application site is identified by the line of the decorator expression. Every committed target and site already follows this; no label moves.
