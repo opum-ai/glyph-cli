@@ -17,6 +17,19 @@ recorded in [ADR 0001](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0
 - **No UI.** stdout carries either human text or JSON: one envelope per command, or
   one line per item then one result line under `--stream`.
 
+### Python symbols (not yet wired)
+
+Python symbol collection exists behind the parse wrapper in `src/python/` and is
+not yet wired to the CLI (ADR 0008). Its stated limits:
+
+- A symbol's id column is tree-sitter's UTF-8 byte offset, not TypeScript's
+  UTF-16 offset; the two are equal on ASCII-only prefixes.
+- `test/python-gate/check_symbol_targets.ts` is a TypeScript reproduction of the
+  gate scorer's target mapping, not a run of `gate_score.py`; the real
+  end-to-end gate run is S8.
+- `cached_property` is collected as a method, not a property.
+- Class-body assignments emit no symbol.
+
 ## Run it
 
 Glyph needs [Node.js](https://nodejs.org) 24 or newer. Install it from npm and
