@@ -12,8 +12,9 @@ import { fileURLToPath } from "node:url";
  * copy — is proved by scripts/check-package.mjs in the Package CI job, because
  * that has to install the tarball and cannot be a unit test.
  *
- * `private` and `version` are this slice's values. The release change that
- * flips them (DEC-299) updates these two assertions with package.json.
+ * `private` and `version` are the release change's values (GCLI-48, DEC-299):
+ * the private flag is gone and the version is 0.1.0. A later bump updates the
+ * version assertion with package.json.
  */
 const packageJson = JSON.parse(readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8"));
 
@@ -38,9 +39,9 @@ describe("the shipped package manifest", () => {
 		expect(packageJson.dependencies.commander).toBeDefined();
 	});
 
-	test("private stays true and version stays 0.0.0 in this slice", () => {
-		expect(packageJson.private).toBe(true);
-		expect(packageJson.version).toBe("0.0.0");
+	test("the package is publishable at 0.1.0: no private flag (GCLI-48)", () => {
+		expect("private" in packageJson).toBe(false);
+		expect(packageJson.version).toBe("0.1.0");
 	});
 
 	test("a built bundle, when present, starts with the Node shebang", () => {

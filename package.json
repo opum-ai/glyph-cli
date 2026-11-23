@@ -1,6 +1,6 @@
 {
 	"name": "@opum-ai/glyph",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Software-intelligence CLI: a typed symbol table and call graph for one language and one repository at a time.",
 	"license": "MIT",
 	"author": "Opum AI",
@@ -17,7 +17,6 @@
 	"engines": {
 		"node": ">=24"
 	},
-	"private": true,
 	"homepage": "https://glyphgraph.dev",
 	"bugs": {
 		"url": "https://github.com/opum-ai/glyph-cli/issues"
