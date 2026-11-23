@@ -156,3 +156,60 @@ and report it. glyph-cli records each such convention in gt_rules with its label
 whether a repository PASSES the gate." Applied as an instruction: a further convention is recorded here as a dated addendum with its label effect on
 the committed counts; a convention that would change whether a repository passes the gate (its recall, its Wilson lower bound or its precision crossing
 0.9, 0.8 or 0.95 on either denominator) goes to the leader before it is applied. It is not used to relabel batch 0 beyond what (a3) states.
+
+## Addendum 5, 2026-11-23T20:48Z: requests under the independent denominator (GCLI-74 / S0b); standing-rule conventions
+
+Applied to the 46 pre-registered requests targets at `3c7baaa`, `src/requests`: candidate list `requests-3c7baaa/candidates.txt` (197 sites, committed a0f7eba before any
+label), classification `requests-3c7baaa/classified-requests-independent.json` built by `build_requests_classified.py` from `gt3_classified.json` (read, never written;
+byte-identical) plus a re-read of every candidate against the pinned source. Result: **65 true sites (62 direct, 3 inferred), 1 polymorphic, 131 other-definition,
+0 excluded, 0 newly attributable beyond the 65**; 37 targets with a true site, 9 zero-truth. The re-read found NO site that R1 had left undecidable
+among the candidates: requests is annotated (265 of 268 defs, 399 of 399 non-`self` parameters, `results/annotation-count.txt`), so every candidate receiver
+was attributable. The three `inferred` true sites are `models.py:460` (`self.headers.copy()`, an attribute of `self`), `sessions.py:886` (`v.close()`, a loop variable
+over `self.adapters.values()`) and `auth.py:302` (`r.request.copy()`, an attribute of an annotated parameter). The 1 polymorphic site is `v.close()` for
+`HTTPAdapter.close` (downward dispatch from the `BaseAdapter` receiver; (a3) Q4, not scored).
+
+Conventions decided under the standing rule (each with its effect; none changes whether a repository passes the gate, since no analyzer has run):
+1. **Denominators on requests.** The pyright-comparable recall denominator is `gt3_classified.json`'s 65 (R1 as written, the set pyright's baseline was scored on, kept
+   byte-identical). The independent denominator is the new file's 65 (identical: no new site). The `direct`-only count, 62, is reported beside them as information.
+   Effect: the two recall denominators coincide on requests; the sides can differ only in PRECISION (Q3). No label changes.
+2. **Evidence on non-true sites uses annotated parameters.** `derive_site_evidence.py` takes an optional package directory; a plain-name receiver that is an
+   annotated parameter of the enclosing function is `direct` (R1 treats an annotated receiver as decidable, so the pyright-comparable side must too). On click
+   (no annotations) the output is byte-identical with or without the directory (checked: 70 direct, 19 inferred, unchanged); on requests it gives 132 non-true pairs
+   (58 direct, 74 inferred) in `requests-3c7baaa/non-true-site-evidence.json`. Effect: the comparable precision side drops an emitted edge at a site flagged
+   `inferred`, so for requests it ignores the analyzer's edges at 74 non-true sites and at the 3 true `inferred` ones; the independent side counts them all.
+3. **Control.** Because the candidate re-read produced no site beyond the 65, the "newly attributable" part of the blind control is empty; the control is the seeded sample of
+   30 pairs (`requests-3c7baaa/blind-sample.txt`, seed 7), classified blind by an independent reader before it sees any of this file.
+
+## Addendum 6, 2026-11-23T20:56Z: conventions found by the blind pass on the requests sample (GCLI-74); standing rule applied
+
+The blind unit agreed with all 30 labels of the requests sample (12 true: 11 direct and 1 inferred, 1 polymorphic, 17 other-definition, 0 excluded; evidence agrees on every
+true pair). 30 pairs is a small sample: no rate is quoted. Mechanical checks behind this addendum: `requests_convention_checks.py` → `requests-3c7baaa/convention-checks.txt`.
+No convention below changes whether a repository passes the gate on either denominator, as far as can be known before an analyzer has run; if one does, it goes to the leader.
+
+1. **@overload groups.** Three targets are overload STUBS, not the implementation: `to_key_val_list` (`utils.py:373`, implementation 376), `LookupDict.get` (`structures.py:127`,
+   implementation 129) and `RequestEncodingMixin._encode_params` (`models.py:134`, implementation 151); `HTTPBasicAuth.__init__` (96) already is the implementation. Rule: an overload group is
+   collapsed to its implementation before classification and scoring, and a call attributes to the group. `requests-3c7baaa/overload-groups.json` maps each stub-keyed target to its implementation line
+   (`targets.json` and the classification are NOT rewritten; the scorer maps through the file; the S6 scorer needs that small follow-up). Effect: 7 of the 65 true sites sit on stub-keyed targets
+   (`to_key_val_list` 5, `_encode_params` 2); their labels do not change (they are true under the collapse reading, which is also what the pyright baseline measured: `union.py` matches
+   a callee at any definition line of the qualified name, stub or implementation). The 65 and the comparison with pyright's baseline are unchanged; `gt3_classified.json` is untouched. Click has
+   no overloads (0 stubs, `results/annotation-count.txt`).
+2. **Receiver evidence on non-true sites, extended.** `derive_site_evidence.py` (with a package directory) now also treats as `direct`: a module imported in the file (including `from . import x`) and an attribute
+   chain off it (`os.environ`, `copy`); an annotated parameter; a name bound once in the enclosing function to a constructor call; `self.x` where `x` is annotated in the enclosing class; and `p.x` where
+   `p` is an annotated parameter whose in-package class annotates `x`. Click output is byte-identical (`cmp`: 70 direct, 19 inferred, unchanged). Requests non-true pairs: **93 direct, 39 inferred** (the earlier
+   rule gave 58/74). On the 18 non-true pairs of the blind sample the rule gives 12 direct / 6 inferred against the blind unit's 13 / 5 (one pair differs; the rule is not tuned further).
+   Effect on the true labels: two requests true sites change from `inferred` to `direct` under the same rule, `models.py:460` (`self.headers.copy()`, `headers` is annotated in the class) and `auth.py:302`
+   (`r.request.copy()`, `request` is annotated in `Response`); the classification file changes only in a separate commit citing the blind pass: **direct 62 to 64, inferred 3 to 1** (`sessions.py:886`
+   stays inferred: a loop variable). The pyright-comparable RECALL denominator for requests is still `gt3_classified.json`'s 65, so the information-only direct count moves and no gate number does; the
+   comparable PRECISION side now ignores analyzer edges at 39 non-true sites and the 1 true inferred site, not 74 and 3.
+3. **Abstract-base methods.** A base method whose body is only `raise NotImplementedError` is a true target by the declared type of the receiver (Addendum 3 / (a3) Q4: overrides are polymorphic, not scored).
+   Count: of the 65 true sites exactly **1** is on an abstract base after the overload collapse (`BaseAdapter.close`, `v.close()` at `sessions.py:886`); the check also flags 7 sites on the overload stubs
+   (their `...` bodies), which rule 1 removes from the question. The alternative would make the denominator 64; the recall bar needs 59 of 65 hits against 58 of 64, so the convention does not by itself flip
+   a verdict.
+4. **Capability and build branches.** A branch on a capability or build property (`getattr(ssl, "HAS_SNI", False)`, an import guard, `TYPE_CHECKING`) is reachable, like a platform branch (consistent with (a3) Q2,
+   `pythonPlatform: "All"`). Count: of the 65 true sites **1** sits under such a branch (`__init__.py:145:8`, `_check_cryptography`). The other conditionals in `convention-checks.txt` section 3 test data or run-time
+   values (`if params is not None`, `isinstance`, `hasattr(self.raw, "stream")`), not capabilities, and the one platform branch (`proxy_bypass_registry`, `sys.platform == "win32"`) is covered by Q2: true.
+5. **Both `os.environ.get` calls of `utils.py:820`** (columns 26 and 49) are candidates of `LookupDict.get` (`convention-checks.txt` section 5), both other-definition.
+6. **"No in-repo subclass"** was a first-base grep; the check is now an `ast` test over ANY base (`convention-checks.txt` section 4). `MockRequest`, `HTTPAdapter`, `Session`, `Response`,
+   `CaseInsensitiveDict` and `LookupDict` have none, which confirms pairs 8, 20, 27 and 28. In-package subclasses that exist: `BaseAdapter`→`HTTPAdapter`, `HTTPBasicAuth`→`HTTPProxyAuth`,
+   `InvalidJSONError`→`JSONDecodeError`, `InvalidURL`→`InvalidProxyURL`, `PreparedRequest`→`_types.py:_ValidatedRequest`, `RequestEncodingMixin`→`PreparedRequest`,
+   `SessionRedirectMixin`→`Session`; the candidate-finding already used any base for subclass constructions.

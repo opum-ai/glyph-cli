@@ -63,3 +63,11 @@ implies `-P` (`sys.flags.safe_path`), so cwd is not on `sys.path` and unittest
 cannot import the sibling module by name; use one of the two forms above, or
 `python3 -m unittest test_gate_score` without `-I`.
 
+## Requests under the independent denominator (GCLI-74, S0b)
+
+DEC-303 (a2) ruling 2 scores requests under both denominators. `gt3_classified.json` (the 65 sites pyright was scored on) is untouched. The
+candidate list for the SAME 46 pre-registered targets at `psf/requests` `3c7baaa05ab4aa49cc819ce3a819d260de19c157`, `src/requests`, is re-derived with the
+click tooling (alias-aware, subclass constructions): `python3 -I gt_requests_candidates.py <checkout>/src/requests <out> test/python-lsp-measurement/derived/targets.json`
+(deterministic; `requests-3c7baaa/`). It has 197 candidate sites for the 46 targets (986 calls and 43 decorator sites in the package); all 65
+pre-registered true sites are among them. The classification is written to a new file AFTER this candidate list, under the rules in `gt_rules_click.md`
+(Addenda 1-4), with `receiver_evidence` per true site.
