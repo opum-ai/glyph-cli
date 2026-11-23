@@ -10,8 +10,7 @@ decision recorded in [ADR 0001](https://github.com/opum-ai/glyph-cli/blob/main/d
 
 ## Scope
 
-- **TypeScript and JavaScript**, as one language target (operator decision
-  DEC-66, recorded in ADR 0001).
+- **TypeScript and JavaScript**, as one language target (recorded in ADR 0001).
 - **One repository at a time.** There is no cross-repository graph.
 - **A local cache, and nothing else.** Glyph writes nothing into the
   repository it analyzes.
@@ -58,12 +57,11 @@ pattern; a name that stays ambiguous is a usage error listing the candidates
 rather than a guess.
 
 ```console
-$ bun run glyph callers buildIndex
-callers of buildIndex (function) at src/indexer.ts:206:17 — 3 call site(s) in 3 file(s)
-  src/cli.ts:66:16  call  in loadIndex
-  test/indexer.test.ts:9:9  call  in indexOf
-  test/queries.test.ts:12:9  call  in indexOf
-index: 13 files, 81 symbols, 139 sites (cache miss)
+$ glyph callers helper
+callers of helper (function) at src/util.ts:1:17 — 2 call site(s) in 2 file(s)
+  src/main.ts:3:10  call  in main
+  src/other.ts:3:10  call  in other
+index: 3 files, 3 symbols, 4 sites (cache miss)
 ```
 
 ### `glyph impact <name>`
@@ -77,7 +75,7 @@ is deterministic. The `module scope` rows at each depth are the import
 terminals (see below): the importing module, not a function in it.
 
 ```console
-$ bun run glyph impact d
+$ glyph impact d
 impact of d (function) at src/d.ts:1:17 in the working tree — 6 caller(s) within depth 5 (6 found, cache hit)
   depth 1  module scope  src/c.ts:1:10  module scope -> d
   depth 1  c  src/c.ts:3:10  c -> d
@@ -96,7 +94,7 @@ index: 4 files, 4 symbols, 6 sites (cache hit)
   terminates, and the callers on it are marked `cycle: true`.
 - A call site at module scope has no enclosing declaration. It is reported as a
   terminal caller with `symbol: null` and is never expanded, so the depth-1
-  answer is a superset of `callers` (DEC-216 (a1)).
+  answer is a superset of `callers`.
 - An import is an edge to the symbol the binding resolves to, through alias and
   re-export chains, and its dependent is the importing **module**: a
   module-scope terminal at depth 1 with `symbol: null`, never expanded. A
@@ -132,7 +130,7 @@ line where the deletion happened.
 
 ### `glyph code-map --source-ref <ref>`
 
-Pointers into the code a task concerns, as opum-cli's `CodeMapProducer` seam
+Pointers into the code a task concerns, as opum-control's `CodeMapProducer` seam
 consumes them: `{ pointers, omissions }`, emitted as `data` under the kind
 `code-map.result`. The task text is read from **stdin**; `--source-ref` names the
 ref every read resolves against and the ref the branch's own diff is taken
@@ -157,7 +155,7 @@ $ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref
   every candidate or read bound it drops is named in `omissions`. The same
   repository state, source ref and task text give byte-identical output.
 - A run has a wall-time budget of 7.0 s (`CODE_MAP_TIME_BUDGET_MS`, measured and
-  fixed under DEC-216 (a4)(b) and (a10), ADR 0005). Past it the run stops gathering and returns
+  fixed in ADR 0005). Past it the run stops gathering and returns
   what it has, with one omission whose source is `code-map#time-budget` and whose
   reason starts `time-budget:` and names the stage and the elapsed time; a pointer emitted after the
   deadline says its line ranges were not read. An answer inside the budget is
@@ -168,7 +166,7 @@ $ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref
   truncation. A missing `--source-ref` is a usage error too.
 - Exit codes are 0, 1, 2, 3 and 7: a `--source-ref` that does not resolve is
   `not_found`, and a failed or timed-out git read is `indeterminate`.
-- This is a port of opum-cli's deterministic producer (pinned in
+- This is a port of opum-control's deterministic producer (pinned in
   `src/codemap-text.ts`), checked byte for byte against goldens that script
   `test/parity/generate-goldens.ts` generates by running that producer. That parity
   covers the deterministic tiers (named paths, changed files, identifiers), run with
@@ -187,7 +185,7 @@ same registry the commands use, so it cannot drift from the handlers.
 ## Streaming (`--stream`)
 
 `callers`, `impact` and `code-map` accept `--stream`, the opt-in NDJSON variant
-of `--json` (Opum command contract §1a, DEC-299; the design is
+of `--json` (the design is
 [ADR 0006](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0006-stream-the-long-answers-as-ndjson.md)). It lets an
 agent act on early items as they are produced. The index build still precedes
 the first item, so a cold cache sees no earlier first line than the batch form,
@@ -224,7 +222,7 @@ $ glyph callers helper --stream
 
 ## The machine contract
 
-Glyph implements the frozen Opum command contract
+Glyph implements the Opum command contract
 and records that obligation in [ADR 0002](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0002-adopt-the-opum-command-contract.md).
 stdout carries exactly one success envelope — JSON under `--json`, human text
 otherwise. On failure stdout stays **empty**, and stderr carries the error
@@ -251,8 +249,8 @@ envelope:
   `version.info`, and `glyph --json --help` or a bare `glyph --json` emits
   `help.usage`. Help with a topic, or `--help` after a command, emits
   `help.manifest` narrowed to that command. Their names are dotted per the
-  frozen contract's §4 rule 1, per opum-doc ruling A (2026-10-20), rather than
-  lore's undotted `version`/`help`; consumers tolerate unknown kinds.
+  contract's dotted-name rule, rather than lore's undotted `version`/`help`;
+  consumers tolerate unknown kinds.
 
 Callers branch on the exit code, never on the message. The family is the full
 frozen taxonomy:
@@ -288,7 +286,7 @@ Two consequences are deliberate, not accidents:
   ignores patterns for tracked files. A repository that commits `dist/`,
   `vendor/` or `build/`, or leaves `node_modules/` untracked and unignored,
   therefore indexes those files; the old fixed directory list hid them. This is
-  the DEC-216 behavior and it is stated here because `callers` and `diff`
+  deliberate and it is stated here because `callers` and `diff`
   answers change in exactly those repositories.
 - `git ls-files` does not descend into submodules or nested repositories;
   their contents are not indexed. Symlinks are followed when they resolve to a
@@ -328,7 +326,7 @@ on an in-memory compiler host, and the commit's own `tsconfig.json` (with
 anything it extends) supplies the compiler options. Paths inside the repository
 that the tree does not contain are invisible to that program, so an edited,
 added or deleted source file cannot change a `--ref` answer. **In-repo
-`node_modules` is not read from disk either** (DEC-216 (a2)), apart from the
+`node_modules` is not read from disk either**, apart from the
 running TypeScript package's own library directory: a module that would resolve
 through the checkout's installed dependencies is not resolved through that
 install, and its call sites are counted in `unresolvedSites`. A tracked
@@ -346,9 +344,8 @@ entry keeps the answer it was built with. Symlinks
 and submodules are not source files at a commit and are skipped. The working
 tree remains the default for interactive use.
 
-`diff` will require `--ref` (DEC-216 Q4). Making an existing command's surface
-change is out of this slice, so that requirement is recorded in ADR 0003 and
-deferred. The code-map seam shipped as `glyph code-map --source-ref <ref>`, which
+`diff` is planned to require `--ref`; that requirement is recorded in ADR 0003 and
+not yet in force. The code-map seam shipped as `glyph code-map --source-ref <ref>`, which
 names its ref explicitly and never reads uncommitted changes (tier 2 does read
 `HEAD`, implicitly, to take the branch's own diff).
 
