@@ -1,0 +1,16 @@
+[
+ {
+  "file": "app/a.py",
+  "line": 1,
+  "col": 7,
+  "name": "app.b",
+  "form": "import"
+ },
+ {
+  "file": "app/a.py",
+  "line": 2,
+  "col": 5,
+  "name": "app.b",
+  "form": "import"
+ }
+]

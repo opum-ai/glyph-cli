@@ -1,0 +1,5490 @@
+[
+ {
+  "file": "_bashcomplete.py",
+  "name": "get_completion_script",
+  "qualname": "get_completion_script",
+  "kind": "function",
+  "category": "function",
+  "line": 95,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_bashcomplete.py",
+  "name": "resolve_ctx",
+  "qualname": "resolve_ctx",
+  "kind": "function",
+  "category": "function",
+  "line": 108,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_bashcomplete.py",
+  "name": "start_of_option",
+  "qualname": "start_of_option",
+  "kind": "function",
+  "category": "function",
+  "line": 151,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_bashcomplete.py",
+  "name": "is_incomplete_option",
+  "qualname": "is_incomplete_option",
+  "kind": "function",
+  "category": "function",
+  "line": 160,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_bashcomplete.py",
+  "name": "is_incomplete_argument",
+  "qualname": "is_incomplete_argument",
+  "kind": "function",
+  "category": "function",
+  "line": 185,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_bashcomplete.py",
+  "name": "get_user_autocompletions",
+  "qualname": "get_user_autocompletions",
+  "kind": "function",
+  "category": "function",
+  "line": 210,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_bashcomplete.py",
+  "name": "get_visible_commands_starting_with",
+  "qualname": "get_visible_commands_starting_with",
+  "kind": "function",
+  "category": "function",
+  "line": 234,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_bashcomplete.py",
+  "name": "add_subcommand_completions",
+  "qualname": "add_subcommand_completions",
+  "kind": "function",
+  "category": "function",
+  "line": 247,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_bashcomplete.py",
+  "name": "get_choices",
+  "qualname": "get_choices",
+  "kind": "function",
+  "category": "function",
+  "line": 272,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_bashcomplete.py",
+  "name": "do_complete",
+  "qualname": "do_complete",
+  "kind": "function",
+  "category": "function",
+  "line": 325,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_bashcomplete.py",
+  "name": "do_complete_fish",
+  "qualname": "do_complete_fish",
+  "kind": "function",
+  "category": "function",
+  "line": 345,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_bashcomplete.py",
+  "name": "bashcomplete",
+  "qualname": "bashcomplete",
+  "kind": "function",
+  "category": "function",
+  "line": 359,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_filesystem_encoding",
+  "qualname": "get_filesystem_encoding",
+  "kind": "function",
+  "category": "function",
+  "line": 23,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_make_text_stream",
+  "qualname": "_make_text_stream",
+  "kind": "function",
+  "category": "function",
+  "line": 27,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "is_ascii_encoding",
+  "qualname": "is_ascii_encoding",
+  "kind": "function",
+  "category": "function",
+  "line": 44,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_best_encoding",
+  "qualname": "get_best_encoding",
+  "kind": "function",
+  "category": "function",
+  "line": 52,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_NonClosingTextIOWrapper",
+  "qualname": "_NonClosingTextIOWrapper",
+  "kind": "class",
+  "category": "class",
+  "line": 60,
+  "decorators": [],
+  "bases": [
+   "io.TextIOWrapper"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "__init__",
+  "qualname": "_NonClosingTextIOWrapper.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 61,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "write",
+  "qualname": "_NonClosingTextIOWrapper.write",
+  "kind": "function",
+  "category": "method",
+  "line": 78,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "writelines",
+  "qualname": "_NonClosingTextIOWrapper.writelines",
+  "kind": "function",
+  "category": "method",
+  "line": 87,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "__del__",
+  "qualname": "_NonClosingTextIOWrapper.__del__",
+  "kind": "function",
+  "category": "method",
+  "line": 91,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "isatty",
+  "qualname": "_NonClosingTextIOWrapper.isatty",
+  "kind": "function",
+  "category": "method",
+  "line": 97,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_FixupStream",
+  "qualname": "_FixupStream",
+  "kind": "class",
+  "category": "class",
+  "line": 102,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "__init__",
+  "qualname": "_FixupStream.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 112,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "__getattr__",
+  "qualname": "_FixupStream.__getattr__",
+  "kind": "function",
+  "category": "method",
+  "line": 117,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "read1",
+  "qualname": "_FixupStream.read1",
+  "kind": "function",
+  "category": "method",
+  "line": 120,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "readable",
+  "qualname": "_FixupStream.readable",
+  "kind": "function",
+  "category": "method",
+  "line": 131,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "writable",
+  "qualname": "_FixupStream.writable",
+  "kind": "function",
+  "category": "method",
+  "line": 143,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "seekable",
+  "qualname": "_FixupStream.seekable",
+  "kind": "function",
+  "category": "method",
+  "line": 158,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "is_bytes",
+  "qualname": "is_bytes",
+  "kind": "function",
+  "category": "function",
+  "line": 177,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "set_binary_mode",
+  "qualname": "set_binary_mode",
+  "kind": "function",
+  "category": "function",
+  "line": 200,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "set_binary_mode",
+  "qualname": "set_binary_mode",
+  "kind": "function",
+  "category": "function",
+  "line": 209,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "set_binary_mode",
+  "qualname": "set_binary_mode",
+  "kind": "function",
+  "category": "function",
+  "line": 224,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "isidentifier",
+  "qualname": "isidentifier",
+  "kind": "function",
+  "category": "function",
+  "line": 234,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_binary_stdin",
+  "qualname": "get_binary_stdin",
+  "kind": "function",
+  "category": "function",
+  "line": 237,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_binary_stdout",
+  "qualname": "get_binary_stdout",
+  "kind": "function",
+  "category": "function",
+  "line": 240,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_binary_stderr",
+  "qualname": "get_binary_stderr",
+  "kind": "function",
+  "category": "function",
+  "line": 244,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_text_stdin",
+  "qualname": "get_text_stdin",
+  "kind": "function",
+  "category": "function",
+  "line": 248,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_text_stdout",
+  "qualname": "get_text_stdout",
+  "kind": "function",
+  "category": "function",
+  "line": 254,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_text_stderr",
+  "qualname": "get_text_stderr",
+  "kind": "function",
+  "category": "function",
+  "line": 261,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "filename_to_ui",
+  "qualname": "filename_to_ui",
+  "kind": "function",
+  "category": "function",
+  "line": 268,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "is_bytes",
+  "qualname": "is_bytes",
+  "kind": "function",
+  "category": "function",
+  "line": 285,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_is_binary_reader",
+  "qualname": "_is_binary_reader",
+  "kind": "function",
+  "category": "function",
+  "line": 288,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_is_binary_writer",
+  "qualname": "_is_binary_writer",
+  "kind": "function",
+  "category": "function",
+  "line": 296,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_find_binary_reader",
+  "qualname": "_find_binary_reader",
+  "kind": "function",
+  "category": "function",
+  "line": 308,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_find_binary_writer",
+  "qualname": "_find_binary_writer",
+  "kind": "function",
+  "category": "function",
+  "line": 323,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_stream_is_misconfigured",
+  "qualname": "_stream_is_misconfigured",
+  "kind": "function",
+  "category": "function",
+  "line": 338,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_is_compat_stream_attr",
+  "qualname": "_is_compat_stream_attr",
+  "kind": "function",
+  "category": "function",
+  "line": 346,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_is_compatible_text_stream",
+  "qualname": "_is_compatible_text_stream",
+  "kind": "function",
+  "category": "function",
+  "line": 354,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_force_correct_text_stream",
+  "qualname": "_force_correct_text_stream",
+  "kind": "function",
+  "category": "function",
+  "line": 362,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_force_correct_text_reader",
+  "qualname": "_force_correct_text_reader",
+  "kind": "function",
+  "category": "function",
+  "line": 404,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_force_correct_text_writer",
+  "qualname": "_force_correct_text_writer",
+  "kind": "function",
+  "category": "function",
+  "line": 414,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_binary_stdin",
+  "qualname": "get_binary_stdin",
+  "kind": "function",
+  "category": "function",
+  "line": 424,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_binary_stdout",
+  "qualname": "get_binary_stdout",
+  "kind": "function",
+  "category": "function",
+  "line": 430,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_binary_stderr",
+  "qualname": "get_binary_stderr",
+  "kind": "function",
+  "category": "function",
+  "line": 438,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_text_stdin",
+  "qualname": "get_text_stdin",
+  "kind": "function",
+  "category": "function",
+  "line": 446,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_text_stdout",
+  "qualname": "get_text_stdout",
+  "kind": "function",
+  "category": "function",
+  "line": 454,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_text_stderr",
+  "qualname": "get_text_stderr",
+  "kind": "function",
+  "category": "function",
+  "line": 462,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "filename_to_ui",
+  "qualname": "filename_to_ui",
+  "kind": "function",
+  "category": "function",
+  "line": 470,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_streerror",
+  "qualname": "get_streerror",
+  "kind": "function",
+  "category": "function",
+  "line": 478,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_wrap_io_open",
+  "qualname": "_wrap_io_open",
+  "kind": "function",
+  "category": "function",
+  "line": 491,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "open_stream",
+  "qualname": "open_stream",
+  "kind": "function",
+  "category": "function",
+  "line": 513,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_AtomicFile",
+  "qualname": "_AtomicFile",
+  "kind": "class",
+  "category": "class",
+  "line": 595,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "_compat.py",
+  "name": "__init__",
+  "qualname": "_AtomicFile.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 596,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "name",
+  "qualname": "_AtomicFile.name",
+  "kind": "function",
+  "category": "property",
+  "line": 603,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "close",
+  "qualname": "_AtomicFile.close",
+  "kind": "function",
+  "category": "method",
+  "line": 606,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "__getattr__",
+  "qualname": "_AtomicFile.__getattr__",
+  "kind": "function",
+  "category": "method",
+  "line": 618,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "__enter__",
+  "qualname": "_AtomicFile.__enter__",
+  "kind": "function",
+  "category": "method",
+  "line": 621,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "__exit__",
+  "qualname": "_AtomicFile.__exit__",
+  "kind": "function",
+  "category": "method",
+  "line": 624,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "__repr__",
+  "qualname": "_AtomicFile.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 627,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "strip_ansi",
+  "qualname": "strip_ansi",
+  "kind": "function",
+  "category": "function",
+  "line": 636,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_is_jupyter_kernel_output",
+  "qualname": "_is_jupyter_kernel_output",
+  "kind": "function",
+  "category": "function",
+  "line": 640,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "should_strip_ansi",
+  "qualname": "should_strip_ansi",
+  "kind": "function",
+  "category": "function",
+  "line": 652,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_get_argv_encoding",
+  "qualname": "_get_argv_encoding",
+  "kind": "function",
+  "category": "function",
+  "line": 669,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "raw_input",
+  "qualname": "raw_input",
+  "kind": "function",
+  "category": "function",
+  "line": 676,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "auto_wrap_for_ansi",
+  "qualname": "auto_wrap_for_ansi",
+  "kind": "function",
+  "category": "function",
+  "line": 691,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_safe_write",
+  "qualname": "auto_wrap_for_ansi._safe_write",
+  "kind": "function",
+  "category": "nested",
+  "line": 708,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "get_winterm_size",
+  "qualname": "get_winterm_size",
+  "kind": "function",
+  "category": "function",
+  "line": 722,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_get_argv_encoding",
+  "qualname": "_get_argv_encoding",
+  "kind": "function",
+  "category": "function",
+  "line": 731,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "term_len",
+  "qualname": "term_len",
+  "kind": "function",
+  "category": "function",
+  "line": 738,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "isatty",
+  "qualname": "isatty",
+  "kind": "function",
+  "category": "function",
+  "line": 742,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "_make_cached_stream_func",
+  "qualname": "_make_cached_stream_func",
+  "kind": "function",
+  "category": "function",
+  "line": 749,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_compat.py",
+  "name": "func",
+  "qualname": "_make_cached_stream_func.func",
+  "kind": "function",
+  "category": "nested",
+  "line": 752,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "_length_hint",
+  "qualname": "_length_hint",
+  "kind": "function",
+  "category": "function",
+  "line": 34,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "ProgressBar",
+  "qualname": "ProgressBar",
+  "kind": "class",
+  "category": "class",
+  "line": 52,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "__init__",
+  "qualname": "ProgressBar.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 53,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "__enter__",
+  "qualname": "ProgressBar.__enter__",
+  "kind": "function",
+  "category": "method",
+  "line": 107,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "__exit__",
+  "qualname": "ProgressBar.__exit__",
+  "kind": "function",
+  "category": "method",
+  "line": 112,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "__iter__",
+  "qualname": "ProgressBar.__iter__",
+  "kind": "function",
+  "category": "method",
+  "line": 115,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "__next__",
+  "qualname": "ProgressBar.__next__",
+  "kind": "function",
+  "category": "method",
+  "line": 121,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "is_fast",
+  "qualname": "ProgressBar.is_fast",
+  "kind": "function",
+  "category": "method",
+  "line": 132,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "render_finish",
+  "qualname": "ProgressBar.render_finish",
+  "kind": "function",
+  "category": "method",
+  "line": 135,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "pct",
+  "qualname": "ProgressBar.pct",
+  "kind": "function",
+  "category": "property",
+  "line": 142,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "time_per_iteration",
+  "qualname": "ProgressBar.time_per_iteration",
+  "kind": "function",
+  "category": "property",
+  "line": 148,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "eta",
+  "qualname": "ProgressBar.eta",
+  "kind": "function",
+  "category": "property",
+  "line": 154,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "format_eta",
+  "qualname": "ProgressBar.format_eta",
+  "kind": "function",
+  "category": "method",
+  "line": 159,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "format_pos",
+  "qualname": "ProgressBar.format_pos",
+  "kind": "function",
+  "category": "method",
+  "line": 174,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "format_pct",
+  "qualname": "ProgressBar.format_pct",
+  "kind": "function",
+  "category": "method",
+  "line": 180,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "format_bar",
+  "qualname": "ProgressBar.format_bar",
+  "kind": "function",
+  "category": "method",
+  "line": 183,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "format_progress_line",
+  "qualname": "ProgressBar.format_progress_line",
+  "kind": "function",
+  "category": "method",
+  "line": 202,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "render_progress",
+  "qualname": "ProgressBar.render_progress",
+  "kind": "function",
+  "category": "method",
+  "line": 229,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "make_step",
+  "qualname": "ProgressBar.make_step",
+  "kind": "function",
+  "category": "method",
+  "line": 268,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "update",
+  "qualname": "ProgressBar.update",
+  "kind": "function",
+  "category": "method",
+  "line": 290,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "finish",
+  "qualname": "ProgressBar.finish",
+  "kind": "function",
+  "category": "method",
+  "line": 294,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "generator",
+  "qualname": "ProgressBar.generator",
+  "kind": "function",
+  "category": "method",
+  "line": 299,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "pager",
+  "qualname": "pager",
+  "kind": "function",
+  "category": "function",
+  "line": 326,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "_pipepager",
+  "qualname": "_pipepager",
+  "kind": "function",
+  "category": "function",
+  "line": 355,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "_tempfilepager",
+  "qualname": "_tempfilepager",
+  "kind": "function",
+  "category": "function",
+  "line": 404,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "_nullpager",
+  "qualname": "_nullpager",
+  "kind": "function",
+  "category": "function",
+  "line": 422,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "Editor",
+  "qualname": "Editor",
+  "kind": "class",
+  "category": "class",
+  "line": 430,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "__init__",
+  "qualname": "Editor.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 431,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "get_editor",
+  "qualname": "Editor.get_editor",
+  "kind": "function",
+  "category": "method",
+  "line": 437,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "edit_file",
+  "qualname": "Editor.edit_file",
+  "kind": "function",
+  "category": "method",
+  "line": 451,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "edit",
+  "qualname": "Editor.edit",
+  "kind": "function",
+  "category": "method",
+  "line": 470,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "open_url",
+  "qualname": "open_url",
+  "kind": "function",
+  "category": "function",
+  "line": 506,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "_unquote_file",
+  "qualname": "open_url._unquote_file",
+  "kind": "function",
+  "category": "nested",
+  "line": 509,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "_translate_ch_to_exc",
+  "qualname": "_translate_ch_to_exc",
+  "kind": "function",
+  "category": "function",
+  "line": 565,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "raw_terminal",
+  "qualname": "raw_terminal",
+  "kind": "function",
+  "category": "function",
+  "line": 578,
+  "decorators": [
+   "contextlib.contextmanager"
+  ],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "getchar",
+  "qualname": "getchar",
+  "kind": "function",
+  "category": "function",
+  "line": 581,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "raw_terminal",
+  "qualname": "raw_terminal",
+  "kind": "function",
+  "category": "function",
+  "line": 630,
+  "decorators": [
+   "contextlib.contextmanager"
+  ],
+  "bases": []
+ },
+ {
+  "file": "_termui_impl.py",
+  "name": "getchar",
+  "qualname": "getchar",
+  "kind": "function",
+  "category": "function",
+  "line": 650,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_textwrap.py",
+  "name": "TextWrapper",
+  "qualname": "TextWrapper",
+  "kind": "class",
+  "category": "class",
+  "line": 5,
+  "decorators": [],
+  "bases": [
+   "textwrap.TextWrapper"
+  ]
+ },
+ {
+  "file": "_textwrap.py",
+  "name": "_handle_long_word",
+  "qualname": "TextWrapper._handle_long_word",
+  "kind": "function",
+  "category": "method",
+  "line": 6,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_textwrap.py",
+  "name": "extra_indent",
+  "qualname": "TextWrapper.extra_indent",
+  "kind": "function",
+  "category": "method",
+  "line": 19,
+  "decorators": [
+   "contextmanager"
+  ],
+  "bases": []
+ },
+ {
+  "file": "_textwrap.py",
+  "name": "indent_only",
+  "qualname": "TextWrapper.indent_only",
+  "kind": "function",
+  "category": "method",
+  "line": 30,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_unicodefun.py",
+  "name": "_find_unicode_literals_frame",
+  "qualname": "_find_unicode_literals_frame",
+  "kind": "function",
+  "category": "function",
+  "line": 8,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_unicodefun.py",
+  "name": "_check_for_unicode_literals",
+  "qualname": "_check_for_unicode_literals",
+  "kind": "function",
+  "category": "function",
+  "line": 26,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_unicodefun.py",
+  "name": "_verify_python3_env",
+  "qualname": "_verify_python3_env",
+  "kind": "function",
+  "category": "function",
+  "line": 52,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "Py_buffer",
+  "qualname": "Py_buffer",
+  "kind": "class",
+  "category": "class",
+  "line": 85,
+  "decorators": [],
+  "bases": [
+   "ctypes.Structure"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "get_buffer",
+  "qualname": "get_buffer",
+  "kind": "function",
+  "category": "function",
+  "line": 110,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_WindowsConsoleRawIOBase",
+  "qualname": "_WindowsConsoleRawIOBase",
+  "kind": "class",
+  "category": "class",
+  "line": 121,
+  "decorators": [],
+  "bases": [
+   "io.RawIOBase"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "__init__",
+  "qualname": "_WindowsConsoleRawIOBase.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 122,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "isatty",
+  "qualname": "_WindowsConsoleRawIOBase.isatty",
+  "kind": "function",
+  "category": "method",
+  "line": 125,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_WindowsConsoleReader",
+  "qualname": "_WindowsConsoleReader",
+  "kind": "class",
+  "category": "class",
+  "line": 130,
+  "decorators": [],
+  "bases": [
+   "_WindowsConsoleRawIOBase"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "readable",
+  "qualname": "_WindowsConsoleReader.readable",
+  "kind": "function",
+  "category": "method",
+  "line": 131,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "readinto",
+  "qualname": "_WindowsConsoleReader.readinto",
+  "kind": "function",
+  "category": "method",
+  "line": 134,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_WindowsConsoleWriter",
+  "qualname": "_WindowsConsoleWriter",
+  "kind": "class",
+  "category": "class",
+  "line": 165,
+  "decorators": [],
+  "bases": [
+   "_WindowsConsoleRawIOBase"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "writable",
+  "qualname": "_WindowsConsoleWriter.writable",
+  "kind": "function",
+  "category": "method",
+  "line": 166,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_get_error_message",
+  "qualname": "_WindowsConsoleWriter._get_error_message",
+  "kind": "function",
+  "category": "staticmethod",
+  "line": 170,
+  "decorators": [
+   "staticmethod"
+  ],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "write",
+  "qualname": "_WindowsConsoleWriter.write",
+  "kind": "function",
+  "category": "method",
+  "line": 177,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "ConsoleStream",
+  "qualname": "ConsoleStream",
+  "kind": "class",
+  "category": "class",
+  "line": 197,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "__init__",
+  "qualname": "ConsoleStream.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 198,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "name",
+  "qualname": "ConsoleStream.name",
+  "kind": "function",
+  "category": "property",
+  "line": 203,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "write",
+  "qualname": "ConsoleStream.write",
+  "kind": "function",
+  "category": "method",
+  "line": 206,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "writelines",
+  "qualname": "ConsoleStream.writelines",
+  "kind": "function",
+  "category": "method",
+  "line": 215,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "__getattr__",
+  "qualname": "ConsoleStream.__getattr__",
+  "kind": "function",
+  "category": "method",
+  "line": 219,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "isatty",
+  "qualname": "ConsoleStream.isatty",
+  "kind": "function",
+  "category": "method",
+  "line": 222,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "__repr__",
+  "qualname": "ConsoleStream.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 225,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "WindowsChunkedWriter",
+  "qualname": "WindowsChunkedWriter",
+  "kind": "class",
+  "category": "class",
+  "line": 231,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "__init__",
+  "qualname": "WindowsChunkedWriter.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 238,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "__getattr__",
+  "qualname": "WindowsChunkedWriter.__getattr__",
+  "kind": "function",
+  "category": "method",
+  "line": 243,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "write",
+  "qualname": "WindowsChunkedWriter.write",
+  "kind": "function",
+  "category": "method",
+  "line": 246,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_wrap_std_stream",
+  "qualname": "_wrap_std_stream",
+  "kind": "function",
+  "category": "function",
+  "line": 259,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_get_text_stdin",
+  "qualname": "_get_text_stdin",
+  "kind": "function",
+  "category": "function",
+  "line": 270,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_get_text_stdout",
+  "qualname": "_get_text_stdout",
+  "kind": "function",
+  "category": "function",
+  "line": 280,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_get_text_stderr",
+  "qualname": "_get_text_stderr",
+  "kind": "function",
+  "category": "function",
+  "line": 290,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_hash_py_argv",
+  "qualname": "_hash_py_argv",
+  "kind": "function",
+  "category": "function",
+  "line": 302,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_get_windows_argv",
+  "qualname": "_get_windows_argv",
+  "kind": "function",
+  "category": "function",
+  "line": 307,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_is_console",
+  "qualname": "_is_console",
+  "kind": "function",
+  "category": "function",
+  "line": 338,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_winconsole.py",
+  "name": "_get_windows_console_stream",
+  "qualname": "_get_windows_console_stream",
+  "kind": "function",
+  "category": "function",
+  "line": 351,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "_maybe_show_deprecated_notice",
+  "qualname": "_maybe_show_deprecated_notice",
+  "kind": "function",
+  "category": "function",
+  "line": 48,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "fast_exit",
+  "qualname": "fast_exit",
+  "kind": "function",
+  "category": "function",
+  "line": 53,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "_bashcomplete",
+  "qualname": "_bashcomplete",
+  "kind": "function",
+  "category": "function",
+  "line": 62,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "_check_multicommand",
+  "qualname": "_check_multicommand",
+  "kind": "function",
+  "category": "function",
+  "line": 76,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "batch",
+  "qualname": "batch",
+  "kind": "function",
+  "category": "function",
+  "line": 104,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "invoke_param_callback",
+  "qualname": "invoke_param_callback",
+  "kind": "function",
+  "category": "function",
+  "line": 108,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "augment_usage_errors",
+  "qualname": "augment_usage_errors",
+  "kind": "function",
+  "category": "function",
+  "line": 127,
+  "decorators": [
+   "contextmanager"
+  ],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "iter_params_for_processing",
+  "qualname": "iter_params_for_processing",
+  "kind": "function",
+  "category": "function",
+  "line": 143,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "sort_key",
+  "qualname": "iter_params_for_processing.sort_key",
+  "kind": "function",
+  "category": "nested",
+  "line": 149,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "Context",
+  "qualname": "Context",
+  "kind": "class",
+  "category": "class",
+  "line": 159,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "__init__",
+  "qualname": "Context.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 245,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "__enter__",
+  "qualname": "Context.__enter__",
+  "kind": "function",
+  "category": "method",
+  "line": 396,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "__exit__",
+  "qualname": "Context.__exit__",
+  "kind": "function",
+  "category": "method",
+  "line": 401,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "scope",
+  "qualname": "Context.scope",
+  "kind": "function",
+  "category": "method",
+  "line": 408,
+  "decorators": [
+   "contextmanager"
+  ],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "meta",
+  "qualname": "Context.meta",
+  "kind": "function",
+  "category": "property",
+  "line": 446,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "make_formatter",
+  "qualname": "Context.make_formatter",
+  "kind": "function",
+  "category": "method",
+  "line": 473,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "call_on_close",
+  "qualname": "Context.call_on_close",
+  "kind": "function",
+  "category": "method",
+  "line": 479,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "close",
+  "qualname": "Context.close",
+  "kind": "function",
+  "category": "method",
+  "line": 491,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "command_path",
+  "qualname": "Context.command_path",
+  "kind": "function",
+  "category": "property",
+  "line": 498,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "find_root",
+  "qualname": "Context.find_root",
+  "kind": "function",
+  "category": "method",
+  "line": 510,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "find_object",
+  "qualname": "Context.find_object",
+  "kind": "function",
+  "category": "method",
+  "line": 517,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "ensure_object",
+  "qualname": "Context.ensure_object",
+  "kind": "function",
+  "category": "method",
+  "line": 525,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "lookup_default",
+  "qualname": "Context.lookup_default",
+  "kind": "function",
+  "category": "method",
+  "line": 534,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "fail",
+  "qualname": "Context.fail",
+  "kind": "function",
+  "category": "method",
+  "line": 544,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "abort",
+  "qualname": "Context.abort",
+  "kind": "function",
+  "category": "method",
+  "line": 552,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "exit",
+  "qualname": "Context.exit",
+  "kind": "function",
+  "category": "method",
+  "line": 556,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_usage",
+  "qualname": "Context.get_usage",
+  "kind": "function",
+  "category": "method",
+  "line": 560,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_help",
+  "qualname": "Context.get_help",
+  "kind": "function",
+  "category": "method",
+  "line": 566,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "invoke",
+  "qualname": "Context.invoke",
+  "kind": "function",
+  "category": "method",
+  "line": 572,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "forward",
+  "qualname": "Context.forward",
+  "kind": "function",
+  "category": "method",
+  "line": 612,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "BaseCommand",
+  "qualname": "BaseCommand",
+  "kind": "class",
+  "category": "class",
+  "line": 631,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "__init__",
+  "qualname": "BaseCommand.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 660,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "__repr__",
+  "qualname": "BaseCommand.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 671,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_usage",
+  "qualname": "BaseCommand.get_usage",
+  "kind": "function",
+  "category": "method",
+  "line": 674,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_help",
+  "qualname": "BaseCommand.get_help",
+  "kind": "function",
+  "category": "method",
+  "line": 677,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "make_context",
+  "qualname": "BaseCommand.make_context",
+  "kind": "function",
+  "category": "method",
+  "line": 680,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "parse_args",
+  "qualname": "BaseCommand.parse_args",
+  "kind": "function",
+  "category": "method",
+  "line": 703,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "invoke",
+  "qualname": "BaseCommand.invoke",
+  "kind": "function",
+  "category": "method",
+  "line": 710,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "main",
+  "qualname": "BaseCommand.main",
+  "kind": "function",
+  "category": "method",
+  "line": 716,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "__call__",
+  "qualname": "BaseCommand.__call__",
+  "kind": "function",
+  "category": "method",
+  "line": 827,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "Command",
+  "qualname": "Command",
+  "kind": "class",
+  "category": "class",
+  "line": 832,
+  "decorators": [],
+  "bases": [
+   "BaseCommand"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "__init__",
+  "qualname": "Command.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 865,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_usage",
+  "qualname": "Command.get_usage",
+  "kind": "function",
+  "category": "method",
+  "line": 901,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_params",
+  "qualname": "Command.get_params",
+  "kind": "function",
+  "category": "method",
+  "line": 910,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "format_usage",
+  "qualname": "Command.format_usage",
+  "kind": "function",
+  "category": "method",
+  "line": 917,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "collect_usage_pieces",
+  "qualname": "Command.collect_usage_pieces",
+  "kind": "function",
+  "category": "method",
+  "line": 925,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_help_option_names",
+  "qualname": "Command.get_help_option_names",
+  "kind": "function",
+  "category": "method",
+  "line": 934,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_help_option",
+  "qualname": "Command.get_help_option",
+  "kind": "function",
+  "category": "method",
+  "line": 942,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "show_help",
+  "qualname": "Command.get_help_option.show_help",
+  "kind": "function",
+  "category": "nested",
+  "line": 948,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "make_parser",
+  "qualname": "Command.make_parser",
+  "kind": "function",
+  "category": "method",
+  "line": 962,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_help",
+  "qualname": "Command.get_help",
+  "kind": "function",
+  "category": "method",
+  "line": 969,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_short_help_str",
+  "qualname": "Command.get_short_help_str",
+  "kind": "function",
+  "category": "method",
+  "line": 978,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "format_help",
+  "qualname": "Command.format_help",
+  "kind": "function",
+  "category": "method",
+  "line": 989,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "format_help_text",
+  "qualname": "Command.format_help_text",
+  "kind": "function",
+  "category": "method",
+  "line": 1006,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "format_options",
+  "qualname": "Command.format_options",
+  "kind": "function",
+  "category": "method",
+  "line": 1020,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "format_epilog",
+  "qualname": "Command.format_epilog",
+  "kind": "function",
+  "category": "method",
+  "line": 1032,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "parse_args",
+  "qualname": "Command.parse_args",
+  "kind": "function",
+  "category": "method",
+  "line": 1039,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "invoke",
+  "qualname": "Command.invoke",
+  "kind": "function",
+  "category": "method",
+  "line": 1060,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "MultiCommand",
+  "qualname": "MultiCommand",
+  "kind": "class",
+  "category": "class",
+  "line": 1069,
+  "decorators": [],
+  "bases": [
+   "Command"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "__init__",
+  "qualname": "MultiCommand.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 1096,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "collect_usage_pieces",
+  "qualname": "MultiCommand.collect_usage_pieces",
+  "kind": "function",
+  "category": "method",
+  "line": 1130,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "format_options",
+  "qualname": "MultiCommand.format_options",
+  "kind": "function",
+  "category": "method",
+  "line": 1135,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "resultcallback",
+  "qualname": "MultiCommand.resultcallback",
+  "kind": "function",
+  "category": "method",
+  "line": 1139,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "decorator",
+  "qualname": "MultiCommand.resultcallback.decorator",
+  "kind": "function",
+  "category": "nested",
+  "line": 1165,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "function",
+  "qualname": "MultiCommand.resultcallback.decorator.function",
+  "kind": "function",
+  "category": "nested",
+  "line": 1171,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "format_commands",
+  "qualname": "MultiCommand.format_commands",
+  "kind": "function",
+  "category": "method",
+  "line": 1179,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "parse_args",
+  "qualname": "MultiCommand.parse_args",
+  "kind": "function",
+  "category": "method",
+  "line": 1207,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "invoke",
+  "qualname": "MultiCommand.invoke",
+  "kind": "function",
+  "category": "method",
+  "line": 1221,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "_process_result",
+  "qualname": "MultiCommand.invoke._process_result",
+  "kind": "function",
+  "category": "nested",
+  "line": 1222,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "resolve_command",
+  "qualname": "MultiCommand.resolve_command",
+  "kind": "function",
+  "category": "method",
+  "line": 1292,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_command",
+  "qualname": "MultiCommand.get_command",
+  "kind": "function",
+  "category": "method",
+  "line": 1318,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "list_commands",
+  "qualname": "MultiCommand.list_commands",
+  "kind": "function",
+  "category": "method",
+  "line": 1324,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "Group",
+  "qualname": "Group",
+  "kind": "class",
+  "category": "class",
+  "line": 1331,
+  "decorators": [],
+  "bases": [
+   "MultiCommand"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "__init__",
+  "qualname": "Group.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 1338,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "add_command",
+  "qualname": "Group.add_command",
+  "kind": "function",
+  "category": "method",
+  "line": 1343,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "command",
+  "qualname": "Group.command",
+  "kind": "function",
+  "category": "method",
+  "line": 1353,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "decorator",
+  "qualname": "Group.command.decorator",
+  "kind": "function",
+  "category": "nested",
+  "line": 1361,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "group",
+  "qualname": "Group.group",
+  "kind": "function",
+  "category": "method",
+  "line": 1368,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "decorator",
+  "qualname": "Group.group.decorator",
+  "kind": "function",
+  "category": "nested",
+  "line": 1376,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_command",
+  "qualname": "Group.get_command",
+  "kind": "function",
+  "category": "method",
+  "line": 1383,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "list_commands",
+  "qualname": "Group.list_commands",
+  "kind": "function",
+  "category": "method",
+  "line": 1386,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "CommandCollection",
+  "qualname": "CommandCollection",
+  "kind": "class",
+  "category": "class",
+  "line": 1390,
+  "decorators": [],
+  "bases": [
+   "MultiCommand"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "__init__",
+  "qualname": "CommandCollection.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 1397,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "add_source",
+  "qualname": "CommandCollection.add_source",
+  "kind": "function",
+  "category": "method",
+  "line": 1402,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_command",
+  "qualname": "CommandCollection.get_command",
+  "kind": "function",
+  "category": "method",
+  "line": 1406,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "list_commands",
+  "qualname": "CommandCollection.list_commands",
+  "kind": "function",
+  "category": "method",
+  "line": 1414,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "Parameter",
+  "qualname": "Parameter",
+  "kind": "class",
+  "category": "class",
+  "line": 1421,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "__init__",
+  "qualname": "Parameter.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 1468,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "__repr__",
+  "qualname": "Parameter.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 1507,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "human_readable_name",
+  "qualname": "Parameter.human_readable_name",
+  "kind": "function",
+  "category": "property",
+  "line": 1511,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "make_metavar",
+  "qualname": "Parameter.make_metavar",
+  "kind": "function",
+  "category": "method",
+  "line": 1517,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_default",
+  "qualname": "Parameter.get_default",
+  "kind": "function",
+  "category": "method",
+  "line": 1527,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "add_to_parser",
+  "qualname": "Parameter.add_to_parser",
+  "kind": "function",
+  "category": "method",
+  "line": 1536,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "consume_value",
+  "qualname": "Parameter.consume_value",
+  "kind": "function",
+  "category": "method",
+  "line": 1539,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "type_cast_value",
+  "qualname": "Parameter.type_cast_value",
+  "kind": "function",
+  "category": "method",
+  "line": 1547,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "_convert",
+  "qualname": "Parameter.type_cast_value._convert",
+  "kind": "function",
+  "category": "nested",
+  "line": 1563,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "process_value",
+  "qualname": "Parameter.process_value",
+  "kind": "function",
+  "category": "method",
+  "line": 1570,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "value_is_missing",
+  "qualname": "Parameter.value_is_missing",
+  "kind": "function",
+  "category": "method",
+  "line": 1581,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "full_process_value",
+  "qualname": "Parameter.full_process_value",
+  "kind": "function",
+  "category": "method",
+  "line": 1588,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "resolve_envvar_value",
+  "qualname": "Parameter.resolve_envvar_value",
+  "kind": "function",
+  "category": "method",
+  "line": 1599,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "value_from_envvar",
+  "qualname": "Parameter.value_from_envvar",
+  "kind": "function",
+  "category": "method",
+  "line": 1613,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "handle_parse_result",
+  "qualname": "Parameter.handle_parse_result",
+  "kind": "function",
+  "category": "method",
+  "line": 1619,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_help_record",
+  "qualname": "Parameter.get_help_record",
+  "kind": "function",
+  "category": "method",
+  "line": 1639,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_usage_pieces",
+  "qualname": "Parameter.get_usage_pieces",
+  "kind": "function",
+  "category": "method",
+  "line": 1642,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_error_hint",
+  "qualname": "Parameter.get_error_hint",
+  "kind": "function",
+  "category": "method",
+  "line": 1645,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "Option",
+  "qualname": "Option",
+  "kind": "class",
+  "category": "class",
+  "line": 1653,
+  "decorators": [],
+  "bases": [
+   "Parameter"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "__init__",
+  "qualname": "Option.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 1694,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "_parse_decls",
+  "qualname": "Option._parse_decls",
+  "kind": "function",
+  "category": "method",
+  "line": 1780,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "add_to_parser",
+  "qualname": "Option.add_to_parser",
+  "kind": "function",
+  "category": "method",
+  "line": 1825,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_help_record",
+  "qualname": "Option.get_help_record",
+  "kind": "function",
+  "category": "method",
+  "line": 1855,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "_write_opts",
+  "qualname": "Option.get_help_record._write_opts",
+  "kind": "function",
+  "category": "nested",
+  "line": 1860,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_default",
+  "qualname": "Option.get_default",
+  "kind": "function",
+  "category": "method",
+  "line": 1907,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "prompt_for_value",
+  "qualname": "Option.prompt_for_value",
+  "kind": "function",
+  "category": "method",
+  "line": 1919,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "resolve_envvar_value",
+  "qualname": "Option.resolve_envvar_value",
+  "kind": "function",
+  "category": "method",
+  "line": 1943,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "value_from_envvar",
+  "qualname": "Option.value_from_envvar",
+  "kind": "function",
+  "category": "method",
+  "line": 1951,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "full_process_value",
+  "qualname": "Option.full_process_value",
+  "kind": "function",
+  "category": "method",
+  "line": 1962,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "Argument",
+  "qualname": "Argument",
+  "kind": "class",
+  "category": "class",
+  "line": 1968,
+  "decorators": [],
+  "bases": [
+   "Parameter"
+  ]
+ },
+ {
+  "file": "core.py",
+  "name": "__init__",
+  "qualname": "Argument.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 1978,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "human_readable_name",
+  "qualname": "Argument.human_readable_name",
+  "kind": "function",
+  "category": "property",
+  "line": 1991,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "make_metavar",
+  "qualname": "Argument.make_metavar",
+  "kind": "function",
+  "category": "method",
+  "line": 1996,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "_parse_decls",
+  "qualname": "Argument._parse_decls",
+  "kind": "function",
+  "category": "method",
+  "line": 2008,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_usage_pieces",
+  "qualname": "Argument.get_usage_pieces",
+  "kind": "function",
+  "category": "method",
+  "line": 2023,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "get_error_hint",
+  "qualname": "Argument.get_error_hint",
+  "kind": "function",
+  "category": "method",
+  "line": 2026,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "core.py",
+  "name": "add_to_parser",
+  "qualname": "Argument.add_to_parser",
+  "kind": "function",
+  "category": "method",
+  "line": 2029,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "pass_context",
+  "qualname": "pass_context",
+  "kind": "function",
+  "category": "function",
+  "line": 15,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "new_func",
+  "qualname": "pass_context.new_func",
+  "kind": "function",
+  "category": "nested",
+  "line": 20,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "pass_obj",
+  "qualname": "pass_obj",
+  "kind": "function",
+  "category": "function",
+  "line": 26,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "new_func",
+  "qualname": "pass_obj.new_func",
+  "kind": "function",
+  "category": "nested",
+  "line": 32,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "make_pass_decorator",
+  "qualname": "make_pass_decorator",
+  "kind": "function",
+  "category": "function",
+  "line": 38,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "decorator",
+  "qualname": "make_pass_decorator.decorator",
+  "kind": "function",
+  "category": "nested",
+  "line": 61,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "new_func",
+  "qualname": "make_pass_decorator.decorator.new_func",
+  "kind": "function",
+  "category": "nested",
+  "line": 62,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "_make_command",
+  "qualname": "_make_command",
+  "kind": "function",
+  "category": "function",
+  "line": 80,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "command",
+  "qualname": "command",
+  "kind": "function",
+  "category": "function",
+  "line": 106,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "decorator",
+  "qualname": "command.decorator",
+  "kind": "function",
+  "category": "nested",
+  "line": 129,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "group",
+  "qualname": "group",
+  "kind": "function",
+  "category": "function",
+  "line": 137,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "_param_memo",
+  "qualname": "_param_memo",
+  "kind": "function",
+  "category": "function",
+  "line": 146,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "argument",
+  "qualname": "argument",
+  "kind": "function",
+  "category": "function",
+  "line": 155,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "decorator",
+  "qualname": "argument.decorator",
+  "kind": "function",
+  "category": "nested",
+  "line": 166,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "option",
+  "qualname": "option",
+  "kind": "function",
+  "category": "function",
+  "line": 174,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "decorator",
+  "qualname": "option.decorator",
+  "kind": "function",
+  "category": "nested",
+  "line": 185,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "confirmation_option",
+  "qualname": "confirmation_option",
+  "kind": "function",
+  "category": "function",
+  "line": 198,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "decorator",
+  "qualname": "confirmation_option.decorator",
+  "kind": "function",
+  "category": "nested",
+  "line": 216,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "callback",
+  "qualname": "confirmation_option.decorator.callback",
+  "kind": "function",
+  "category": "nested",
+  "line": 217,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "password_option",
+  "qualname": "password_option",
+  "kind": "function",
+  "category": "function",
+  "line": 231,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "decorator",
+  "qualname": "password_option.decorator",
+  "kind": "function",
+  "category": "nested",
+  "line": 244,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "version_option",
+  "qualname": "version_option",
+  "kind": "function",
+  "category": "function",
+  "line": 253,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "decorator",
+  "qualname": "version_option.decorator",
+  "kind": "function",
+  "category": "nested",
+  "line": 271,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "callback",
+  "qualname": "version_option.decorator.callback",
+  "kind": "function",
+  "category": "nested",
+  "line": 275,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "help_option",
+  "qualname": "help_option",
+  "kind": "function",
+  "category": "function",
+  "line": 309,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "decorator",
+  "qualname": "help_option.decorator",
+  "kind": "function",
+  "category": "nested",
+  "line": 320,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "decorators.py",
+  "name": "callback",
+  "qualname": "help_option.decorator.callback",
+  "kind": "function",
+  "category": "nested",
+  "line": 321,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "_join_param_hints",
+  "qualname": "_join_param_hints",
+  "kind": "function",
+  "category": "function",
+  "line": 7,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "ClickException",
+  "qualname": "ClickException",
+  "kind": "class",
+  "category": "class",
+  "line": 13,
+  "decorators": [],
+  "bases": [
+   "Exception"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__init__",
+  "qualname": "ClickException.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 19,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "format_message",
+  "qualname": "ClickException.format_message",
+  "kind": "function",
+  "category": "method",
+  "line": 27,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__str__",
+  "qualname": "ClickException.__str__",
+  "kind": "function",
+  "category": "method",
+  "line": 30,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__str__",
+  "qualname": "ClickException.__str__",
+  "kind": "function",
+  "category": "method",
+  "line": 36,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "show",
+  "qualname": "ClickException.show",
+  "kind": "function",
+  "category": "method",
+  "line": 39,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "UsageError",
+  "qualname": "UsageError",
+  "kind": "class",
+  "category": "class",
+  "line": 45,
+  "decorators": [],
+  "bases": [
+   "ClickException"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__init__",
+  "qualname": "UsageError.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 56,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "show",
+  "qualname": "UsageError.show",
+  "kind": "function",
+  "category": "method",
+  "line": 61,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "BadParameter",
+  "qualname": "BadParameter",
+  "kind": "class",
+  "category": "class",
+  "line": 76,
+  "decorators": [],
+  "bases": [
+   "UsageError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__init__",
+  "qualname": "BadParameter.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 94,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "format_message",
+  "qualname": "BadParameter.format_message",
+  "kind": "function",
+  "category": "method",
+  "line": 99,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "MissingParameter",
+  "qualname": "MissingParameter",
+  "kind": "class",
+  "category": "class",
+  "line": 111,
+  "decorators": [],
+  "bases": [
+   "BadParameter"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__init__",
+  "qualname": "MissingParameter.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 123,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "format_message",
+  "qualname": "MissingParameter.format_message",
+  "kind": "function",
+  "category": "method",
+  "line": 129,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__str__",
+  "qualname": "MissingParameter.__str__",
+  "kind": "function",
+  "category": "method",
+  "line": 158,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__str__",
+  "qualname": "MissingParameter.__str__",
+  "kind": "function",
+  "category": "method",
+  "line": 168,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "NoSuchOption",
+  "qualname": "NoSuchOption",
+  "kind": "class",
+  "category": "class",
+  "line": 172,
+  "decorators": [],
+  "bases": [
+   "UsageError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__init__",
+  "qualname": "NoSuchOption.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 179,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "format_message",
+  "qualname": "NoSuchOption.format_message",
+  "kind": "function",
+  "category": "method",
+  "line": 186,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "BadOptionUsage",
+  "qualname": "BadOptionUsage",
+  "kind": "class",
+  "category": "class",
+  "line": 197,
+  "decorators": [],
+  "bases": [
+   "UsageError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__init__",
+  "qualname": "BadOptionUsage.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 207,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "BadArgumentUsage",
+  "qualname": "BadArgumentUsage",
+  "kind": "class",
+  "category": "class",
+  "line": 212,
+  "decorators": [],
+  "bases": [
+   "UsageError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__init__",
+  "qualname": "BadArgumentUsage.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 220,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "FileError",
+  "qualname": "FileError",
+  "kind": "class",
+  "category": "class",
+  "line": 224,
+  "decorators": [],
+  "bases": [
+   "ClickException"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__init__",
+  "qualname": "FileError.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 227,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "format_message",
+  "qualname": "FileError.format_message",
+  "kind": "function",
+  "category": "method",
+  "line": 235,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "Abort",
+  "qualname": "Abort",
+  "kind": "class",
+  "category": "class",
+  "line": 239,
+  "decorators": [],
+  "bases": [
+   "RuntimeError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "Exit",
+  "qualname": "Exit",
+  "kind": "class",
+  "category": "class",
+  "line": 243,
+  "decorators": [],
+  "bases": [
+   "RuntimeError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__init__",
+  "qualname": "Exit.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 252,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "measure_table",
+  "qualname": "measure_table",
+  "kind": "function",
+  "category": "function",
+  "line": 11,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "iter_rows",
+  "qualname": "iter_rows",
+  "kind": "function",
+  "category": "function",
+  "line": 19,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "wrap_text",
+  "qualname": "wrap_text",
+  "kind": "function",
+  "category": "function",
+  "line": 25,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "_flush_par",
+  "qualname": "wrap_text._flush_par",
+  "kind": "function",
+  "category": "nested",
+  "line": 62,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "HelpFormatter",
+  "qualname": "HelpFormatter",
+  "kind": "class",
+  "category": "class",
+  "line": 94,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "formatting.py",
+  "name": "__init__",
+  "qualname": "HelpFormatter.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 106,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "write",
+  "qualname": "HelpFormatter.write",
+  "kind": "function",
+  "category": "method",
+  "line": 118,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "indent",
+  "qualname": "HelpFormatter.indent",
+  "kind": "function",
+  "category": "method",
+  "line": 122,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "dedent",
+  "qualname": "HelpFormatter.dedent",
+  "kind": "function",
+  "category": "method",
+  "line": 126,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "write_usage",
+  "qualname": "HelpFormatter.write_usage",
+  "kind": "function",
+  "category": "method",
+  "line": 130,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "write_heading",
+  "qualname": "HelpFormatter.write_heading",
+  "kind": "function",
+  "category": "method",
+  "line": 164,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "write_paragraph",
+  "qualname": "HelpFormatter.write_paragraph",
+  "kind": "function",
+  "category": "method",
+  "line": 168,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "write_text",
+  "qualname": "HelpFormatter.write_text",
+  "kind": "function",
+  "category": "method",
+  "line": 173,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "write_dl",
+  "qualname": "HelpFormatter.write_dl",
+  "kind": "function",
+  "category": "method",
+  "line": 190,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "section",
+  "qualname": "HelpFormatter.section",
+  "kind": "function",
+  "category": "method",
+  "line": 238,
+  "decorators": [
+   "contextmanager"
+  ],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "indentation",
+  "qualname": "HelpFormatter.indentation",
+  "kind": "function",
+  "category": "method",
+  "line": 253,
+  "decorators": [
+   "contextmanager"
+  ],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "getvalue",
+  "qualname": "HelpFormatter.getvalue",
+  "kind": "function",
+  "category": "method",
+  "line": 261,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "formatting.py",
+  "name": "join_options",
+  "qualname": "join_options",
+  "kind": "function",
+  "category": "function",
+  "line": 266,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "globals.py",
+  "name": "get_current_context",
+  "qualname": "get_current_context",
+  "kind": "function",
+  "category": "function",
+  "line": 6,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "globals.py",
+  "name": "push_context",
+  "qualname": "push_context",
+  "kind": "function",
+  "category": "function",
+  "line": 28,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "globals.py",
+  "name": "pop_context",
+  "qualname": "pop_context",
+  "kind": "function",
+  "category": "function",
+  "line": 33,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "globals.py",
+  "name": "resolve_color_default",
+  "qualname": "resolve_color_default",
+  "kind": "function",
+  "category": "function",
+  "line": 38,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "_unpack_args",
+  "qualname": "_unpack_args",
+  "kind": "function",
+  "category": "function",
+  "line": 30,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "_fetch",
+  "qualname": "_unpack_args._fetch",
+  "kind": "function",
+  "category": "nested",
+  "line": 45,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "_error_opt_args",
+  "qualname": "_error_opt_args",
+  "kind": "function",
+  "category": "function",
+  "line": 81,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "split_opt",
+  "qualname": "split_opt",
+  "kind": "function",
+  "category": "function",
+  "line": 87,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "normalize_opt",
+  "qualname": "normalize_opt",
+  "kind": "function",
+  "category": "function",
+  "line": 96,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "split_arg_string",
+  "qualname": "split_arg_string",
+  "kind": "function",
+  "category": "function",
+  "line": 103,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "Option",
+  "qualname": "Option",
+  "kind": "class",
+  "category": "class",
+  "line": 122,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "parser.py",
+  "name": "__init__",
+  "qualname": "Option.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 123,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "takes_value",
+  "qualname": "Option.takes_value",
+  "kind": "function",
+  "category": "property",
+  "line": 149,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "process",
+  "qualname": "Option.process",
+  "kind": "function",
+  "category": "method",
+  "line": 152,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "Argument",
+  "qualname": "Argument",
+  "kind": "class",
+  "category": "class",
+  "line": 168,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "parser.py",
+  "name": "__init__",
+  "qualname": "Argument.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 169,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "process",
+  "qualname": "Argument.process",
+  "kind": "function",
+  "category": "method",
+  "line": 174,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "ParsingState",
+  "qualname": "ParsingState",
+  "kind": "class",
+  "category": "class",
+  "line": 187,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "parser.py",
+  "name": "__init__",
+  "qualname": "ParsingState.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 188,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "OptionParser",
+  "qualname": "OptionParser",
+  "kind": "class",
+  "category": "class",
+  "line": 195,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "parser.py",
+  "name": "__init__",
+  "qualname": "OptionParser.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 209,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "add_option",
+  "qualname": "OptionParser.add_option",
+  "kind": "function",
+  "category": "method",
+  "line": 231,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "add_argument",
+  "qualname": "OptionParser.add_argument",
+  "kind": "function",
+  "category": "method",
+  "line": 250,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "parse_args",
+  "qualname": "OptionParser.parse_args",
+  "kind": "function",
+  "category": "method",
+  "line": 260,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "_process_args_for_args",
+  "qualname": "OptionParser._process_args_for_args",
+  "kind": "function",
+  "category": "method",
+  "line": 276,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "_process_args_for_options",
+  "qualname": "OptionParser._process_args_for_options",
+  "kind": "function",
+  "category": "method",
+  "line": 287,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "_match_long_opt",
+  "qualname": "OptionParser._match_long_opt",
+  "kind": "function",
+  "category": "method",
+  "line": 323,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "_match_short_opt",
+  "qualname": "OptionParser._match_short_opt",
+  "kind": "function",
+  "category": "method",
+  "line": 354,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "parser.py",
+  "name": "_process_opts",
+  "qualname": "OptionParser._process_opts",
+  "kind": "function",
+  "category": "method",
+  "line": 401,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "hidden_prompt_func",
+  "qualname": "hidden_prompt_func",
+  "kind": "function",
+  "category": "function",
+  "line": 51,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "_build_prompt",
+  "qualname": "_build_prompt",
+  "kind": "function",
+  "category": "function",
+  "line": 57,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "_format_default",
+  "qualname": "_format_default",
+  "kind": "function",
+  "category": "function",
+  "line": 68,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "prompt",
+  "qualname": "prompt",
+  "kind": "function",
+  "category": "function",
+  "line": 75,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "prompt_func",
+  "qualname": "prompt.prompt_func",
+  "kind": "function",
+  "category": "nested",
+  "line": 123,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "confirm",
+  "qualname": "confirm",
+  "kind": "function",
+  "category": "function",
+  "line": 172,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "get_terminal_size",
+  "qualname": "get_terminal_size",
+  "kind": "function",
+  "category": "function",
+  "line": 218,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "ioctl_gwinsz",
+  "qualname": "get_terminal_size.ioctl_gwinsz",
+  "kind": "function",
+  "category": "nested",
+  "line": 240,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "echo_via_pager",
+  "qualname": "echo_via_pager",
+  "kind": "function",
+  "category": "function",
+  "line": 265,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "progressbar",
+  "qualname": "progressbar",
+  "kind": "function",
+  "category": "function",
+  "line": 294,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "clear",
+  "qualname": "clear",
+  "kind": "function",
+  "category": "function",
+  "line": 415,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "style",
+  "qualname": "style",
+  "kind": "function",
+  "category": "function",
+  "line": 433,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "unstyle",
+  "qualname": "unstyle",
+  "kind": "function",
+  "category": "function",
+  "line": 522,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "secho",
+  "qualname": "secho",
+  "kind": "function",
+  "category": "function",
+  "line": 534,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "edit",
+  "qualname": "edit",
+  "kind": "function",
+  "category": "function",
+  "line": 551,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "launch",
+  "qualname": "launch",
+  "kind": "function",
+  "category": "function",
+  "line": 591,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "getchar",
+  "qualname": "getchar",
+  "kind": "function",
+  "category": "function",
+  "line": 623,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "raw_terminal",
+  "qualname": "raw_terminal",
+  "kind": "function",
+  "category": "function",
+  "line": 649,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "termui.py",
+  "name": "pause",
+  "qualname": "pause",
+  "kind": "function",
+  "category": "function",
+  "line": 655,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "EchoingStdin",
+  "qualname": "EchoingStdin",
+  "kind": "class",
+  "category": "class",
+  "line": 23,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "testing.py",
+  "name": "__init__",
+  "qualname": "EchoingStdin.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 24,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "__getattr__",
+  "qualname": "EchoingStdin.__getattr__",
+  "kind": "function",
+  "category": "method",
+  "line": 28,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "_echo",
+  "qualname": "EchoingStdin._echo",
+  "kind": "function",
+  "category": "method",
+  "line": 31,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "read",
+  "qualname": "EchoingStdin.read",
+  "kind": "function",
+  "category": "method",
+  "line": 35,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "readline",
+  "qualname": "EchoingStdin.readline",
+  "kind": "function",
+  "category": "method",
+  "line": 38,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "readlines",
+  "qualname": "EchoingStdin.readlines",
+  "kind": "function",
+  "category": "method",
+  "line": 41,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "__iter__",
+  "qualname": "EchoingStdin.__iter__",
+  "kind": "function",
+  "category": "method",
+  "line": 44,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "__repr__",
+  "qualname": "EchoingStdin.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 47,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "make_input_stream",
+  "qualname": "make_input_stream",
+  "kind": "function",
+  "category": "function",
+  "line": 51,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "Result",
+  "qualname": "Result",
+  "kind": "class",
+  "category": "class",
+  "line": 70,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "testing.py",
+  "name": "__init__",
+  "qualname": "Result.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 73,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "output",
+  "qualname": "Result.output",
+  "kind": "function",
+  "category": "property",
+  "line": 90,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "stdout",
+  "qualname": "Result.stdout",
+  "kind": "function",
+  "category": "property",
+  "line": 95,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "stderr",
+  "qualname": "Result.stderr",
+  "kind": "function",
+  "category": "property",
+  "line": 102,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "__repr__",
+  "qualname": "Result.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 110,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "CliRunner",
+  "qualname": "CliRunner",
+  "kind": "class",
+  "category": "class",
+  "line": 116,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "testing.py",
+  "name": "__init__",
+  "qualname": "CliRunner.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 137,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "get_default_prog_name",
+  "qualname": "CliRunner.get_default_prog_name",
+  "kind": "function",
+  "category": "method",
+  "line": 145,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "make_env",
+  "qualname": "CliRunner.make_env",
+  "kind": "function",
+  "category": "method",
+  "line": 152,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "isolation",
+  "qualname": "CliRunner.isolation",
+  "kind": "function",
+  "category": "method",
+  "line": 160,
+  "decorators": [
+   "contextlib.contextmanager"
+  ],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "visible_input",
+  "qualname": "CliRunner.isolation.visible_input",
+  "kind": "function",
+  "category": "nested",
+  "line": 210,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "hidden_input",
+  "qualname": "CliRunner.isolation.hidden_input",
+  "kind": "function",
+  "category": "nested",
+  "line": 217,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "_getchar",
+  "qualname": "CliRunner.isolation._getchar",
+  "kind": "function",
+  "category": "nested",
+  "line": 222,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "should_strip_ansi",
+  "qualname": "CliRunner.isolation.should_strip_ansi",
+  "kind": "function",
+  "category": "nested",
+  "line": 231,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "invoke",
+  "qualname": "CliRunner.invoke",
+  "kind": "function",
+  "category": "method",
+  "line": 275,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "testing.py",
+  "name": "isolated_filesystem",
+  "qualname": "CliRunner.isolated_filesystem",
+  "kind": "function",
+  "category": "method",
+  "line": 368,
+  "decorators": [
+   "contextlib.contextmanager"
+  ],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "ParamType",
+  "qualname": "ParamType",
+  "kind": "class",
+  "category": "class",
+  "line": 17,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "__call__",
+  "qualname": "ParamType.__call__",
+  "kind": "function",
+  "category": "method",
+  "line": 44,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "get_metavar",
+  "qualname": "ParamType.get_metavar",
+  "kind": "function",
+  "category": "method",
+  "line": 48,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "get_missing_message",
+  "qualname": "ParamType.get_missing_message",
+  "kind": "function",
+  "category": "method",
+  "line": 51,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "ParamType.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 58,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "split_envvar_value",
+  "qualname": "ParamType.split_envvar_value",
+  "kind": "function",
+  "category": "method",
+  "line": 64,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "fail",
+  "qualname": "ParamType.fail",
+  "kind": "function",
+  "category": "method",
+  "line": 74,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "CompositeParamType",
+  "qualname": "CompositeParamType",
+  "kind": "class",
+  "category": "class",
+  "line": 79,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "arity",
+  "qualname": "CompositeParamType.arity",
+  "kind": "function",
+  "category": "property",
+  "line": 83,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "FuncParamType",
+  "qualname": "FuncParamType",
+  "kind": "class",
+  "category": "class",
+  "line": 87,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "__init__",
+  "qualname": "FuncParamType.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 88,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "FuncParamType.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 92,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "UnprocessedParamType",
+  "qualname": "UnprocessedParamType",
+  "kind": "class",
+  "category": "class",
+  "line": 103,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "UnprocessedParamType.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 106,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "__repr__",
+  "qualname": "UnprocessedParamType.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 109,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "StringParamType",
+  "qualname": "StringParamType",
+  "kind": "class",
+  "category": "class",
+  "line": 113,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "StringParamType.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 116,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "__repr__",
+  "qualname": "StringParamType.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 133,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "Choice",
+  "qualname": "Choice",
+  "kind": "class",
+  "category": "class",
+  "line": 137,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "__init__",
+  "qualname": "Choice.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 156,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "get_metavar",
+  "qualname": "Choice.get_metavar",
+  "kind": "function",
+  "category": "method",
+  "line": 160,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "get_missing_message",
+  "qualname": "Choice.get_missing_message",
+  "kind": "function",
+  "category": "method",
+  "line": 163,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "Choice.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 166,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "__repr__",
+  "qualname": "Choice.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 204,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "DateTime",
+  "qualname": "DateTime",
+  "kind": "class",
+  "category": "class",
+  "line": 208,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "__init__",
+  "qualname": "DateTime.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 231,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "get_metavar",
+  "qualname": "DateTime.get_metavar",
+  "kind": "function",
+  "category": "method",
+  "line": 234,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "_try_to_convert_date",
+  "qualname": "DateTime._try_to_convert_date",
+  "kind": "function",
+  "category": "method",
+  "line": 237,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "DateTime.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 243,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "__repr__",
+  "qualname": "DateTime.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 256,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "IntParamType",
+  "qualname": "IntParamType",
+  "kind": "class",
+  "category": "class",
+  "line": 260,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "IntParamType.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 263,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "__repr__",
+  "qualname": "IntParamType.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 269,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "IntRange",
+  "qualname": "IntRange",
+  "kind": "class",
+  "category": "class",
+  "line": 273,
+  "decorators": [],
+  "bases": [
+   "IntParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "__init__",
+  "qualname": "IntRange.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 284,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "IntRange.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 289,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "__repr__",
+  "qualname": "IntRange.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 328,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "FloatParamType",
+  "qualname": "FloatParamType",
+  "kind": "class",
+  "category": "class",
+  "line": 332,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "FloatParamType.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 335,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "__repr__",
+  "qualname": "FloatParamType.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 343,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "FloatRange",
+  "qualname": "FloatRange",
+  "kind": "class",
+  "category": "class",
+  "line": 347,
+  "decorators": [],
+  "bases": [
+   "FloatParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "__init__",
+  "qualname": "FloatRange.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 358,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "FloatRange.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 363,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "__repr__",
+  "qualname": "FloatRange.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 402,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "BoolParamType",
+  "qualname": "BoolParamType",
+  "kind": "class",
+  "category": "class",
+  "line": 406,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "BoolParamType.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 409,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "__repr__",
+  "qualname": "BoolParamType.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 419,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "UUIDParameterType",
+  "qualname": "UUIDParameterType",
+  "kind": "class",
+  "category": "class",
+  "line": 423,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "UUIDParameterType.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 426,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "__repr__",
+  "qualname": "UUIDParameterType.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 436,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "File",
+  "qualname": "File",
+  "kind": "class",
+  "category": "class",
+  "line": 440,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "__init__",
+  "qualname": "File.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 470,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "resolve_lazy_flag",
+  "qualname": "File.resolve_lazy_flag",
+  "kind": "function",
+  "category": "method",
+  "line": 479,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "File.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 488,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "Path",
+  "qualname": "Path",
+  "kind": "class",
+  "category": "class",
+  "line": 527,
+  "decorators": [],
+  "bases": [
+   "ParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "__init__",
+  "qualname": "Path.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 560,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "coerce_path_result",
+  "qualname": "Path.coerce_path_result",
+  "kind": "function",
+  "category": "method",
+  "line": 590,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "Path.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 598,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "Tuple",
+  "qualname": "Tuple",
+  "kind": "class",
+  "category": "class",
+  "line": 654,
+  "decorators": [],
+  "bases": [
+   "CompositeParamType"
+  ]
+ },
+ {
+  "file": "types.py",
+  "name": "__init__",
+  "qualname": "Tuple.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 668,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "name",
+  "qualname": "Tuple.name",
+  "kind": "function",
+  "category": "property",
+  "line": 672,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "arity",
+  "qualname": "Tuple.arity",
+  "kind": "function",
+  "category": "property",
+  "line": 676,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "convert",
+  "qualname": "Tuple.convert",
+  "kind": "function",
+  "category": "method",
+  "line": 679,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "types.py",
+  "name": "convert_type",
+  "qualname": "convert_type",
+  "kind": "function",
+  "category": "function",
+  "line": 688,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "_posixify",
+  "qualname": "_posixify",
+  "kind": "function",
+  "category": "function",
+  "line": 32,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "safecall",
+  "qualname": "safecall",
+  "kind": "function",
+  "category": "function",
+  "line": 36,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "wrapper",
+  "qualname": "safecall.wrapper",
+  "kind": "function",
+  "category": "nested",
+  "line": 39,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "make_str",
+  "qualname": "make_str",
+  "kind": "function",
+  "category": "function",
+  "line": 48,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "make_default_short_help",
+  "qualname": "make_default_short_help",
+  "kind": "function",
+  "category": "function",
+  "line": 58,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "LazyFile",
+  "qualname": "LazyFile",
+  "kind": "class",
+  "category": "class",
+  "line": 83,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "utils.py",
+  "name": "__init__",
+  "qualname": "LazyFile.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 90,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "__getattr__",
+  "qualname": "LazyFile.__getattr__",
+  "kind": "function",
+  "category": "method",
+  "line": 110,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "__repr__",
+  "qualname": "LazyFile.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 113,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "open",
+  "qualname": "LazyFile.open",
+  "kind": "function",
+  "category": "method",
+  "line": 118,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "close",
+  "qualname": "LazyFile.close",
+  "kind": "function",
+  "category": "method",
+  "line": 136,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "close_intelligently",
+  "qualname": "LazyFile.close_intelligently",
+  "kind": "function",
+  "category": "method",
+  "line": 141,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "__enter__",
+  "qualname": "LazyFile.__enter__",
+  "kind": "function",
+  "category": "method",
+  "line": 148,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "__exit__",
+  "qualname": "LazyFile.__exit__",
+  "kind": "function",
+  "category": "method",
+  "line": 151,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "__iter__",
+  "qualname": "LazyFile.__iter__",
+  "kind": "function",
+  "category": "method",
+  "line": 154,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "KeepOpenFile",
+  "qualname": "KeepOpenFile",
+  "kind": "class",
+  "category": "class",
+  "line": 159,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "utils.py",
+  "name": "__init__",
+  "qualname": "KeepOpenFile.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 160,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "__getattr__",
+  "qualname": "KeepOpenFile.__getattr__",
+  "kind": "function",
+  "category": "method",
+  "line": 163,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "__enter__",
+  "qualname": "KeepOpenFile.__enter__",
+  "kind": "function",
+  "category": "method",
+  "line": 166,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "__exit__",
+  "qualname": "KeepOpenFile.__exit__",
+  "kind": "function",
+  "category": "method",
+  "line": 169,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "__repr__",
+  "qualname": "KeepOpenFile.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 172,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "__iter__",
+  "qualname": "KeepOpenFile.__iter__",
+  "kind": "function",
+  "category": "method",
+  "line": 175,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "echo",
+  "qualname": "echo",
+  "kind": "function",
+  "category": "function",
+  "line": 179,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "get_binary_stream",
+  "qualname": "get_binary_stream",
+  "kind": "function",
+  "category": "function",
+  "line": 276,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "get_text_stream",
+  "qualname": "get_text_stream",
+  "kind": "function",
+  "category": "function",
+  "line": 292,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "open_file",
+  "qualname": "open_file",
+  "kind": "function",
+  "category": "function",
+  "line": 309,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "get_os_args",
+  "qualname": "get_os_args",
+  "kind": "function",
+  "category": "function",
+  "line": 342,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "format_filename",
+  "qualname": "format_filename",
+  "kind": "function",
+  "category": "function",
+  "line": 363,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "get_app_dir",
+  "qualname": "get_app_dir",
+  "kind": "function",
+  "category": "function",
+  "line": 380,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "PacifyFlushWrapper",
+  "qualname": "PacifyFlushWrapper",
+  "kind": "class",
+  "category": "class",
+  "line": 433,
+  "decorators": [],
+  "bases": [
+   "object"
+  ]
+ },
+ {
+  "file": "utils.py",
+  "name": "__init__",
+  "qualname": "PacifyFlushWrapper.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 442,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "flush",
+  "qualname": "PacifyFlushWrapper.flush",
+  "kind": "function",
+  "category": "method",
+  "line": 445,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "__getattr__",
+  "qualname": "PacifyFlushWrapper.__getattr__",
+  "kind": "function",
+  "category": "method",
+  "line": 454,
+  "decorators": [],
+  "bases": []
+ }
+]

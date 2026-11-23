@@ -1,0 +1,18 @@
+
+== truth set 1: 4 targets, 5 true sites ==
+set                site recall                        site precision                     targets fully correct       
+incoming           0/5 = 0.000 (0.000-0.434)          n/a (n=0)                          0/4 = 0.000 (0.000-0.490)   
+outgoing           0/5 = 0.000 (0.000-0.434)          n/a (n=0)                          0/4 = 0.000 (0.000-0.490)   
+union              0/5 = 0.000 (0.000-0.434)          n/a (n=0)                          0/4 = 0.000 (0.000-0.490)   
+union + ctor map   0/5 = 0.000 (0.000-0.434)          n/a (n=0)                          0/4 = 0.000 (0.000-0.490)   
+
+cluster view over the 4 targets that have at least one true site (the zero-truth targets are precision controls and would inflate a target-level figure):
+set                targets fully correct          recall, cluster bootstrap 95%      precision, cluster bootstrap 95%  
+incoming           0/4 = 0.000 (0.000-0.490)      0.000-0.000                       nan-nan
+outgoing           0/4 = 0.000 (0.000-0.490)      0.000-0.000                       nan-nan
+union              0/4 = 0.000 (0.000-0.490)      0.000-0.000                       nan-nan
+union + ctor map   0/4 = 0.000 (0.000-0.490)      0.000-0.000                       nan-nan
+  differs: app/b.py:1 helper | incoming: tp=0 fp=0 fn=2; outgoing: tp=0 fp=0 fn=2; union: tp=0 fp=0 fn=2; union + ctor map: tp=0 fp=0 fn=2
+  differs: app/b.py:5 Box | incoming: tp=0 fp=0 fn=1; outgoing: tp=0 fp=0 fn=1; union: tp=0 fp=0 fn=1; union + ctor map: tp=0 fp=0 fn=1
+  differs: app/b.py:6 Box.__init__ | incoming: tp=0 fp=0 fn=1; outgoing: tp=0 fp=0 fn=1; union: tp=0 fp=0 fn=1; union + ctor map: tp=0 fp=0 fn=1
+  differs: app/b.py:9 Box.get | incoming: tp=0 fp=0 fn=1; outgoing: tp=0 fp=0 fn=1; union: tp=0 fp=0 fn=1; union + ctor map: tp=0 fp=0 fn=1

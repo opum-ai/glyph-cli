@@ -1,0 +1,22 @@
+How pythonPlatform "All" reaches the server (harness runs on psf/requests, all files open; pyright 1.1.414).
+Signal: does `prepareCallHierarchy` answer for utils.py proxy_bypass_registry (defined under sys.platform == "win32"), and how many documentSymbol entries come back.
+
+E0: no config; nothing sent (host default platform)
+    proxy_bypass_registry prepared: False; documentSymbol entries: 1243
+E1: workspace/configuration answered {"pythonPlatform":"All"}
+    proxy_bypass_registry prepared: False; documentSymbol entries: 1243
+E2: workspace/configuration answered {"analysis":{"pythonPlatform":"All"},"pythonPlatform":"All"}
+    proxy_bypass_registry prepared: False; documentSymbol entries: 1243
+E3: initializationOptions {"pythonPlatform":"All"}
+    proxy_bypass_registry prepared: False; documentSymbol entries: 1243
+E4: analysis root = a directory OUTSIDE the repository holding pyrightconfig.json {"pythonPlatform":"All","include":[<absolute package path>]}
+    proxy_bypass_registry prepared: True; documentSymbol entries: 1251
+E5: repository root holding pyrightconfig.json {} (a config that names no platform)
+    proxy_bypass_registry prepared: False; documentSymbol entries: 1243
+
+Reading: LSP settings (E1-E3) do NOT carry the platform to pyright 1.1.414; a config file does (E4, and the earlier runs with a config in the root).
+E4 shows the config can live outside the repository: the adapter's analysis root is a temp directory under the glyph cache holding a generated
+pyrightconfig.json whose `include` is the repository path; nothing is written into the repository.
+E5: a repository config that names no platform falls back to the host default (the macOS-style miss).
+NOT tested: merging a repository's own config into the generated one (pyright's `extends`); a first-slice requirement.
+Raw output is kept only for E1, E4 and E5 (results/raw/platform-channel-e1|e4|e5); E0, E2 and E3 were run and their two signals are quoted above, but their raw output was not kept.

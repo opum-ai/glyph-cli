@@ -1,0 +1,31 @@
+annotation_count.py (python3 -I), host Python 3.15.2. Source roots are scratch checkouts at the commits named (paths are the scratch ones); each run exits 0 only if every .py file parsed.
+
+tag check, command `git ls-remote --tags https://github.com/pallets/click.git '7.1.2*' '8.1.8*'`, unfiltered output (a tag with no `^{}` line is lightweight; its line is the commit):
+  1784558ed7c75c65764d2a434bd9cbb206ca939d  refs/tags/7.1.2
+  d4ecb8a89a52ad3faacf3f1c65065d08c1d11c14  refs/tags/8.1.8
+  934813e4d421071a1b3db3973c02fe2721359a6e  refs/tags/8.1.8^{}
+scratch clones, `git rev-parse HEAD`: click-7.1.2 1784558ed7c75c65764d2a434bd9cbb206ca939d; click-8.1.8 934813e4d421071a1b3db3973c02fe2721359a6e
+
+## pallets/click 1784558ed7c75c65764d2a434bd9cbb206ca939d (tag 7.1.2, lightweight), src/click
+root /private/tmp/claude-501/-Volumes-external-repos-glyph-cli/853a7a5b-4f9a-4db1-a4ee-350fab922cd1/scratchpad/click-7.1.2/src/click
+files parsed 17, skipped 0
+defs 474, overload stubs 0, defs annotated (any) 0 (0.000)
+params (excluding self/cls) 810, annotated 0 (0.000)
+classes 58, ast.Call nodes 1669
+exit 0
+
+## pallets/click 934813e4d421071a1b3db3973c02fe2721359a6e (tag 8.1.8, annotated, peeled), src/click
+root /private/tmp/claude-501/-Volumes-external-repos-glyph-cli/853a7a5b-4f9a-4db1-a4ee-350fab922cd1/scratchpad/click-clone/src/click
+files parsed 16, skipped 0
+defs 512, overload stubs 24, defs annotated (any) 501 (0.979)
+params (excluding self/cls) 914, annotated 900 (0.985)
+classes 67, ast.Call nodes 1755
+exit 0
+
+## psf/requests 3c7baaa05ab4aa49cc819ce3a819d260de19c157 (the pinned gate repository), src/requests
+root /private/tmp/claude-501/-Volumes-external-repos-glyph-cli/853a7a5b-4f9a-4db1-a4ee-350fab922cd1/scratchpad/req/src/requests
+files parsed 19, skipped 0
+defs 268, overload stubs 20, defs annotated (any) 265 (0.989)
+params (excluding self/cls) 399, annotated 399 (1.000)
+classes 52, ast.Call nodes 986
+exit 0
