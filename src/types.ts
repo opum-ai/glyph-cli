@@ -17,6 +17,13 @@ export interface SymbolEntry {
 	name: string;
 	/** Nearest enclosing class/interface/enum, or null for top-level declarations. */
 	container: string | null;
+	/**
+	 * The full enclosing qualified name, for languages that have one: Python
+	 * emits it (e.g. `Parameter.type_cast_value._convert`, without a `<locals>`
+	 * segment) and TypeScript leaves it absent (DEC-303 (a5) Q6 arm A). `container`
+	 * keeps its documented meaning beside it.
+	 */
+	qualname?: string;
 	kind: SymbolKind;
 	/** Repository-relative path. */
 	file: string;
