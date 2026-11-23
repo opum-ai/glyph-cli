@@ -5,8 +5,8 @@ symbol's change can reach**, and **which symbols a diff touches** — one
 language, one repository at a time.
 
 Glyph is Opum's software-intelligence primitive, the third peer product
-alongside Lore and Quest. v0 is deliberately narrow; its scope is the operator
-decision recorded in [ADR 0001](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0001-scope-glyph-v0-to-a-one-language-symbol-and-call-graph.md).
+alongside Lore and Quest. v0 is deliberately narrow; its scope is
+recorded in [ADR 0001](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0001-scope-glyph-v0-to-a-one-language-symbol-and-call-graph.md).
 
 ## Scope
 
@@ -14,7 +14,8 @@ decision recorded in [ADR 0001](https://github.com/opum-ai/glyph-cli/blob/main/d
 - **One repository at a time.** There is no cross-repository graph.
 - **A local cache, and nothing else.** Glyph writes nothing into the
   repository it analyzes.
-- **No UI.** stdout carries either human text or one JSON envelope.
+- **No UI.** stdout carries either human text or JSON: one envelope per command, or
+  one line per item then one result line under `--stream`.
 
 ## Run it
 
@@ -67,7 +68,7 @@ index: 3 files, 3 symbols, 4 sites (cache miss)
 ### `glyph impact <name>`
 
 Every caller a change to this symbol can reach — the transitive reverse closure
-over call, `new`, import, `extends` and `implements` edges (ADR 0004). Each caller appears once, at its shortest depth (direct
+over call, `new`, import, `extends` and `implements` edges ([ADR 0004](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0004-widen-the-index-with-import-and-inheritance-edges.md)). Each caller appears once, at its shortest depth (direct
 callers are depth 1), with one shortest path to the target and the call sites
 on that path. When several shortest paths exist, a total order — the path
 string, then the call site's file, line and column — picks one, so the answer
@@ -107,7 +108,7 @@ index: 4 files, 4 symbols, 6 sites (cache hit)
 - `class B extends A`, `class C implements I` and `interface J extends I` are
   edges from the subclass or implementer, so a changed class or interface
   reaches them at depth + 1 and the walk continues over every edge kind. A
-  changed **method** does not reach an overriding method in v1 (a named limit,
+  changed **method** does not reach an overriding method in v0 (a named limit,
   below). Each hop of a path carries its `kind`; `callers` still lists call and
   `new` sites only.
 - `--ref <ref>` answers from that commit's tree instead of the working tree;
@@ -130,8 +131,8 @@ line where the deletion happened.
 
 ### `glyph code-map --source-ref <ref>`
 
-Pointers into the code a task concerns, as opum-control's `CodeMapProducer` seam
-consumes them: `{ pointers, omissions }`, emitted as `data` under the kind
+Pointers into the code a task concerns, in the shape an agent harness consumes
+them: `{ pointers, omissions }`, emitted as `data` under the kind
 `code-map.result`. The task text is read from **stdin**; `--source-ref` names the
 ref every read resolves against and the ref the branch's own diff is taken
 against (`--repo` and `--json` are the usual globals).
@@ -149,13 +150,14 @@ $ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref
   file precedes a referencing one. A path found by more than one tier keeps its
   best; ties break by score, then path. A file the symbol tier pushes out of the
   20-file cap is named in `omissions`. With the index absent or failing the
-  symbol tier is empty and the output is the deterministic producer's. A pointer is
+  symbol tier is empty and the output is what the deterministic tiers alone
+  (named paths, changed files, identifiers) produce. A pointer is
   a path, line ranges and one line of reason, never a file body.
 - The output is bounded to 20 files and 2,000 tokens (`ceil(length / 4)`), and
   every candidate or read bound it drops is named in `omissions`. The same
   repository state, source ref and task text give byte-identical output.
 - A run has a wall-time budget of 7.0 s (`CODE_MAP_TIME_BUDGET_MS`, measured and
-  fixed in ADR 0005). Past it the run stops gathering and returns
+  fixed in [ADR 0005](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0005-bound-the-code-map-by-a-wall-time-budget.md)). Past it the run stops gathering and returns
   what it has, with one omission whose source is `code-map#time-budget` and whose
   reason starts `time-budget:` and names the stage and the elapsed time; a pointer emitted after the
   deadline says its line ranges were not read. An answer inside the budget is
@@ -166,7 +168,7 @@ $ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref
   truncation. A missing `--source-ref` is a usage error too.
 - Exit codes are 0, 1, 2, 3 and 7: a `--source-ref` that does not resolve is
   `not_found`, and a failed or timed-out git read is `indeterminate`.
-- This is a port of opum-control's deterministic producer (pinned in
+- This is a port of a deterministic reference producer (pinned in
   `src/codemap-text.ts`), checked byte for byte against goldens that script
   `test/parity/generate-goldens.ts` generates by running that producer. That parity
   covers the deterministic tiers (named paths, changed files, identifiers), run with
@@ -179,7 +181,7 @@ Show or clear this repository's local cache directory.
 ### `glyph help --json`
 
 Emit the live command manifest — every command's dotted `kind`, its flags and
-exit codes, and the frozen exit-code taxonomy. The manifest is built from the
+exit codes, and the exit-code taxonomy. The manifest is built from the
 same registry the commands use, so it cannot drift from the handlers.
 
 ## Streaming (`--stream`)
@@ -193,7 +195,7 @@ and `impact` emits only once its walk completes (its `cycle` flags are decided
 after the search); `callers` and `code-map` stream while they work.
 
 - `--stream` implies `--json`. Combining it with `--plain` is a usage error
-  (exit 2), and so is passing it to a command that does not declare it.
+  (exit 2; Glyph has no `--plain` mode, the flag is only rejected), and so is passing it to a command that does not declare it.
 - stdout carries one compact success envelope per line, each newline-terminated
   and flushed when written, with `principal` last. Item lines carry
   `<command>.item` (published as `itemKind` in `help --json`); exactly one
@@ -222,11 +224,13 @@ $ glyph callers helper --stream
 
 ## The machine contract
 
-Glyph implements the Opum command contract
+Glyph follows a shared command contract for Opum tools
 and records that obligation in [ADR 0002](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0002-adopt-the-opum-command-contract.md).
-stdout carries exactly one success envelope — JSON under `--json`, human text
-otherwise. On failure stdout stays **empty**, and stderr carries the error
-envelope:
+stdout carries exactly one success envelope per command — JSON under `--json`,
+human text otherwise (`--stream` instead emits one line per item, then one result
+line, below). On failure stdout carries no success envelope (under `--stream`,
+item lines already written stay and no result line follows), and stderr carries
+the error envelope:
 
 ```json
 { "schemaVersion": 1, "kind": "callers.result", "data": { }, "principal": null }
@@ -249,11 +253,10 @@ envelope:
   `version.info`, and `glyph --json --help` or a bare `glyph --json` emits
   `help.usage`. Help with a topic, or `--help` after a command, emits
   `help.manifest` narrowed to that command. Their names are dotted per the
-  contract's dotted-name rule, rather than lore's undotted `version`/`help`;
-  consumers tolerate unknown kinds.
+  contract's dotted-name rule; consumers tolerate unknown kinds.
 
 Callers branch on the exit code, never on the message. The family is the full
-frozen taxonomy:
+taxonomy:
 
 | code | `error_type` | meaning |
 |------|--------------|---------|
@@ -344,9 +347,9 @@ entry keeps the answer it was built with. Symlinks
 and submodules are not source files at a commit and are skipped. The working
 tree remains the default for interactive use.
 
-`diff` is planned to require `--ref`; that requirement is recorded in ADR 0003 and
-not yet in force. The code-map seam shipped as `glyph code-map --source-ref <ref>`, which
-names its ref explicitly and never reads uncommitted changes (tier 2 does read
+`diff` is planned to require `--ref`; that requirement is recorded in [ADR 0003](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0003-answer-blast-radius-with-a-caller-closure-and-a-ref-pinned-index.md)
+and not yet in force. The code-map command shipped as `glyph code-map --source-ref <ref>`, which
+names its ref explicitly and never reads uncommitted changes (it does read
 `HEAD`, implicitly, to take the branch's own diff).
 
 ## The cache
