@@ -1,0 +1,34 @@
+Recall: for n true sites, the fewest hits k whose Wilson lower bound is >= 0.8, and whether k/n >= 0.9
+n    min k   k/n     lower(min k)  ceil(0.9n)  lower(ceil(0.9n))  observed 0.9 alone meets the bound
+55   50      0.9091  0.8042        50          0.8042             yes
+56   51      0.9107  0.8074        51          0.8074             yes
+57   52      0.9123  0.8105        52          0.8105             yes
+58   53      0.9138  0.8136        53          0.8136             yes
+59   54      0.9153  0.8165        54          0.8165             yes
+60   55      0.9167  0.8193        54          0.7985             no
+61   55      0.9016  0.8016        55          0.8016             yes
+62   56      0.9032  0.8045        56          0.8045             yes
+63   57      0.9048  0.8074        57          0.8074             yes
+64   58      0.9062  0.8102        58          0.8102             yes
+65   59      0.9077  0.8129        59          0.8129             yes
+66   60      0.9091  0.8155        60          0.8155             yes
+67   61      0.9104  0.8181        61          0.8181             yes
+68   61      0.8971  0.8024        62          0.8206             yes
+69   62      0.8986  0.8051        63          0.8230             yes
+70   63      0.9000  0.8077        63          0.8077             yes
+80   72      0.9000  0.8149        72          0.8149             yes
+100  88      0.8800  0.8019        90          0.8256             yes
+
+Specific values
+54/60 = 0.9000  Wilson 0.7985-0.9534
+55/60 = 0.9167  Wilson 0.8193-0.9639
+55/61 = 0.9016  Wilson 0.8016-0.9541
+56/62 = 0.9032  Wilson 0.8045-0.9549
+63/70 = 0.9000  Wilson 0.8077-0.9507
+59/65 = 0.9077  Wilson 0.8129-0.9570
+58/65 = 0.8923  Wilson 0.7940-0.9468
+60/60 = 1.0000  Wilson 0.9398-1.0000
+10/10 = 1.0000  Wilson 0.7225-1.0000
+
+Information only: fewest emitted edges n (all correct) for which the Wilson lower bound on precision is >= 0.95
+n = 73  (lower bound 0.9500); at n = 72: 0.9493

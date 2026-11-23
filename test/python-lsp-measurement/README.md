@@ -1,7 +1,14 @@
 # Python language-server measurement (GCLI-66, DEC-303, ADR 0008)
 
-A recorded artifact, not part of the test suite and not shipped: the baseline for `docs/adr/0008-...` (the native design, DEC-303 (a1)); this directory is the pyright language-server measurement that design is scored against, and `lsp-design-record.md` is the superseded former ADR 0008. It lets the
-numbers can be checked, re-scored without the language server, and re-derived when pyright is upgraded.
+A recorded artifact, not part of the test suite and not shipped: the baseline for `docs/adr/0008-add-python-through-a-native-in-process-indexer.md`
+(the native design, DEC-303 (a1)). This directory is the pyright language-server measurement that design is scored against, and
+`lsp-design-record.md` is the superseded former ADR 0008. It exists so the numbers can be checked, re-scored without the language
+server, and re-derived when pyright is upgraded.
+
+**"ADR 0008" inside the recorded artifacts** (`results/layouts.txt`, `results/import-detector.txt`, `fixtures-abs/expected.json`'s
+`_note`, `gt_rules_addendum.md`, the section numbers in this file) means the **superseded** record, `lsp-design-record.md`; those
+artifacts are left as recorded, and "section 5" is that file's section 5. `lsp-design-record.md` keeps `type: ADR` frontmatter
+because `lore` scans `docs/` only, not `test/`.
 
 Pins: pyright 1.1.414 (`npm install pyright@1.1.414 --ignore-scripts`; registry integrity
 `sha512-FPZZb51jepDX4eP7TEYDeNFtmE3WgwkkEcJpvH3/QmUSsj0EAy3LXu+xB4T/FWDejtsXlCfFr/rbWFjwuwuXww==`),
@@ -16,6 +23,8 @@ psf/requests at `3c7baaa05ab4aa49cc819ce3a819d260de19c157` (`src/requests`), Nod
 | `gt1_enumerate.py`, `gt2_listing.py`, `alias_enum.py`, `fx_enum.py` | enumerate definitions and call sites with Python's `ast`, draw the seeded sample, print candidates, build the alias set |
 | `harness.mjs` | the LSP client (JSON-RPC over `pyright-langserver --stdio`); exits non-zero if no request is answered, any request errors, or every `prepareCallHierarchy` is null |
 | `score.py`, `union.py`, `strata.py`, `compare_runs.py` | scoring (per site and per target, recall and precision, Wilson intervals), determinism, open-mode and timing |
+| `annotation_count.py`, `results/annotation-count.txt` | how annotated a source tree is (defs, any-annotation share, parameter share excluding `self`/`cls`, `@overload` stubs shown separately); exits 1 and names any file that fails to parse. Reproduce: `python3 -I annotation_count.py <root>` on `<root>` = `src/requests` of a checkout of `3c7baaa05ab4aa49cc819ce3a819d260de19c157` (`curl -L https://codeload.github.com/psf/requests/tar.gz/<sha> \| tar -xz --strip-components=1` into an empty directory), `src/click` of pallets/click `1784558ed7c75c65764d2a434bd9cbb206ca939d` (tag 7.1.2) and of `934813e4d421071a1b3db3973c02fe2721359a6e` (tag 8.1.8, peeled commit). Scratch checkouts only |
+| `wilson_floor.py`, `results/wilson-floor.txt` | the Wilson lower-bound table behind the gate's minimum sample size (`python3 -I wilson_floor.py`); same formula as `score.py` |
 | `derived/` | the deterministic inputs the scorers read: `symbols.json`, `targets.json`, `allcalls.json`, `listing.txt`, `alias_targets.json`, `targets_combined.json`, `cls_targets.json`, the `fx_*` files |
 | `fixtures/pkg/` | the fixture package |
 | `results/` | scored output of every run the ADR quotes; `results/raw/` the gzipped raw harness output |
@@ -70,7 +79,7 @@ root is the `fixtures` directory itself (`harness.mjs fixtures <targets> ... all
 
 ## Layout, channel and absolute-import runs
 
-`results/layouts.txt` and `results/union-layout-*.txt`, `results/union-abs-*.txt` record the analysis-root layouts of ADR 0008
+`results/layouts.txt` and `results/union-layout-*.txt`, `results/union-abs-*.txt` record the analysis-root layouts of `lsp-design-record.md`
 section 5 (raw: `results/raw/lay-real-*`, `abs-*`); `fixtures-abs/` is the absolute-import fixture with its
 `expected.json`, and `derived-abs/` its derived inputs. The generated configs were
 `{"pythonPlatform":"All","include":[<package dir>],"extraPaths":[<src dir>]}` (and without `extraPaths`) in a directory outside
