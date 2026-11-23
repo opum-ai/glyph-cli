@@ -231,6 +231,27 @@ reported, not scored against the bar. If opum-doc scores the bar on incoming cal
 fixtures, or on target-level incoming on the default platform, it is **not** met and the alternatives return. The bar is
 not edited to fit the result; D3 is opum-doc's to rule.
 
+**The shipped 65/65 is a fit to this sample, not a held-out result.** The constructor mapping was designed after the
+six constructor misses (and the fixtures' constructor misses) were seen, and is then scored on those same sites. The 6/6
+and the 65/65 therefore show that the mapping can reproduce what the data showed, not that it generalises. The fixtures are
+not held out either: they were run before the mapping was written. Proposed held-out test, to run before the build slices
+start: a **second real repository** (ideally unannotated, with class hierarchies and at least 20 constructor sites),
+measured with the mapping rule and the ground-truth rules committed first, scored by the same `union.py`. A result that
+repeats the pre-registered sample's 0.9 / 0.8 is evidence; this sample alone is not.
+
+**Can the matching credit a wrong edge, and was precision measured?** Two matching rules could, and each was checked.
+(i) The callee-location match for outgoing calls began as a window of +-3 lines around the definition; that credited
+neighbouring definitions (two false matches measured, `gt_rules_addendum.md` item 5) and was replaced by the exact lines of
+the target's own definitions (an overload stub and the implementation, plus decorator lines above). (ii) The
+`__init__`-to-class equivalence attributes the sites of class `C` to `C.__init__`; it can credit a wrong edge where a
+metaclass `__call__`, `__new__` or a generated `__init__` (dataclass) intercepts construction, none of which the sample
+contains, and for a subclass that defines no `__init__` only if no nearer base defines one (the rule looks one level down).
+Precision was measured for incoming, outgoing, the union and the mapping, per site and per target: the union adds no false
+site on the pre-registered sample (58/58, 59/59), and the mapping added 10 sites (6 real, 4 fixture), all true (10/10, lower
+bound 0.723); the one fixture false positive (an attribute access that is not called) comes from incoming calls, not from
+the union or the mapping. That is precision on the sampled targets only; it does not bound the rate over edges to symbols
+outside the sample.
+
 The design follows. Names are proposals for the build slices; nothing is implemented.
 
 ### 1. Where it sits
@@ -289,9 +310,9 @@ uniformly to `callers`, `impact` and `code-map`.
 | glyph | built from |
 |---|---|
 | `callers <name>` | the symbol table and the union edges (including constructor edges and decorator sites) |
-| `impact <name>` | breadth-first reverse closure over the same edges; `--depth`, `--all`, cycles and `truncated` as for TypeScript |
+| `impact <name>` | breadth-first reverse closure over the same union edges (constructor edges and decorator sites included); `--depth`, `--all`, cycles and `truncated` as for TypeScript |
 | `diff <base> [head]` | git's changed line ranges (unchanged) intersected with the index's `documentSymbol` ranges, innermost symbol only |
-| `code-map` | named paths and changed files as today (git only); the symbol tier and the one-hop reference tier from the index; the identifier tier is git grep and needs no server |
+| `code-map` | named paths and changed files as today (git only); the symbol tier and the one-hop reference tier from the index's union edges; the identifier tier is git grep and needs no server |
 | `--stream` | unchanged: items as found, one result line, same kinds |
 
 ### 5. Language detection and the override
@@ -357,8 +378,9 @@ resolved is `indeterminate` with the install hint, never a skipped language.
   in the coverage line, and "index both and merge" after 0.1.0.
 - **D3. The bar, and the quantity it applies to.** See "The bar, what it scores, and whether it is met". The proposed bar was
   fixed after the results; it is met by the shipped union under `"All"` and not met by incoming calls alone on the default
-  platform, on the fixtures, or (for incoming alone) on the alias set. A higher or differently-scored bar needs a second real
-  repository, ideally unannotated, measured by the same method before the build slices start.
+  platform, on the fixtures, or (for incoming alone) on the alias set. The 65/65 is an in-sample fit of the constructor mapping (see
+  above). A higher or differently-scored bar, and the held-out test of the mapping, need a second real repository, ideally
+  unannotated, measured by the same method (rules and mapping committed first) before the build slices start.
 - **D4. Command-contract additions.** DEC-303 item 2 says the contract is unchanged per language. The design as written
   needs additions to the envelopes that TypeScript does not have: a `decorator` site kind (call hierarchy omits decorator
   applications, `references` finds them), a field saying the unresolved-site count is a lower bound (`unresolvedKnown:
