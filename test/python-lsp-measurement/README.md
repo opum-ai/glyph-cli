@@ -74,3 +74,6 @@ section 5 (raw: `results/raw/lay-real-*`, `abs-*`); `fixtures-abs/` is the absol
 `expected.json`, and `derived-abs/` its derived inputs. The generated configs were
 `{"pythonPlatform":"All","include":[<package dir>],"extraPaths":[<src dir>]}` (and without `extraPaths`) in a directory outside
 the repository, and no config for the in-root run.
+
+`results/import-detector.txt` (raw `results/raw/imp-*`, `derived-abs/imports.json`, `import_probe.py`) records the fail-closed first-party import
+signal over seven layouts.

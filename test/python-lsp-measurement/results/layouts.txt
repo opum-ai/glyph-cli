@@ -13,3 +13,6 @@ absolute-import fixture (fixtures-abs, src layout, `from app.b import ...`, `imp
   -> the generated config MUST set extraPaths (or an execution root) back to the repository and its src directory.
 Not tested: stubPath (the default `typings` resolves against the config directory, so repository-local stubs may be lost),
 `extends` of a repository config, tests that import the project by its installed name, --ref materialisation.
+
+Counts for the absolute-import fixture runs (from the raw output): prepareCallHierarchy null 0/4 in every layout, every request answered, JSON-RPC errors 0 in every layout, including the one that lost all 5 edges (see import-detector.txt for the per-layout `definition` signal and edge recall).
+"Truth written before the run" for fixtures-abs/expected.json is self-asserted (a _note); it is not in results/ground-truth.bundle.
