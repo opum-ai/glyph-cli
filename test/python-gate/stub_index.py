@@ -1,16 +1,19 @@
 """Build stub GlyphIndex JSON objects from the committed ground truth (test-only).
 
-No analyzer runs here: the stubs are assembled from ``targets.json`` and
-``classified-batch0.json`` so ``test_gate_score`` can drive the gate scorer with
-inputs whose expected output is known. The builder reads the ground truth directly
-(it does not import the scorer), so the expected values in the tests do not come
-from the code under test.
+No analyzer runs here: the stubs are assembled from the ground-truth files so
+``test_gate_score`` can drive the gate scorer with inputs whose expected output is
+known. The builder reads the ground truth directly (it does not import the
+scorer), so the expected values in the tests do not come from the code under test.
 
 A symbol's qualified name is reconstructed by the scorer as ``container + "." +
 name`` (or ``name`` when ``container`` is null). ``_symbol`` therefore splits the
 target's qualname at its last dot: the last segment is ``name`` and the rest is
 ``container``. A nested function such as ``Parameter.type_cast_value._convert``
 gets ``container = "Parameter.type_cast_value"``.
+
+For requests, a target keyed to an ``@overload`` stub gets its symbol at the
+implementation line from ``overload-groups.json`` (Addendum 6 item 1); the
+classification and ``targets.json`` stay keyed at the stub line.
 """
 
 from __future__ import annotations
@@ -20,13 +23,13 @@ import json
 import os
 
 
-def _truth_base(truth_dir):
-    return os.path.join(truth_dir, "click-7.1.2")
+CLICK_SUBDIR = "click-7.1.2"
+REQUESTS_SUBDIR = "requests-3c7baaa"
 
 
 def load_ground_truth(truth_dir):
-    """Return (targets list, classified-batch0 dict)."""
-    base = _truth_base(truth_dir)
+    """Return (targets list, classified-batch0 dict) for click."""
+    base = os.path.join(truth_dir, CLICK_SUBDIR)
     with open(os.path.join(base, "targets.json"), encoding="utf-8") as fh:
         targets = json.load(fh)
     with open(os.path.join(base, "classified-batch0.json"), encoding="utf-8") as fh:
@@ -34,28 +37,49 @@ def load_ground_truth(truth_dir):
     return targets, classified
 
 
+def load_requests_ground_truth(truth_dir):
+    """Return (targets, classified-requests-independent, overload-line map)."""
+    base = os.path.join(truth_dir, REQUESTS_SUBDIR)
+    with open(os.path.join(base, "targets.json"), encoding="utf-8") as fh:
+        targets = json.load(fh)
+    with open(
+        os.path.join(base, "classified-requests-independent.json"), encoding="utf-8"
+    ) as fh:
+        classified = json.load(fh)
+    with open(os.path.join(base, "overload-groups.json"), encoding="utf-8") as fh:
+        raw = json.load(fh)
+    overloads = {
+        key: value["implementation_line"]
+        for key, value in raw.items()
+        if key != "_note"
+    }
+    return targets, classified, overloads
+
+
 def target_key(target):
     return f"{target['file']}:{target['line']} {target['qualname']}"
 
 
-def _symbol(target, package_dir, kind="function"):
+def _symbol(target, package_dir, kind="function", line=None):
     qualname = target["qualname"]
     if "." in qualname:
         container, name = qualname.rsplit(".", 1)
     else:
         container, name = None, qualname
+    if line is None:
+        line = target["line"]
     file = f"{package_dir}/{target['file']}" if package_dir else target["file"]
     column = 1
     return {
-        "id": f"{file}:{target['line']}:{column}",
+        "id": f"{file}:{line}:{column}",
         "name": name,
         "container": container,
         "kind": kind,
         "file": file,
-        "startLine": target["line"],
-        "line": target["line"],
+        "startLine": line,
+        "line": line,
         "column": column,
-        "endLine": target["line"],
+        "endLine": line,
         "exported": True,
     }
 
@@ -80,28 +104,46 @@ def minimal_index():
     }
 
 
-class Stub:
-    """A mutable stub index over the click batch-0 ground truth."""
+class _StubBase:
+    """Shared mutable index over a classification's targets and candidates."""
 
-    def __init__(self, truth_dir, package_dir="src/click"):
+    def __init__(self, package_dir, targets, classified, symbol_line):
         self.package_dir = package_dir
-        self.targets, self.classified = load_ground_truth(truth_dir)
-        self.targets_by_key = {target_key(t): t for t in self.targets}
+        self.targets = targets
+        self.classified = classified
         self.symbols = []
         self.sites = []
         self.ids = {}
         self._site_records = {}
-        for target in self.targets:
+        self._targets_by_key = {target_key(t): t for t in targets}
+        for target in targets:
             key = target_key(target)
-            if key not in self.classified["targets"]:
+            if key not in classified["targets"]:
                 continue
-            symbol = _symbol(target, package_dir)
-            self.symbols.append(symbol)
+            self._site_records[key] = {
+                f"{c['file']}:{c['line']}:{c['col']}": c
+                for c in target["candidates"]
+            }
+            self._add_symbol(key, symbol_line(key, target))
+
+    # -- symbols -------------------------------------------------------------
+
+    def _add_symbol(self, key, line):
+        symbol = _symbol(self._targets_by_key[key], self.package_dir, line=line)
+        self.symbols.append(symbol)
+        if key not in self.ids:
             self.ids[key] = symbol["id"]
-            records = {}
-            for candidate in target["candidates"]:
-                records[f"{candidate['file']}:{candidate['line']}:{candidate['col']}"] = candidate
-            self._site_records[key] = records
+        return symbol
+
+    def add_symbol_at(self, key, line):
+        """Add an extra symbol for ``key`` at ``line`` without changing its edge target."""
+        return self._add_symbol(key, line)
+
+    def remove_symbol(self, key):
+        symbol_id = self.ids.pop(key)
+        self.symbols = [s for s in self.symbols if s["id"] != symbol_id]
+        self.sites = [s for s in self.sites if s["calleeId"] != symbol_id]
+        return self
 
     # -- edges ---------------------------------------------------------------
 
@@ -182,18 +224,10 @@ class Stub:
                 return self
         raise KeyError(f"no edge at {key} | {site}")
 
-    # -- symbols -------------------------------------------------------------
-
-    def remove_symbol(self, key):
-        symbol_id = self.ids.pop(key)
-        self.symbols = [s for s in self.symbols if s["id"] != symbol_id]
-        self.sites = [s for s in self.sites if s["calleeId"] != symbol_id]
-        return self
-
     # -- conveniences --------------------------------------------------------
 
     def perfect(self):
-        """Add one edge at every true site of every batch-0 target, nothing else."""
+        """Add one edge at every true site of every seeded target, nothing else."""
         for key, classification in self.classified["targets"].items():
             for entry in classification["true"]:
                 self.add_at(key, entry["site"])
@@ -202,7 +236,7 @@ class Stub:
     def index(self):
         return {
             "schemaVersion": 2,
-            "repo": "click-stub",
+            "repo": "stub",
             "createdAt": "stub",
             "files": sorted({symbol["file"] for symbol in self.symbols}),
             "symbols": list(self.symbols),
@@ -218,8 +252,28 @@ class Stub:
         }
 
 
+class Stub(_StubBase):
+    """A mutable stub index over the click batch-0 ground truth."""
+
+    def __init__(self, truth_dir, package_dir="src/click"):
+        targets, classified = load_ground_truth(truth_dir)
+        super().__init__(package_dir, targets, classified, lambda _key, target: target["line"])
+
+
+class RequestsStub(_StubBase):
+    """A mutable stub index over the requests classification (overload-aware)."""
+
+    def __init__(self, truth_dir, package_dir="src/requests"):
+        targets, classified, overloads = load_requests_ground_truth(truth_dir)
+        self.overloads = overloads
+        super().__init__(
+            package_dir, targets, classified,
+            lambda key, target: overloads.get(key, target["line"]),
+        )
+
+
 def first_n_direct_true_sites(truth_dir, n):
-    """The first ``n`` true sites whose receiver_evidence is direct, in file order."""
+    """The first ``n`` click true sites whose receiver_evidence is direct."""
     _, classified = load_ground_truth(truth_dir)
     picked = []
     for key, entry in classified["targets"].items():
@@ -231,49 +285,20 @@ def first_n_direct_true_sites(truth_dir, n):
     raise ValueError(f"only {len(picked)} direct true sites, wanted {n}")
 
 
-def requests_stub(gt3_path, package_dir="src/requests"):
-    """A stub index with one edge at every requests true site in gt3_classified.json."""
-    with open(gt3_path, encoding="utf-8") as fh:
-        raw = json.load(fh)
-    symbols, sites, ids = [], [], {}
-    for key, value in raw.items():
-        if key == "_note":
-            continue
-        location, qualname = key.split(" ", 1)
-        file, line = location.rsplit(":", 1)
-        line = int(line)
-        if "." in qualname:
-            container, name = qualname.rsplit(".", 1)
-        else:
-            container, name = None, qualname
-        index_file = f"{package_dir}/{file}" if package_dir else file
-        symbol_id = f"{index_file}:{line}:1"
-        symbols.append({
-            "id": symbol_id,
-            "name": name,
-            "container": container,
-            "kind": "function",
-            "file": index_file,
-            "startLine": line,
-            "line": line,
-            "column": 1,
-            "endLine": line,
-            "exported": True,
-        })
-        ids[key] = symbol_id
-        for site in value.get("true", []):
-            site_file, site_line = site.rsplit(":", 1)
-            sites.append({
-                "calleeId": symbol_id,
-                "callerId": None,
-                "file": f"{package_dir}/{site_file}" if package_dir else site_file,
-                "line": int(site_line),
-                "column": 0,
-                "kind": "call",
-            })
-    index = minimal_index()
-    index["repo"] = "requests-stub"
-    index["files"] = sorted({symbol["file"] for symbol in symbols})
-    index["symbols"] = symbols
-    index["sites"] = sites
-    return index, ids
+def first_n_requests_direct_true_sites(truth_dir, n):
+    """The first ``n`` requests true sites whose receiver_evidence is direct."""
+    _, classified, _ = load_requests_ground_truth(truth_dir)
+    picked = []
+    for key, entry in classified["targets"].items():
+        for site in entry["true"]:
+            if site["receiver_evidence"] == "direct":
+                picked.append((key, site["site"]))
+                if len(picked) == n:
+                    return picked
+    raise ValueError(f"only {len(picked)} direct true sites, wanted {n}")
+
+
+def requests_stub(truth_dir, package_dir="src/requests"):
+    """A perfect requests stub as (index, {target key: symbol id})."""
+    stub = RequestsStub(truth_dir, package_dir).perfect()
+    return stub.index(), dict(stub.ids)

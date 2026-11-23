@@ -2,9 +2,9 @@
 """Gate scorer for the held-out Python gate (GCLI-72, ADR 0008, DEC-303 (a3)).
 
 Scores a GlyphIndex JSON (the shape in ``src/types.ts``) for a repository checkout
-against the committed held-out ground truth in ``click-7.1.2/``, and reads the
-requests ground truth in ``../python-lsp-measurement/gt3_classified.json`` for the
-pyright-comparable recall side only.
+against the committed held-out ground truth: click 7.1.2 in ``click-7.1.2/`` and
+requests at 3c7baaa in ``requests-3c7baaa/`` (with
+``../python-lsp-measurement/gt3_classified.json`` as the requests pyright baseline).
 
 Standard library only; run with ``python3 -I``.
 
@@ -50,6 +50,17 @@ Conventions (each ruling cited where it is implemented)
   value gated at >= 0.95; its Wilson interval is printed as information only.
 * Gate per denominator: recall >= 0.9 AND Wilson lower bound >= 0.8 AND precision
   >= 0.95 on the matching precision side.
+* Requests denominators (Addendum 5 item 1): the pyright-comparable recall
+  denominator is ``gt3_classified.json``'s 65 (the set pyright's baseline was
+  scored on, kept byte-identical); the independent denominator is
+  ``classified-requests-independent.json``'s 65. They coincide today; the
+  direct-only count (64) is printed as information. The comparable precision side
+  drops emitted edges at inferred sites exactly as for click.
+* Overload groups (requests, Addendum 6 item 1): a target keyed to an ``@overload``
+  stub is mapped to the index symbol at the implementation line in
+  ``overload-groups.json``; ``targets.json`` and the classification stay keyed as
+  committed. A target with no symbol at the expected line is missing (exit 6).
+  Click has no overloads.
 
 Exit codes
 ----------
@@ -109,6 +120,8 @@ MUTATIONS = (
     "comparable-keeps-inferred",     # comparable-side exclusion
     "no-directory-filter",           # directory filter
     "match-ignore-line",             # line match
+    "no-overload-map",               # overload -> implementation mapping (requests)
+    "comparable-direct-only-denominator",  # gt3 denominator -> direct-only (requests)
 )
 
 
@@ -412,15 +425,21 @@ def load_click_truth(truth_dir):
                 f"{key!r}: evidence given for {site!r}, which is not a non-true candidate",
             )
 
+        comparable = collections.Counter()
+        for entry in true:
+            if entry["evidence"] == "direct":
+                comparable[(entry["file"], entry["line"])] += 1
         seeds[key] = {
             "file": target["file"],
             "line": target["line"],
+            "symbol_line": target["line"],
             "qualname": target["qualname"],
             "candidates": candidates,
             "true": true,
             "poly": poly,
             "excluded": excluded,
             "other_definition": other_definition,
+            "comparable_lines": comparable,
         }
         totals["true"] += len(true)
         totals["true_direct"] += sum(1 for entry in true if entry["evidence"] == "direct")
@@ -459,9 +478,12 @@ def load_click_truth(truth_dir):
         ("evidence", paths["evidence"], sha256_bytes(evidence_bytes), len(evidence_bytes)),
     ]
     return {
+        "kind": "click",
         "seeds": seeds,
         "summary": dict(summary),
         "excluded_reasons": dict(excluded_reasons),
+        "direct_only": totals["true_direct"],
+        "overloads": {},
         "sources": sources,
     }
 
@@ -474,7 +496,7 @@ class TargetModel:
     __slots__ = (
         "key", "true_lines", "true_direct_lines", "true_inferred_lines",
         "poly_lines", "excluded_lines", "other_definition_lines", "line_evidence",
-        "true_total", "true_direct_total",
+        "comparable_lines", "true_total", "true_direct_total", "comparable_total",
     )
 
     def __init__(self, key, seed):
@@ -508,8 +530,16 @@ class TargetModel:
             self.other_definition_lines[where] += 1
             self.line_evidence[where].add(entry["evidence"])
 
+        # The comparable recall denominator: direct true sites for click, the
+        # gt3 baseline set for requests. Both are "true sites" tallied per line.
+        comparable = seed.get("comparable_lines")
+        if comparable is None:
+            comparable = collections.Counter(self.true_direct_lines)
+        self.comparable_lines = collections.Counter(comparable)
+
         self.true_total = sum(self.true_lines.values())
         self.true_direct_total = sum(self.true_direct_lines.values())
+        self.comparable_total = sum(self.comparable_lines.values())
 
     def collapsed_by_file(self):
         """The same model with the line component removed, for the line-match mutation."""
@@ -521,12 +551,14 @@ class TargetModel:
         clone.poly_lines = _collapse_counter(self.poly_lines)
         clone.excluded_lines = _collapse_counter(self.excluded_lines)
         clone.other_definition_lines = _collapse_counter(self.other_definition_lines)
+        clone.comparable_lines = _collapse_counter(self.comparable_lines)
         merged = collections.defaultdict(set)
         for (file, _line), flags in self.line_evidence.items():
             merged[(file, 0)] |= flags
         clone.line_evidence = merged
         clone.true_total = self.true_total
         clone.true_direct_total = self.true_direct_total
+        clone.comparable_total = self.comparable_total
         return clone
 
 
@@ -539,7 +571,19 @@ def _collapse_counter(counter):
 
 # --- segment mapping --------------------------------------------------------
 
-def _match_target_symbols(index, truth, package_dir):
+def _target_symbol_line(seed, mutations):
+    """The def line the index must carry for this target (overload-aware).
+
+    A target keyed to an @overload stub maps to the implementation line
+    (Addendum 6 item 1). The ``no-overload-map`` mutation uses the committed
+    stub line instead, to prove the mapping is load-bearing.
+    """
+    if "no-overload-map" in mutations:
+        return seed["line"]
+    return seed.get("symbol_line", seed["line"])
+
+
+def _match_target_symbols(index, truth, package_dir, mutations=frozenset()):
     """Return {target key: symbol} or raise exit 6 for every unmatched target."""
     by_signature = collections.defaultdict(list)
     for symbol in index["symbols"]:
@@ -550,10 +594,11 @@ def _match_target_symbols(index, truth, package_dir):
 
     matched, missing = {}, []
     for key, seed in truth["seeds"].items():
-        found = by_signature.get((seed["file"], seed["line"], seed["qualname"]), [])
+        wanted_line = _target_symbol_line(seed, mutations)
+        found = by_signature.get((seed["file"], wanted_line, seed["qualname"]), [])
         if not found:
             missing.append(
-                f"{key}  (expected a symbol at {seed['file']}:{seed['line']} with "
+                f"{key}  (expected a symbol at {seed['file']}:{wanted_line} with "
                 f"qualified name {seed['qualname']!r})"
             )
         elif len(found) > 1:
@@ -578,7 +623,7 @@ def _map_emitted_edges(index, truth, package_dir, mutations):
     """Map emitted invocation edges to seeded targets, keyed by (site file, line)."""
     symbols_by_id = index_symbols_by_id(index)
     signature_to_key = {
-        (seed["file"], seed["line"], seed["qualname"]): key
+        (seed["file"], _target_symbol_line(seed, mutations), seed["qualname"]): key
         for key, seed in truth["seeds"].items()
     }
     emitted = collections.defaultdict(collections.Counter)
@@ -619,9 +664,10 @@ def _map_emitted_edges(index, truth, package_dir, mutations):
 # --- scoring ----------------------------------------------------------------
 
 def _score_target(model, emitted, mutations):
-    """Score one target; return its independent and comparable (tp, fp, fn)."""
+    """Score one target; return independent and comparable recall/precision pieces."""
     tp_independent = fp_independent = 0
     tp_comparable = fp_comparable = 0
+    found_comparable = 0
     for where, emitted_count in emitted.items():
         true_count = model.true_lines.get(where, 0)
         direct_count = model.true_direct_lines.get(where, 0)
@@ -642,8 +688,11 @@ def _score_target(model, emitted, mutations):
 
         tp_independent += tp_line
         fp_independent += fp_line
+        # Comparable RECALL numerator: true sites found against that denominator's
+        # own true set (direct-only for click; gt3 for requests).
+        found_comparable += min(emitted_count, model.comparable_lines.get(where, 0))
 
-        # Comparable side drops emitted edges at inferred sites (Addendum 4 Q3).
+        # Comparable PRECISION side drops emitted edges at inferred sites (Addendum 4 Q3).
         evidence = model.line_evidence.get(where, set())
         line_is_inferred = bool(evidence) and evidence <= {"inferred"}
         if "comparable-keeps-inferred" in mutations:
@@ -656,9 +705,11 @@ def _score_target(model, emitted, mutations):
         "tp_independent": tp_independent,
         "fp_independent": fp_independent,
         "fn_independent": model.true_total - tp_independent,
+        "found_comparable": found_comparable,
+        "comparable_total": model.comparable_total,
+        "fn_comparable": model.comparable_total - found_comparable,
         "tp_comparable": tp_comparable,
         "fp_comparable": fp_comparable,
-        "fn_comparable": model.true_direct_total - tp_comparable,
         "true_total": model.true_total,
         "true_direct_total": model.true_direct_total,
     }
@@ -735,11 +786,11 @@ def _verdict(recall_found, recall_denominator, precision_found, precision_denomi
     }
 
 
-def score_click(truth, index, package_dir=DEFAULT_CLICK_PACKAGE_DIR, mutations=frozenset()):
-    """Score a GlyphIndex against the click batch-0 ground truth.
+def _score_classified(truth, index, package_dir, mutations=frozenset()):
+    """Score a GlyphIndex against a loaded classification ground truth.
 
-    ``mutations`` is a test-only set of names from :data:`MUTATIONS`; the CLI never
-    passes it. The default behaviour is the ruled behaviour.
+    Shared by click and requests. ``mutations`` is a test-only set of names from
+    :data:`MUTATIONS`; the CLI never passes it. The default is the ruled behaviour.
     """
     mutations = frozenset(mutations)
     unknown = mutations - set(MUTATIONS)
@@ -759,7 +810,7 @@ def score_click(truth, index, package_dir=DEFAULT_CLICK_PACKAGE_DIR, mutations=f
             [f"index.sites: {len(index['sites'])} total, {in_scope} in scope"],
         )
 
-    _match_target_symbols(index, truth, package_dir)
+    _match_target_symbols(index, truth, package_dir, mutations)
     emitted, edge_stats = _map_emitted_edges(index, truth, package_dir, mutations)
 
     models = {}
@@ -783,6 +834,7 @@ def score_click(truth, index, package_dir=DEFAULT_CLICK_PACKAGE_DIR, mutations=f
     targets_fully_comparable = 0
     targets_with_true = 0
     targets_with_direct = 0
+    targets_with_comparable = 0
 
     for key in truth["seeds"]:
         model = models[key]
@@ -790,10 +842,12 @@ def score_click(truth, index, package_dir=DEFAULT_CLICK_PACKAGE_DIR, mutations=f
         per_target[key] = scored
         totals["tp_independent"] += scored["tp_independent"]
         totals["fp_independent"] += scored["fp_independent"]
+        totals["found_comparable"] += scored["found_comparable"]
         totals["tp_comparable"] += scored["tp_comparable"]
         totals["fp_comparable"] += scored["fp_comparable"]
         totals["true"] += scored["true_total"]
         totals["true_direct"] += scored["true_direct_total"]
+        totals["comparable_total"] += scored["comparable_total"]
 
         if model.true_total > 0:
             targets_with_true += 1
@@ -804,30 +858,38 @@ def score_click(truth, index, package_dir=DEFAULT_CLICK_PACKAGE_DIR, mutations=f
                 targets_fully_independent += 1
         if model.true_direct_total > 0:
             targets_with_direct += 1
+        if model.comparable_total > 0:
+            targets_with_comparable += 1
             rows_comparable.append(
-                (scored["tp_comparable"], scored["fp_comparable"], scored["fn_comparable"])
+                (scored["found_comparable"], scored["fp_comparable"], scored["fn_comparable"])
             )
             if (
-                scored["tp_comparable"] == model.true_direct_total
+                scored["found_comparable"] == model.comparable_total
                 and scored["fp_comparable"] == 0
             ):
                 targets_fully_comparable += 1
 
     true_total = totals["true"]
     true_direct_total = totals["true_direct"]
+    comparable_total = totals["comparable_total"]
     tp_independent = totals["tp_independent"]
     fp_independent = totals["fp_independent"]
+    found_comparable = totals["found_comparable"]
     tp_comparable = totals["tp_comparable"]
     fp_comparable = totals["fp_comparable"]
+    direct_only = truth.get("direct_only", true_direct_total)
 
-    # The comparable recall denominator is the direct true sites (Addendum 4 Q3).
-    # The mutation flips it to the all-attributable denominator, for the mutation proof.
+    # Default: the comparable denominator is its own true set (the direct-only true
+    # sites for click; gt3_classified.json for requests). Two mutations flip it, for
+    # the mutation proof only.
+    recall_comparable_found = found_comparable
+    recall_comparable_denominator = comparable_total
     if "comparable-includes-inferred" in mutations:
         recall_comparable_found = tp_independent
         recall_comparable_denominator = true_total
-    else:
+    if "comparable-direct-only-denominator" in mutations:
         recall_comparable_found = tp_comparable
-        recall_comparable_denominator = true_direct_total
+        recall_comparable_denominator = direct_only
 
     verdict_all = _verdict(
         tp_independent, true_total,
@@ -839,11 +901,13 @@ def score_click(truth, index, package_dir=DEFAULT_CLICK_PACKAGE_DIR, mutations=f
     )
 
     return {
+        "kind": truth.get("kind", "click"),
         "package_dir": package_dir,
         "edges": dict(edge_stats),
         "unresolved": unresolved_report(index),
         "summary": dict(truth["summary"]),
         "excluded_reasons": dict(truth["excluded_reasons"]),
+        "direct_only": direct_only,
         "totals": {
             "true": true_total,
             "true_direct": true_direct_total,
@@ -853,13 +917,17 @@ def score_click(truth, index, package_dir=DEFAULT_CLICK_PACKAGE_DIR, mutations=f
             "tp_independent": tp_independent,
             "fp_independent": fp_independent,
             "fn_independent": true_total - tp_independent,
+            "found_comparable": found_comparable,
+            "comparable_total": comparable_total,
+            "fn_comparable": comparable_total - found_comparable,
             "tp_comparable": tp_comparable,
             "fp_comparable": fp_comparable,
-            "fn_comparable": true_direct_total - tp_comparable,
+            "direct_only": direct_only,
         },
         "target_level": {
             "targets_with_true": targets_with_true,
             "targets_with_direct": targets_with_direct,
+            "targets_with_comparable": targets_with_comparable,
             "fully_correct_independent": targets_fully_independent,
             "fully_correct_comparable": targets_fully_comparable,
         },
@@ -875,96 +943,276 @@ def score_click(truth, index, package_dir=DEFAULT_CLICK_PACKAGE_DIR, mutations=f
     }
 
 
-# --- ground truth: requests (second reader) ---------------------------------
+def score_click(truth, index, package_dir=DEFAULT_CLICK_PACKAGE_DIR, mutations=frozenset()):
+    """Score a GlyphIndex against the click batch-0 ground truth.
 
-def load_requests_truth(path):
-    """Read ``gt3_classified.json``: the committed requests pyright-comparable set.
-
-    Its ``true`` sites were classified under gt_rules.md R1, so they ARE the
-    pyright-comparable denominator. The independent (all-attributable) denominator
-    would need the R1-undecidable sites classified, and that is not committed, so
-    it is reported as not scorable rather than invented.
+    ``mutations`` is a test-only set of names from :data:`MUTATIONS`; the CLI never
+    passes it. The default behaviour is the ruled behaviour.
     """
-    raw, raw_bytes = read_json(path, "requests ground truth")
-    _require(isinstance(raw, dict), "gt3_classified.json is not an object")
-    seeds = {}
-    for key, value in raw.items():
+    return _score_classified(truth, index, package_dir, mutations)
+
+
+# --- ground truth: requests -------------------------------------------------
+
+REQUESTS_TRUTH_SUBDIR = "requests-3c7baaa"
+REQUESTS_GT3 = os.path.join("..", "python-lsp-measurement", "gt3_classified.json")
+
+
+def _parse_gt3_true_sites(value, key):
+    """Turn gt3's ``["file:line", ...]`` into a Counter of (file, line)."""
+    _require(isinstance(value, dict), f"gt3 target {key!r} is not an object")
+    true_sites = value.get("true", [])
+    _require(isinstance(true_sites, list), f"gt3 target {key!r} has non-list true")
+    counter = collections.Counter()
+    for site in true_sites:
+        _require(
+            isinstance(site, str) and ":" in site,
+            f"gt3 target {key!r} has a malformed true site {site!r}",
+        )
+        file, line = site.rsplit(":", 1)
+        _require(line.isdigit(), f"gt3 target {key!r} has a non-numeric line in {site!r}")
+        counter[(file, int(line))] += 1
+    return counter
+
+
+def load_requests_truth(truth_dir):
+    """Load and validate the requests classification and the gt3 baseline.
+
+    Returns the same shape as :func:`load_click_truth`, plus the overload map. The
+    classification (``classified-requests-independent.json``) is the independent
+    recall set and the source of the precision categories; ``gt3_classified.json``
+    is the pyright-comparable recall set (Addendum 5 item 1). The two coincide
+    today; both are read and scored independently.
+    """
+    base = os.path.join(truth_dir, REQUESTS_TRUTH_SUBDIR)
+    paths = {
+        "targets": os.path.join(base, "targets.json"),
+        "classified": os.path.join(base, "classified-requests-independent.json"),
+        "evidence": os.path.join(base, "non-true-site-evidence.json"),
+        "overloads": os.path.join(base, "overload-groups.json"),
+        "gt3": os.path.normpath(os.path.join(truth_dir, REQUESTS_GT3)),
+    }
+    targets_raw, targets_bytes = read_json(paths["targets"], "requests targets.json")
+    classified_raw, classified_bytes = read_json(
+        paths["classified"], "classified-requests-independent.json"
+    )
+    evidence_raw, evidence_bytes = read_json(
+        paths["evidence"], "requests non-true-site-evidence.json"
+    )
+    overloads_raw, overloads_bytes = read_json(
+        paths["overloads"], "requests overload-groups.json"
+    )
+    gt3_raw, gt3_bytes = read_json(paths["gt3"], "gt3_classified.json")
+
+    _require(isinstance(targets_raw, list), "requests targets.json is not a list")
+    _require(
+        isinstance(classified_raw, dict)
+        and isinstance(classified_raw.get("summary"), dict)
+        and isinstance(classified_raw.get("targets"), dict),
+        "classified-requests-independent.json is missing 'summary' or 'targets'",
+    )
+    _require(isinstance(evidence_raw, dict), "requests non-true-site-evidence.json is not an object")
+    _require(isinstance(overloads_raw, dict), "requests overload-groups.json is not an object")
+    _require(isinstance(gt3_raw, dict), "gt3_classified.json is not an object")
+
+    tinfo = {}
+    for target in targets_raw:
+        _require(isinstance(target, dict), "requests targets.json holds a non-object entry")
+        for field in ("file", "name", "qualname", "line", "batch", "candidates"):
+            _require(field in target, f"a requests targets.json entry is missing {field!r}")
+        key = make_key(target["file"], target["line"], target["qualname"])
+        _require(key not in tinfo, f"requests targets.json repeats the target {key!r}")
+        tinfo[key] = target
+
+    overloads = {}
+    for key, value in overloads_raw.items():
         if key == "_note":
             continue
-        _require(isinstance(value, dict), f"requests target {key!r} is not an object")
-        _require(" " in key, f"requests target key {key!r} is not '<file>:<line> <qualname>'")
-        location, qualname = key.split(" ", 1)
-        _require(":" in location, f"requests target key {key!r} has no file:line")
-        file, line = location.rsplit(":", 1)
-        _require(line.isdigit(), f"requests target {key!r} has a non-numeric line")
-        true_sites = value.get("true", [])
-        _require(isinstance(true_sites, list), f"requests target {key!r} has non-list true")
-        for site in true_sites:
+        _require(key in tinfo, f"overload-groups.json names an unknown target {key!r}")
+        _require(isinstance(value, dict), f"overload group {key!r} is not an object")
+        implementation = value.get("implementation_line")
+        _require(
+            isinstance(implementation, int) and not isinstance(implementation, bool),
+            f"overload group {key!r} has no integer implementation_line",
+        )
+        _require(
+            isinstance(value.get("stub_lines"), list),
+            f"overload group {key!r} has no stub_lines list",
+        )
+        overloads[key] = implementation
+
+    evidence_by_target = collections.defaultdict(dict)
+    for raw_key, flag in evidence_raw.items():
+        _require(
+            isinstance(raw_key, str) and " | " in raw_key,
+            "a requests evidence key is not '<target key> | <site>'",
+            [repr(raw_key)],
+        )
+        target_key, site = raw_key.split(" | ", 1)
+        _require(flag in ("direct", "inferred"), f"evidence {raw_key!r} is not direct/inferred")
+        _require(target_key in tinfo, f"requests evidence names an unknown target {target_key!r}")
+        _require(
+            site not in evidence_by_target[target_key],
+            f"requests evidence repeats {raw_key!r}",
+        )
+        evidence_by_target[target_key][site] = flag
+
+    gt3_keys = {key for key in gt3_raw if key != "_note"}
+    _require(
+        gt3_keys == set(classified_raw["targets"]),
+        "gt3_classified.json and classified-requests-independent.json name different targets",
+        [f"only gt3: {sorted(gt3_keys - set(classified_raw['targets']))[:5]}",
+         f"only classified: {sorted(set(classified_raw['targets']) - gt3_keys)[:5]}"],
+    )
+
+    seeds = {}
+    totals = collections.Counter()
+    excluded_reasons = collections.Counter()
+
+    for key, classification in classified_raw["targets"].items():
+        _require(key in tinfo, f"classified-requests-independent.json names an unknown target {key!r}")
+        target = tinfo[key]
+        candidates = target["candidates"]
+        _require(isinstance(candidates, list), f"target {key!r} has non-list candidates")
+        cand_by_site = {}
+        for candidate in candidates:
+            site = _site_string(candidate)
+            _require(site not in cand_by_site, f"target {key!r} repeats candidate site {site!r}")
+            cand_by_site[site] = candidate
+
+        true, poly, excluded = [], [], []
+        listed = set()
+        for entry in classification.get("true", []):
+            _require(entry.get("site") in cand_by_site, f"{key!r}: true site {entry.get('site')!r} is not a candidate")
+            candidate = cand_by_site[entry["site"]]
             _require(
-                isinstance(site, str) and ":" in site,
-                f"requests target {key!r} has a malformed true site {site!r}",
+                entry.get("receiver_evidence") in ("direct", "inferred"),
+                f"{key!r}: true site {entry['site']!r} has no receiver_evidence",
             )
+            listed.add(entry["site"])
+            true.append({
+                "site": entry["site"],
+                "file": candidate["file"],
+                "line": candidate["call_start_line"],
+                "evidence": entry["receiver_evidence"],
+            })
+        for label, bucket in (("poly", poly), ("excluded", excluded)):
+            for entry in classification.get(label, []):
+                site = entry.get("site")
+                _require(site in cand_by_site, f"{key!r}: {label} site {site!r} is not a candidate")
+                candidate = cand_by_site[site]
+                flag = evidence_by_target.get(key, {}).get(site)
+                _require(flag is not None, f"{key!r}: {label} site {site!r} has no evidence flag")
+                listed.add(site)
+                record = {
+                    "site": site,
+                    "file": candidate["file"],
+                    "line": candidate["call_start_line"],
+                    "evidence": flag,
+                }
+                if label == "excluded":
+                    _require("reason" in entry, f"{key!r}: excluded site {site!r} has no reason")
+                    record["reason"] = entry["reason"]
+                    excluded_reasons[entry["reason"]] += 1
+                bucket.append(record)
+
+        other_definition = []
+        for site, candidate in cand_by_site.items():
+            if site in listed:
+                continue
+            flag = evidence_by_target.get(key, {}).get(site)
+            _require(
+                flag is not None,
+                f"{key!r}: other-definition candidate {site!r} has no evidence flag",
+                ["every non-true candidate must carry direct/inferred (Addendum 4 Q3)"],
+            )
+            other_definition.append({
+                "site": site,
+                "file": candidate["file"],
+                "line": candidate["call_start_line"],
+                "evidence": flag,
+            })
+
+        _require(
+            classification.get("other_definition") == len(other_definition),
+            f"{key!r}: other_definition count {classification.get('other_definition')} "
+            f"!= {len(other_definition)} reconstructed candidates",
+        )
+        true_sites = {entry["site"] for entry in true}
+        for site in evidence_by_target.get(key, {}):
+            _require(
+                site in cand_by_site and site not in true_sites,
+                f"{key!r}: evidence given for {site!r}, which is not a non-true candidate",
+            )
+
+        comparable = _parse_gt3_true_sites(gt3_raw[key], key)
+
         seeds[key] = {
-            "file": file,
-            "line": int(line),
-            "qualname": qualname,
-            "true_lines": collections.Counter(true_sites),
-            "poly_lines": collections.Counter(value.get("poly", [])),
+            "file": target["file"],
+            "line": target["line"],
+            # Addendum 6 item 1: a stub-keyed target maps to the implementation line.
+            "symbol_line": overloads.get(key, target["line"]),
+            "qualname": target["qualname"],
+            "candidates": candidates,
+            "true": true,
+            "poly": poly,
+            "excluded": excluded,
+            "other_definition": other_definition,
+            "comparable_lines": comparable,
         }
-    sources = [("requests", path, sha256_bytes(raw_bytes), len(raw_bytes))]
-    return {"seeds": seeds, "sources": sources}
+        totals["true"] += len(true)
+        totals["true_direct"] += sum(1 for entry in true if entry["evidence"] == "direct")
+        totals["true_inferred"] += sum(1 for entry in true if entry["evidence"] == "inferred")
+        totals["poly"] += len(poly)
+        totals["excluded"] += len(excluded)
+        totals["other_definition"] += len(other_definition)
 
-
-def score_requests(index, truth, package_dir=DEFAULT_REQUESTS_PACKAGE_DIR, mutations=frozenset()):
-    """Score requests pyright-comparable recall only (the second reader).
-
-    Precision and the independent denominator are not scorable from
-    ``gt3_classified.json``; this function reports that rather than inventing a
-    convention or labels.
-    """
-    mutations = frozenset(mutations)
-    validate_index_shape(index)
-
-    in_scope = count_invocation_edges(index, package_dir, mutations)
-    if in_scope == 0:
-        raise GateError(
-            EXIT_INDETERMINATE,
-            "the index has zero invocation edges whose caller is under the scored "
-            f"package directory {package_dir!r}; refusing to score a run that read nothing",
-            [f"index.sites: {len(index['sites'])} total, {in_scope} in scope"],
+    summary = classified_raw["summary"]
+    recomputed = {
+        "targets": len(seeds),
+        "true": totals["true"],
+        "true_direct": totals["true_direct"],
+        "true_inferred": totals["true_inferred"],
+        "poly": totals["poly"],
+        "excluded": totals["excluded"],
+        "other_definition": totals["other_definition"],
+        "targets_with_a_true_site": sum(1 for s in seeds.values() if s["true"]),
+        "zero_truth_targets": sum(1 for s in seeds.values() if not s["true"]),
+    }
+    for field, value in recomputed.items():
+        _require(
+            summary.get(field) == value,
+            f"classified-requests-independent.json summary {field}={summary.get(field)!r} "
+            f"does not match the recomputed {value!r}",
         )
 
-    # Reuse the click symbol matcher: it reads file/line/qualname from the seeds.
-    _match_target_symbols(index, truth, package_dir)
-    emitted, edge_stats = _map_emitted_edges(index, truth, package_dir, mutations)
-
-    found = total = poly = 0
-    for key, seed in truth["seeds"].items():
-        true_lines = seed["true_lines"]
-        site_counts = emitted.get(key, collections.Counter())
-        target_found = 0
-        for site, count in true_lines.items():
-            file, line = site.rsplit(":", 1)
-            target_found += min(count, site_counts.get((file, int(line)), 0))
-        found += target_found
-        total += sum(true_lines.values())
-        poly += sum(seed["poly_lines"].values())
-
-    interval = wilson(found, total)
-    recall = found / total if total else None
+    sources = [
+        ("targets", paths["targets"], sha256_bytes(targets_bytes), len(targets_bytes)),
+        ("classified", paths["classified"], sha256_bytes(classified_bytes), len(classified_bytes)),
+        ("evidence", paths["evidence"], sha256_bytes(evidence_bytes), len(evidence_bytes)),
+        ("overloads", paths["overloads"], sha256_bytes(overloads_bytes), len(overloads_bytes)),
+        ("gt3", paths["gt3"], sha256_bytes(gt3_bytes), len(gt3_bytes)),
+    ]
     return {
-        "package_dir": package_dir,
-        "edges": dict(edge_stats),
-        "found": found,
-        "true": total,
-        "poly": poly,
-        "recall": recall,
-        "wilson": interval,
-        "recall_ok": recall is not None and recall >= RECALL_FLOOR,
-        "wilson_ok": interval[0] is not None and interval[0] >= WILSON_FLOOR,
-        "independent": "not scorable",
-        "precision": "not scorable",
+        "kind": "requests",
+        "seeds": seeds,
+        "summary": dict(summary),
+        "excluded_reasons": dict(excluded_reasons),
+        "direct_only": totals["true_direct"],
+        "overloads": overloads,
+        "sources": sources,
     }
+
+
+def score_requests(truth, index, package_dir=DEFAULT_REQUESTS_PACKAGE_DIR, mutations=frozenset()):
+    """Score a GlyphIndex against the requests ground truth (both denominators).
+
+    The independent recall set and the precision categories come from
+    ``classified-requests-independent.json``; the pyright-comparable recall set is
+    ``gt3_classified.json`` (Addendum 5 item 1). The comparable precision side
+    drops edges at inferred sites. ``mutations`` is test-only.
+    """
+    return _score_classified(truth, index, package_dir, mutations)
 
 
 # --- report -----------------------------------------------------------------
@@ -981,15 +1229,50 @@ def _print_sources(sources, scorer_path):
     print(f"  python       {sys.version.split()[0]} ({sys.implementation.name})")
 
 
-def render_click_report(result, truth, sources, scorer_path):
+def _target_figure(fully, total):
+    if not total:
+        return "n/a (n=0)"
+    low, high = wilson(fully, total)
+    return f"{fully}/{total} = {fully / total:.4f} (95% Wilson {low:.4f}-{high:.4f})"
+
+
+def _print_denominator(title, verdict, bootstrap, fully, total):
+    print(f"== {title} ==")
+    print(f"recall            {fmt_frac(verdict['recall_found'], verdict['recall_denominator'])}")
+    print(
+        f"precision         "
+        f"{fmt_frac(verdict['precision_found'], verdict['precision_denominator'])}"
+        "  [interval information only; precision is gated as a point value]"
+    )
+    print(f"targets fully correct {_target_figure(fully, total)}")
+    if bootstrap[0] is not None:
+        print(
+            "recall cluster bootstrap 95% [info] "
+            f"{bootstrap[0]:.4f}-{bootstrap[1]:.4f}"
+        )
+    else:
+        print("recall cluster bootstrap 95% [info] n/a")
+    mark = "PASS" if verdict["pass"] else "FAIL"
+    print(
+        f"GATE {title}: {mark}  "
+        f"(recall {fmt_rate(verdict['recall'])} >= {RECALL_FLOOR}: "
+        f"{'yes' if verdict['recall_ok'] else 'no'}; "
+        f"Wilson lower {fmt_rate(verdict['wilson'][0])} >= {WILSON_FLOOR}: "
+        f"{'yes' if verdict['wilson_ok'] else 'no'}; "
+        f"precision {fmt_rate(verdict['precision'])} >= {PRECISION_FLOOR}: "
+        f"{'yes' if verdict['precision_ok'] else 'no'})"
+    )
+    print()
+
+
+def _render_header(result, sources, scorer_path, title):
     summary = result["summary"]
-    print("gate_score: held-out click 7.1.2 (batch 0), package directory "
-          f"{result['package_dir']!r}")
+    print(f"gate_score: {title}, package directory {result['package_dir']!r}")
     print()
     _print_sources(sources, scorer_path)
     print()
     print(
-        f"seeded targets: {summary['targets']} (batch 0); "
+        f"seeded targets: {summary['targets']}; "
         f"with a true site: {summary['targets_with_a_true_site']}; "
         f"zero-truth controls: {summary['zero_truth_targets']}"
     )
@@ -1001,9 +1284,8 @@ def render_click_report(result, truth, sources, scorer_path):
         f"{edges.get('outside_package', 0)} outside the package, "
         f"{edges.get('not_seeded', 0)} not to a seeded target"
     )
-    excluded = summary["excluded"]
     reasons = ", ".join(f"{k} {v}" for k, v in sorted(result["excluded_reasons"].items()))
-    print(f"excluded sites: {excluded} ({reasons})")
+    print(f"excluded sites: {summary['excluded']} ({reasons or 'none'})")
     print(f"poly sites: {summary['poly']} (reported separately, not scored; Addendum 4 Q4)")
     print()
     unresolved = result["unresolved"]
@@ -1018,109 +1300,53 @@ def render_click_report(result, truth, sources, scorer_path):
     print(f"  dynamic     unresolved={unresolved['dynamic']['unresolved']} (count only)")
     print()
 
-    totals = result["totals"]
+
+def render_click_report(result, truth, sources, scorer_path):
+    _render_header(result, sources, scorer_path, "held-out click 7.1.2 (batch 0)")
     target_level = result["target_level"]
-
-    def verdict_block(title, verdict, bootstrap, target_label, target_interval):
-        print(f"== {title} ==")
-        print(f"recall            {fmt_frac(verdict['recall_found'], verdict['recall_denominator'])}")
-        print(
-            f"precision         "
-            f"{fmt_frac(verdict['precision_found'], verdict['precision_denominator'])}"
-            "  [interval information only; precision is gated as a point value]"
-        )
-        print(f"{target_label} {target_interval}")
-        if bootstrap[0] is not None:
-            print(
-                "recall cluster bootstrap 95% [info] "
-                f"{bootstrap[0]:.4f}-{bootstrap[1]:.4f}"
-            )
-        else:
-            print("recall cluster bootstrap 95% [info] n/a")
-        mark = "PASS" if verdict["pass"] else "FAIL"
-        print(
-            f"GATE {title}: {mark}  "
-            f"(recall {fmt_rate(verdict['recall'])} >= {RECALL_FLOOR}: "
-            f"{'yes' if verdict['recall_ok'] else 'no'}; "
-            f"Wilson lower {fmt_rate(verdict['wilson'][0])} >= {WILSON_FLOOR}: "
-            f"{'yes' if verdict['wilson_ok'] else 'no'}; "
-            f"precision {fmt_rate(verdict['precision'])} >= {PRECISION_FLOOR}: "
-            f"{'yes' if verdict['precision_ok'] else 'no'})"
-        )
-        print()
-
-    verdict_all = result["verdict"]["all_attributable"]
-    verdict_comp = result["verdict"]["pyright_comparable"]
-
-    def target_figure(fully, total):
-        if not total:
-            return "n/a (n=0)"
-        low, high = wilson(fully, total)
-        return f"{fully}/{total} = {fully / total:.4f} (95% Wilson {low:.4f}-{high:.4f})"
-
-    target_ind = target_figure(
-        target_level["fully_correct_independent"], target_level["targets_with_true"]
-    )
-    target_comp = target_figure(
-        target_level["fully_correct_comparable"], target_level["targets_with_direct"]
-    )
-
-    verdict_block(
+    _print_denominator(
         "ALL-ATTRIBUTABLE (recall = every true site)",
-        verdict_all,
+        result["verdict"]["all_attributable"],
         result["bootstrap"]["independent"],
-        "targets fully correct",
-        target_ind,
+        target_level["fully_correct_independent"],
+        target_level["targets_with_true"],
     )
-    verdict_block(
+    _print_denominator(
         "PYRIGHT-COMPARABLE (recall = true sites with direct evidence)",
-        verdict_comp,
+        result["verdict"]["pyright_comparable"],
         result["bootstrap"]["comparable"],
-        "targets fully correct",
-        target_comp,
+        target_level["fully_correct_comparable"],
+        target_level["targets_with_comparable"],
     )
 
 
-def render_requests_report(result, sources, scorer_path):
-    print("gate_score: requests (second reader), package directory "
-          f"{result['package_dir']!r}")
+def render_requests_report(result, truth, sources, scorer_path):
+    _render_header(result, sources, scorer_path, "held-out requests 3c7baaa (batch 0)")
+    totals = result["totals"]
+    print(
+        f"true sites: independent {totals['true']} (classified-requests-independent.json), "
+        f"pyright-comparable {totals['comparable_total']} (gt3_classified.json); "
+        f"direct-only {result['direct_only']}/{totals['true']} (information)"
+    )
     print()
-    _print_sources(sources, scorer_path)
-    print()
-    print(f"poly sites: {result['poly']} (reported separately, not scored)")
-    print()
-    print("== REQUESTS: PYRIGHT-COMPARABLE RECALL ONLY ==")
-    print(
-        f"recall (pyright-comparable) "
-        f"{fmt_frac(result['found'], result['true'])}"
+    target_level = result["target_level"]
+    _print_denominator(
+        "INDEPENDENT (recall = classified-requests-independent.json)",
+        result["verdict"]["all_attributable"],
+        result["bootstrap"]["independent"],
+        target_level["fully_correct_independent"],
+        target_level["targets_with_true"],
     )
-    mark = "recall PASS" if (result["recall_ok"] and result["wilson_ok"]) else "recall FAIL"
-    print(
-        f"{mark}  (recall {fmt_rate(result['recall'])} >= {RECALL_FLOOR}: "
-        f"{'yes' if result['recall_ok'] else 'no'}; "
-        f"Wilson lower {fmt_rate(result['wilson'][0])} >= {WILSON_FLOOR}: "
-        f"{'yes' if result['wilson_ok'] else 'no'})"
-    )
-    print(
-        "independent denominator (all-attributable): not scorable - it needs the "
-        "R1-undecidable sites classified, which is NOT committed"
-    )
-    print(
-        "precision: not scorable - gt3_classified.json carries no candidate set and "
-        "no evidence flags"
-    )
-    print(
-        "GATE REQUESTS: not scorable (comparable recall is reported; the independent "
-        "denominator and precision are not committed)"
+    _print_denominator(
+        "PYRIGHT-COMPARABLE (recall = gt3_classified.json)",
+        result["verdict"]["pyright_comparable"],
+        result["bootstrap"]["comparable"],
+        target_level["fully_correct_comparable"],
+        target_level["targets_with_comparable"],
     )
 
 
 # --- CLI --------------------------------------------------------------------
-
-def _default_requests_truth():
-    here = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(here, "..", "python-lsp-measurement", "gt3_classified.json")
-
 
 def build_parser(mode):
     parser = argparse.ArgumentParser(
@@ -1128,28 +1354,22 @@ def build_parser(mode):
         description="Score a GlyphIndex against the committed Python gate ground truth.",
     )
     parser.add_argument("index", help="GlyphIndex JSON to score")
-    if mode == "click":
-        parser.add_argument(
-            "--truth-dir",
-            default=os.path.dirname(os.path.abspath(__file__)),
-            help="directory holding click-7.1.2/ (default: this script's directory)",
-        )
-        parser.add_argument(
-            "--package-dir",
-            default=DEFAULT_CLICK_PACKAGE_DIR,
-            help=f"scored package directory (default: {DEFAULT_CLICK_PACKAGE_DIR})",
-        )
-    else:
-        parser.add_argument(
-            "--truth",
-            default=_default_requests_truth(),
-            help="gt3_classified.json (default: ../python-lsp-measurement/)",
-        )
-        parser.add_argument(
-            "--package-dir",
-            default=DEFAULT_REQUESTS_PACKAGE_DIR,
-            help=f"scored package directory (default: {DEFAULT_REQUESTS_PACKAGE_DIR})",
-        )
+    held = "click-7.1.2/" if mode == "click" else (
+        "requests-3c7baaa/ and ../python-lsp-measurement/gt3_classified.json"
+    )
+    parser.add_argument(
+        "--truth-dir",
+        default=os.path.dirname(os.path.abspath(__file__)),
+        help=f"directory holding {held} (default: this script's directory)",
+    )
+    default_package = (
+        DEFAULT_CLICK_PACKAGE_DIR if mode == "click" else DEFAULT_REQUESTS_PACKAGE_DIR
+    )
+    parser.add_argument(
+        "--package-dir",
+        default=default_package,
+        help=f"scored package directory (default: {default_package})",
+    )
     return parser
 
 
@@ -1164,12 +1384,12 @@ def _run_click(args):
 
 
 def _run_requests(args):
-    truth = load_requests_truth(args.truth)
+    truth = load_requests_truth(args.truth_dir)
     index, index_raw = read_json(args.index, "index")
     sources = list(truth["sources"])
     sources.append(("index", args.index, sha256_bytes(index_raw), len(index_raw)))
-    result = score_requests(index, truth, args.package_dir)
-    render_requests_report(result, sources, os.path.abspath(__file__))
+    result = score_requests(truth, index, args.package_dir)
+    render_requests_report(result, truth, sources, os.path.abspath(__file__))
     return EXIT_OK
 
 
