@@ -47,6 +47,7 @@
 		"check": "bun run typecheck && bun run lint && bun run format:check && bun run test"
 	},
 	"dependencies": {
+		"@vscode/tree-sitter-wasm": "0.3.1",
 		"commander": "15.0.0",
 		"typescript": "5.9.3"
 	},
