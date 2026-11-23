@@ -22,8 +22,9 @@ recorded in [ADR 0001](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0
 Python symbol collection exists behind the parse wrapper in `src/python/` and is
 not yet wired to the CLI (ADR 0008). Its stated limits:
 
-- A symbol's id column is tree-sitter's UTF-8 byte offset, not TypeScript's
-  UTF-16 offset; the two are equal on ASCII-only prefixes.
+- A symbol's id column counts UTF-16 code units, the same unit TypeScript uses:
+  `parsePython` decodes bytes to a string before parsing, so a preceding
+  non-BMP character shifts a UTF-8 byte offset but not this column.
 - `test/python-gate/check_symbol_targets.ts` is a TypeScript reproduction of the
   gate scorer's target mapping, not a run of `gate_score.py`; the real
   end-to-end gate run is S8.

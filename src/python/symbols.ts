@@ -23,7 +23,7 @@ export interface PythonDecorator {
 	name: string;
 	/** 1-based line of the decorator expression. */
 	line: number;
-	/** 1-based column of the decorator expression (tree-sitter's byte column). */
+	/** 1-based column of the decorator expression, in UTF-16 code units (as TypeScript's). */
 	column: number;
 	/** True for `@d(...)`, false for a bare `@d`. */
 	call: boolean;

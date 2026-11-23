@@ -30,6 +30,22 @@ describe("rule 1 — identity", () => {
 		expect(foo.column).toBe(5);
 	});
 
+	test("the id column counts UTF-16 code units, so a non-BMP character before it does not shift it", async () => {
+		// parsePython decodes bytes to a JS string before parsing, so tree-sitter's
+		// column is UTF-16 code units like TypeScript's, not UTF-8 bytes. U+1F600 is
+		// two UTF-16 units and four UTF-8 bytes: the name `f` sits at UTF-16 index
+		// 14 (column 15) and at UTF-8 byte offset 16. The one-line form is what puts
+		// a non-BMP character before a symbol on one line; tree-sitter accepts it
+		// even though CPython rejects a compound statement after a semicolon.
+		const source = 'x = "😀"; def f(): pass\n';
+		const nameUtf8Offset = Buffer.byteLength('x = "😀"; def ', "utf8");
+		expect(nameUtf8Offset).toBe(16);
+		const table = await buildPythonSymbols(Buffer.from(source, "utf8"), "non-bmp.py");
+		const f = byQualname(table, "f");
+		expect(f.column).toBe(15);
+		expect(f.id).toBe("non-bmp.py:1:15");
+	});
+
 	test("startLine includes contiguous leading comments and stops at a blank line", async () => {
 		const source = "# lead\ndef foo():\n    pass\n\n# detached\n\nbar = 1\ndef baz():\n    pass\n";
 		const table = await collect(source);
