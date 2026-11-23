@@ -234,7 +234,10 @@ function readNotEmptyOrIndeterminate(
 	const first = git(repositoryPath, args, spawn);
 	if (!contradicts(first)) return first;
 	const retried = git(repositoryPath, args, spawn);
-	if (!contradicts(retried)) return retried;
+	// The retry is accepted only if it printed something. A retry that is empty again,
+	// whatever its status, is not an answer: an exit 1 with no output on the retry would
+	// otherwise turn a first-read fault into "not found", "unrelated" or "no matches".
+	if (retried.stdout.trim().length > 0) return retried;
 	throw indeterminateError(message);
 }
 
@@ -305,14 +308,33 @@ function branchChange(repositoryPath: string, commit: string, spawn: GitSpawn): 
 	}
 	if (mergeBase.status !== 0) throw failed(`git merge-base ${commit} HEAD failed`, mergeBase);
 	const base = mergeBase.stdout.trim();
-	if (base.length === 0) return { base: undefined, files: new Map() };
 
 	const common = ["-c", "core.quotepath=false", "diff", ...DIFF_PINS, "--diff-filter=ACMR", base, "HEAD"];
-	// No changes against the source ref is a legitimate empty: these two are unguarded.
-	const names = git(repositoryPath, [...common, "--name-only", "-z"], spawn);
+	// No changes against the source ref is a legitimate empty for each read alone, so
+	// neither is guarded alone. But the two run on the same diff and git prints a
+	// numstat row for every listed path (a mode-only change is `0\t0\tpath`, a binary
+	// file `-\t-\tpath`), so exactly one of them empty is impossible: retry that one
+	// once, then indeterminate. Otherwise an empty numstat would rank every file at
+	// zero churn, and an empty name list would drop tier 2, both silently.
+	const nameArgs = [...common, "--name-only", "-z"];
+	const statArgs = [...common, "--numstat", "-z"];
+	let names = git(repositoryPath, nameArgs, spawn);
 	if (names.status !== 0) throw failed("git diff --name-only failed", names);
-	const stats = git(repositoryPath, [...common, "--numstat", "-z"], spawn);
+	let stats = git(repositoryPath, statArgs, spawn);
 	if (stats.status !== 0) throw failed("git diff --numstat failed", stats);
+	const isEmpty = (outcome: GitOutcome): boolean => outcome.stdout.length === 0;
+	if (isEmpty(names) !== isEmpty(stats)) {
+		const which = isEmpty(names) ? "--name-only" : "--numstat";
+		const retried = git(repositoryPath, isEmpty(names) ? nameArgs : statArgs, spawn);
+		if (retried.status !== 0) throw failed(`git diff ${which} failed`, retried);
+		if (isEmpty(retried)) {
+			throw indeterminateError(
+				`git diff ${which} returned no output although the paired ${isEmpty(names) ? "--numstat" : "--name-only"} read listed changes`,
+			);
+		}
+		if (isEmpty(names)) names = retried;
+		else stats = retried;
+	}
 
 	const churn = parseNumstat(stats.stdout);
 	const files = new Map<string, number>();

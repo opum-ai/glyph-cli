@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { Buffer } from "node:buffer";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type GitSpawn, produceCodeMap, produceCodeMapWithSpawn } from "../src/codemap.ts";
@@ -56,7 +56,13 @@ interface Recorder {
  * index among that read's matching calls, so `() => true` forces every attempt
  * empty and `(n) => n === 1` forces only the first.
  */
-function recorder(force?: { read: Read; emptyOn: (matchingCall: number) => boolean; status?: number }): Recorder {
+function recorder(force?: {
+	read: Read;
+	emptyOn: (matchingCall: number) => boolean;
+	status?: number;
+	/** The status of the forced empty on a given matching call; overrides `status`. */
+	statusOn?: (matchingCall: number) => number;
+}): Recorder {
 	const counts = new Map<string, number>();
 	const forcedCounts = new Map<string, number>();
 	const spawn: GitSpawn = (command: string, args: readonly string[], options: SpawnOptions = {}) => {
@@ -67,7 +73,7 @@ function recorder(force?: { read: Read; emptyOn: (matchingCall: number) => boole
 			if (force !== undefined && force.read.name === read.name && force.emptyOn(next)) {
 				forcedCounts.set(read.name, (forcedCounts.get(read.name) ?? 0) + 1);
 				return {
-					status: force.status ?? 0,
+					status: force.statusOn?.(next) ?? force.status ?? 0,
 					stdout: Buffer.alloc(0),
 					stderr: Buffer.alloc(0),
 					signal: null,
@@ -234,6 +240,137 @@ describe("a contradicting empty read is retried once, then indeterminate", () =>
 	}
 });
 
+describe("a retry that is empty again is never an answer, whatever its status", () => {
+	// First attempt: exit 0 with no output (the fault). Retry: exit 1 with no output, which
+	// each of these reads would otherwise take as a legitimate "not found" / "unrelated" /
+	// "no matches". The retry is accepted only if it printed something, so all are exit 7.
+	const cases: Array<{
+		name: string;
+		read: Read;
+		repo: (root: string) => FixtureRepo;
+		taskText: string;
+		names: string;
+	}> = [
+		{
+			name: "rev-parse",
+			read: READS.revParse,
+			repo: identifierRepo,
+			taskText: "fix `buildReport`",
+			names: "git rev-parse returned no output",
+		},
+		{
+			name: "cat-file -t",
+			read: READS.catFile,
+			repo: namedRepo,
+			taskText: "open src/named.ts",
+			names: "git cat-file -t returned no output",
+		},
+		{
+			name: "merge-base",
+			read: READS.mergeBase,
+			repo: identifierRepo,
+			taskText: "fix `buildReport`",
+			names: "git merge-base returned no output",
+		},
+		{
+			name: "diff --unified=0",
+			read: READS.diffRanges,
+			repo: branchRepo,
+			taskText: "fix src/changed.ts",
+			names: "git diff returned no output for src/changed.ts",
+		},
+		{
+			name: "grep -l",
+			read: READS.grepFiles,
+			repo: soloRepo,
+			taskText: "fix `soloMarker`",
+			names: "git grep -l returned no output",
+		},
+		{
+			name: "grep -n",
+			read: READS.grepLines,
+			repo: soloRepo,
+			taskText: "fix `soloMarker`",
+			names: "git grep -n returned no output",
+		},
+	];
+	for (const testCase of cases) {
+		test(`${testCase.name}: exit 0 empty, then exit 1 empty -> exit 7, not an answer`, () => {
+			const root = scratchRoot();
+			testCase.repo(root);
+			const injected = recorder({ read: testCase.read, emptyOn: () => true, statusOn: (call) => (call === 1 ? 0 : 1) });
+			const error = capturedError(() => mapWith(root, "base", testCase.taskText, injected));
+			expectIndeterminate(error, testCase.names);
+			expect(injected.count(testCase.read)).toBe(2);
+		});
+	}
+});
+
+describe("the name-only and numstat reads are a pair: exactly one empty is retried, then indeterminate", () => {
+	test("--numstat empty while --name-only lists a file: exit 7, --numstat retried once", () => {
+		const root = scratchRoot();
+		branchRepo(root);
+		const injected = recorder({ read: READS.numstat, emptyOn: () => true });
+		const error = capturedError(() => mapWith(root, "base", "fix src/changed.ts", injected));
+		expectIndeterminate(error, "git diff --numstat returned no output");
+		expect(injected.count(READS.nameOnly)).toBe(1);
+		expect(injected.count(READS.numstat)).toBe(2);
+	});
+
+	test("--name-only empty while --numstat has a row: exit 7, --name-only retried once", () => {
+		const root = scratchRoot();
+		branchRepo(root);
+		const injected = recorder({ read: READS.nameOnly, emptyOn: () => true });
+		const error = capturedError(() => mapWith(root, "base", "fix src/changed.ts", injected));
+		expectIndeterminate(error, "git diff --name-only returned no output");
+		expect(injected.count(READS.numstat)).toBe(1);
+		expect(injected.count(READS.nameOnly)).toBe(2);
+	});
+
+	test("--numstat empty once then real: the churn is the real churn, not zero", () => {
+		const root = scratchRoot();
+		branchRepo(root);
+		const clean = produceCodeMap({
+			repositoryPath: root,
+			sourceRef: "base",
+			taskText: "fix src/changed.ts",
+			symbols: false,
+		});
+		const injected = recorder({ read: READS.numstat, emptyOn: (call) => call === 1 });
+		const output = mapWith(root, "base", "fix src/changed.ts", injected);
+		expect(injected.count(READS.numstat)).toBe(2);
+		expect(JSON.stringify(output)).toBe(JSON.stringify(clean));
+	});
+
+	test("--name-only empty once then real: tier 2 is intact", () => {
+		const root = scratchRoot();
+		branchRepo(root);
+		const clean = produceCodeMap({
+			repositoryPath: root,
+			sourceRef: "base",
+			taskText: "fix src/changed.ts",
+			symbols: false,
+		});
+		const injected = recorder({ read: READS.nameOnly, emptyOn: (call) => call === 1 });
+		const output = mapWith(root, "base", "fix src/changed.ts", injected);
+		expect(injected.count(READS.nameOnly)).toBe(2);
+		expect(JSON.stringify(output)).toBe(JSON.stringify(clean));
+	});
+
+	test("a mode-only change: git prints a numstat row for it, so the pair is not both-sides-different", () => {
+		const root = scratchRoot();
+		const repo = branchRepo(root);
+		chmodSync(join(root, "src/changed.ts"), 0o755);
+		repo.git("add", "-A");
+		repo.git("-c", "commit.gpgsign=false", "commit", "-q", "-m", "mode only");
+		const injected = recorder();
+		const output = mapWith(root, "base", "fix src/changed.ts", injected);
+		expect(output.pointers.some((pointer) => pointer.path === "src/changed.ts")).toBe(true);
+		expect(injected.count(READS.nameOnly)).toBe(1);
+		expect(injected.count(READS.numstat)).toBe(1);
+	});
+});
+
 describe("an empty read that recovers on the retry gives the correct answer", () => {
 	const cases: Array<{
 		name: string;
@@ -354,6 +491,58 @@ describe("a legitimate empty read is unchanged and not retried", () => {
 		expect(quoted?.reason).toContain("matches identifier `specialIdent`");
 		expect(injected.count(READS.grepLines)).toBe(1);
 		expect(injected.forced(READS.grepLines)).toBe(0);
+	});
+});
+
+describe("each guarded read's legitimate empty is read exactly once", () => {
+	test("diff --unified=0 on a mode-only change: the pointer stays with no ranges, read once", () => {
+		const root = scratchRoot();
+		const repo = makeFixtureRepo(root);
+		repo.git("init", "-q", "-b", "base");
+		repo.write("src/changed.ts", "export const alpha = 1;\n");
+		repo.commit("base");
+		repo.git("checkout", "-q", "-b", "work");
+		chmodSync(join(root, "src/changed.ts"), 0o755);
+		repo.git("add", "-A");
+		repo.git("-c", "commit.gpgsign=false", "commit", "-q", "-m", "mode only");
+		const injected = recorder();
+		const output = mapWith(root, "base", "fix src/changed.ts", injected);
+		const pointer = output.pointers.find((candidate) => candidate.path === "src/changed.ts");
+		expect(pointer).toBeDefined();
+		expect(pointer?.lineRanges).toEqual([]);
+		expect(injected.count(READS.diffRanges)).toBe(1);
+	});
+
+	test("merge-base exit 1 on unrelated histories: no error, no branch files, read once", () => {
+		const root = scratchRoot();
+		const repo = identifierRepo(root);
+		repo.git("checkout", "-q", "--orphan", "other");
+		repo.git("rm", "-rfq", ".");
+		repo.write("src/lone.ts", "export const lone = 1;\n");
+		repo.commit("orphan");
+		const injected = recorder();
+		const output = mapWith(root, "base", "fix `buildReport`", injected);
+		expect(injected.count(READS.mergeBase)).toBe(1);
+		expect(injected.count(READS.nameOnly)).toBe(0);
+		expect(output.pointers.some((pointer) => pointer.reason.includes("changed on this branch"))).toBe(false);
+	});
+
+	test("cat-file non-zero for a named path absent at the ref: no pointer, read once", () => {
+		const root = scratchRoot();
+		namedRepo(root);
+		const injected = recorder();
+		const output = mapWith(root, "base", "open src/missing.ts", injected);
+		expect(output.pointers.some((pointer) => pointer.path === "src/missing.ts")).toBe(false);
+		expect(injected.count(READS.catFile)).toBe(1);
+	});
+
+	test("rev-parse exit 1 for an unknown ref: not found (exit 3), read once", () => {
+		const root = scratchRoot();
+		identifierRepo(root);
+		const injected = recorder();
+		const error = capturedError(() => mapWith(root, "no-such-ref", "fix `buildReport`", injected));
+		expect(error.errorType).toBe("not_found");
+		expect(injected.count(READS.revParse)).toBe(1);
 	});
 });
 
