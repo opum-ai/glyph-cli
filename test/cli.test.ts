@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { allResultKinds, globalKindOf, kindOf } from "../src/contract.ts";
@@ -8,6 +8,8 @@ import { gitRun, repoRootFor } from "../src/git.ts";
 import { makeScratchRepo, scratchCacheDir } from "./helpers.ts";
 
 const CLI = new URL("../src/cli.ts", import.meta.url).pathname;
+// The version the CLI reports is package.json's; read it so a bump needs no test edit.
+const PACKAGE_VERSION: string = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
 interface CliResult {
 	code: number;
@@ -736,7 +738,7 @@ describe("cli", () => {
 
 		const shorthand = runCli(repo.root, ["-v"], cache);
 		expect(shorthand.code).toBe(0);
-		expect(shorthand.stdout.trim()).toBe("0.0.0");
+		expect(shorthand.stdout.trim()).toBe(PACKAGE_VERSION);
 
 		const upper = runCli(repo.root, ["-V"], cache);
 		expect(upper.code).toBe(2);
@@ -763,7 +765,7 @@ describe("cli", () => {
 		const cache = scratchCacheDir();
 
 		const version = runCli(repo.root, ["--json", "--version"], cache);
-		expect(JSON.parse(version.stdout).data.version).toBe("0.0.0");
+		expect(JSON.parse(version.stdout).data.version).toBe(PACKAGE_VERSION);
 
 		const topHelp = runCli(repo.root, ["--json", "--help"], cache);
 		expect(JSON.parse(topHelp.stdout).data.usage).toContain("Usage: glyph");
