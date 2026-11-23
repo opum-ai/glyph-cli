@@ -47,3 +47,17 @@ R6. Aliased and re-exported calls are candidates (`from m import a as b`, `impor
 batch by batch (batch 0, then 1, then 2) and stops at the first batch boundary at which the cumulative true sites (under the
 all-attributable denominator) reach 62. If all three batches leave fewer than 62, the repository is declared unsuitable and
 reported to opum-doc; it is not run. No other stopping rule, and no target is added, dropped or reclassified after an analyzer run.
+
+## Addendum, written with the classification (after the candidate list, commit 2ac429b; the rules above are unchanged)
+
+1. **`multiply-bound` is an exclusion reason.** A callee defined twice under `if PY2:` / `else:` (here `get_text_stdin`, lines 248
+   and 446 of `_compat.py`) is a call to whichever definition the run-time branch binds; a static analyzer sees both, so the site is
+   excluded from both targets and counted, as `platform-conditional` code was handled for requests.
+2. **Candidate-finding is by callee name** (and alias, and subclass construction). A call whose callee has no name (`cls(...)`,
+   `f = obj.m; f()`) is never a candidate: the `dynamic` blind spot of R5, shared with the requests ground truth, stated, not measured.
+3. **The unit of the classification is the (target, site) pair.** A site that is a candidate of several targets (e.g. `self.invoke(...)`
+   for five `invoke` definitions) is classified once per target; the same site can be true for one target and `other-definition`
+   for another. `other_definition` counts in `classified-batch0.json` are therefore per target.
+4. **Batch 0 reached the stopping rule** (cumulative true sites at or above 62), so batches 1 and 2 are not classified and are
+   not scored: see `classified-batch0.json` `summary`. Two targets (`echo`, `term_len`) hold 36 of the true sites; the target-level
+   figure and the cluster bootstrap are reported beside the site-level interval for that reason.
