@@ -32,6 +32,10 @@ glyph diff main --repo /path/to/repo
 To try it without installing, `npx @opum-ai/glyph callers buildReport --repo
 /path/to/repo` runs the same commands.
 
+Install Glyph from npm, not Homebrew: `brew install glyph` names an unrelated
+formula (an ASCII-art converter), not this tool. Also, the unscoped `glyph`
+package on npm is a different project; the package here is `@opum-ai/glyph`.
+
 To work on Glyph itself, run it from a checkout with [Bun](https://bun.sh)
 matching `.bun-version` (development and tests stay on Bun; the published
 package runs under Node):
