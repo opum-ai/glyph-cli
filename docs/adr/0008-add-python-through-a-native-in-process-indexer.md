@@ -116,6 +116,16 @@ more hits at 62. For requests (65 sites) 59 or more hits are required. For preci
 of at least 0.95 only from 73 emitted edges (`results/wilson-floor.txt`), and precision's n is the emitted edges to the seeded
 targets, not the true sites.
 
+**Scoring conventions ruled by DEC-303 (a3)** (opum-ai/opum-doc#1932, commit e540d4ff, accepted, decided by the operator; verbatim as relayed): "Q1
+Forwarding decorators (for example @contextmanager): attribution stays and the site is true. Q2 Version and platform branches: PY2 branches are evaluated
+under Python 3. Platform branches (WIN, sys.platform) are all reachable, matching pythonPlatform "All". A callee defined in both arms of a platform branch is
+multiply-bound. Q3 Precision: the pyright-comparable precision side excludes edges at inferred sites, for comparability with the baseline. The independent
+side counts them. Q4 Polymorphic dispatch: polymorphic sites are reported separately and NOT scored. The gate measures resolution glyph claims to do, not
+class-hierarchy dispatch it deliberately does not guess." Standing rule, from the same ruling: a site counts when a human with the whole repository can
+attribute it without dynamic dispatch or runtime state; when it is genuinely ambiguous, it is excluded and reported; glyph-cli records each such convention
+in `test/python-gate/gt_rules_click.md` with its label effect and escalates only when a convention would change whether a repository passes the gate. The
+effect on the held-out batch is in that file's Addendum 4: 80 true sites, 70 of them direct.
+
 **Baseline, from committed files only.** On `psf/requests`, pre-registered sample (46 targets, 65 true sites), pyright's incoming calls:
 default platform 58/65 recall (0.892, Wilson 0.794-0.947), precision 58/58, `results/union-real-default.txt`;
 `pythonPlatform: "All"` 59/65 (0.908, 0.813-0.957), precision 59/59, `results/union-real-allplat.txt`. With a constructor mapping
