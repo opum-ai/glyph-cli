@@ -1,0 +1,6 @@
+{
+ "_note": "Overload rule (Addendum 6): an @overload group is collapsed to its implementation before classification and scoring; a call attributes to the group. Targets.json and the classification stay keyed as committed (the stub line); the scorer maps a stub-keyed target to the glyph symbol at implementation_line. Derived from requests_convention_checks.py section 1 (results in convention-checks.txt).",
+ "utils.py:373 to_key_val_list": {"stub_lines": [371, 373], "implementation_line": 376},
+ "structures.py:127 LookupDict.get": {"stub_lines": [124, 127], "implementation_line": 129},
+ "models.py:134 RequestEncodingMixin._encode_params": {"stub_lines": [134, 138, 142, 148], "implementation_line": 151}
+}
