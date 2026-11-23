@@ -436,6 +436,31 @@ describe("--stream (contract §1a)", () => {
 		expect(example).toEqual(streamed.stdout.split("\n").filter((line) => line.length > 0));
 	});
 
+	test("the README's callers example is the fixture's actual output", () => {
+		const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8").split("\n");
+		const start = readme.findIndex((line) => line.startsWith("### `glyph callers"));
+		expect(start).toBeGreaterThanOrEqual(0);
+		let inFence = false;
+		let command = "";
+		const example: string[] = [];
+		for (let index = start + 1; index < readme.length; index += 1) {
+			const line = readme[index] ?? "";
+			if (!inFence) {
+				if (line.trim() === "```console") inFence = true;
+				continue;
+			}
+			if (line.trim() === "```") break;
+			if (line.startsWith("$ ")) command = line.slice(2);
+			else example.push(line);
+		}
+		expect(command).toBe("glyph callers helper");
+
+		const repo = fixture();
+		const run = runCli(repo.root, ["callers", "helper"], scratchCacheDir());
+		expect(run.code).toBe(0);
+		expect(example).toEqual(run.stdout.split("\n").filter((line) => line.length > 0));
+	});
+
 	test("the flush proof: an item line is readable from the pipe while the child is still alive", async () => {
 		const repo = fixture();
 		const pauseMs = 1500;
