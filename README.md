@@ -167,8 +167,9 @@ $ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref
   emoji counts as two and `é` as one) is a **usage error**, never a silent
   truncation. A missing `--source-ref` is a usage error too.
 - Exit codes are 0, 1, 2, 3 and 7: a `--source-ref` that does not resolve is
-  `not_found`, and a failed or timed-out git read is `indeterminate`, as is a git
-  read that comes back empty when glyph already holds a fact that makes empty
+  `not_found`, and a git read that fails or exceeds git's own timeout is
+  `indeterminate` (a read the 7.0 s wall-time budget cuts off is the
+  `code-map#time-budget` omission above, exit 0), as is a git read that comes back empty when glyph already holds a fact that makes empty
   impossible (a path known to match, an object known to exist), after one retry.
 - Its deterministic tiers are checked byte for byte against fixed goldens; the
   CLI's default output adds the symbol tier.
@@ -386,9 +387,10 @@ revisions of a repository are retained.
   working tree unless `--ref` names a commit, in which case no uncommitted
   state can enter the answer.
 - **One repository** per invocation, no cross-repository graph, no UI.
-- **File names `code-map` cannot read.** A changed file whose name is not valid
-  UTF-8, or an NFD-composed name on a platform that normalizes names, makes
-  `code-map` exit 7 in 0.1.0 rather than skip that file.
+- **File names `code-map` cannot read.** A changed source file that reaches the
+  line-range read (not filtered out as non-code, not cut by the 20-file cap) and
+  whose name is not valid UTF-8, or is a Unicode name stored decomposed (NFD),
+  as on macOS, makes `code-map` exit 7 in 0.1.0 rather than skip that file.
 
 ## Development
 
