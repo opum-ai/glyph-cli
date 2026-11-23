@@ -2,8 +2,8 @@
  "summary": {
   "targets": 46,
   "true": 65,
-  "true_direct": 62,
-  "true_inferred": 3,
+  "true_direct": 64,
+  "true_inferred": 1,
   "poly": 1,
   "excluded": 0,
   "other_definition": 131,
@@ -618,7 +618,7 @@
      "site": "models.py:460:33",
      "call_start_line": 460,
      "form": "attr",
-     "receiver_evidence": "inferred"
+     "receiver_evidence": "direct"
     }
    ],
    "poly": [],
@@ -672,7 +672,7 @@
      "site": "auth.py:302:29",
      "call_start_line": 302,
      "form": "attr",
-     "receiver_evidence": "inferred"
+     "receiver_evidence": "direct"
     },
     {
      "site": "sessions.py:205:35",

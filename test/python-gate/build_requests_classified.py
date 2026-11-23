@@ -11,17 +11,16 @@ here as data so it can be checked:
   * NO site that R1 left undecidable was found among the candidates: requests is annotated (265 of 268 defs, results/annotation-count.txt), so
     every candidate receiver was attributable. The number of newly attributable sites beyond the 65 is therefore 0.
 `receiver_evidence` per true site (Addendum 4 / R1'): name-form and constructor sites and `self.m()` / annotated-parameter / bound-once
-receivers are `direct`; a receiver that is an attribute of another value or a loop variable over a collection is `inferred`. The three
-`inferred` sites are listed in INFERRED below.
+receivers are `direct`; a receiver that is an attribute of another value or a loop variable over a collection is `inferred`. The one
+`inferred` site is listed in INFERRED below (models.py:460 and auth.py:302 were inferred until Addendum 6, after the blind pass, which treats an
+annotated attribute as direct).
 gt3_classified.json is read, never written.
 """
 import json
 import sys
 
 INFERRED = {  # (target key, site as in gt3) -> why
-    ("structures.py:89 CaseInsensitiveDict.copy", "models.py:460"): "self.headers.copy(): attribute of self",
     ("adapters.py:153 BaseAdapter.close", "sessions.py:886"): "for v in self.adapters.values(): v.close(): loop variable over a collection",
-    ("models.py:456 PreparedRequest.copy", "auth.py:302"): "r.request.copy(): attribute of an annotated parameter",
 }
 targets = json.load(open(sys.argv[1]))
 gt = json.load(open(sys.argv[2]))
