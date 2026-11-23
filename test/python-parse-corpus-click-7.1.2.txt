@@ -12,11 +12,14 @@ Download (into a fresh empty scratch dir; `<scratch>` is that local directory):
   curl -sSL -o <scratch>/click.tar.gz \
     https://codeload.github.com/pallets/click/tar.gz/1784558ed7c75c65764d2a434bd9cbb206ca939d
   # tarball sha256 bbd39309fe67e93ab9edb61d5426060978ee0858e88acf7235a08499ce6d71f3
+  # A codeload tarball for a commit extracts to click-<full 40-char sha>, and
+  # tar -C needs the target directory to exist first:
+  mkdir -p <scratch>/click-src
   tar -xzf <scratch>/click.tar.gz -C <scratch>/click-src
 
 Measurement command (run from the repository root):
 
-  bun test/python-parse-corpus.ts <scratch>/click-src/click-1784558e/src/click
+  bun test/python-parse-corpus.ts <scratch>/click-src/click-1784558ed7c75c65764d2a434bd9cbb206ca939d/src/click
 
 Result (tab-separated, as printed under bun 1.4.2):
 

@@ -77,8 +77,15 @@ async function loadParser(wasmPath: string): Promise<Parser> {
 	// Parser.init() loads the runtime wasm once; Language.load() the Python grammar.
 	await TS.Parser.init();
 	const language = await TS.Language.load(wasmPath);
-	const parser = new TS.Parser();
-	parser.setLanguage(language);
+	const parser = parserFactory();
+	try {
+		parser.setLanguage(language);
+	} catch (cause) {
+		// setLanguage can throw (an incompatible language); free the parser we
+		// created before letting the error propagate, or the runtime leaks it.
+		parser.delete();
+		throw cause;
+	}
 	return parser;
 }
 
@@ -91,12 +98,30 @@ let sharedInit: Promise<Parser> | null = null;
 // installed package; a test-only seam replaces it to force the failure path.
 let grammarWasmResolver: () => string = resolvePythonWasm;
 
+// How a parser is built. Production always constructs the real runtime parser;
+// a test-only seam replaces it to force `setLanguage` to throw and to observe
+// that the failed parser is freed.
+let parserFactory: () => Parser = () => new TS.Parser();
+
 /**
  * Test-only seam: replace how the shared init locates its wasm. It does not
  * touch already-initialised state; production never calls it.
+ *
+ * Nothing under `src/` other than this file may import this seam or the parser
+ * factory seam below: production resolves the installed package and builds a
+ * real parser, so these seams stay test-only.
  */
 export function __setGrammarWasmResolverForTest(resolver: (() => string) | null): void {
 	grammarWasmResolver = resolver ?? resolvePythonWasm;
+}
+
+/**
+ * Test-only seam: replace how a parser is constructed. Production never calls
+ * it; a test uses it to force `setLanguage` to throw and to prove the parser is
+ * freed before the error propagates.
+ */
+export function __setParserFactoryForTest(factory: (() => Parser) | null): void {
+	parserFactory = factory ?? (() => new TS.Parser());
 }
 
 async function getParser(): Promise<Parser> {
@@ -249,16 +274,23 @@ export async function parsePython(source: Uint8Array | string, path: string): Pr
 	}
 	const errors: PythonRegion[] = [];
 	const missing: PythonRegion[] = [];
-	collectRegions(tree.rootNode, path, errors, missing);
-	return {
-		path,
-		tree,
-		hasError: tree.rootNode.hasError,
-		errorCount: errors.length,
-		missingCount: missing.length,
-		errors,
-		missing,
-		decodeReplacements: replacements,
-		limit: replacements > 0 ? DECODE_REPLACEMENTS_LIMIT : null,
-	};
+	try {
+		collectRegions(tree.rootNode, path, errors, missing);
+		return {
+			path,
+			tree,
+			hasError: tree.rootNode.hasError,
+			errorCount: errors.length,
+			missingCount: missing.length,
+			errors,
+			missing,
+			decodeReplacements: replacements,
+			limit: replacements > 0 ? DECODE_REPLACEMENTS_LIMIT : null,
+		};
+	} catch (cause) {
+		// A throw after parsing (a malformed node, a runtime fault) must not leak
+		// the tree: free it, then let the caller see the failure.
+		tree.delete();
+		throw cause;
+	}
 }

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DECODE_REPLACEMENTS_LIMIT, grammarVersion, initPythonParser, parsePython } from "../src/python/parse.ts";
 
@@ -59,7 +60,9 @@ describe("Python syntax probes — observed ERROR / MISSING counts", () => {
 
 describe("decode before parse", () => {
 	test("a stray 0xFF is decoded and counted, and the file still yields a tree", async () => {
-		// "x = \xff\n": one invalid byte -> one replacement -> the grammar's two ERROR nodes.
+		// "x = \xff\n": one invalid byte -> one replacement -> the grammar's two
+		// ERROR nodes. Both counts are worker-measured at 1eab226; no independent
+		// record pins them beyond this suite.
 		const bytes = new Uint8Array([0x78, 0x20, 0x3d, 0x20, 0xff, 0x0a]);
 		const result = await parsePython(bytes, "bad-utf8.py");
 		expect(result.decodeReplacements).toBe(1);
@@ -164,15 +167,21 @@ describe("stated source cases", () => {
 	});
 
 	test("NUL bytes are valid UTF-8 (no replacement) and surface as two ERROR nodes", async () => {
-		const result = await parsePython("x = 1\u0000\ny = 2\n", "nul.py");
+		// Go through the bytes path so decodeReplacements === 0 is a real assertion:
+		// a 0x00 byte is valid UTF-8, so it survives the fatal decode unchanged. Both
+		// counts are worker-measured at 1eab226.
+		const bytes = new TextEncoder().encode("x = 1\u0000\ny = 2\n");
+		const result = await parsePython(bytes, "nul.py");
 		expect(result.decodeReplacements).toBe(0);
+		expect(result.limit).toBeNull();
 		expect(result.hasError).toBe(true);
 		expect(result.errorCount).toBe(2);
 		result.tree.delete();
 	});
 
 	test("a very large generated file parses without error", async () => {
-		// The measured size: 250,000 characters (the S2a probe's large-file case).
+		// Worker-measured at 1eab226, not taken from an earlier S2a record: the
+		// input was reshaped from 230,000 to 250,000 characters when moved here.
 		const source = "def f_%d():\n    return %d\n\n".repeat(10_000).replace(/%d/g, () => "0");
 		expect(source.length).toBe(250_000);
 		const result = await parsePython(source, "large.py");
@@ -244,11 +253,12 @@ describe("initialisation", () => {
 		// real wasm. If the rejection handler did not clear sharedInit, the retry
 		// would await the cached rejected promise and this test would fail.
 		const moduleUrl = new URL("../src/python/parse.ts", import.meta.url).href;
+		// Resolve the wasm in the PARENT process and interpolate the absolute path:
+		// the child script must not depend on process.cwd().
+		const realWasm = require.resolve("@vscode/tree-sitter-wasm/wasm/tree-sitter-python.wasm");
 		const script = `
-			import { createRequire } from "node:module";
 			const m = await import(${JSON.stringify(moduleUrl)});
-			const req = createRequire(process.cwd() + "/index.js");
-			const real = req.resolve("@vscode/tree-sitter-wasm/wasm/tree-sitter-python.wasm");
+			const real = ${JSON.stringify(realWasm)};
 			let calls = 0;
 			m.__setGrammarWasmResolverForTest(() => (calls++ === 0 ? "/nonexistent/shared-grammar.wasm" : real));
 			let firstError = "";
@@ -289,5 +299,104 @@ describe("initialisation", () => {
 		const result = await parsePython("x = 1\n", "after-failure.py");
 		expect(result.errorCount).toBe(0);
 		result.tree.delete();
+	});
+});
+
+describe("resource ownership on the error paths", () => {
+	test("a setLanguage failure frees the parser — shared and explicit-path variants", () => {
+		const moduleUrl = new URL("../src/python/parse.ts", import.meta.url).href;
+		const realWasm = require.resolve("@vscode/tree-sitter-wasm/wasm/tree-sitter-python.wasm");
+		const script = `
+			const m = await import(${JSON.stringify(moduleUrl)});
+			const real = ${JSON.stringify(realWasm)};
+			let frees = 0;
+			m.__setParserFactoryForTest(() => ({
+				setLanguage() { throw new Error("setLanguage boom"); },
+				delete() { frees += 1; },
+			}));
+			let sharedError = "";
+			try {
+				const r = await m.parsePython("x = 1\\n", "shared.py");
+				r.tree.delete();
+			} catch (e) {
+				sharedError = e && e.message ? e.message : String(e);
+			}
+			let explicitError = "";
+			try {
+				await m.initPythonParser(real);
+			} catch (e) {
+				explicitError = e && e.message ? e.message : String(e);
+			}
+			console.log(JSON.stringify({ frees, sharedError, explicitError }));
+		`;
+		const proc = Bun.spawnSync([process.execPath, "-e", script], { stdout: "pipe", stderr: "pipe" });
+		expect(proc.exitCode).toBe(0);
+		const out = JSON.parse(proc.stdout.toString().trim()) as {
+			frees: number;
+			sharedError: string;
+			explicitError: string;
+		};
+		// Each variant created one parser, could not set its language, and freed it.
+		expect(out.frees).toBe(2);
+		expect(out.sharedError).toMatch(/could not initialise the Python grammar/);
+		expect(out.explicitError).toMatch(/could not initialise the Python grammar/);
+	});
+
+	test("a throw while collecting regions frees the tree that was parsed", () => {
+		const moduleUrl = new URL("../src/python/parse.ts", import.meta.url).href;
+		const script = `
+			const m = await import(${JSON.stringify(moduleUrl)});
+			let frees = 0;
+			m.__setParserFactoryForTest(() => ({
+				setLanguage() {},
+				parse() {
+					return {
+						get rootNode() { throw new Error("rootNode boom"); },
+						delete() { frees += 1; },
+					};
+				},
+			}));
+			let error = "";
+			try {
+				await m.parsePython("x = 1\\n", "boom.py");
+			} catch (e) {
+				error = e && e.message ? e.message : String(e);
+			}
+			console.log(JSON.stringify({ frees, error }));
+		`;
+		const proc = Bun.spawnSync([process.execPath, "-e", script], { stdout: "pipe", stderr: "pipe" });
+		expect(proc.exitCode).toBe(0);
+		const out = JSON.parse(proc.stdout.toString().trim()) as { frees: number; error: string };
+		// The tree was freed exactly once before the error reached the caller.
+		expect(out.frees).toBe(1);
+		expect(out.error).toContain("rootNode boom");
+	});
+});
+
+describe("test seams stay test-only", () => {
+	test("no file under src/ other than parse.ts imports a test seam", () => {
+		const parseFile = fileURLToPath(new URL("../src/python/parse.ts", import.meta.url));
+		const seamPattern = /__set\w+ForTest/;
+		// Positive control: the seams exist in parse.ts, so a rename cannot make this
+		// scan pass vacuously.
+		expect(seamPattern.test(readFileSync(parseFile, "utf8"))).toBe(true);
+
+		const srcDir = fileURLToPath(new URL("../src", import.meta.url));
+		const offending: string[] = [];
+		let scanned = 0;
+		const walk = (dir: string): void => {
+			for (const entry of readdirSync(dir, { withFileTypes: true })) {
+				const absolute = join(dir, entry.name);
+				if (entry.isDirectory()) {
+					walk(absolute);
+				} else if (entry.name.endsWith(".ts") && absolute !== parseFile) {
+					scanned += 1;
+					if (seamPattern.test(readFileSync(absolute, "utf8"))) offending.push(absolute);
+				}
+			}
+		};
+		walk(srcDir);
+		expect(scanned).toBeGreaterThan(0);
+		expect(offending).toEqual([]);
 	});
 });
