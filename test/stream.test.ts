@@ -418,6 +418,7 @@ describe("--stream (contract §1a)", () => {
 		const start = readme.findIndex((line) => line.startsWith("## Streaming"));
 		expect(start).toBeGreaterThanOrEqual(0);
 		let inFence = false;
+		let command = "";
 		const example: string[] = [];
 		for (let index = start + 1; index < readme.length; index += 1) {
 			const line = readme[index] ?? "";
@@ -426,9 +427,13 @@ describe("--stream (contract §1a)", () => {
 				continue;
 			}
 			if (line.trim() === "```") break;
-			if (line.startsWith("$ ")) continue;
+			if (line.startsWith("$ ")) {
+				command = line.slice(2);
+				continue;
+			}
 			example.push(line);
 		}
+		expect(command).toBe("glyph callers helper --stream");
 
 		const repo = fixture();
 		const streamed = runCli(repo.root, ["callers", "helper", "--stream"], scratchCacheDir());
