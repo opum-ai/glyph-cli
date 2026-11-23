@@ -1,0 +1,6 @@
+[test]
+# Several suites build a TypeScript program and spawn git/CLI children serially; on a
+# loaded Linux runner a test takes longer than bun's 5 s default, which kills its
+# children mid-run (glyph-cli#101/#102: stream CLI test, parity code-map). 60 s leaves
+# headroom without hiding a hang.
+timeout = 60000
