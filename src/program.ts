@@ -31,8 +31,9 @@ import type { GlyphIndex, IndexInfo, SymbolEntry, UnresolvedByKind } from "./typ
  *
  * Contract, stated once here because scripts branch on it:
  * - stdout carries exactly one success envelope (JSON under --json, human text
- *   otherwise); on failure stdout stays EMPTY and stderr carries the message —
- *   under --json, an `{error_type, message, principal}` object.
+ *   otherwise); on failure stdout carries no result envelope (under --stream the
+ *   item lines already written stay) and stderr carries the error — under --json
+ *   and --stream, an `{error_type, message, principal}` object.
  * - every JSON payload carries `principal: null` as its last top-level key.
  * - exit codes are the frozen Opum family (see src/errors.ts), and the `kind`
  *   registry is the live source `glyph help --json` publishes.
