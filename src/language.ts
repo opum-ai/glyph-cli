@@ -1,5 +1,5 @@
-import { discoverFiles } from "./discover.ts";
-import { indeterminateError, notFoundError, usageError } from "./errors.ts";
+import { discoverFiles, SOURCE_EXTENSIONS } from "./discover.ts";
+import { notFoundError, usageError } from "./errors.ts";
 import { buildIndex } from "./indexer.ts";
 import type { GlyphIndex } from "./types.ts";
 
@@ -27,11 +27,32 @@ export const DEFAULT_LANGUAGE = "typescript";
  */
 export const KNOWN_LANGUAGES: readonly string[] = Object.freeze(["typescript", "python"]);
 
-/** The extensions each recognised language claims. TypeScript covers JS too (DEC-66). */
-const LANGUAGE_EXTENSIONS: Readonly<Record<string, readonly string[]>> = Object.freeze({
-	typescript: [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"],
+/**
+ * The extensions each recognised language claims. TypeScript's list is
+ * `SOURCE_EXTENSIONS` itself, so the seam's recognition and the indexer's
+ * discovery cannot drift; TypeScript covers JS too (DEC-66).
+ */
+export const LANGUAGE_EXTENSIONS: Readonly<Record<string, readonly string[]>> = Object.freeze({
+	typescript: SOURCE_EXTENSIONS,
 	python: [".py"],
 });
+
+/**
+ * Directory segments a Python file under which is not counted. A virtualenv or a
+ * byte-cache is not the project's Python source. This is a Python rule only:
+ * TypeScript discovery keeps dev's excluded-directory set and still indexes a
+ * `.ts` under these segments. Applied by path segment to the working-tree and
+ * `--ref` listings alike, so a TRACKED file under one of them is not counted
+ * either — one rule for both sources.
+ */
+const PYTHON_EXCLUDED_SEGMENTS = new Set([".venv", "venv", "__pycache__", ".tox"]);
+
+function underExcludedPythonSegment(path: string): boolean {
+	return path
+		.split("/")
+		.slice(0, -1)
+		.some((segment) => PYTHON_EXCLUDED_SEGMENTS.has(segment));
+}
 
 /** The language a repository-relative path belongs to, or null when none claims it. */
 export function languageOfPath(path: string): string | null {
@@ -72,7 +93,9 @@ export function registeredLanguages(): string[] {
 export function indexWith(languageId: string, repoRoot: string, files: string[]): GlyphIndex {
 	const indexer = REGISTRY.get(languageId);
 	if (indexer === undefined) {
-		throw indeterminateError(`no indexer is registered for language '${languageId}'`);
+		// Unreachable through the CLI: selection only ever names a registered
+		// language. An internal error (exit 1), never a second exit-7 cause.
+		throw new Error(`internal: no indexer is registered for language '${languageId}'`);
 	}
 	return indexer.index(repoRoot, files);
 }
@@ -94,6 +117,8 @@ export function groupByLanguage(files: readonly string[]): LanguagePresence[] {
 	for (const path of files) {
 		const id = languageOfPath(path);
 		if (id === null) continue;
+		// Python alone skips a virtualenv/cache segment; TypeScript keeps every path.
+		if (id === "python" && underExcludedPythonSegment(path)) continue;
 		const list = byLanguage.get(id);
 		if (list === undefined) byLanguage.set(id, [path]);
 		else list.push(path);

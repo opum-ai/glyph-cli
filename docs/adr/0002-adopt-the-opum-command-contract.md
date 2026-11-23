@@ -158,6 +158,8 @@ break the docs check.
   `; language not indexed: <id> (<n> files)`. Both are carried by the
   working-tree and the `--ref` answers alike: the `--ref` path counts recognised
   non-TypeScript files at the ref's tree with the same listing and mode filter.
+  The ref count sees tracked blobs of mode `100644`/`100755` only — no untracked
+  files, symlinks or gitlinks — so it can differ from a working-tree count.
 - **`not_found` answers name the language** where language selection produced
   them: an explicitly requested, registered language with no files is exit 3
   naming it. An explicitly requested language that is *not* registered is a
@@ -174,10 +176,13 @@ break the docs check.
   today), every one of these entries is ABSENT — not `null`, not a constant — so
   that answer is byte-for-byte what it was before this amendment. A golden
   captured from the pre-seam build (`test/language-goldens.ts`) holds it.
-- The non-Git discovery walk now also skips `.venv`, `venv`, `__pycache__` and
-  `.tox` (alongside the existing excluded directories), so a nested environment
-  or cache does not inflate the recognised Python count. That changes nothing for
-  a TypeScript-only repository, which the golden continues to show.
+- The non-Git discovery walk's excluded directories are **unchanged from dev**
+  (its nine), so a TypeScript file under `venv/`, `.venv/` or `.tox/` is still
+  indexed exactly as before. Python counting alone skips a `.py` path under a
+  `.venv`, `venv`, `__pycache__` or `.tox` segment, in the working-tree and
+  `--ref` listings alike (by path segment, so a tracked file under one is not
+  counted either), so a nested environment or cache does not inflate the
+  recognised Python count.
 
 The remaining drafted entries — a `decorator` site kind, an
 unresolved-first-party-import count and a per-answer constructor note — are

@@ -2,10 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { discoverSources } from "../src/discover.ts";
+import { discoverSources, SOURCE_EXTENSIONS } from "../src/discover.ts";
 import { GlyphError } from "../src/errors.ts";
 import { buildIndex } from "../src/indexer.ts";
 import {
+	LANGUAGE_EXTENSIONS,
 	detectLanguages,
 	indexWith,
 	isDefaultLanguage,
@@ -113,6 +114,11 @@ describe("the language seam", () => {
 		expect(present.find((entry) => entry.id === "python")?.files).toEqual(["src/tool.py"]);
 	});
 
+	test("the seam's TypeScript extensions are discovery's own, so the lists cannot drift", () => {
+		expect([...(LANGUAGE_EXTENSIONS.typescript ?? [])]).toEqual([...SOURCE_EXTENSIONS]);
+		for (const extension of SOURCE_EXTENSIONS) expect(languageOfPath(`file${extension}`)).toBe("typescript");
+	});
+
 	test("detection honours excluded paths: an ignored Python file is not counted", () => {
 		const repo = committed({
 			...TS_FILES,
@@ -135,6 +141,22 @@ describe("the language seam", () => {
 		});
 		const python = detectLanguages(root).find((entry) => entry.id === "python");
 		expect(python?.files).toEqual(["pkg/tool.py"]);
+	});
+
+	test("the non-git walk still indexes TypeScript under venv/.venv/.tox as on dev", () => {
+		// The Python environment rule is Python-only. The walk's excluded directories
+		// are dev's nine, so a TypeScript file under these segments is still found.
+		const root = plainDir({
+			"venv/a.ts": "export function a(): number {\n  return 1;\n}\n",
+			".venv/x.js": "export function x() {\n  return 1;\n}\n",
+			".tox/y.ts": "export function y(): number {\n  return 2;\n}\n",
+			"__pycache__/keep.ts": "export function keep(): number {\n  return 3;\n}\n",
+			"src/real.ts": "export function real(): number {\n  return 4;\n}\n",
+		});
+		const expected = [".tox/y.ts", ".venv/x.js", "__pycache__/keep.ts", "src/real.ts", "venv/a.ts"];
+		const typescript = detectLanguages(root).find((entry) => entry.id === "typescript");
+		expect(typescript?.files.sort()).toEqual(expected);
+		expect(discoverSources(root).sort()).toEqual(expected);
 	});
 
 	test("selection: TypeScript-only is the default; mixed names Python not-indexed", () => {

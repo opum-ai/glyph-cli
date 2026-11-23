@@ -54,25 +54,12 @@ export const SOURCE_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", 
 
 /**
  * Directories a non-Git walk never descends into; Git ignores them in a
- * repository. The Python entries (`.venv`, `venv`, `__pycache__`, `.tox`) keep a
- * nested environment or cache from inflating the recognised Python count; they
- * change nothing for a TypeScript-only tree, whose language golden still passes.
+ * repository. This is exactly dev's set and serves every language, so a
+ * TypeScript file under `venv/`, `.venv/` or `.tox/` is still discovered as it
+ * was on dev. Python counting applies its own environment-directory rule in
+ * `src/language.ts`, which leaves TypeScript discovery untouched.
  */
-const EXCLUDED_DIRS = new Set([
-	".git",
-	"node_modules",
-	"dist",
-	"build",
-	"out",
-	"coverage",
-	"vendor",
-	".next",
-	".nuxt",
-	".venv",
-	"venv",
-	"__pycache__",
-	".tox",
-]);
+const EXCLUDED_DIRS = new Set([".git", "node_modules", "dist", "build", "out", "coverage", "vendor", ".next", ".nuxt"]);
 
 function hasSourceExtension(path: string): boolean {
 	return SOURCE_EXTENSIONS.some((ext) => path.endsWith(ext));

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildLanguageFixture, type GoldenInvocation, languageGoldenInvocations } from "./language-fixtures.ts";
@@ -67,15 +67,24 @@ describe("TypeScript-only byte identity", () => {
 
 	test("a hostile global git config cannot move the fixture or the answer", () => {
 		// The fixture commits with a fixed identity under an isolated config (the
-		// parity precedent); this proves it. A hostile config would otherwise move
-		// the diff/--ref SHAs or break the commit.
-		const hostile = join(mkdtempSync(join(tmpdir(), "glyph-lang-hostile-")), "gitconfig");
+		// parity precedent). Some hostile keys are neutralised by the fixture's own
+		// environment (user.* by GIT_AUTHOR_*/GIT_COMMITTER_*, commit.gpgsign by
+		// `-c commit.gpgsign=false`); the two below are neutralised ONLY by
+		// GIT_CONFIG_GLOBAL=/dev/null: a failing pre-commit hook would break the
+		// commit, and `i18n.commitEncoding` would add an encoding header and move
+		// every SHA. This test therefore fails if that isolation is removed.
+		const hostileRoot = mkdtempSync(join(tmpdir(), "glyph-lang-hostile-"));
+		const hooks = join(hostileRoot, "hooks");
+		mkdirSync(hooks, { recursive: true });
+		writeFileSync(join(hooks, "pre-commit"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+		const hostile = join(hostileRoot, "gitconfig");
 		writeFileSync(
 			hostile,
 			[
 				"[user]\n\tname = Hostile User\n\temail = hostile@example.test",
 				"[commit]\n\tgpgsign = true",
-				"[core]\n\tquotepath = false",
+				`[core]\n\tquotepath = false\n\thooksPath = ${hooks}`,
+				"[i18n]\n\tcommitEncoding = ISO-8859-1",
 				"",
 			].join("\n"),
 		);
@@ -83,14 +92,15 @@ describe("TypeScript-only byte identity", () => {
 		try {
 			process.env.GIT_CONFIG_GLOBAL = hostile;
 			process.env.GIT_CONFIG_NOSYSTEM = "1";
+			// Positive controls: the keys that would move the bytes or fail the commit
+			// are in force for a git read that is not isolated.
+			const readConfig = (key: string): string =>
+				spawnSync("git", ["config", "--global", key], { encoding: "utf8", env: { ...process.env } }).stdout.trim();
+			expect(readConfig("user.email")).toBe("hostile@example.test");
+			expect(readConfig("i18n.commitEncoding")).toBe("ISO-8859-1");
+			expect(readConfig("core.hooksPath")).toBe(hooks);
+
 			const hostileFixture = buildLanguageFixture();
-			// Positive control: the hostile config is in force for a git read that is
-			// not isolated, so the equal bytes below were produced under it.
-			const probe = spawnSync("git", ["-C", hostileFixture.root, "config", "user.email"], {
-				encoding: "utf8",
-				env: { ...process.env },
-			});
-			expect(probe.stdout.trim()).toBe("hostile@example.test");
 			for (const [name, invocation] of Object.entries(languageGoldenInvocations(hostileFixture))) {
 				expect(capture(hostileFixture.root, invocation)).toBe(LANGUAGE_GOLDENS[name] as string);
 			}

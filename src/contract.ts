@@ -218,6 +218,10 @@ export function streamItemKinds(): string[] {
  * help can never name a stale set of languages. Only the flag is published by
  * `help --json`; which commands accept it is documented, not a manifest field
  * (the frozen manifest has no slot for output fields).
+ *
+ * S7 note: this string is computed once, when `contract.ts` loads. A language
+ * whose indexer is registered from a module that loads later will not appear
+ * here until this summary is recomputed per manifest build.
  */
 export function languageFlagSummary(): string {
 	return `index this language instead of the one detection picks (registered: ${registeredLanguages().join(", ")})`;
