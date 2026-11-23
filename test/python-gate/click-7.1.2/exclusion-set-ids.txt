@@ -1,0 +1,11 @@
+# (target | site) pairs the worker did not classify as true or other-definition: polymorphic or excluded. No labels.
+_compat.py:248 get_text_stdin | _compat.py:525:15
+exceptions.py:129 MissingParameter.format_message | exceptions.py:42:37
+exceptions.py:129 MissingParameter.format_message | exceptions.py:73:37
+core.py:1414 CommandCollection.list_commands | _bashcomplete.py:240:25
+core.py:1414 CommandCollection.list_commands | core.py:1184:31
+core.py:1414 CommandCollection.list_commands | core.py:1417:29
+types.py:409 BoolParamType.convert | types.py:46:24
+_compat.py:97 _NonClosingTextIOWrapper.isatty | _compat.py:744:22
+core.py:1780 Option._parse_decls | core.py:1482:57
+exceptions.py:61 UsageError.show | core.py:799:18
