@@ -169,6 +169,23 @@ describe("rule 5 — from-import names", () => {
 		expect(bindingIn(graph, "src/use.py", "helper").target).toBe("src/m.py");
 	});
 
+	test("from . import name inside the package __init__ reaches the submodule", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", "from . import impl\n"),
+			py("src/pkg/impl.py", ""),
+		]);
+		expect(bindingIn(graph, "src/pkg/__init__.py", "impl").target).toBe("src/pkg/impl.py");
+	});
+
+	test("a namespace directory reached through a from-import is namespace-package", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/inner.py", ""),
+			py("src/use.py", "from pkg import ns\n"),
+		]);
+		expect(bindingIn(graph, "src/use.py", "ns").reason).toBe("namespace-package");
+	});
+
 	test("neither binding nor submodule: attribute-not-found, counted", async () => {
 		const graph = await buildModuleGraph([py("src/pkg/__init__.py", ""), py("src/use.py", "from pkg import nope\n")]);
 		expect(bindingIn(graph, "src/use.py", "nope").reason).toBe("attribute-not-found");
