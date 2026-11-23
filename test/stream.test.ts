@@ -485,9 +485,11 @@ describe("--stream (contract §1a)", () => {
 		let buffer = "";
 		const timedOut = Symbol("timeout");
 		let timer: ReturnType<typeof setTimeout> | undefined;
-		// A generous overall bound. Bun startup, loading TypeScript and a cold
-		// createProgram all happen before the first item and are not the property
-		// under test; the pause is the only thing this test measures.
+		// A bound on the wait for the first line, not a test timeout: bun's own 5 s
+		// per-test default still applies and is the real limit here. Startup, loading
+		// TypeScript and a cold createProgram all happen before the first item and are
+		// not the property under test; the pause is the only thing this test measures.
+		// Measured at about 2.5 s under 20 busy loops, so the headroom is roughly 2x.
 		const deadline = new Promise<typeof timedOut>((resolve) => {
 			timer = setTimeout(() => resolve(timedOut), 30_000);
 		});
