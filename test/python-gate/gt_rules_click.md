@@ -37,7 +37,7 @@ R6. Aliased and re-exported calls are candidates (`from m import a as b`, `impor
 - Only edges whose caller is a file under `src/click` are scored (R5); glyph indexes every `.py` outside excluded paths.
 - Recall = true sites found / true sites (both denominators); precision = true sites found / sites listed, over the emitted
   edges to the seeded targets. The Wilson interval at the site level is the gate; the cluster bootstrap is reported for information.
-- Decorator sites are incoming edges; a constructor site is credited to the class and to its resolved `__init__` (ruling 1).
+- Decorator sites are incoming edges; the analyzer records a constructor site against the class and its resolved `__init__` (ruling 1, two edges per construction) and the scorer credits each edge to the symbol it names.
 - Zero-truth targets (strata `zero-candidates`) are precision controls; targets whose only calls are aliased are not drawn into
   that stratum (an alias-aware candidate count of zero is required).
 
