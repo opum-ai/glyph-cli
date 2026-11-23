@@ -1,5 +1,5 @@
 Silent-failure detector for first-party absolute imports (ADR 0008 section 5).
-Signal: `definition` at the module path of each in-repository absolute import (fixtures-abs: 2 imports); 'in-repo' = lands inside the repository,
+Signal: `definition` at the top-level package token (`app` in `app.b`) of each in-repository absolute import (fixtures-abs: 2 imports); 'in-repo' = lands inside the repository,
 'none' = no location. Edges: union + ctor map recall over the 5 hand-written true sites (union.py, fixtures-abs/expected.json).
 
 inroot         analysis root = the fixture root, no config (src layout)

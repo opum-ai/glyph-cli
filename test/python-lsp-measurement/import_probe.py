@@ -1,5 +1,5 @@
 """Positions of in-repository absolute imports, in the shape harness.mjs reads as its allcalls argument, so `definition` can
-be asked at each imported module path. usage: python3 -I import_probe.py <src dir> <package dir name under it> <out.json>
+be asked at the top-level package token of each import (the column is that of `app` in `app.b`, not of the leaf module). usage: python3 -I import_probe.py <src dir> <package dir name under it> <out.json>
 Writes one entry per `import X.y` / `from X.y import ...` whose top-level module X is the in-repository package."""
 import ast, json, os, sys
 SRC, PKG, OUT = sys.argv[1].rstrip("/"), sys.argv[2], sys.argv[3]

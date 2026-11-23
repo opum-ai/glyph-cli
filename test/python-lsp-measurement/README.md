@@ -38,6 +38,7 @@ python3 -I union.py /tmp/py-raw/real-allplat-out.json gt3_classified.json derive
 python3 -I union.py /tmp/py-raw/fx-allplat-out.json fixtures/expected.json derived/fx_targets.json derived/fx_symbols.json                       # results/union-fx-allplat.txt
 ```
 
+`results/import-detector.txt` is written by hand from `results/raw/imp-*` (produced by `python3 -I import_probe.py fixtures-abs/src app derived-abs/imports.json`, then `harness.mjs` on each layout with `imports.json` as the call-list argument, `OUT_ALL=1`; edge recall is `results/union-imp-*.txt`, from `union.py` on the same raw files).
 `results/no-python-on-path.txt` and `results/platform-channels.txt` are written by hand from the runs named in them
 (`real-nopython-1`, `platform-channel-e1|e4|e5` in `results/raw/`; the experiments are `PATH` stripped to `node`, and the
 harness environment variables `CONFIG_RESPONSE` and `INIT_OPTIONS` plus a generated `pyrightconfig.json`). The

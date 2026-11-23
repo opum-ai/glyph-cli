@@ -61,7 +61,8 @@ That directory is a recorded artifact and is not shipped (`package.json` `files`
   and 9 targets with none. The rules and the classification were committed in a scratch repository at 09:15:32 -06:00 and
   the fixtures' expected truth at 09:16:23, before the first server output (09:17:17 for fixtures, 09:18:20 for the real
   repository: one to three minutes later). The claim rests on the recorded commit hashes and blob ids
-  (`results/ground-truth-provenance.txt`), which match the files here byte for byte, not on a long gap.
+  (`results/ground-truth-provenance.txt`), which match the files here byte for byte, not on a long gap; the commit dates and
+  file times are **self-asserted**, not independent timestamps.
 - **What was added or decided after the first results** (`gt_rules_addendum.md`; the original files are unchanged):
   the alias set (4 targets, 15 sites, section "Results"), the constructor mapping (a design choice measured on the data
   that suggested it), and the recall bar (proposed after the results were seen; no threshold was fixed in advance).
@@ -171,7 +172,7 @@ typeshed or the stdlib, 2 to an installed package, 66 to nothing (uninstalled th
 Windows-only names); with `"All"`: 314 in the package, 655 to typeshed or the stdlib plus 2 to an installed package, and 57 to nothing. At the 65 ground-truth call sites the definition resolves to the target's
 own definition (the exact line spans of its definitions, no line window; for an `__init__` target the class's spans also
 count) in 64 (default) and 65 (`"All"`) cases; the same check on the fixtures gives 18/18 of the 18 (call, callee) pairs
-checkable by name; 8 (target, line) pairs on 6 distinct lines cannot be matched by name: the aliased `h(i)`-style call at
+checkable by name; 8 (target, line) pairs on 6 distinct lines cannot be matched by name: the aliased call `h(1)` at
 `use.py:44`, the constructor calls `Cat("tom")`, `Cat("x")`, `Doggo("rex")` and `cls(name)` (for `Animal.__init__`, `Dog.__init__`
 and the classes `Animal` and `Dog`), and the bare `@traced` decorator, which is not in the call list. That catches a same-named wrong target, which the 13 name
 mismatches (all import aliases) alone would not. The 22 results that land on a variable or alias were not individually checked.
@@ -240,7 +241,8 @@ figure. A bootstrap of a perfect score has no variance (1.000-1.000), so the shi
 | union + constructor mapping, `"All"`, scored with the scorer's rule, not the shipped MRO rule; **in-sample fit** | 65/65 = 1.000 (0.944-1.000) | 1.000-1.000 (no variance) | 37/37 = 1.000 (0.906-1.000) | yes / yes, on target-level Wilson 0.906 |
 
 The `"All"` figures above were measured with the config inside the checkout and were **reproduced under the shipped layout** (analysis
-root outside the repository, `extraPaths` set; 65/65 with and without `extraPaths` on requests, `results/layouts.txt`). requests
+root outside the repository: 65/65 with `include` only and with `extraPaths` = [`src`] on requests, `results/layouts.txt`; the shipped
+[repository root, `src`] pair itself was not run on requests, only on the fixture). requests
 uses only relative intra-package imports, so that reproduction does not exercise absolute first-party imports; the separate
 absolute-import fixture does (section 5). Its truth was written before the run, which is self-asserted (a `_note` in the file;
 it was not committed to the provenance bundle).
@@ -331,14 +333,17 @@ uniformly to `callers`, `impact` and `code-map`.
 - **Symbols** from `documentSymbol` per file (hierarchical); `workspace/symbol` is not used to build the index.
 - **Edges** are the deduplicated union of `outgoingCalls` for every function and method symbol and `incomingCalls` for every
   symbol. **Callee-to-symbol rule, in LSP terms**, in this order: (1) the function, method or class symbol whose
-  `documentSymbol` `selectionRange` equals the callee item's `selectionRange`; (2) failing that, the **innermost**
-  function/method/class symbol whose full range contains the callee item's `selectionRange` start (variables, parameters and
-  other kinds are never targets, and a method callee is contained by its class, so the innermost wins); (3) failing that, for
-  a callee on an `@overload` stub line (module-level stubs fall inside no range; a method's stubs fall inside its class's
-  range, so rule (2) would wrongly pick the class and is restricted to the callee's own kind), the same-named
-  function/method symbol in the innermost container; (4) otherwise `unattributed` (below). The names do not enter, because an
-  aliased import names the callee by its alias. The measurement matched callees against `ast` definition spans including
-  stubs, which the shipped index does not have; how pyright's callee items look for overloaded methods was not measured.
+  `documentSymbol` `selectionRange` equals the callee item's `selectionRange`; (2) failing that, only when the callee item's
+  line is a `def` or `class` line (a lexical check of that one line, so a local binding such as `fn = partial(...)` is never
+  credited to its enclosing function), the **innermost** symbol **of the callee item's own kind** (function/method, or
+  class) whose range contains it; (3) failing that, for a callee on a `def` line that is an `@overload` stub (recognised
+  lexically: the nearest decorator line above the `def` is `@overload` or `@typing.overload`; a stub has no `documentSymbol`
+  entry, module-level stubs fall inside no range and a method's stubs fall inside its class's range), the same-named
+  function/method symbol in the innermost container, **unless there is more than one candidate** (`if`/`else` version
+  branches, getter and setter pairs), which is `unattributed`; (4) otherwise `unattributed` (below). The names do not enter,
+  because an aliased import names the callee by its alias. The measurement matched callees against `ast` definition spans
+  including stubs, which the shipped index does not have; how pyright's callee items look for overloaded methods was not
+  measured, and no measured case needs rule (2) except stubs.
 - **Constructor edges.** One rule. A call to class `C` is recorded as an edge to `C`; it is also recorded as an edge to the
   `__init__` found by looking `__init__` up along `C`'s method resolution order (C3 linearisation of `C` and its
   in-repository bases), provided `C` is a **plain class**: no class decorator on the lines directly above the `class`
@@ -376,8 +381,9 @@ uniformly to `callers`, `impact` and `code-map`.
   "no hint arrived" is indistinguishable from "no unreachable code" until it has; (2) whatever (1) shows, a **qualified** query (`A.f`) whose qualified name is absent from the symbol table while a lexical scan
   of the files in scope finds `def f(` inside a `class A` block (with word boundaries: `class A\b`, `def f\b`, so `class names` does
   not match `class name`) is answered `indeterminate` (exit 7) naming the file and line, never `not_found` and never an
-  empty list; a reachable `B.f` elsewhere does not satisfy an `A.f` query. A bare name is treated the same way across all
-  classes and modules. If slice 1 finds the hints do
+  empty list; a reachable `B.f` elsewhere does not satisfy an `A.f` query. A bare-name query (`callers f`) is answered
+  `indeterminate` if **any** lexical `def f` or `class f` in scope has no symbol, even when a reachable `f` exists elsewhere: a
+  partial list is never returned for it. If slice 1 finds the hints do
   not arrive, mechanism (2) alone is the fail-closed rule.
 - **Edges whose callee lands on no symbol** (a variable, an alias binding, a re-export) are not dropped silently: they are
   counted in the coverage line as `unattributed`, with the count. The only analogue measured is the 22 of 312 in-package
@@ -415,17 +421,29 @@ uniformly to `callers`, `impact` and `code-map`.
   matched the in-root result (5/5). The shipped value is therefore [repository root, plus `src` if it exists]
   (`results/layouts.txt`, `results/import-detector.txt`). A package under neither root (the fixture moved to `lib/`) failed with
   that pair and with no error. Whether `extraPaths` can make a repository directory shadow a standard-library or installed module
-  name is **unmeasured**. The requests numbers, which use only relative intra-package imports, were identical under all
-  three layouts (65/65), so the bar table is reproduced under the shipped layout; that reproduction does not exercise absolute
-  first-party imports.
-  **Fail-closed first-party import check.** After indexing, the adapter asks `definition` at the module path of every absolute
-  `import X` and `from X import` whose top-level `X` names a package directory or module inside the repository. Any that returns no
-  location inside the repository makes the run `indeterminate` (exit 7), naming the file and the import, and the unresolved count is
-  in the coverage line. Measured on one 3-file fixture over seven layouts (`results/import-detector.txt`): `definition` returned
-  no location at those imports exactly when the edges were lost (0/5) and landed inside the repository exactly when they were
-  found (5/5). A `publishDiagnostics` `reportMissingImports` signal is a second candidate and was not measured. Not tested: tests
-  that import the project by its installed name, `stubPath` (the default `typings` resolves against the config directory, so
-  repository-local stubs may be lost), and `--ref` materialisation.
+  name is **unmeasured**. The requests numbers, which use only relative intra-package imports, were identical in the
+  in-root, `include`-only and `extraPaths` = [`src`] runs (65/65 each); the shipped pair [repository root, `src`] was run only on
+  the fixture, and that reproduction does not exercise absolute first-party imports.
+  **First-party import check.** After indexing, the adapter probes every absolute `import X` and `from X import ...` whose
+  top-level `X` is a **first-party name**, by asking `definition` at the **top-level package token** (`app` in `app.b`; this is
+  what the fixture run probed, not the leaf module: an `app` that resolves while `app.sub` does not is a false negative, and
+  probing every dotted component was not measured). The first-party names are fixed by this rule: a directory containing at
+  least one `.py` file, or a `.py` module, directly under the repository root or under `src` if it exists, plus any package
+  root (a directory with `__init__.py` whose parent has none) found at any depth outside `_vendor`, `vendor`, `typings`,
+  `node_modules`, `site-packages`, `build`, `dist` and virtual-environment directories. With the first, depth-limited half
+  alone, the `lib/` fixture would **not** be flagged (silent again); the any-depth half is what catches it. **False-positive
+  exposure of the any-depth half, all unmeasured:** a directory named like a standard-library or installed module (`test/`,
+  `scripts/logging.py`), vendored copies whose import resolves elsewhere, two same-named packages in a monorepo, repository
+  stub directories, and PEP 420 namespace packages (`src/company/product` with no `__init__.py`), where `definition` may have no
+  file to land on, giving a false exit 7 (unmeasured). A probe that returns no location inside the repository is
+  *unresolved*. What an unresolved import does is open decision D5. Measured on one 3-file fixture over seven layouts
+  (`results/import-detector.txt`, edge recall in `results/union-imp-*.txt`): `definition` returned no location at the imports
+  exactly when the edges were lost (0/5) and landed inside the repository exactly when they were found (5/5). A
+  `publishDiagnostics` `reportMissingImports` signal is a second candidate, unmeasured. Not tested: tests that import the
+  project by its installed name, `stubPath` (the default `typings` resolves against the config directory, so repository-local
+  stubs may be lost), `--ref` materialisation, and two modules of the same name under [repository root, `src`] (a root-level
+  `app/` and `src/app/`, or a `tests/` tree mirroring package names): pyright picks by its own order, the check passes either
+  way, and edges can land on the wrong copy with no signal.
   A repository that has its own
   `pyrightconfig.json` or `pyproject.toml [tool.pyright]` should be honoured by having the generated file `extends` it; pyright's
   `extends` was **not tested here** and is a first-slice requirement, with the fallback that the repository's config is used
@@ -470,6 +488,11 @@ resolved is `indeterminate` with the install hint, never a skipped language.
   the stub; this is unmeasured beyond the fact that stubs have no symbol of their own.
 - Results depend on the host Python environment for third-party resolution; the interpreter pyright resolved is recorded in
   the answer's `index` block.
+- **PEP 420 namespace packages** (no `__init__.py`) may give the first-party import probe no file to land on, which would
+  cause a false exit 7 (or a false "unresolved" count under D5-B); unmeasured.
+- **Duplicate module identity** under [repository root, `src`] (a root-level `app/` and `src/app/`, a `tests/` tree mirroring
+  package names) can send edges to the wrong copy with no signal; unmeasured, as is whether `extraPaths` can shadow a stdlib
+  or installed module name.
 - **Not covered by the fail-closed rule:** `diff` intersects changed lines with `documentSymbol` ranges, so a changed line inside
   an unreachable `def` maps to the enclosing class or module symbol, or to none; and a call located inside unreachable code is
   absent from `callers X` for a reachable `X`. Mechanism (2) answers name queries only. If the unreachable-code hints of
@@ -522,7 +545,7 @@ resolved is `indeterminate` with the install hint, never a skipped language.
   additions that TypeScript does not have, each changing a published schema or the command surface: a `decorator` site
   kind; a field saying the unresolved-site count is a lower bound (`unresolvedKnown: false`, or equivalent under D1); a
   `language` entry, the resolved interpreter and the pyright version in the `index` block; a "language not indexed" entry in
-  the coverage line, an `unattributed` count and an unresolved-first-party-import count (section 5); a `--language` global option declared in `help --json`; `not_found`
+  the coverage line and an `unattributed` count (under D5-B, also an unresolved-first-party-import count); a `--language` global option declared in `help --json`; `not_found`
   (exit 3) answers that name the language; and a **per-answer note** on `callers C.__init__` (and `impact`) that constructor
   calls to an excluded class `C` are recorded against the class, because for such a class the answer is a successful,
   near-empty list. (A, recommended) accept these as additive, optional fields, one new global option and one answer note,
@@ -531,6 +554,20 @@ resolved is `indeterminate` with the install hint, never a skipped language.
   A loses its honest form, the per-answer note and `--language` have no home, and an excluded class's `callers` answer is
   silently near-empty, which is the thing DEC-299 (a5) forbids; B therefore makes D2 option A the only coherent choice and
   needs a ruling that narrows DEC-303 item 2 to "unchanged where Python can answer".
+
+- **D5. What an unresolved first-party import does.** Measured: when first-party absolute imports do not resolve, edges are lost
+  with no protocol error, and `definition` at those imports returns no location (section 5). (A) fail closed on **any**
+  unresolved first-party import: the run is `indeterminate` (exit 7) naming the file and import, and no count field exists
+  (an exit-7 run has no success envelope). Cost: ordinary healthy repositories exit 7 (gitignored generated modules such as
+  protobuf `_pb2` or `_version`, which are always absent under `--ref`; `try/except ImportError` optional compiled extensions;
+  `TYPE_CHECKING` and conditional imports probed like any other; every package under `lib/`, `python/`, `backend/` or
+  `packages/*/src` is then unsupported, not merely flagged); the benefit is that no silent loss is possible by this route.
+  (B, recommended) fail closed only when a **package root** (the first-party name itself) fails to resolve, which is the measured
+  failure mode, and count, name and note every other unresolved first-party import in the coverage line (the D4 count field
+  exists only under B). Cost: a run with an unresolved non-root import (an optional extension, a generated module) succeeds with
+  a stated count, so some edges may be missing and the answer says how many imports were unresolved, which is a stated limit,
+  not silence; the benefit is that healthy repositories with generated or optional modules keep working. Recommendation first
+  because A makes the first release unusable on a common repository shape; opum-doc rules.
 
 ## Consequences
 
