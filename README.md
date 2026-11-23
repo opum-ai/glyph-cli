@@ -6,7 +6,7 @@ language, one repository at a time.
 
 Glyph is Opum's software-intelligence primitive, the third peer product
 alongside Lore and Quest. v0 is deliberately narrow; its scope is the operator
-decision recorded in [ADR 0001](docs/adr/0001-scope-glyph-v0-to-a-one-language-symbol-and-call-graph.md).
+decision recorded in [ADR 0001](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0001-scope-glyph-v0-to-a-one-language-symbol-and-call-graph.md).
 
 ## Scope
 
@@ -19,14 +19,26 @@ decision recorded in [ADR 0001](docs/adr/0001-scope-glyph-v0-to-a-one-language-s
 
 ## Run it
 
-Not published yet — the package is private until first release. From a
-checkout, with [Bun](https://bun.sh) matching `.bun-version`:
+Glyph needs [Node.js](https://nodejs.org) 24 or newer. Install it from npm and
+run `glyph`:
+
+```sh
+npm i -g @opum-ai/glyph
+glyph callers buildReport --repo /path/to/repo
+glyph impact buildReport --repo /path/to/repo
+glyph diff main --repo /path/to/repo
+```
+
+To try it without installing, `npx @opum-ai/glyph callers buildReport --repo
+/path/to/repo` runs the same commands.
+
+To work on Glyph itself, run it from a checkout with [Bun](https://bun.sh)
+matching `.bun-version` (development and tests stay on Bun; the published
+package runs under Node):
 
 ```sh
 bun install
 bun run glyph callers buildReport --repo /path/to/repo
-bun run glyph impact buildReport --repo /path/to/repo
-bun run glyph diff main --repo /path/to/repo
 ```
 
 `--repo <dir>` points at the repository to analyze (default: the current
@@ -172,7 +184,7 @@ same registry the commands use, so it cannot drift from the handlers.
 
 `callers`, `impact` and `code-map` accept `--stream`, the opt-in NDJSON variant
 of `--json` (Opum command contract §1a, DEC-299; the design is
-[ADR 0006](docs/adr/0006-stream-the-long-answers-as-ndjson.md)). It lets an
+[ADR 0006](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0006-stream-the-long-answers-as-ndjson.md)). It lets an
 agent act on early items as they are produced. The index build still precedes
 the first item, so a cold cache sees no earlier first line than the batch form,
 and `impact` emits only once its walk completes (its `cycle` flags are decided
@@ -208,9 +220,8 @@ $ glyph callers helper --stream
 
 ## The machine contract
 
-Glyph implements the frozen
-[Opum command contract](https://github.com/opum-ai/opum-doc/blob/dev/docs/specs/opum-command-contract.md)
-and records that obligation in [ADR 0002](docs/adr/0002-adopt-the-opum-command-contract.md).
+Glyph implements the frozen Opum command contract
+and records that obligation in [ADR 0002](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0002-adopt-the-opum-command-contract.md).
 stdout carries exactly one success envelope — JSON under `--json`, human text
 otherwise. On failure stdout stays **empty**, and stderr carries the error
 envelope:
@@ -386,4 +397,4 @@ checks as the `Check` job.
 
 ## License
 
-MIT. Glyph is private until first release.
+MIT.
