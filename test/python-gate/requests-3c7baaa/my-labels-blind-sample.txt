@@ -1,0 +1,31 @@
+# worker's labels for the 30 requests blind-sample pairs (from classified-requests-independent.json)
+1. exceptions.py:130 ChunkedEncodingError | models.py:941:26 | true direct
+2. structures.py:127 LookupDict.get | cookies.py:87:31 | other-definition
+3. sessions.py:655 Session.get | auth.py:164:38 | other-definition
+4. models.py:456 PreparedRequest.copy | cookies.py:397:37 | other-definition
+5. cookies.py:494 create_cookie | cookies.py:246:16 | true direct
+6. utils.py:704 requote_uri | sessions.py:241:40 | true direct
+7. structures.py:89 CaseInsensitiveDict.copy | cookies.py:456:30 | other-definition
+8. cookies.py:54 MockRequest.get_host | cookies.py:58:20 | true direct
+9. exceptions.py:126 InvalidProxyURL | adapters.py:541:22 | true direct
+10. cookies.py:293 RequestsCookieJar.items | sessions.py:876:45 | other-definition
+11. cookies.py:494 create_cookie | cookies.py:599:37 | true direct
+12. sessions.py:655 Session.get | utils.py:820:49 | other-definition
+13. structures.py:127 LookupDict.get | sessions.py:858:34 | other-definition
+14. utils.py:373 to_key_val_list | sessions.py:97:26 | true direct
+15. models.py:360 Request.prepare | sessions.py:541:10 | other-definition
+16. sessions.py:655 Session.get | hooks.py:40:71 | other-definition
+17. sessions.py:655 Session.get | cookies.py:87:59 | other-definition
+18. utils.py:704 requote_uri | models.py:562:14 | true direct
+19. structures.py:127 LookupDict.get | utils.py:820:49 | other-definition
+20. adapters.py:455 HTTPAdapter.get_connection_with_tls_context | adapters.py:662:24 | true direct
+21. structures.py:89 CaseInsensitiveDict.copy | sessions.py:205:35 | other-definition
+22. sessions.py:655 Session.get | cookies.py:161:31 | other-definition
+23. __init__.py:99 _check_cryptography | __init__.py:145:8 | true direct
+24. cookies.py:293 RequestsCookieJar.items | models.py:344:31 | other-definition
+25. adapters.py:153 BaseAdapter.close | sessions.py:886:14 | true inferred
+26. structures.py:127 LookupDict.get | utils.py:239:28 | other-definition
+27. adapters.py:555 HTTPAdapter.close | sessions.py:886:14 | poly
+28. adapters.py:555 HTTPAdapter.close | sessions.py:509:13 | other-definition
+29. auth.py:96 HTTPBasicAuth.__init__ | models.py:685:31 | true direct
+30. models.py:407 PreparedRequest.__init__ | adapters.py:215:16 | other-definition

@@ -67,13 +67,13 @@ describe("byte parity with the deterministic producer", () => {
 		],
 		["an absent index", () => null],
 	] as const) {
-		test(`the fallback is a true control: ${label} gives the producer's golden bytes with tier 3 on`, () => {
-			for (const fixture of FIXTURES) {
+		for (const fixture of FIXTURES) {
+			test(`the fallback is a true control: ${label} gives the producer's golden bytes with tier 3 on (${fixture.name})`, () => {
 				const { root, taskText, sourceRef } = builtFixture(fixture.name);
 				const output = produceCodeMap({ repositoryPath: root, sourceRef, taskText, loadIndex });
 				expect(JSON.stringify(output, null, 2)).toBe(JSON.stringify(goldens.fixtures[fixture.name]?.output, null, 2));
-			}
-		});
+			});
+		}
 	}
 
 	test("the fixtures exercise what they claim: caps, a rename as delete plus add, ranges, non-code paths", () => {
@@ -135,7 +135,11 @@ describe("byte parity with the deterministic producer", () => {
 					"",
 				].join("\n"),
 			);
-			const saved = { global: process.env.GIT_CONFIG_GLOBAL, system: process.env.GIT_CONFIG_NOSYSTEM };
+			const saved = {
+				global: process.env.GIT_CONFIG_GLOBAL,
+				system: process.env.GIT_CONFIG_NOSYSTEM,
+				cache: process.env.GLYPH_CACHE_DIR,
+			};
 			const withPlainConfig = (run: () => void): void => {
 				process.env.GIT_CONFIG_GLOBAL = "/dev/null";
 				try {
@@ -169,6 +173,7 @@ describe("byte parity with the deterministic producer", () => {
 				for (const [name, value] of [
 					["GIT_CONFIG_GLOBAL", saved.global],
 					["GIT_CONFIG_NOSYSTEM", saved.system],
+					["GLYPH_CACHE_DIR", saved.cache],
 				] as const) {
 					if (value === undefined) delete process.env[name];
 					else process.env[name] = value;

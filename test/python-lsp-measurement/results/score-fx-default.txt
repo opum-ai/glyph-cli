@@ -1,0 +1,173 @@
+{
+ "symbols_documentSymbol_recall": "22/22 = 1.000 (95% Wilson 0.851-1.000)",
+ "symbols_documentSymbol_precision(class/method/function kinds)": "22/22 = 1.000 (95% Wilson 0.851-1.000)",
+ "symbols_missing": [],
+ "symbols_class_kind_mismatch": [],
+ "symbols_extra_decl": [],
+ "symbols_workspaceSymbol_recall": "22/22 = 1.000 (95% Wilson 0.851-1.000)",
+ "symbols_workspaceSymbol_missing": [],
+ "calls_duplicate_incoming_sites_removed_before_scoring": 7,
+ "calls_incoming_recall": "17/28 = 0.607 (95% Wilson 0.424-0.764)",
+ "calls_incoming_precision": "17/18 = 0.944 (95% Wilson 0.742-0.990)",
+ "calls_poly_sites_counted_neutral": 0,
+ "calls_blind_sites_found_by_pyright": 0,
+ "calls_targets_with_true_sites": 15,
+ "calls_negative_targets (no true site)": "3/3 returned no false site",
+ "calls_prepareCallHierarchy_null_targets": 0,
+ "references_recall_over_true_call_sites": "18/28 = 0.643 (95% Wilson 0.458-0.793)",
+ "references_extras_not_true_calls (hand-classify)": 12,
+ "definition_at_call_site_total": 37,
+ "definition_at_call_site_outcomes": {
+  "external (typeshed or stdlib)": 10,
+  "in-package": 26,
+  "none": 1,
+  "in-package, not at a def (variable/import/alias)": 3
+ },
+ "definition_in_package_name_mismatches (hand-review)": [
+  [
+   "pkg/base.py",
+   11,
+   "fn",
+   "->",
+   "traced"
+  ],
+  [
+   "pkg/base.py",
+   30,
+   "cls",
+   "->",
+   "create"
+  ],
+  [
+   "pkg/use.py",
+   15,
+   "Doggo",
+   "->",
+   "Dog"
+  ],
+  [
+   "pkg/use.py",
+   44,
+   "h",
+   "->",
+   "helper"
+  ],
+  [
+   "pkg/use.py",
+   21,
+   "h",
+   "->",
+   "helper"
+  ],
+  [
+   "pkg/use.py",
+   36,
+   "h",
+   "->",
+   "helper"
+  ]
+ ],
+ "definition_in_package_name_mismatch_count": 6,
+ "definition_at_true_sites_resolves_to_the_target (exact def spans, no window)": "18/18 = 1.000 (95% Wilson 0.824-1.000)",
+ "definition_at_true_sites_not_checkable_by_name (distinct lines whose callee is not the target's name: aliases, constructor calls to a subclass, cls(...))": 8,
+ "definition_at_true_sites_disagreements": [],
+ "timing_ms": {
+  "initMs": 82.691125,
+  "firstAllDocumentSymbolsMs": 115.541333,
+  "totalMs": 358.601834
+ },
+ "latency_ms": {
+  "initialize": {
+   "n": 1,
+   "mean": 82.5,
+   "max": 82.5
+  },
+  "textDocument/documentSymbol": {
+   "n": 2,
+   "mean": 57.7,
+   "max": 113.5
+  },
+  "workspace/symbol": {
+   "n": 19,
+   "mean": 0.2,
+   "max": 0.6
+  },
+  "textDocument/prepareCallHierarchy": {
+   "n": 40,
+   "mean": 0.1,
+   "max": 0.9
+  },
+  "callHierarchy/incomingCalls": {
+   "n": 18,
+   "mean": 4.1,
+   "max": 58.2
+  },
+  "callHierarchy/outgoingCalls": {
+   "n": 40,
+   "mean": 0.2,
+   "max": 0.4
+  },
+  "textDocument/references": {
+   "n": 18,
+   "mean": 0.3,
+   "max": 1.1
+  },
+  "textDocument/definition": {
+   "n": 37,
+   "mean": 1.6,
+   "max": 13.7
+  }
+ },
+ "stats": {
+  "requests": 175,
+  "answered": 175,
+  "errors": 0,
+  "serverStderr": ""
+ }
+}
+
+-- per target
+pkg/base.py:4 helper | true=6 pyright_incoming=3 tp=3 fp=0 fn=3 poly_ok=0 blind_found=0 prepared=yes refs=6 refs_tp=3
+     ('MISSED', 'pkg/use.py:21')
+     ('MISSED', 'pkg/use.py:36')
+     ('MISSED', 'pkg/use.py:44')
+pkg/base.py:22 Animal.speak | true=3 pyright_incoming=3 tp=3 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=3 refs_tp=3
+pkg/base.py:46 Dog.speak | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0
+pkg/base.py:55 Cat.speak | true=1 pyright_incoming=2 tp=1 fp=1 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=2 refs_tp=1
+     ('EXTRA', 'pkg/use.py:31', 'cb = d_speak = Cat("x").speak')
+pkg/base.py:19 Animal.__init__ | true=5 pyright_incoming=1 tp=1 fp=0 fn=4 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+     ('MISSED', 'pkg/base.py:30')
+     ('MISSED', 'pkg/use.py:16')
+     ('MISSED', 'pkg/use.py:18')
+     ('MISSED', 'pkg/use.py:31')
+pkg/base.py:42 Dog.__init__ | true=1 pyright_incoming=0 tp=0 fp=0 fn=1 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0
+     ('MISSED', 'pkg/use.py:15')
+pkg/base.py:29 Animal.create | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+pkg/base.py:33 Animal.kingdom | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+pkg/base.py:25 Animal.describe | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+pkg/base.py:8 traced | true=1 pyright_incoming=0 tp=0 fp=0 fn=1 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+     ('MISSED', 'pkg/base.py:49')
+pkg/base.py:50 Dog.fetch | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+pkg/base.py:16 Animal | true=2 pyright_incoming=1 tp=1 fp=0 fn=1 poly_ok=0 blind_found=0 prepared=yes refs=7 refs_tp=1
+     ('MISSED', 'pkg/base.py:30')
+pkg/base.py:41 Dog | true=1 pyright_incoming=0 tp=0 fp=0 fn=1 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=0
+     ('MISSED', 'pkg/use.py:15')
+pkg/base.py:54 Cat | true=2 pyright_incoming=2 tp=2 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=3 refs_tp=2
+pkg/use.py:43 _aw | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+pkg/use.py:6 run_all | true=1 pyright_incoming=1 tp=1 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=1 refs_tp=1
+pkg/use.py:28 through_callback | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0
+pkg/use.py:35 comprehension | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=0 refs_tp=0
+
+-- references extras
+    ('pkg/base.py:4 helper', 'pkg/use.py:2', 'from .base import Animal, Dog as Doggo, helper as h')
+    ('pkg/base.py:4 helper', 'pkg/use.py:29', 'fn = base.helper')
+    ('pkg/base.py:4 helper', 'pkg/use.py:30', 'calls = [fn(1), list(map(base.helper, [1, 2]))]')
+    ('pkg/base.py:55 Cat.speak', 'pkg/use.py:31', 'cb = d_speak = Cat("x").speak')
+    ('pkg/base.py:16 Animal', 'pkg/base.py:41', 'class Dog(Animal):')
+    ('pkg/base.py:16 Animal', 'pkg/base.py:54', 'class Cat(Animal):')
+    ('pkg/base.py:16 Animal', 'pkg/use.py:2', 'from .base import Animal, Dog as Doggo, helper as h')
+    ('pkg/base.py:16 Animal', 'pkg/use.py:6', 'def run_all(pets: list[Animal]):')
+    ('pkg/base.py:16 Animal', 'pkg/use.py:17', 'a = Animal.create("generic")')
+    ('pkg/base.py:16 Animal', 'pkg/use.py:19', 'k = Animal.kingdom()')
+    ('pkg/base.py:41 Dog', 'pkg/use.py:2', 'from .base import Animal, Dog as Doggo, helper as h')
+    ('pkg/base.py:54 Cat', 'pkg/use.py:3', 'from .base import Cat')

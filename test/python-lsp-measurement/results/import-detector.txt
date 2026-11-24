@@ -1,0 +1,22 @@
+Silent-failure detector for first-party absolute imports (ADR 0008 section 5).
+Signal: `definition` at the top-level package token (`app` in `app.b`) of each in-repository absolute import (fixtures-abs: 2 imports); 'in-repo' = lands inside the repository,
+'none' = no location. Edges: union + ctor map recall over the 5 hand-written true sites (union.py, fixtures-abs/expected.json).
+
+inroot         analysis root = the fixture root, no config (src layout)
+               definition at imports: ['in-repo', 'in-repo']; prepareCallHierarchy null: 0/4; answered 35/35, JSON-RPC errors 0; union+ctor recall 5/5 = 1.000
+plain          outside the repository, include only
+               definition at imports: ['none', 'none']; prepareCallHierarchy null: 0/4; answered 35/35, JSON-RPC errors 0; union+ctor recall 0/5 = 0.000
+src            outside the repository, extraPaths = [src]
+               definition at imports: ['in-repo', 'in-repo']; prepareCallHierarchy null: 0/4; answered 35/35, JSON-RPC errors 0; union+ctor recall 5/5 = 1.000
+root           outside the repository, extraPaths = [repository root] only
+               definition at imports: ['none', 'none']; prepareCallHierarchy null: 0/4; answered 35/35, JSON-RPC errors 0; union+ctor recall 0/5 = 0.000
+both           outside the repository, extraPaths = [repository root, src]
+               definition at imports: ['in-repo', 'in-repo']; prepareCallHierarchy null: 0/4; answered 35/35, JSON-RPC errors 0; union+ctor recall 5/5 = 1.000
+lib-inroot     package under lib/ (not repository root, not src), analysis root = repository root, no config
+               definition at imports: ['in-repo', 'in-repo']; prepareCallHierarchy null: 0/4; answered 35/35, JSON-RPC errors 0; union+ctor recall 5/5 = 1.000
+lib-hardcoded  package under lib/, outside the repository, extraPaths = [repository root, src] (the hard-coded pair)
+               definition at imports: ['none', 'none']; prepareCallHierarchy null: 0/4; answered 35/35, JSON-RPC errors 0; union+ctor recall 0/5 = 0.000
+
+Reading: when in-repository imports do not resolve, the edges are lost and no JSON-RPC error appears, but `definition` at the imports returns none.
+A resolved import (in-repo) went with full edge recall in every layout measured. A first-party absolute import that resolves to none is therefore a
+usable fail-closed signal on this fixture (7 layouts, 2 imports each): measured here on one 3-file fixture, import resolution only.

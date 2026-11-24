@@ -1,0 +1,22 @@
+{
+ "_note": "Fixture ground truth under gt_rules.md R1-R5, written before pyright ran on the fixtures. Static (declared) receiver type decides. keys: 'file:defline qualname'. true = call lines (one entry per call SITE, so a line with two calls appears twice); blind = sites R5 excludes (call through a variable) which pyright cannot be expected to find; poly = sites whose runtime receiver may be this override.",
+ "pkg/base.py:4 helper": {"true": ["pkg/base.py:51", "pkg/use.py:21", "pkg/use.py:21", "pkg/use.py:36", "pkg/use.py:36", "pkg/use.py:44"], "blind": ["pkg/use.py:30"], "refs_only": ["pkg/use.py:2", "pkg/use.py:29", "pkg/use.py:30"]},
+ "pkg/base.py:22 Animal.speak": {"true": ["pkg/base.py:26", "pkg/base.py:47", "pkg/use.py:9"], "poly": []},
+ "pkg/base.py:46 Dog.speak": {"true": [], "poly": ["pkg/base.py:26", "pkg/use.py:9"]},
+ "pkg/base.py:55 Cat.speak": {"true": ["pkg/use.py:24"], "poly": ["pkg/base.py:26", "pkg/use.py:9"], "blind": ["pkg/use.py:32", "pkg/use.py:32"]},
+ "pkg/base.py:19 Animal.__init__": {"true": ["pkg/base.py:30", "pkg/base.py:43", "pkg/use.py:16", "pkg/use.py:18", "pkg/use.py:31"]},
+ "pkg/base.py:42 Dog.__init__": {"true": ["pkg/use.py:15"]},
+ "pkg/base.py:29 Animal.create": {"true": ["pkg/use.py:17"]},
+ "pkg/base.py:33 Animal.kingdom": {"true": ["pkg/use.py:19"]},
+ "pkg/base.py:25 Animal.describe": {"true": ["pkg/use.py:10"]},
+ "pkg/base.py:8 traced": {"true": ["pkg/base.py:49"], "note": "decorator application, R4"},
+ "pkg/base.py:50 Dog.fetch": {"true": ["pkg/use.py:23"]},
+ "pkg/base.py:16 Animal": {"true": ["pkg/use.py:18", "pkg/base.py:30"]},
+ "pkg/base.py:41 Dog": {"true": ["pkg/use.py:15"]},
+ "pkg/base.py:54 Cat": {"true": ["pkg/use.py:16", "pkg/use.py:31"]},
+ "pkg/use.py:43 _aw": {"true": ["pkg/use.py:40"]},
+ "pkg/use.py:6 run_all": {"true": ["pkg/use.py:22"]},
+ "pkg/use.py:28 through_callback": {"true": []},
+ "pkg/use.py:35 comprehension": {"true": []},
+ "symbols_expected_count": 17
+}

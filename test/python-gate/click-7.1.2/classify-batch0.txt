@@ -1,0 +1,143 @@
+# Hand classification of batch 0 (GCLI-69), written AFTER candidates.txt (commit 2ac429b) and before any analyzer exists.
+# Line grammar:  T <file>:<line> <qualname>   opens a target;
+#   + <site> direct|inferred     TRUE call (receiver_evidence recorded per gt_rules_click.md R1')
+#   p <site>                     polymorphic: reaches the target only through an override or base; reported, not scored (R1)
+#   x <site> <reason>            excluded and counted: dynamic | decorator-replaced | ambiguous-receiver | multiply-bound | outside-package
+# A candidate site of a target that is not listed is `other-definition` (textually a candidate, a different definition).
+T _compat.py:248 get_text_stdin
+# DEC-303 (a3) Q2 A: 248 is in the `if PY2:` arm; the site binds the Python-3 definition at 446, so it is other-definition here
+T _compat.py:640 _is_jupyter_kernel_output
++ _compat.py:656:42 direct
+T termui.py:75 prompt
++ core.py:1933:15 direct
+T _compat.py:738 term_len
++ _termui_impl.py:240:29 direct
++ _termui_impl.py:254:19 direct
++ formatting.py:15:50 direct
++ formatting.py:77:27 direct
++ formatting.py:79:36 direct
++ formatting.py:140:26 direct
++ formatting.py:142:27 direct
++ formatting.py:155:53 direct
++ formatting.py:211:15 direct
++ formatting.py:212:46 direct
+T _compat.py:44 is_ascii_encoding
++ _compat.py:55:7 direct
++ _compat.py:344:15 direct
+T utils.py:179 echo
++ _bashcomplete.py:335:8 direct
++ _bashcomplete.py:340:12 direct
++ _bashcomplete.py:352:12 direct
++ _bashcomplete.py:354:12 direct
++ _bashcomplete.py:367:8 direct
++ _termui_impl.py:265:12 direct
++ core.py:50:8 direct
++ core.py:794:16 direct
++ core.py:824:12 direct
++ core.py:950:16 direct
++ core.py:1041:12 direct
++ core.py:1209:12 direct
++ decorators.py:296:12 direct
++ decorators.py:323:16 direct
++ exceptions.py:42:8 direct
++ exceptions.py:72:12 direct
++ exceptions.py:73:8 direct
++ termui.py:128:12 direct
++ termui.py:135:16 direct
++ termui.py:159:12 direct
++ termui.py:169:8 direct
++ termui.py:199:12 direct
++ termui.py:210:12 direct
++ termui.py:548:11 direct
++ termui.py:674:12 direct
++ termui.py:681:12 direct
+T _bashcomplete.py:160 is_incomplete_option
++ _bashcomplete.py:313:11 direct
+T globals.py:33 pop_context
++ core.py:405:8 direct
+T core.py:108 invoke_param_callback
++ core.py:1630:28 direct
+T _compat.py:652 should_strip_ansi
++ _compat.py:703:20 direct
++ utils.py:263:11 direct
+T exceptions.py:129 MissingParameter.format_message
+# corrected after the second blind pass: exceptions.py:42:37 (ClickException.show) is other-definition, not poly; see second-pass-comparison.txt
+p exceptions.py:73:37
+T core.py:1414 CommandCollection.list_commands
+p _bashcomplete.py:240:25
+p core.py:1184:31
+p core.py:1417:29
+T core.py:566 Context.get_help
++ core.py:950:25 inferred
++ core.py:1041:21 inferred
++ core.py:1209:21 inferred
++ decorators.py:323:25 inferred
+T _textwrap.py:19 TextWrapper.extra_indent
++ formatting.py:85:21 direct
+T parser.py:152 Option.process
++ parser.py:352:15 inferred
++ parser.py:389:19 inferred
+T types.py:409 BoolParamType.convert
+p types.py:46:24
+T parser.py:276 OptionParser._process_args_for_args
++ parser.py:270:17 direct
+T types.py:51 ParamType.get_missing_message
++ exceptions.py:144:40 inferred
+T parser.py:174 Argument.process
++ parser.py:282:16 inferred
+T exceptions.py:39 ClickException.show
++ core.py:799:18 direct
+T _termui_impl.py:294 ProgressBar.finish
++ _termui_impl.py:322:17 direct
+T _compat.py:97 _NonClosingTextIOWrapper.isatty
+x _compat.py:744:22 ambiguous-receiver
+T _winconsole.py:170 _WindowsConsoleWriter._get_error_message
++ _winconsole.py:193:31 direct
+T _compat.py:102 _FixupStream
++ _compat.py:70:32 direct
+T testing.py:23 EchoingStdin
+# DEC-303 (a3) Q2 A: 190 is in the `if PY2:` arm, unreachable under Python 3
+x testing.py:190:24 unreachable-version-branch
++ testing.py:198:24 direct
+T _winconsole.py:130 _WindowsConsoleReader
++ _winconsole.py:272:26 direct
+T types.py:113 StringParamType
++ types.py:747:9 direct
+T exceptions.py:172 NoSuchOption
++ parser.py:326:18 direct
++ parser.py:369:22 direct
+T _compat.py:595 _AtomicFile
++ _compat.py:583:11 direct
+T _compat.py:60 _NonClosingTextIOWrapper
++ _compat.py:34:11 direct
++ _winconsole.py:271:18 direct
++ _winconsole.py:281:18 direct
++ _winconsole.py:291:18 direct
+T parser.py:168 Argument
++ parser.py:258:26 direct
+T core.py:1563 Parameter.type_cast_value._convert
++ core.py:1566:25 direct
++ core.py:1568:15 direct
+T formatting.py:62 wrap_text._flush_par
++ formatting.py:73:12 direct
++ formatting.py:81:4 direct
+T testing.py:275 CliRunner.invoke
+T core.py:1536 Parameter.add_to_parser
++ core.py:966:18 inferred
+T core.py:1780 Option._parse_decls
+p core.py:1482:57
+T exceptions.py:61 UsageError.show
+p core.py:799:18
+T core.py:677 BaseCommand.get_help
++ core.py:570:28 inferred
+T core.py:1353 Group.command
+T decorators.py:309 help_option
+T _winconsole.py:131 _WindowsConsoleReader.readable
+T _winconsole.py:166 _WindowsConsoleWriter.writable
+T core.py:865 Command.__init__
++ core.py:1106:16 direct
+T exceptions.py:252 Exit.__init__
++ core.py:558:14 direct
+T exceptions.py:94 BadParameter.__init__
++ exceptions.py:126:21 direct
++ types.py:76:14 direct

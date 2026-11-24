@@ -3,6 +3,7 @@ import ts from "typescript";
 import { type ConfigReadHost, loadCompilerOptions, SOURCE_EXTENSIONS } from "./discover.ts";
 import { listTree, readBlobs } from "./git.ts";
 import { indexProgram } from "./indexer.ts";
+import { groupByLanguage, type LanguagePresence } from "./language.ts";
 import type { GlyphIndex } from "./types.ts";
 
 /**
@@ -108,6 +109,28 @@ export function sourceFilesAtRef(repoRoot: string, sha: string): string[] {
 		)
 		.map((entry) => posix(entry.path))
 		.sort();
+}
+
+/**
+ * Recognised-language source files at `sha`'s tree, grouped by language, for the
+ * `--ref` coverage the seam reports. It uses the same listing and mode filter as
+ * {@link sourceFilesAtRef} — every tracked blob is offered, with no
+ * working-tree walk to exclude a directory first — but recognises every
+ * language, not only TypeScript, so a mixed tree's non-indexed language is
+ * counted at the ref exactly as it is in the working tree.
+ *
+ * Because the unfiltered listing is forwarded through {@link groupByLanguage},
+ * the Python segment rule applies here too: a ref can carry tracked
+ * `node_modules/` or virtualenv paths, and a tracked `.py` under a `venv`,
+ * `.venv`, `__pycache__` or `.tox` path segment is not counted at a ref any
+ * more than in a working tree.
+ */
+export function languageFilesAtRef(repoRoot: string, sha: string): LanguagePresence[] {
+	const paths = listTree(repoRoot, sha)
+		.filter((entry) => entry.type === "blob" && (entry.mode === "100644" || entry.mode === "100755"))
+		.map((entry) => posix(entry.path))
+		.sort();
+	return groupByLanguage(paths);
 }
 
 /** Read the tree of `sha` into memory. Throws indeterminate when Git refuses it. */

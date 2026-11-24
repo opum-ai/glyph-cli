@@ -1,0 +1,47 @@
+[
+ {
+  "file": "app/a.py",
+  "name": "run",
+  "qualname": "run",
+  "line": 5,
+  "col": 4,
+  "kind": "function",
+  "bases": []
+ },
+ {
+  "file": "app/b.py",
+  "name": "helper",
+  "qualname": "helper",
+  "line": 1,
+  "col": 4,
+  "kind": "function",
+  "bases": []
+ },
+ {
+  "file": "app/b.py",
+  "name": "Box",
+  "qualname": "Box",
+  "line": 5,
+  "col": 6,
+  "kind": "class",
+  "bases": []
+ },
+ {
+  "file": "app/b.py",
+  "name": "__init__",
+  "qualname": "Box.__init__",
+  "line": 6,
+  "col": 8,
+  "kind": "function",
+  "bases": []
+ },
+ {
+  "file": "app/b.py",
+  "name": "get",
+  "qualname": "Box.get",
+  "line": 9,
+  "col": 8,
+  "kind": "function",
+  "bases": []
+ }
+]

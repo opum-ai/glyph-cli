@@ -8,4 +8,5 @@
 - [Bound the code map by a wall-time budget](0005-bound-the-code-map-by-a-wall-time-budget.md)
 - [Stream the long answers as NDJSON](0006-stream-the-long-answers-as-ndjson.md)
 - [Ship one Node bundle with TypeScript and Commander external](0007-ship-a-node-bundle-with-typescript-and-commander-external.md)
+- [Add Python through a native in-process indexer](0008-add-python-through-a-native-in-process-indexer.md)
 <!-- lore:index:end -->
