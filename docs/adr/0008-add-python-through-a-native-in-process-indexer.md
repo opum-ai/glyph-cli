@@ -143,8 +143,9 @@ redefinition. Conventions (drafted; the ones that depart from `gt_rules.md` are 
 - **Constructors.** R2 sends `Cls(...)` to `Cls.__init__`; addendum item 8 records that constructions of a subclass inheriting
   `__init__` are invisible to the requests ground truth and scorer. The held-out ground truth draws candidate sites for every
   subclass construction that inherits an `__init__` (click's `Command`, `Group`, `Parameter`, `Option` hierarchy is that case), so
-  glyph's MRO-correct edges are not scored as false positives. The scorer credits an edge to the class and to the resolved
-  `__init__` as decision 1 settles.
+  glyph's MRO-correct edges are not scored as false positives. The analyzer records a construction against the class and its
+  resolved `__init__` (decision 1, ruled: two edges per construction); the scorer credits each edge to the symbol it names, so one edge per
+  construction scores at most one hit and one miss (6 of the 65 requests true sites depend on this).
 - **Files.** R5 excludes callers outside the package directory. The scorer drops glyph edges whose caller file is outside the
   scored package directory; which files glyph itself indexes (`tests/`, `scripts/`, `docs/` examples) against which it resolves over is
   decision 10, because losses outside the scored directory are invisible to both measurements.
