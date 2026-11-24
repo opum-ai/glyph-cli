@@ -34,23 +34,27 @@ export const DEFAULT_EXCLUDED_DIRS: readonly string[] = [
 ];
 
 /**
- * Build-output directory names (DEC-303 (a7), NB11): excluded only as a direct
- * child of the repository root, and only when the directory is not a package.
- * So `src/build/` and a root `coverage/` holding `__init__.py` are indexed;
- * a root `build/` output directory without `__init__.py` stays excluded.
+ * Build-output directory names (DEC-303 (a7), NB11; list fixed by DEC-303
+ * (a8)): excluded only as a direct child of the repository root, and only when
+ * the directory is not a package. So `src/build/` and a root `coverage/` holding
+ * `__init__.py` are indexed; a root `build/` output directory without
+ * `__init__.py` stays excluded. `vendor` is not listed: vendored source is
+ * indexed (DEC-303 (a8)).
  */
-export const DEFAULT_BUILD_OUTPUT_DIRS: readonly string[] = [
-	"dist",
-	"build",
-	"out",
-	"coverage",
-	"vendor",
-	".next",
-	".nuxt",
-];
+export const DEFAULT_BUILD_OUTPUT_DIRS: readonly string[] = ["build", "dist", "coverage", "out", ".next", ".nuxt"];
 
-/** Directory names that are never package roots (DEC-303 (a7): test-named directories). */
-export const TEST_DIR_NAMES: ReadonlySet<string> = new Set(["test", "tests"]);
+/**
+ * Directory names that are never package roots (DEC-303 (a7) clause 1, names
+ * fixed by DEC-303 (a8)); matched case-insensitively.
+ */
+export const TEST_DIR_NAMES: ReadonlySet<string> = new Set(["test", "tests", "testing", "unittests"]);
+
+/**
+ * The `PythonModuleRecord.root` label for a file no declared root covers
+ * (DEC-303 (a7) clause 3). Distinct from "" so a consumer can tell an
+ * outside-root file from one under the repository root.
+ */
+export const OUTSIDE_ROOTS_ROOT = "<outside-roots>";
 
 export interface PythonModuleInput {
 	/** Repository-relative POSIX path of the file. */
@@ -112,6 +116,12 @@ export interface PythonModuleRecord {
 	package: string;
 	/** True when an earlier root provides the same top-level name (rules 1, 15). */
 	shadowed: boolean;
+	/**
+	 * True when no declared root covers this file: it is parsed and indexed but
+	 * not resolvable through the roots (DEC-303 (a7) clause 3). Its `root` is
+	 * `OUTSIDE_ROOTS_ROOT`, not "".
+	 */
+	outsideRoots: boolean;
 }
 
 export interface UnresolvedImport {
@@ -279,7 +289,11 @@ interface ExclusionRules {
 }
 
 function exclusionRules(declared: readonly string[] | undefined): ExclusionRules {
-	if (declared !== undefined) return { anyDepth: new Set(declared), rootBuildOutput: new Set() };
+	if (declared !== undefined) {
+		// A declared name behaves like a build-output name: root-only and never a
+		// package (finding 7), so declaring ["build"] does not exclude src/build/.
+		return { anyDepth: new Set(), rootBuildOutput: new Set(declared) };
+	}
 	return { anyDepth: new Set(DEFAULT_EXCLUDED_DIRS), rootBuildOutput: new Set(DEFAULT_BUILD_OUTPUT_DIRS) };
 }
 
@@ -300,9 +314,9 @@ function isExcludedPath(path: string, rules: ExclusionRules, packageDirs: Readon
 	return false;
 }
 
-/** True when any segment of `dir` is a test-named directory (DEC-303 (a7) clause 1). */
+/** True when any segment of `dir` is a test-named directory (DEC-303 (a7), (a8); case-insensitive). */
 function isInsideTestNamedDir(dir: string): boolean {
-	return dir.split("/").some((segment) => TEST_DIR_NAMES.has(segment));
+	return dir.split("/").some((segment) => TEST_DIR_NAMES.has(segment.toLowerCase()));
 }
 
 /**
@@ -789,12 +803,25 @@ function dedupeNameResolutions(list: readonly NameResolution[]): NameResolution[
 	const seen = new Set<string>();
 	const out: NameResolution[] = [];
 	for (const item of list) {
-		const key = `${item.outcome}|${item.target ?? ""}|${item.reason ?? ""}`;
+		// starOnly is part of the key so a star-only fallback can never swallow an
+		// otherwise identical real result.
+		const key = `${item.outcome}|${item.target ?? ""}|${item.reason ?? ""}|${item.starOnly === true ? "star" : "real"}`;
 		if (seen.has(key)) continue;
 		seen.add(key);
 		out.push(item);
 	}
 	return out;
+}
+
+/**
+ * Drop `starOnly` from results that pass through a real binding of the current
+ * module (a from-import or an enumerated star export). The marker only means
+ * "this module itself has no binding and no enumerated export" (finding 1).
+ */
+function clearStarOnly(list: readonly NameResolution[]): NameResolution[] {
+	return list.map((item) =>
+		item.starOnly === true ? { outcome: item.outcome, target: item.target, reason: item.reason } : item,
+	);
 }
 
 function collapseNameResolutions(list: readonly NameResolution[]): {
@@ -1073,7 +1100,7 @@ class ModuleResolver {
 					if (resolution.outcome === "resolved" && resolution.target !== null) {
 						const exports = this.moduleExports(resolution.target, visited);
 						if (exports.names.has(name)) {
-							results.push(...this.resolveName(resolution.target, name, visited, null, depth + 1));
+							results.push(...clearStarOnly(this.resolveName(resolution.target, name, visited, null, depth + 1)));
 						}
 						// A partial set means `name` may come from the part we could not
 						// enumerate; carry its reason instead of attribute-not-found.
@@ -1093,7 +1120,9 @@ class ModuleResolver {
 				} else if (resolution.outcome === "unresolved" || resolution.target === null) {
 					results.push({ outcome: "unresolved", target: null, reason: resolution.reason ?? "unresolved" });
 				} else if (raw.name !== null) {
-					results.push(...this.resolveAttribute(resolution.target, raw.name, visited, resolution, depth + 1));
+					results.push(
+						...clearStarOnly(this.resolveAttribute(resolution.target, raw.name, visited, resolution, depth + 1)),
+					);
 				}
 			}
 			if (results.length === 0 && starReasons.length > 0) {
@@ -1272,10 +1301,13 @@ class ModuleResolver {
 interface IndexedFile {
 	path: string;
 	bytes: Uint8Array;
+	/** Path-math root: "" for an outside-root file, its declared root otherwise. */
 	root: string;
 	rootIndex: number;
 	module: string;
 	isPackage: boolean;
+	/** True when no declared root covers the file (its record root is OUTSIDE_ROOTS_ROOT). */
+	outsideRoots: boolean;
 }
 
 interface Provider {
@@ -1342,22 +1374,25 @@ export async function buildModuleGraph(
 		options.roots,
 	);
 	// DEC-303 (a7) clause 3 (ruling 10): a file outside every declared root is
-	// still parsed and indexed; only resolution is restricted to the roots. Such
-	// files take a synthetic, non-resolving root label "" with an index after
-	// every real root, so they never win a shadow collision.
+	// still parsed and indexed; only resolution is restricted to the roots. It
+	// takes a distinct root label (OUTSIDE_ROOTS_ROOT on the record, "" for path
+	// math) and an index after every real root; it never competes in shadow
+	// collisions (finding 3).
 	const outsideRootIndex = roots.length;
-	const rootLabels = [...roots, ""];
+	const rootLabels = [...roots, OUTSIDE_ROOTS_ROOT];
 	const indexed: IndexedFile[] = [];
 	for (const candidate of candidates) {
 		const found = selectRoot(candidate.path, roots);
-		const rootIndex = found < 0 ? outsideRootIndex : found;
-		const root = found < 0 ? "" : (roots[found] as string);
+		const outsideRoots = found < 0;
+		const rootIndex = outsideRoots ? outsideRootIndex : found;
+		const root = outsideRoots ? "" : (roots[found] as string);
 		indexed.push({
 			...candidate,
 			root,
 			rootIndex,
 			module: moduleNameFor(candidate.path, root),
 			isPackage: baseName(candidate.path) === "__init__.py",
+			outsideRoots,
 		});
 	}
 	indexed.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
@@ -1375,13 +1410,17 @@ export async function buildModuleGraph(
 	}
 
 	// Rules 1 and 15: the first root providing a top-level name wins; every
-	// later provider of that name is shadowed, counted and named.
-	const providers: Provider[] = indexed.map((file) => ({
-		path: file.path,
-		module: file.module,
-		rootIndex: file.rootIndex,
-		isPackage: file.isPackage,
-	}));
+	// later provider of that name is shadowed, counted and named. Outside-root
+	// files have no root and never compete (finding 3): excluding them keeps
+	// counts.collisions/counts.shadowed honest.
+	const providers: Provider[] = indexed
+		.filter((file) => !file.outsideRoots)
+		.map((file) => ({
+			path: file.path,
+			module: file.module,
+			rootIndex: file.rootIndex,
+			isPackage: file.isPackage,
+		}));
 	const byTop = new Map<string, Provider[]>();
 	for (const provider of providers) {
 		const top = moduleComponents(provider.module)[0] ?? "";
@@ -1500,10 +1539,11 @@ export async function buildModuleGraph(
 	const modules: PythonModuleRecord[] = indexed.map((file) => ({
 		path: file.path,
 		module: file.module,
-		root: file.root,
+		root: file.outsideRoots ? OUTSIDE_ROOTS_ROOT : file.root,
 		isPackage: file.isPackage,
 		package: packageNameFor(file.module, file.isPackage),
 		shadowed: shadowedPaths.has(file.path),
+		outsideRoots: file.outsideRoots,
 	}));
 
 	const unresolved: UnresolvedImport[] = bindings

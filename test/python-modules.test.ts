@@ -100,6 +100,19 @@ describe("rule 1 — source roots", () => {
 		// Its own imports are parsed; resolution still uses only the declared roots.
 		expect(bindingIn(graph, "other/x.py", "os").outcome).toBe("external");
 	});
+
+	test("an outside-root file has a distinct root marker and never collides with a real root (finding 3)", async () => {
+		const graph = await buildModuleGraph([py("foo.py", ""), py("src/foo/__init__.py", "")], { roots: ["src"] });
+		const outside = graph.modules.find((module) => module.path === "foo.py");
+		expect(outside?.root).toBe("<outside-roots>");
+		expect(outside?.outsideRoots).toBe(true);
+		const inside = graph.modules.find((module) => module.path === "src/foo/__init__.py");
+		expect(inside?.root).toBe("src");
+		expect(inside?.outsideRoots).toBe(false);
+		// The outside file must not inflate collision or shadowed counts.
+		expect(graph.collisions).toEqual([]);
+		expect(graph.counts.shadowed).toBe(0);
+	});
 });
 
 describe("rule 2 — module identity", () => {
@@ -165,6 +178,39 @@ describe("rule 3 — first-party packages", () => {
 		const graph = await buildModuleGraph([py("build/output.py", ""), py("src/ok.py", "")]);
 		expect(graph.ignored).toEqual([{ path: "build/output.py", reason: "excluded-path" }]);
 		expect(graph.modules.map((module) => module.path)).toEqual(["src/ok.py"]);
+	});
+
+	test("an in-root absolute from-import of a build package is first-party (finding 6)", async () => {
+		const graph = await buildModuleGraph([
+			py("src/build/__init__.py", "from build.helpers import x\n"),
+			py("src/build/helpers.py", "x = 1\n"),
+		]);
+		const binding = bindingIn(graph, "src/build/__init__.py", "x");
+		expect(binding.outcome).toBe("resolved");
+		expect(binding.target).toBe("src/build/helpers.py");
+	});
+
+	test("a declared build-output exclusion keeps the package exemption (finding 7)", async () => {
+		const graph = await buildModuleGraph(
+			[
+				py("src/build/__init__.py", "from .impl import thing\n"),
+				py("src/build/impl.py", "def thing():\n    pass\n"),
+				py("build/output.py", ""),
+			],
+			{ excludedDirs: ["build"] },
+		);
+		expect(graph.modules.map((module) => module.path)).toContain("src/build/__init__.py");
+		expect(graph.ignored).toEqual([{ path: "build/output.py", reason: "excluded-path" }]);
+		expect(bindingIn(graph, "src/build/__init__.py", "thing").target).toBe("src/build/impl.py");
+	});
+
+	test("a vendored package is indexed and its import is guarded, not excluded (DEC-303 (a8))", async () => {
+		const graph = await buildModuleGraph([py("vendor/requests/__init__.py", ""), py("src/a.py", "import requests\n")]);
+		expect(graph.ignored).toEqual([]);
+		expect(graph.modules.map((module) => module.path)).toContain("vendor/requests/__init__.py");
+		expect(graph.exit7).toEqual([
+			{ path: "src/a.py", line: 1, name: "requests", original: "requests", directories: ["vendor/requests"] },
+		]);
 	});
 
 	test("a bare .py is a module, not a package: importing through it is unresolved", async () => {
@@ -266,7 +312,7 @@ describe("rule 5 — from-import names", () => {
 		expect(graph.counts.unresolvedFirstParty).toBe(0);
 	});
 
-	test("a from-import reaches a submodule past a two-hop non-literal __all__ (finding 1)", async () => {
+	test("a from-import reaches a submodule past a one-star-hop non-literal __all__ (finding 1)", async () => {
 		const graph = await buildModuleGraph([
 			py("src/pkg/core.py", "__all__ = make_list()\n"),
 			py("src/pkg/__init__.py", "from .core import *\n__all__ += core.__all__\nfrom . import linalg\n"),
@@ -282,6 +328,45 @@ describe("rule 5 — from-import names", () => {
 			py("src/pkg/sub.py", ""),
 		]);
 		expect(bindingIn(graph, "src/pkg/__init__.py", "sub").target).toBe("src/pkg/sub.py");
+	});
+
+	test("an explicit binding whose source ends in a star does not fall through to a submodule (finding 1, trace A)", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", "from .x import foo\n"),
+			py("src/pkg/x.py", "from os import *\n"),
+			py("src/pkg/foo.py", ""),
+			py("src/use.py", "from pkg import foo\n"),
+		]);
+		const binding = bindingIn(graph, "src/use.py", "foo");
+		expect(binding.outcome).toBe("unresolved");
+		expect(binding.reason).toBe("star-import");
+		expect(binding.target).toBeNull();
+	});
+
+	test("an explicit binding to a package source with no submodule does not fall through (finding 1, trace A variant)", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", "from .x import foo\n"),
+			py("src/pkg/x/__init__.py", "from os import *\n"),
+			py("src/pkg/foo.py", ""),
+			py("src/use.py", "from pkg import foo\n"),
+		]);
+		const binding = bindingIn(graph, "src/use.py", "foo");
+		expect(binding.outcome).toBe("unresolved");
+		expect(binding.reason).toBe("star-import");
+		expect(binding.target).toBeNull();
+	});
+
+	test("a star that enumerates a name does not fall through to a submodule (finding 1, trace B)", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", "from .core import *\n"),
+			py("src/pkg/core.py", "__all__ = ['foo']\nfrom os import *\n"),
+			py("src/pkg/foo.py", ""),
+			py("src/use.py", "from pkg import foo\n"),
+		]);
+		const binding = bindingIn(graph, "src/use.py", "foo");
+		expect(binding.outcome).toBe("unresolved");
+		expect(binding.reason).toBe("star-import");
+		expect(binding.target).toBeNull();
 	});
 });
 
@@ -627,6 +712,33 @@ describe("rule 12 — exit 7", () => {
 		const graph = await buildModuleGraph([py("tests/json/__init__.py", ""), py("src/a.py", "import json\n")]);
 		expect(graph.exit7).toEqual([]);
 		expect(bindingIn(graph, "src/a.py", "json").outcome).toBe("external");
+	});
+
+	test("a package under a test-named package is not a root (DEC-303 (a7))", async () => {
+		const graph = await buildModuleGraph([
+			py("tests/__init__.py", ""),
+			py("tests/json/__init__.py", ""),
+			py("src/a.py", "import json\n"),
+		]);
+		expect(graph.exit7).toEqual([]);
+		expect(bindingIn(graph, "src/a.py", "json").outcome).toBe("external");
+	});
+
+	test("test-named directories match case-insensitively (DEC-303 (a8))", async () => {
+		for (const dir of ["Tests", "Testing", "unittests"]) {
+			const graph = await buildModuleGraph([py(`${dir}/json/__init__.py`, ""), py("src/a.py", "import json\n")]);
+			expect(graph.exit7).toEqual([]);
+			expect(bindingIn(graph, "src/a.py", "json").outcome).toBe("external");
+		}
+	});
+
+	test("an absolute import of a build package under roots that leave it out is exit 7 (finding 6)", async () => {
+		const graph = await buildModuleGraph([py("src/build/__init__.py", ""), py("lib/a.py", "import build\n")], {
+			roots: ["lib"],
+		});
+		expect(graph.exit7).toEqual([
+			{ path: "lib/a.py", line: 1, name: "build", original: "build", directories: ["src/build"] },
+		]);
 	});
 
 	test("a package nested under a package through a namespace dir is not topmost (DEC-303 (a7))", async () => {
