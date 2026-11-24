@@ -11,18 +11,26 @@ import {
 	globalKindOf,
 	itemKindOf,
 	kindOf,
+	languageFlagSummary,
 	STREAMING_COMMANDS,
 	successEnvelope,
 } from "./contract.ts";
-import { discoverSources } from "./discover.ts";
 import { exitCodeFor, GlyphError, notFoundError, usageError } from "./errors.ts";
 import { parseDiff, repoRootFor, resolveCommit, resolveDiffRefs } from "./git.ts";
 import type { ImpactCaller, ImpactResult } from "./impact.ts";
 import { impactOf } from "./impact.ts";
 import { produceCodeMap } from "./codemap.ts";
-import { buildIndex } from "./indexer.ts";
+import {
+	fileCountLabel,
+	indexWith,
+	isDefaultLanguage,
+	type LanguageSelection,
+	registeredLanguages,
+	selectFromPresence,
+	selectLanguage,
+} from "./language.ts";
 import { type CallerSite, callerSites, callersOf, display, resolveSymbol, touchedSymbols } from "./queries.ts";
-import { indexSnapshot, snapshotAtRef, sourceFilesAtRef } from "./snapshot.ts";
+import { indexSnapshot, languageFilesAtRef, snapshotAtRef } from "./snapshot.ts";
 import { codeMapStreamResultData, createStreamWriter, streamResultData } from "./stream.ts";
 import type { GlyphIndex, IndexInfo, SymbolEntry, UnresolvedByKind } from "./types.ts";
 
@@ -63,6 +71,8 @@ interface Context {
 	json: boolean;
 	/** `--stream`: the NDJSON variant of `--json` (§1a). */
 	stream: boolean;
+	/** `--language <id>`: index this language instead of the detected one. */
+	language?: string;
 }
 
 function readVersion(): string {
@@ -76,7 +86,12 @@ function readVersion(): string {
 
 function contextOf(scanned: ScannedArgs): Context {
 	const dir = resolve(scanned.repo ?? process.cwd());
-	return { repoRoot: repoRootFor(dir) ?? dir, json: scanned.json, stream: scanned.stream };
+	return {
+		repoRoot: repoRootFor(dir) ?? dir,
+		json: scanned.json,
+		stream: scanned.stream,
+		...(scanned.language === undefined ? {} : { language: scanned.language }),
+	};
 }
 
 interface LoadedIndex {
@@ -93,38 +108,59 @@ interface LoadedIndex {
  * commit rather than by file stats, so a dirty checkout cannot answer for it.
  */
 function loadIndex(context: Context, ref?: string): LoadedIndex {
+	// An explicit language is validated before either source, so a `--ref` run
+	// cannot silently ignore an unregistered id the working-tree path would reject.
+	if (context.language !== undefined && !registeredLanguages().includes(context.language)) {
+		throw usageError(
+			`cannot index language '${context.language}'; registered languages: ${registeredLanguages().join(", ")}`,
+		);
+	}
 	if (ref !== undefined) {
 		const sha = resolveCommit(context.repoRoot, ref);
 		if (sha === null) {
 			throw notFoundError(`could not resolve '${ref}' to a commit in ${context.repoRoot}`);
 		}
-		// The listing alone is enough to key the cache; the blobs are read only
-		// on a miss, so a hit does not pay for the tree it already holds.
-		const files = sourceFilesAtRef(context.repoRoot, sha);
-		if (files.length === 0) {
-			throw notFoundError(`no TypeScript or JavaScript sources at ${ref} (${shortSha(sha)}) in ${context.repoRoot}`);
-		}
+		// The ref's tree is listed once for both the cache key and the language
+		// coverage: the selection carries the TypeScript files to index and any
+		// recognised non-TypeScript language it cannot, exactly as the working-tree
+		// path does. A Python-only ref is the same exit-3 answer as one at HEAD.
+		const present = languageFilesAtRef(context.repoRoot, sha);
+		const selection = selectFromPresence(present, context.language, {
+			where: `at ${ref} (${shortSha(sha)}) in ${context.repoRoot}`,
+			emptyMessage: `no TypeScript or JavaScript sources at ${ref} (${shortSha(sha)}) in ${context.repoRoot}`,
+		});
+		const files = selection.files;
 		const key = computeRefKey(sha, files);
 		const cached = readCachedIndex(context.repoRoot, key);
-		if (cached !== null) return { index: cached, info: infoOf(cached, "hit"), ref: { ref, sha } };
+		if (cached !== null) return { index: cached, info: infoOf(cached, "hit", selection), ref: { ref, sha } };
 		const index = indexSnapshot(snapshotAtRef(context.repoRoot, sha));
 		writeCachedIndex(context.repoRoot, key, index);
-		return { index, info: infoOf(index, "miss"), ref: { ref, sha } };
+		return { index, info: infoOf(index, "miss", selection), ref: { ref, sha } };
 	}
-	const files = discoverSources(context.repoRoot);
-	if (files.length === 0) {
-		throw notFoundError(`no TypeScript or JavaScript sources found under ${context.repoRoot}`);
-	}
+	const selection = selectLanguage(context.repoRoot, context.language);
+	const files = selection.files;
 	const key = computeKey(context.repoRoot, files);
 	const cached = readCachedIndex(context.repoRoot, key);
-	if (cached !== null) return { index: cached, info: infoOf(cached, "hit"), ref: null };
-	const index = buildIndex(context.repoRoot, files);
+	if (cached !== null) return { index: cached, info: infoOf(cached, "hit", selection), ref: null };
+	const index = indexWith(selection.id, context.repoRoot, files);
 	writeCachedIndex(context.repoRoot, key, index);
-	return { index, info: infoOf(index, "miss"), ref: null };
+	return { index, info: infoOf(index, "miss", selection), ref: null };
 }
 
-function infoOf(index: GlyphIndex, cache: "hit" | "miss"): IndexInfo {
-	return { cache, files: index.files.length, symbols: index.symbols.length, sites: index.sites.length };
+function infoOf(index: GlyphIndex, cache: "hit" | "miss", selection?: LanguageSelection): IndexInfo {
+	const info: IndexInfo = {
+		cache,
+		files: index.files.length,
+		symbols: index.symbols.length,
+		sites: index.sites.length,
+	};
+	// The additive language entries are ABSENT on the plain TypeScript answer, so
+	// a repository with no recognised non-TypeScript source keeps its exact bytes.
+	if (selection !== undefined && !isDefaultLanguage(selection)) {
+		info.language = selection.id;
+		if (selection.notIndexed.length > 0) info.notIndexed = selection.notIndexed;
+	}
+	return info;
 }
 
 function emit(json: boolean, kind: string, data: unknown, renderHuman: () => string): void {
@@ -220,7 +256,12 @@ function streamImpact(
 }
 
 function indexLine(info: IndexInfo): string {
-	return `index: ${info.files} files, ${info.symbols} symbols, ${info.sites} sites (cache ${info.cache})`;
+	const base = `index: ${info.files} files, ${info.symbols} symbols, ${info.sites} sites (cache ${info.cache})`;
+	// The "language not indexed" coverage entry (ADR 0008). Absent — so the line
+	// is byte-identical — when every recognised language in scope was indexable.
+	if (info.notIndexed === undefined || info.notIndexed.length === 0) return base;
+	const named = info.notIndexed.map((entry) => `${entry.language} (${fileCountLabel(entry.files)})`).join(", ");
+	return `${base}; language not indexed: ${named}`;
 }
 
 function unresolvedLine(by: UnresolvedByKind): string {
@@ -274,11 +315,20 @@ function commandNamesFor(token: string): CommandName[] | undefined {
 /** The exact global flag tokens. A short cluster is a separate rule: see below. */
 const GLOBAL_FLAGS = new Set(["--json", "--help", "-h", "--version", "-v"]);
 
+/**
+ * The commands whose answer is read from the shared, language-selectable index.
+ * `--language` is accepted only by these; `code-map`'s tier-3 index is a
+ * byte-parity contract and does not expose the seam, and help/cache read none.
+ */
+const INDEX_COMMANDS = new Set(["callers", "impact", "diff"]);
+
 export interface ScannedArgs {
 	/** The first bare token: the command the user asked for, if any. */
 	commandToken?: string;
 	/** The directory `--repo <dir>` or `--repo=<dir>` names, if either is present. */
 	repo?: string;
+	/** The language `--language <id>` or `--language=<id>` names, if either is present. */
+	language?: string;
 	json: boolean;
 	/** `--stream`: implies `json` and selects the NDJSON framing (contract §1a). */
 	stream: boolean;
@@ -325,6 +375,7 @@ function clusterIsVersion(arg: string): boolean {
 export function scanArgv(argv: string[]): ScannedArgs {
 	let commandToken: string | undefined;
 	let repo: string | undefined;
+	let language: string | undefined;
 	let json = false;
 	let stream = false;
 	let plain = false;
@@ -349,6 +400,15 @@ export function scanArgv(argv: string[]): ScannedArgs {
 		if (name === "--repo") {
 			repo = equals === -1 ? argv[index + 1] : arg.slice(equals + 1);
 			if (repo === undefined) onlyKnownGlobals = false;
+			if (equals === -1) index += 1;
+			continue;
+		}
+		// `--language` reads its value exactly as `--repo` does — the next token,
+		// even one that begins with `-` — and, like `--repo`, is not a global flag
+		// that makes a bare run help.
+		if (name === "--language") {
+			language = equals === -1 ? argv[index + 1] : arg.slice(equals + 1);
+			if (language === undefined) onlyKnownGlobals = false;
 			if (equals === -1) index += 1;
 			continue;
 		}
@@ -380,7 +440,7 @@ export function scanArgv(argv: string[]): ScannedArgs {
 	}
 	// §1a rule 2: `--stream` implies `--json`. One scanner value keeps the
 	// success and failure paths in the same framing.
-	return { commandToken, repo, json: json || stream, stream, plain, help, version, onlyKnownGlobals };
+	return { commandToken, repo, language, json: json || stream, stream, plain, help, version, onlyKnownGlobals };
 }
 
 function writeError(json: boolean, errorType: EnvelopeErrorType, message: string): void {
@@ -400,6 +460,7 @@ export function buildProgram(scanned: ScannedArgs): Command {
 		)
 		.version(readVersion(), "-v, --version")
 		.option("--repo <dir>", "repository directory to analyze (default: current directory)")
+		.option("--language <id>", languageFlagSummary())
 		.option("--json", "emit the machine-readable JSON envelope")
 		// Registered at program level, hidden, so commander extracts it wherever it
 		// appears — exactly as it does `--json` — instead of letting a value option
@@ -635,6 +696,16 @@ export async function run(argv: string[]): Promise<number> {
 	const token = scanned.commandToken;
 
 	try {
+		// `--language` names an index language; a command that reads no index
+		// cannot honour it, so rejecting it is better than silently ignoring it.
+		if (scanned.language !== undefined) {
+			if (token === undefined || !INDEX_COMMANDS.has(token)) {
+				throw usageError(
+					`--language selects the language to index; it is accepted only by ${[...INDEX_COMMANDS].join(", ")}`,
+				);
+			}
+		}
+
 		// §1a rules 1 and 2: `--stream` is declared per command, and it is a usage
 		// error on a command that does not declare it, with `--plain`, or anywhere
 		// other than a streaming command's own query (global help and version too).

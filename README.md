@@ -47,6 +47,9 @@ bun run glyph callers buildReport --repo /path/to/repo
 
 `--repo <dir>` points at the repository to analyze (default: the current
 directory). `--json` switches any command to the machine envelope.
+`--language <id>` indexes one language instead of the one detection picks (see
+[Languages](#languages)); it is accepted by `callers`, `impact` and `diff`, the
+commands that read the shared index.
 
 ## Commands
 
@@ -183,6 +186,42 @@ Show or clear this repository's local cache directory.
 Emit the live command manifest — every command's dotted `kind`, its flags and
 exit codes, and the exit-code taxonomy. The manifest is built from the
 same registry the commands use, so it cannot drift from the handlers.
+
+## Languages
+
+Glyph indexes one language per run. Detection picks it from the file extensions
+present, preferring TypeScript; `--language <id>` overrides the pick. TypeScript
+(with JavaScript) is the only language registered so far; the Python indexer is
+a later slice of the same decision.
+
+Python counting applies a directory rule: a tracked `.py` file under any `venv`,
+`.venv`, `__pycache__` or `.tox` path segment is not counted — a nested
+`tools/venv/x.py` or a package named `venv` is dropped — so a TypeScript
+repository whose only Python sits there gets no `notIndexed` entry, and a
+Python-only repository like that gets the "no TypeScript or JavaScript sources
+found" message.
+
+- A recognised language that has files but no registered indexer — Python until
+  its indexer lands — is named, with its file count, as not indexed. The human
+  coverage line ends `; language not indexed: python (2 files)`, and the JSON
+  `index` block carries `language` (the indexed language) and `notIndexed`
+  (`[{language, files}]`). It is never dropped silently, and the same entries
+  are carried by the `--ref` answer.
+- A repository whose only recognised language has no indexer is `not_found`
+  (exit 3) naming the language and its file count — for example, "no TypeScript
+  or JavaScript sources; python (1 file) not indexed yet" — identical with and
+  without `--ref`, and never an empty answer. This stands until a later slice
+  registers Python indexing.
+- An explicit `--language` naming an unregistered language is a usage error
+  (exit 2) listing the registered languages; naming a registered language that
+  has no files is `not_found` (exit 3) naming it.
+- `--ref` and `code-map` still build TypeScript only; a ref's recognised
+  non-TypeScript files are counted for the coverage entries but not indexed there
+  until a later slice wires Python in.
+- When a repository has no recognised non-TypeScript source (only `.py` counts
+  today), the `index` block carries neither `language` nor `notIndexed` — both
+  are omitted, not `null` or a constant — so that answer is byte-for-byte the one
+  earlier releases produced.
 
 ## Streaming (`--stream`)
 

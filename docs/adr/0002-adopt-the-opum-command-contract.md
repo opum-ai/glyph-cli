@@ -123,6 +123,74 @@ constants beside it, and `exitCodeTaxonomy()` in `src/contract.ts` combines the
 three into the published `ok`, `uncaught` and error-type taxonomy. The decision
 and the code values are unchanged; the body text above is left as written.
 
+## Amendment, 2026-11-23 (GCLI-70)
+
+The Python indexer record (ADR 0008) permits additive contract entries under one
+language-per-run (its ruled items 4 and 5) and lists the ones it drafts
+("Drafted by glyph-cli"). This amendment records the subset the language seam
+ships, and the shape it takes so a TypeScript-only repository's answers stay
+byte-identical.
+
+**Merge-order note.** ADR 0008 is cited here by name but is absent from this
+bundle at this SHA: it lives on `docs/GCLI-68-adr-0008-native-python` and merges
+after this slice. This amendment therefore links no file whose absence would
+break the docs check.
+
+- **`--language <id>` is a global option**, declared in `GLOBAL_FLAGS` and so
+  published by `glyph help --json` beside `--json` and `--repo`; its summary is
+  derived from the live registry, not a second hand-written list. It selects one
+  language for the run; detection selects one when it is absent.
+- **Only `callers`, `impact` and `diff` accept `--language`.** They are the
+  commands whose answer is read from the shared index; every other command —
+  `code-map` included, whose tier-3 index is a byte-parity contract and does not
+  expose the seam, and `help` and `cache`, which read no index — rejects it as a
+  usage error (exit 2) rather than ignoring it. The frozen manifest has no slot
+  for output fields, so `help --json` publishes the flag but **not** a
+  machine-readable statement of which commands accept it; that is documented here
+  and in the README. (Acceptance criterion 2 is checked against that split
+  surface: `--language` is declared in `help --json`; `language` and
+  `notIndexed` are declared in this amendment and the README, because the
+  manifest has no slot for output fields.)
+- **`language` in the `index` block**: the language whose indexer produced the
+  answer, present only when the answer is not the plain TypeScript default.
+- **`notIndexed` in the `index` block**: the recognised languages present in
+  scope with no registered indexer, each as `{language, files}`. The human
+  coverage line carries the same fact as a trailing
+  `; language not indexed: <id> (<n> files)`. Both are carried by the
+  working-tree and the `--ref` answers alike: the `--ref` path counts recognised
+  non-TypeScript files at the ref's tree with the same listing and mode filter.
+  The ref count sees tracked blobs of mode `100644`/`100755` only — no untracked
+  files, symlinks or gitlinks — so it can differ from a working-tree count.
+- **`not_found` answers name the language** where language selection produced
+  them: an explicitly requested, registered language with no files is exit 3
+  naming it. An explicitly requested language that is *not* registered is a
+  usage error (exit 2) naming the registered languages. A repository whose only
+  recognised language has no indexer is **not_found (exit 3)**, naming the
+  language and its file count — never an empty success (the "never a silent empty
+  answer" rule, DEC-303 item 2 restated as ADR 0008's ruled item 4). This is the
+  same answer with and without `--ref`, and it stands until the S7 slice
+  registers Python indexing.
+- **`--ref` and `code-map` still build TypeScript only**, through
+  `indexSnapshot`; a ref's recognised non-TypeScript files are counted for the
+  coverage entries but are not indexed there. S7 owns wiring Python into both.
+- **On a repository with no recognised non-TypeScript source** (only `.py` counts
+  today), every one of these entries is ABSENT — not `null`, not a constant — so
+  that answer is byte-for-byte what it was before this amendment. A golden
+  captured from the pre-seam build (`test/language-goldens.ts`) holds it.
+- The non-Git discovery walk's excluded directories are **unchanged from dev**
+  (its nine), so a TypeScript file under `venv/`, `.venv/` or `.tox/` is still
+  indexed exactly as before. Python counting alone skips a `.py` path under a
+  `.venv`, `venv`, `__pycache__` or `.tox` segment, in the working-tree and
+  `--ref` listings alike (by path segment, so a tracked file under one is not
+  counted either), so a nested environment or cache does not inflate the
+  recognised Python count.
+
+The remaining drafted entries — a `decorator` site kind, an
+unresolved-first-party-import count and a per-answer constructor note — are
+left to the slices that produce them. Declaring a union member or field no code
+emits would contradict how this contract treats an absent field (omit it, do not
+declare a constant).
+
 ## Amendment, 2026-11-23 (GCLI-72): the additive `qualname` symbol field
 
 DEC-303 (a5) Q6 (opum-ai/opum-doc#1932, commit 5b0781e4) rules arm A for
