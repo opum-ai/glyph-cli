@@ -61,6 +61,9 @@ bun run glyph callers buildReport --repo /path/to/repo
 
 `--repo <dir>` points at the repository to analyze (default: the current
 directory). `--json` switches any command to the machine envelope.
+`--language <id>` indexes one language instead of the one detection picks (see
+[Languages](#languages)); it is accepted by `callers`, `impact` and `diff`, the
+commands that read the shared index.
 
 ## Commands
 
@@ -91,7 +94,7 @@ terminals (see below): the importing module, not a function in it.
 
 ```console
 $ glyph impact d
-impact of d (function) at src/d.ts:1:17 in the working tree — 6 caller(s) within depth 5 (6 found, cache hit)
+impact of d (function) at src/d.ts:1:17 in the working tree — 6 caller(s) within depth 5 (6 found, cache miss)
   depth 1  module scope  src/c.ts:1:10  module scope -> d
   depth 1  c  src/c.ts:3:10  c -> d
   depth 2  module scope  src/b.ts:1:10  module scope -> c -> d
@@ -99,7 +102,7 @@ impact of d (function) at src/d.ts:1:17 in the working tree — 6 caller(s) with
   depth 3  module scope  src/a.ts:1:10  module scope -> b -> c -> d
   depth 3  a  src/a.ts:3:10  a -> b -> c -> d
   coverage (index-wide): 6 resolved site(s); 0 did not resolve (call 0, import 0, extends 0, implements 0, dynamic 0); an empty answer is not proof of no impact
-index: 4 files, 4 symbols, 6 sites (cache hit)
+index: 4 files, 4 symbols, 6 sites (cache miss)
 ```
 
 - The default depth is 5. `--depth <n>` reports fewer hops and `--all` runs the
@@ -152,7 +155,7 @@ ref every read resolves against and the ref the branch's own diff is taken
 against (`--repo` and `--json` are the usual globals).
 
 ```console
-$ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref origin/dev
+$ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref origin/main
 ```
 
 - Tiers, in rank order, are named paths that exist at the ref, files the branch
@@ -181,12 +184,12 @@ $ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref
   emoji counts as two and `é` as one) is a **usage error**, never a silent
   truncation. A missing `--source-ref` is a usage error too.
 - Exit codes are 0, 1, 2, 3 and 7: a `--source-ref` that does not resolve is
-  `not_found`, and a failed or timed-out git read is `indeterminate`.
-- This is a port of a deterministic reference producer (pinned in
-  `src/codemap-text.ts`), checked byte for byte against goldens that script
-  `test/parity/generate-goldens.ts` generates by running that producer. That parity
-  covers the deterministic tiers (named paths, changed files, identifiers), run with
-  the symbol tier off or unavailable; the CLI's default output adds the symbol tier.
+  `not_found`, and a git read that fails or exceeds git's own timeout is
+  `indeterminate` (a read the 7.0 s wall-time budget cuts off is the
+  `code-map#time-budget` omission above, exit 0), as is a git read that comes back empty when glyph already holds a fact that makes empty
+  impossible (a path known to match, an object known to exist), after one retry.
+- Its deterministic tiers are checked byte for byte against fixed goldens; the
+  CLI's default output adds the symbol tier.
 
 ### `glyph cache path` | `glyph cache clear`
 
@@ -197,6 +200,42 @@ Show or clear this repository's local cache directory.
 Emit the live command manifest — every command's dotted `kind`, its flags and
 exit codes, and the exit-code taxonomy. The manifest is built from the
 same registry the commands use, so it cannot drift from the handlers.
+
+## Languages
+
+Glyph indexes one language per run. Detection picks it from the file extensions
+present, preferring TypeScript; `--language <id>` overrides the pick. TypeScript
+(with JavaScript) is the only language registered so far; the Python indexer is
+a later slice of the same decision.
+
+Python counting applies a directory rule: a tracked `.py` file under any `venv`,
+`.venv`, `__pycache__` or `.tox` path segment is not counted — a nested
+`tools/venv/x.py` or a package named `venv` is dropped — so a TypeScript
+repository whose only Python sits there gets no `notIndexed` entry, and a
+Python-only repository like that gets the "no TypeScript or JavaScript sources
+found" message.
+
+- A recognised language that has files but no registered indexer — Python until
+  its indexer lands — is named, with its file count, as not indexed. The human
+  coverage line ends `; language not indexed: python (2 files)`, and the JSON
+  `index` block carries `language` (the indexed language) and `notIndexed`
+  (`[{language, files}]`). It is never dropped silently, and the same entries
+  are carried by the `--ref` answer.
+- A repository whose only recognised language has no indexer is `not_found`
+  (exit 3) naming the language and its file count — for example, "no TypeScript
+  or JavaScript sources; python (1 file) not indexed yet" — identical with and
+  without `--ref`, and never an empty answer. This stands until a later slice
+  registers Python indexing.
+- An explicit `--language` naming an unregistered language is a usage error
+  (exit 2) listing the registered languages; naming a registered language that
+  has no files is `not_found` (exit 3) naming it.
+- `--ref` and `code-map` still build TypeScript only; a ref's recognised
+  non-TypeScript files are counted for the coverage entries but not indexed there
+  until a later slice wires Python in.
+- When a repository has no recognised non-TypeScript source (only `.py` counts
+  today), the `index` block carries neither `language` nor `notIndexed` — both
+  are omitted, not `null` or a constant — so that answer is byte-for-byte the one
+  earlier releases produced.
 
 ## Streaming (`--stream`)
 
@@ -209,7 +248,7 @@ and `impact` emits only once its walk completes (its `cycle` flags are decided
 after the search); `callers` and `code-map` stream while they work.
 
 - `--stream` implies `--json`. Combining it with `--plain` is a usage error
-  (exit 2; Glyph has no `--plain` mode, the flag is only rejected), and so is passing it to a command that does not declare it.
+  (exit 2), and so is passing it to a command that does not declare it.
 - stdout carries one compact success envelope per line, each newline-terminated
   and flushed when written, with `principal` last. Item lines carry
   `<command>.item` (published as `itemKind` in `help --json`); exactly one
@@ -242,9 +281,10 @@ Glyph follows a shared command contract for Opum tools
 and records that obligation in [ADR 0002](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0002-adopt-the-opum-command-contract.md).
 stdout carries exactly one success envelope per command — JSON under `--json`,
 human text otherwise (`--stream` instead emits one line per item, then one result
-line, below). On failure stdout carries no success envelope (under `--stream`,
+line, below). On failure stdout carries no result envelope (under `--stream`,
 item lines already written stay and no result line follows), and stderr carries
-the error envelope:
+the error: the envelope below under `--json` and `--stream`, a plain message
+otherwise:
 
 ```json
 { "schemaVersion": 1, "kind": "callers.result", "data": { }, "principal": null }
@@ -283,8 +323,10 @@ taxonomy:
 | 6 | `validation` / `drift` | invalid input, or state that drifted from its record (two types, one code, by design) |
 | 7 | `indeterminate` | a check looked and cannot judge |
 
-v0's commands produce `usage` and `not_found`, `indeterminate` when Git
-refuses to describe a repository, and `uncaught` for a bug; `denied`,
+v0's commands produce `usage` and `not_found`, `indeterminate` when a Git read
+fails or Git refuses to describe a repository (for `code-map`, also an empty read
+that contradicts a fact glyph already holds, after one retry), and `uncaught` for
+a bug; `denied`,
 `conflict`, `validation` and `drift` are mapped and published so a consumer
 meets one vocabulary, not a later second one.
 
@@ -398,6 +440,10 @@ revisions of a repository are retained.
   working tree unless `--ref` names a commit, in which case no uncommitted
   state can enter the answer.
 - **One repository** per invocation, no cross-repository graph, no UI.
+- **File names `code-map` cannot read.** A changed source file that reaches the
+  line-range read (not filtered out as non-code, not cut by the 20-file cap) and
+  whose name is not valid UTF-8, or is a Unicode name stored decomposed (NFD),
+  as on macOS, makes `code-map` exit 7 in 0.1.0 rather than skip that file.
 
 ## Development
 

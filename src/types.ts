@@ -112,4 +112,16 @@ export interface IndexInfo {
 	files: number;
 	symbols: number;
 	sites: number;
+	/**
+	 * The indexed language, present only when the answer is not the plain
+	 * TypeScript default (ADR 0008's additive contract entry). Absent — never
+	 * null, never a constant — on a repository with no recognised non-TypeScript
+	 * source, so that answer stays byte-identical.
+	 */
+	language?: string;
+	/**
+	 * Recognised languages present in scope but not indexed, present only when
+	 * there are some. Absent on a pure-TypeScript repository.
+	 */
+	notIndexed?: { language: string; files: number }[];
 }

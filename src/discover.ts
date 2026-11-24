@@ -52,7 +52,13 @@ function toPosix(path: string): string {
 /** Extensions discovery takes in a working tree and at a ref alike. */
 export const SOURCE_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
 
-/** Directories a non-Git walk never descends into; Git ignores them in a repository. */
+/**
+ * Directories a non-Git walk never descends into; Git ignores them in a
+ * repository. This is exactly dev's set and serves every language, so a
+ * TypeScript file under `venv/`, `.venv/` or `.tox/` is still discovered as it
+ * was on dev. Python counting applies its own environment-directory rule in
+ * `src/language.ts`, which leaves TypeScript discovery untouched.
+ */
 const EXCLUDED_DIRS = new Set([".git", "node_modules", "dist", "build", "out", "coverage", "vendor", ".next", ".nuxt"]);
 
 function hasSourceExtension(path: string): boolean {
@@ -61,9 +67,21 @@ function hasSourceExtension(path: string): boolean {
 
 /** Repository-relative paths of every TS/JS source in scope, sorted. */
 export function discoverSources(repoRoot: string): string[] {
+	return discoverFiles(repoRoot, hasSourceExtension);
+}
+
+/**
+ * Repository-relative paths of every file `accept` selects, sorted.
+ *
+ * The selection is exactly {@link discoverSources}'s — Git's tracked plus
+ * unignored-untracked set inside a repository, a fixed-directory walk outside
+ * one — so language detection and the index always agree about what is in
+ * scope. An excluded path contributes no file to any language.
+ */
+export function discoverFiles(repoRoot: string, accept: (path: string) => boolean): string[] {
 	const inside = gitRun(repoRoot, ["rev-parse", "--is-inside-work-tree"]);
 	if (inside.code !== 0) {
-		if (/not a git repository/i.test(inside.stderr)) return walkSources(repoRoot);
+		if (/not a git repository/i.test(inside.stderr)) return walkFiles(repoRoot, accept);
 		throw indeterminateError(`git could not read ${repoRoot}: ${firstLine(inside.stderr)}`);
 	}
 
@@ -73,7 +91,11 @@ export function discoverSources(repoRoot: string): string[] {
 	}
 	const found = new Set<string>();
 	for (const path of listed.stdout.split("\0")) {
-		if (path === "" || !hasSourceExtension(path)) continue;
+		// The Git branch passes the repository-relative full path here, while the
+		// walk fallback below passes only the basename. Harmless for an extension
+		// check (both callers today), but a path-based accept would see different
+		// inputs per branch; slice S7 must keep that in mind.
+		if (path === "" || !accept(path)) continue;
 		try {
 			if (!statSync(join(repoRoot, path)).isFile()) continue;
 		} catch {
@@ -84,7 +106,7 @@ export function discoverSources(repoRoot: string): string[] {
 	return [...found].sort();
 }
 
-function walkSources(repoRoot: string): string[] {
+function walkFiles(repoRoot: string, accept: (path: string) => boolean): string[] {
 	const found: string[] = [];
 
 	const walk = (dir: string): void => {
@@ -104,7 +126,7 @@ function walkSources(repoRoot: string): string[] {
 			}
 			if (isDirectory) {
 				if (!EXCLUDED_DIRS.has(entry)) walk(absolute);
-			} else if (hasSourceExtension(entry)) {
+			} else if (accept(entry)) {
 				found.push(toPosix(relative(repoRoot, absolute)));
 			}
 		}

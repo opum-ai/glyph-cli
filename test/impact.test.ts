@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { configHostOf, indexSnapshot, snapshotAtRef, sourceFilesAtRef } from "../src/snapshot.ts";
 import { discoverSources, loadCompilerOptions } from "../src/discover.ts";
@@ -7,7 +7,7 @@ import { impactOf } from "../src/impact.ts";
 import { buildIndex } from "../src/indexer.ts";
 import { resolveSymbol } from "../src/queries.ts";
 import type { GlyphIndex, SymbolEntry } from "../src/types.ts";
-import { makeScratchRepo } from "./helpers.ts";
+import { makeScratchRepo, scratchCacheDir } from "./helpers.ts";
 
 /** a -> b -> c -> d, so d's impact is c at 1, b at 2 and a at 3. */
 const CHAIN: Record<string, string> = {
@@ -325,5 +325,45 @@ describe("impact", () => {
 		expect(refOptions.paths?.["@lib/*"]).toEqual(["src/*"]);
 		const workingOptions = loadCompilerOptions(repo.root, undefined);
 		expect(workingOptions.paths).toBeUndefined();
+	});
+});
+
+describe("the README's impact example", () => {
+	test("is the chain fixture's actual output, on a cold cache", () => {
+		const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8").split("\n");
+		const start = readme.findIndex((line) => line.startsWith("### `glyph impact"));
+		expect(start).toBeGreaterThanOrEqual(0);
+		let inFence = false;
+		let command = "";
+		const example: string[] = [];
+		for (let index = start + 1; index < readme.length; index += 1) {
+			const line = readme[index] ?? "";
+			if (!inFence) {
+				if (line.trim() === "```console") inFence = true;
+				continue;
+			}
+			if (line.trim() === "```") break;
+			if (line.startsWith("$ ")) command = line.slice(2);
+			else example.push(line);
+		}
+		expect(command).toBe("glyph impact d");
+		expect(example.length).toBeGreaterThan(0);
+
+		const repo = makeScratchRepo(CHAIN);
+		const cli = new URL("../src/cli.ts", import.meta.url).pathname;
+		const proc = Bun.spawnSync(["bun", "run", cli, "impact", "d"], {
+			cwd: repo.root,
+			env: { ...process.env, GLYPH_CACHE_DIR: scratchCacheDir() },
+			stdin: "ignore",
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		expect(proc.exitCode).toBe(0);
+		expect(example).toEqual(
+			proc.stdout
+				.toString()
+				.split("\n")
+				.filter((line) => line.length > 0),
+		);
 	});
 });
