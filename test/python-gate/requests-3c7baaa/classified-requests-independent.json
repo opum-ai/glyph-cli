@@ -1,0 +1,771 @@
+{
+ "summary": {
+  "targets": 46,
+  "true": 65,
+  "true_direct": 64,
+  "true_inferred": 1,
+  "poly": 1,
+  "excluded": 0,
+  "other_definition": 131,
+  "newly_attributable_beyond_gt3": 0,
+  "targets_with_a_true_site": 37,
+  "zero_truth_targets": 9
+ },
+ "targets": {
+  "utils.py:231 get_netrc_auth": {
+   "true": [
+    {
+     "site": "sessions.py:330:19",
+     "call_start_line": 330,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "sessions.py:538:19",
+     "call_start_line": 538,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "sessions.py:108 merge_hooks": {
+   "true": [
+    {
+     "site": "sessions.py:553:18",
+     "call_start_line": 553,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "status_codes.py:109 _init": {
+   "true": [
+    {
+     "site": "status_codes.py:128:0",
+     "call_start_line": 128,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "utils.py:951 default_headers": {
+   "true": [
+    {
+     "site": "sessions.py:446:23",
+     "call_start_line": 446,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "utils.py:373 to_key_val_list": {
+   "true": [
+    {
+     "site": "models.py:167:25",
+     "call_start_line": 167,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "models.py:200:17",
+     "call_start_line": 200,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "models.py:201:16",
+     "call_start_line": 201,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "sessions.py:96:32",
+     "call_start_line": 96,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "sessions.py:97:26",
+     "call_start_line": 97,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "utils.py:1098 _validate_header_part": {
+   "true": [
+    {
+     "site": "utils.py:1094:4",
+     "call_start_line": 1094,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "utils.py:1095:4",
+     "call_start_line": 1095,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "cookies.py:494 create_cookie": {
+   "true": [
+    {
+     "site": "cookies.py:246:16",
+     "call_start_line": 246,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "cookies.py:543:11",
+     "call_start_line": 543,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "cookies.py:599:37",
+     "call_start_line": 599,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "__init__.py:99 _check_cryptography": {
+   "true": [
+    {
+     "site": "__init__.py:145:8",
+     "call_start_line": 145,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "utils.py:99 proxy_bypass_registry": {
+   "true": [
+    {
+     "site": "utils.py:146:19",
+     "call_start_line": 146,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "utils.py:704 requote_uri": {
+   "true": [
+    {
+     "site": "models.py:562:14",
+     "call_start_line": 562,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "sessions.py:241:40",
+     "call_start_line": 241,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "sessions.py:243:22",
+     "call_start_line": 243,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "sessions.py:334 SessionRedirectMixin.rebuild_proxies": {
+   "true": [
+    {
+     "site": "sessions.py:272:27",
+     "call_start_line": 272,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "models.py:360 Request.prepare": {
+   "true": [],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 2,
+   "batch": 0
+  },
+  "adapters.py:455 HTTPAdapter.get_connection_with_tls_context": {
+   "true": [
+    {
+     "site": "adapters.py:662:24",
+     "call_start_line": 662,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "cookies.py:54 MockRequest.get_host": {
+   "true": [
+    {
+     "site": "cookies.py:58:20",
+     "call_start_line": 58,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "cookies.py:111:20",
+     "call_start_line": 111,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "adapters.py:153 BaseAdapter.close": {
+   "true": [
+    {
+     "site": "sessions.py:886:14",
+     "call_start_line": 886,
+     "form": "attr",
+     "receiver_evidence": "inferred"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 6,
+   "batch": 0
+  },
+  "structures.py:127 LookupDict.get": {
+   "true": [],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 34,
+   "batch": 0
+  },
+  "cookies.py:80 MockRequest.is_unverifiable": {
+   "true": [
+    {
+     "site": "cookies.py:103:20",
+     "call_start_line": 103,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "cookies.py:128 MockResponse.info": {
+   "true": [],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 1,
+   "batch": 0
+  },
+  "cookies.py:250 RequestsCookieJar.iterkeys": {
+   "true": [
+    {
+     "site": "cookies.py:265:25",
+     "call_start_line": 265,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "models.py:1173 Response.close": {
+   "true": [
+    {
+     "site": "auth.py:301:14",
+     "call_start_line": 301,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "models.py:816:13",
+     "call_start_line": 816,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "sessions.py:222:17",
+     "call_start_line": 222,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 4,
+   "batch": 0
+  },
+  "adapters.py:365 HTTPAdapter.build_response": {
+   "true": [
+    {
+     "site": "adapters.py:748:20",
+     "call_start_line": 748,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "models.py:576 PreparedRequest.prepare_body": {
+   "true": [
+    {
+     "site": "models.py:444:13",
+     "call_start_line": 444,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "models.py:134 RequestEncodingMixin._encode_params": {
+   "true": [
+    {
+     "site": "models.py:552:30",
+     "call_start_line": 552,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "models.py:640:32",
+     "call_start_line": 640,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "models.py:183 RequestEncodingMixin._encode_files": {
+   "true": [
+    {
+     "site": "models.py:637:44",
+     "call_start_line": 637,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "exceptions.py:130 ChunkedEncodingError": {
+   "true": [
+    {
+     "site": "models.py:941:26",
+     "call_start_line": 941,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "exceptions.py:118 InvalidURL": {
+   "true": [
+    {
+     "site": "adapters.py:491:18",
+     "call_start_line": 491,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "adapters.py:666:18",
+     "call_start_line": 666,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "models.py:513:18",
+     "call_start_line": 513,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "models.py:522:18",
+     "call_start_line": 522,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "models.py:532:22",
+     "call_start_line": 532,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "models.py:534:18",
+     "call_start_line": 534,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "utils.py:693:22",
+     "call_start_line": 693,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "auth.py:85 HTTPBasicAuth": {
+   "true": [
+    {
+     "site": "models.py:685:31",
+     "call_start_line": 685,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "exceptions.py:38 InvalidJSONError": {
+   "true": [
+    {
+     "site": "models.py:596:22",
+     "call_start_line": 596,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "exceptions.py:126 InvalidProxyURL": {
+   "true": [
+    {
+     "site": "adapters.py:496:22",
+     "call_start_line": 496,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "adapters.py:541:22",
+     "call_start_line": 541,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "exceptions.py:106 TooManyRedirects": {
+   "true": [
+    {
+     "site": "sessions.py:217:22",
+     "call_start_line": 217,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "exceptions.py:114 InvalidSchema": {
+   "true": [
+    {
+     "site": "adapters.py:67:14",
+     "call_start_line": 67,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "sessions.py:881:14",
+     "call_start_line": 881,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "sessions.py:395 Session": {
+   "true": [
+    {
+     "site": "api.py:70:18",
+     "call_start_line": 70,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "sessions.py:920:11",
+     "call_start_line": 920,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "utils.py:819 should_bypass_proxies.get_proxy": {
+   "true": [
+    {
+     "site": "utils.py:826:19",
+     "call_start_line": 826,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "status_codes.py:116 _init.doc": {
+   "true": [
+    {
+     "site": "status_codes.py:122:35",
+     "call_start_line": 122,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "sessions.py:655 Session.get": {
+   "true": [],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 34,
+   "batch": 0
+  },
+  "structures.py:89 CaseInsensitiveDict.copy": {
+   "true": [
+    {
+     "site": "models.py:460:33",
+     "call_start_line": 460,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 7,
+   "batch": 0
+  },
+  "cookies.py:293 RequestsCookieJar.items": {
+   "true": [],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 13,
+   "batch": 0
+  },
+  "adapters.py:555 HTTPAdapter.close": {
+   "true": [],
+   "poly": [
+    {
+     "site": "sessions.py:886:14",
+     "call_start_line": 886,
+     "form": "attr"
+    }
+   ],
+   "excluded": [],
+   "other_definition": 6,
+   "batch": 0
+  },
+  "models.py:424 PreparedRequest.prepare": {
+   "true": [
+    {
+     "site": "models.py:363:10",
+     "call_start_line": 363,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "sessions.py:541:10",
+     "call_start_line": 541,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "models.py:456 PreparedRequest.copy": {
+   "true": [
+    {
+     "site": "auth.py:302:29",
+     "call_start_line": 302,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "sessions.py:205:35",
+     "call_start_line": 205,
+     "form": "attr",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 6,
+   "batch": 0
+  },
+  "cookies.py:310 RequestsCookieJar.list_paths": {
+   "true": [],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "sessions.py:908 session": {
+   "true": [],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "sessions.py:684 Session.head": {
+   "true": [],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 0,
+   "batch": 0
+  },
+  "models.py:407 PreparedRequest.__init__": {
+   "true": [
+    {
+     "site": "models.py:362:12",
+     "call_start_line": 362,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "models.py:457:12",
+     "call_start_line": 457,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "sessions.py:540:12",
+     "call_start_line": 540,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 6,
+   "batch": 0
+  },
+  "auth.py:96 HTTPBasicAuth.__init__": {
+   "true": [
+    {
+     "site": "models.py:685:31",
+     "call_start_line": 685,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 6,
+   "batch": 0
+  },
+  "cookies.py:45 MockRequest.__init__": {
+   "true": [
+    {
+     "site": "cookies.py:147:10",
+     "call_start_line": 147,
+     "form": "name",
+     "receiver_evidence": "direct"
+    },
+    {
+     "site": "cookies.py:159:8",
+     "call_start_line": 159,
+     "form": "name",
+     "receiver_evidence": "direct"
+    }
+   ],
+   "poly": [],
+   "excluded": [],
+   "other_definition": 6,
+   "batch": 0
+  }
+ }
+}

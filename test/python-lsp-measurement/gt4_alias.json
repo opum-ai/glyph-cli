@@ -1,0 +1,36 @@
+{
+ "_types.py:47 is_prepared": {
+  "true": [
+   "adapters.py:375",
+   "adapters.py:481",
+   "adapters.py:581",
+   "adapters.py:659",
+   "cookies.py:46",
+   "sessions.py:317",
+   "sessions.py:318",
+   "sessions.py:350",
+   "sessions.py:637",
+   "sessions.py:770"
+  ],
+  "note": "alias call sites; alias bound in adapters.py"
+ },
+ "exceptions.py:42 JSONDecodeError": {
+  "true": [
+   "models.py:1124",
+   "models.py:1117"
+  ],
+  "note": "alias call sites; alias bound in models.py"
+ },
+ "exceptions.py:78 SSLError": {
+  "true": [
+   "models.py:947",
+   "adapters.py:727",
+   "adapters.py:740"
+  ],
+  "note": "alias call sites; alias bound in models.py"
+ },
+ "_types.py:38 SupportsItems": {
+  "true": [],
+  "note": "alias call sites; alias bound in utils.py"
+ }
+}

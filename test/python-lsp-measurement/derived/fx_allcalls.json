@@ -1,0 +1,261 @@
+[
+ {
+  "file": "pkg/base.py",
+  "line": 9,
+  "col": 15,
+  "name": "wraps",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/base.py",
+  "line": 11,
+  "col": 15,
+  "name": "fn",
+  "form": "name"
+ },
+ {
+  "file": "pkg/base.py",
+  "line": 30,
+  "col": 15,
+  "name": "cls",
+  "form": "name"
+ },
+ {
+  "file": "pkg/base.py",
+  "line": 38,
+  "col": 25,
+  "name": "upper",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/base.py",
+  "line": 43,
+  "col": 16,
+  "name": "__init__",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/base.py",
+  "line": 51,
+  "col": 15,
+  "name": "helper",
+  "form": "name"
+ },
+ {
+  "file": "pkg/base.py",
+  "line": 26,
+  "col": 20,
+  "name": "speak",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/base.py",
+  "line": 47,
+  "col": 32,
+  "name": "speak",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/base.py",
+  "line": 51,
+  "col": 22,
+  "name": "len",
+  "form": "name"
+ },
+ {
+  "file": "pkg/base.py",
+  "line": 43,
+  "col": 8,
+  "name": "super",
+  "form": "name"
+ },
+ {
+  "file": "pkg/base.py",
+  "line": 47,
+  "col": 24,
+  "name": "super",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 15,
+  "col": 8,
+  "name": "Doggo",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 16,
+  "col": 8,
+  "name": "Cat",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 17,
+  "col": 15,
+  "name": "create",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 18,
+  "col": 13,
+  "name": "Animal",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 19,
+  "col": 15,
+  "name": "kingdom",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 22,
+  "col": 8,
+  "name": "run_all",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 23,
+  "col": 6,
+  "name": "fetch",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 24,
+  "col": 6,
+  "name": "speak",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 44,
+  "col": 11,
+  "name": "h",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 9,
+  "col": 12,
+  "name": "append",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 10,
+  "col": 12,
+  "name": "append",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 21,
+  "col": 8,
+  "name": "h",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 21,
+  "col": 20,
+  "name": "helper",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 30,
+  "col": 13,
+  "name": "fn",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 30,
+  "col": 20,
+  "name": "list",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 31,
+  "col": 19,
+  "name": "Cat",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 32,
+  "col": 18,
+  "name": "cb",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 32,
+  "col": 24,
+  "name": "d_speak",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 40,
+  "col": 17,
+  "name": "_aw",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 9,
+  "col": 21,
+  "name": "speak",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 10,
+  "col": 21,
+  "name": "describe",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 30,
+  "col": 25,
+  "name": "map",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 36,
+  "col": 12,
+  "name": "h",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 36,
+  "col": 46,
+  "name": "helper",
+  "form": "attr"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 36,
+  "col": 26,
+  "name": "range",
+  "form": "name"
+ },
+ {
+  "file": "pkg/use.py",
+  "line": 36,
+  "col": 65,
+  "name": "range",
+  "form": "name"
+ }
+]

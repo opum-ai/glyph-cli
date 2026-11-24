@@ -1,0 +1,68 @@
+== (1) overload groups among the targets
+utils.py:373 to_key_val_list: 3 defs at lines [371, 373, 376]; implementation line 376; this target is a STUB; true sites keyed to it: 5
+structures.py:127 LookupDict.get: 3 defs at lines [124, 127, 129]; implementation line 129; this target is a STUB; true sites keyed to it: 0
+models.py:134 RequestEncodingMixin._encode_params: 5 defs at lines [134, 138, 142, 148, 151]; implementation line 151; this target is a STUB; true sites keyed to it: 2
+auth.py:96 HTTPBasicAuth.__init__: 3 defs at lines [92, 94, 96]; implementation line 96; this target is the implementation; true sites keyed to it: 1
+true sites keyed to an @overload STUB target: 7 of 65
+
+== (2) true sites whose target is an abstract base (docstring/pass/.../raise NotImplementedError only)
+utils.py:373 to_key_val_list: 5 true site(s)
+adapters.py:153 BaseAdapter.close: 1 true site(s)
+models.py:134 RequestEncodingMixin._encode_params: 2 true site(s)
+true sites on abstract-base targets: 8 of 65
+
+== (3) true sites under an if/try block (condition text)
+utils.py:231 get_netrc_auth | sessions.py:538:19 | ['if self.trust_env and (not auth) and (not self.auth)']
+utils.py:373 to_key_val_list | models.py:167:25 | ['if isinstance(data, (str, bytes))', 'if _t.has_read(data)', "if hasattr(data, '__iter__')"]
+cookies.py:494 create_cookie | cookies.py:246:16 | ['if isinstance(value, Morsel)']
+cookies.py:494 create_cookie | cookies.py:599:37 | ['if cookie_dict is not None', 'if overwrite or name not in names_from_jar']
+__init__.py:99 _check_cryptography | __init__.py:145:8 | ['try/except', "if not getattr(ssl, 'HAS_SNI', False)"]
+utils.py:99 proxy_bypass_registry | utils.py:146:19 | ["if sys.platform == 'win32'", 'if getproxies_environment()']
+utils.py:704 requote_uri | sessions.py:241:40 | ['if not parsed.netloc']
+utils.py:704 requote_uri | sessions.py:243:22 | ['if not parsed.netloc']
+adapters.py:455 HTTPAdapter.get_connection_with_tls_context | adapters.py:662:24 | ['try/except']
+models.py:1173 Response.close | auth.py:301:14 | ["if 'digest' in s_auth.lower() and self._thread_local.num_401_ca"]
+models.py:134 RequestEncodingMixin._encode_params | models.py:552:30 | ['if params is not None']
+models.py:134 RequestEncodingMixin._encode_params | models.py:640:32 | ['if is_iterable and (not isinstance(data, (str, bytes, list, tup', 'if files', 'if raw_data']
+models.py:183 RequestEncodingMixin._encode_files | models.py:637:44 | ['if is_iterable and (not isinstance(data, (str, bytes, list, tup', 'if files']
+exceptions.py:130 ChunkedEncodingError | models.py:941:26 | ["if hasattr(self.raw, 'stream')"]
+exceptions.py:118 InvalidURL | models.py:522:18 | ['if not host']
+exceptions.py:118 InvalidURL | models.py:532:22 | ['if not unicode_is_ascii(host)']
+exceptions.py:118 InvalidURL | models.py:534:18 | ['if not unicode_is_ascii(host)', "if host.startswith(('*', '.'))"]
+exceptions.py:118 InvalidURL | utils.py:693:22 | ['if len(h) == 2 and h.isalnum()']
+auth.py:85 HTTPBasicAuth | models.py:685:31 | ['if auth', 'if isinstance(auth, tuple) and len(auth) == 2']
+exceptions.py:38 InvalidJSONError | models.py:596:22 | ['if not data and json is not None']
+exceptions.py:126 InvalidProxyURL | adapters.py:496:22 | ['if proxy', 'if not proxy_url.host']
+exceptions.py:126 InvalidProxyURL | adapters.py:541:22 | ['if proxy', 'if not proxy_url.host']
+exceptions.py:106 TooManyRedirects | sessions.py:217:22 | ['if len(resp.history) >= self.max_redirects']
+utils.py:819 should_bypass_proxies.get_proxy | utils.py:826:19 | ['if no_proxy is None']
+models.py:456 PreparedRequest.copy | auth.py:302:29 | ["if 'digest' in s_auth.lower() and self._thread_local.num_401_ca"]
+auth.py:96 HTTPBasicAuth.__init__ | models.py:685:31 | ['if auth', 'if isinstance(auth, tuple) and len(auth) == 2']
+true sites under a conditional or try: 26
+
+== (4) in-repository subclasses, ANY base (not only the first), of every class that owns a target or a target method
+BaseAdapter: ['adapters.py:HTTPAdapter']
+CaseInsensitiveDict: none
+ChunkedEncodingError: none
+HTTPAdapter: none
+HTTPBasicAuth: ['auth.py:HTTPProxyAuth']
+InvalidJSONError: ['exceptions.py:JSONDecodeError']
+InvalidProxyURL: none
+InvalidSchema: none
+InvalidURL: ['exceptions.py:InvalidProxyURL']
+LookupDict: none
+MockRequest: none
+MockResponse: none
+PreparedRequest: ['_types.py:_ValidatedRequest']
+Request: none
+RequestEncodingMixin: ['models.py:PreparedRequest']
+RequestsCookieJar: none
+Response: none
+Session: none
+SessionRedirectMixin: ['sessions.py:Session']
+TooManyRedirects: none
+_init: none
+should_bypass_proxies: none
+
+== (5) utils.py:820 candidates of LookupDict.get
+[(820, 26), (820, 49)]

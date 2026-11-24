@@ -1,0 +1,434 @@
+{
+ "symbols_documentSymbol_recall": "298/320 = 0.931 (95% Wilson 0.898-0.954)",
+ "symbols_documentSymbol_precision(class/method/function kinds)": "298/298 = 1.000 (95% Wilson 0.987-1.000)",
+ "symbols_missing": [
+  [
+   "auth.py",
+   "__init__",
+   92
+  ],
+  [
+   "auth.py",
+   "__init__",
+   94
+  ],
+  [
+   "auth.py",
+   "__init__",
+   137
+  ],
+  [
+   "auth.py",
+   "__init__",
+   139
+  ],
+  [
+   "cookies.py",
+   "cookiejar_from_dict",
+   564
+  ],
+  [
+   "cookies.py",
+   "cookiejar_from_dict",
+   572
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   134
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   138
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   142
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   148
+  ],
+  [
+   "models.py",
+   "iter_content",
+   907
+  ],
+  [
+   "models.py",
+   "iter_content",
+   911
+  ],
+  [
+   "models.py",
+   "iter_lines",
+   980
+  ],
+  [
+   "models.py",
+   "iter_lines",
+   987
+  ],
+  [
+   "structures.py",
+   "get",
+   124
+  ],
+  [
+   "structures.py",
+   "get",
+   127
+  ],
+  [
+   "utils.py",
+   "proxy_bypass_registry",
+   99
+  ],
+  [
+   "utils.py",
+   "proxy_bypass",
+   137
+  ],
+  [
+   "utils.py",
+   "to_key_val_list",
+   371
+  ],
+  [
+   "utils.py",
+   "to_key_val_list",
+   373
+  ],
+  [
+   "utils.py",
+   "iter_slices",
+   614
+  ],
+  [
+   "utils.py",
+   "iter_slices",
+   618
+  ]
+ ],
+ "symbols_class_kind_mismatch": [],
+ "symbols_extra_decl": [],
+ "symbols_workspaceSymbol_recall": "298/320 = 0.931 (95% Wilson 0.898-0.954)",
+ "symbols_workspaceSymbol_missing": [
+  [
+   "auth.py",
+   "__init__",
+   92
+  ],
+  [
+   "auth.py",
+   "__init__",
+   94
+  ],
+  [
+   "auth.py",
+   "__init__",
+   137
+  ],
+  [
+   "auth.py",
+   "__init__",
+   139
+  ],
+  [
+   "cookies.py",
+   "cookiejar_from_dict",
+   564
+  ],
+  [
+   "cookies.py",
+   "cookiejar_from_dict",
+   572
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   134
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   138
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   142
+  ],
+  [
+   "models.py",
+   "_encode_params",
+   148
+  ],
+  [
+   "models.py",
+   "iter_content",
+   907
+  ],
+  [
+   "models.py",
+   "iter_content",
+   911
+  ],
+  [
+   "models.py",
+   "iter_lines",
+   980
+  ],
+  [
+   "models.py",
+   "iter_lines",
+   987
+  ],
+  [
+   "structures.py",
+   "get",
+   124
+  ],
+  [
+   "structures.py",
+   "get",
+   127
+  ],
+  [
+   "utils.py",
+   "proxy_bypass_registry",
+   99
+  ],
+  [
+   "utils.py",
+   "proxy_bypass",
+   137
+  ],
+  [
+   "utils.py",
+   "to_key_val_list",
+   371
+  ],
+  [
+   "utils.py",
+   "to_key_val_list",
+   373
+  ],
+  [
+   "utils.py",
+   "iter_slices",
+   614
+  ],
+  [
+   "utils.py",
+   "iter_slices",
+   618
+  ]
+ ],
+ "calls_duplicate_incoming_sites_removed_before_scoring": 0,
+ "calls_incoming_recall": "2/15 = 0.133 (95% Wilson 0.037-0.379)",
+ "calls_incoming_precision": "2/2 = 1.000 (95% Wilson 0.342-1.000)",
+ "calls_poly_sites_counted_neutral": 0,
+ "calls_blind_sites_found_by_pyright": 0,
+ "calls_targets_with_true_sites": 3,
+ "calls_negative_targets (no true site)": "1/1 returned no false site",
+ "calls_prepareCallHierarchy_null_targets": 0,
+ "references_recall_over_true_call_sites": "2/15 = 0.133 (95% Wilson 0.037-0.379)",
+ "references_extras_not_true_calls (hand-classify)": 14,
+ "definition_at_call_site_total": 1028,
+ "definition_at_call_site_outcomes": {
+  "external (typeshed or stdlib)": 648,
+  "in-package": 312,
+  "none": 66,
+  "in-package, not at a def (variable/import/alias)": 22,
+  "external (installed package)": 2
+ },
+ "definition_in_package_name_mismatches (hand-review)": [
+  [
+   "adapters.py",
+   375,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "adapters.py",
+   481,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "adapters.py",
+   581,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "adapters.py",
+   659,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "cookies.py",
+   46,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "models.py",
+   947,
+   "RequestsSSLError",
+   "->",
+   "SSLError"
+  ],
+  [
+   "models.py",
+   1117,
+   "RequestsJSONDecodeError",
+   "->",
+   "JSONDecodeError"
+  ],
+  [
+   "models.py",
+   1124,
+   "RequestsJSONDecodeError",
+   "->",
+   "JSONDecodeError"
+  ],
+  [
+   "sessions.py",
+   317,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "sessions.py",
+   318,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "sessions.py",
+   350,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "sessions.py",
+   637,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ],
+  [
+   "sessions.py",
+   770,
+   "_is_prepared",
+   "->",
+   "is_prepared"
+  ]
+ ],
+ "definition_in_package_name_mismatch_count": 13,
+ "definition_at_true_sites_resolves_to_the_target (exact def spans, no window)": "2/2 = 1.000 (95% Wilson 0.342-1.000)",
+ "definition_at_true_sites_not_checkable_by_name (distinct lines whose callee is not the target's name: aliases, constructor calls to a subclass, cls(...))": 13,
+ "definition_at_true_sites_disagreements": [],
+ "timing_ms": {
+  "initMs": 78.709333,
+  "firstAllDocumentSymbolsMs": 166.50866599999998,
+  "totalMs": 3635.808
+ },
+ "latency_ms": {
+  "initialize": {
+   "n": 1,
+   "mean": 78.5,
+   "max": 78.5
+  },
+  "textDocument/documentSymbol": {
+   "n": 19,
+   "mean": 8.7,
+   "max": 111.9
+  },
+  "workspace/symbol": {
+   "n": 242,
+   "mean": 0.5,
+   "max": 3.9
+  },
+  "textDocument/prepareCallHierarchy": {
+   "n": 320,
+   "mean": 0.1,
+   "max": 12.0
+  },
+  "callHierarchy/incomingCalls": {
+   "n": 51,
+   "mean": 12.8,
+   "max": 202.0
+  },
+  "callHierarchy/outgoingCalls": {
+   "n": 318,
+   "mean": 0.7,
+   "max": 84.7
+  },
+  "textDocument/references": {
+   "n": 52,
+   "mean": 4.4,
+   "max": 107.6
+  },
+  "textDocument/definition": {
+   "n": 1028,
+   "mean": 2.0,
+   "max": 22.6
+  }
+ },
+ "stats": {
+  "requests": 2031,
+  "answered": 2031,
+  "errors": 0,
+  "serverStderr": ""
+ }
+}
+
+-- per target
+_types.py:47 is_prepared | true=10 pyright_incoming=0 tp=0 fp=0 fn=10 poly_ok=0 blind_found=0 prepared=yes refs=3 refs_tp=0
+     ('MISSED', 'adapters.py:375')
+     ('MISSED', 'adapters.py:481')
+     ('MISSED', 'adapters.py:581')
+     ('MISSED', 'adapters.py:659')
+     ('MISSED', 'cookies.py:46')
+     ('MISSED', 'sessions.py:317')
+     ('MISSED', 'sessions.py:318')
+     ('MISSED', 'sessions.py:350')
+     ('MISSED', 'sessions.py:637')
+     ('MISSED', 'sessions.py:770')
+exceptions.py:42 JSONDecodeError | true=2 pyright_incoming=0 tp=0 fp=0 fn=2 poly_ok=0 blind_found=0 prepared=yes refs=3 refs_tp=0
+     ('MISSED', 'models.py:1124')
+     ('MISSED', 'models.py:1117')
+exceptions.py:78 SSLError | true=3 pyright_incoming=2 tp=2 fp=0 fn=1 poly_ok=0 blind_found=0 prepared=yes refs=4 refs_tp=2
+     ('MISSED', 'models.py:947')
+_types.py:38 SupportsItems | true=0 pyright_incoming=0 tp=0 fp=0 fn=0 poly_ok=0 blind_found=0 prepared=yes refs=6 refs_tp=0
+
+-- references extras
+    ('_types.py:47 is_prepared', 'adapters.py:77', 'from ._types import is_prepared as _is_prepared')
+    ('_types.py:47 is_prepared', 'cookies.py:20', 'from ._types import is_prepared as _is_prepared')
+    ('_types.py:47 is_prepared', 'sessions.py:20', 'from ._types import is_prepared as _is_prepared')
+    ('exceptions.py:42 JSONDecodeError', '__init__.py:177', 'JSONDecodeError,')
+    ('exceptions.py:42 JSONDecodeError', '__init__.py:192', '"JSONDecodeError",')
+    ('exceptions.py:42 JSONDecodeError', 'models.py:67', 'from .exceptions import JSONDecodeError as RequestsJSONDecodeError')
+    ('exceptions.py:78 SSLError', 'adapters.py:49', 'SSLError,')
+    ('exceptions.py:78 SSLError', 'models.py:68', 'from .exceptions import SSLError as RequestsSSLError')
+    ('_types.py:38 SupportsItems', '_types.py:89', 'SupportsItems[_ParamsMappingKeyType, _ParamsMappingValueType]')
+    ('_types.py:38 SupportsItems', '_types.py:97', 'KVDataType: TypeAlias = Iterable[tuple[Any, Any]] | SupportsItems[Any, Any]')
+    ('_types.py:38 SupportsItems', 'utils.py:45', 'from ._types import SupportsItems as _SupportsItems')
+    ('_types.py:38 SupportsItems', 'utils.py:150', 'd: _t.SupportsItems[Any, Any] | Iterable[tuple[Any, Any]],')
+    ('_types.py:38 SupportsItems', 'utils.py:374', 'value: _t.SupportsItems[_KT, _VT] | Iterable[tuple[_KT, _VT]],')
+    ('_types.py:38 SupportsItems', 'utils.py:377', 'value: _t.SupportsItems[_KT, _VT] | Iterable[tuple[_KT, _VT]] | None,')

@@ -1,0 +1,22 @@
+Ground-truth provenance (recorded 2026-11-23)
+
+Scratch repository log (the repository was created in the session scratch directory, outside glyph-cli):
+  220448cfbd92c50ecb8e901f95f51bf36339f7e1 2026-11-23T09:16:23-06:00 fixture ground truth fixed before pyright ran
+  e881f08e90d51b85dbe8dbfaba68228df94402f2 2026-11-23T09:15:32-06:00 ground truth fixed before pyright ran
+
+git hash-object of the files in this directory versus the blobs committed in the scratch repository before pyright ran:
+  gt_rules.md here=81e7af6ef26b02978e40f6db5213bf4f6890dc1c scratch-committed=81e7af6ef26b02978e40f6db5213bf4f6890dc1c
+  gt3_classified.json here=a280a56f8251985519d8a03e3fd896905d8c8d72 scratch-committed=a280a56f8251985519d8a03e3fd896905d8c8d72
+  fixtures/expected.json here=0e8a1ff0ddf62713187d25480c0419f6bd5823c8 scratch-committed=0e8a1ff0ddf62713187d25480c0419f6bd5823c8
+
+First pyright language-server output files (file modification times; pyright --version and npm install ran earlier but sent no source to the server):
+  /private/tmp/claude-501/-Volumes-external-repos-glyph-cli/f49f7d09-3ac6-45aa-b911-af683fb9e242/scratchpad/py/fx-all-1.json 2026-11-23T09:17:17-0600
+  /private/tmp/claude-501/-Volumes-external-repos-glyph-cli/f49f7d09-3ac6-45aa-b911-af683fb9e242/scratchpad/py/real-all-1.json 2026-11-23T09:18:20-0600
+
+The commits (09:15:32 and 09:16:23 -06:00) precede the first server output (09:17:17 and 09:18:20) by one to three minutes.
+The claim therefore rests on the commit hashes and times above, which a reader can check against the blob ids, not on a long gap.
+seed 303 regenerates targets.json and symbols.json byte-identically: run gt1_enumerate.py and diff against derived/.
+
+The scratch repository is committed here as results/ground-truth.bundle (git bundle verify; git clone it to check the commits above).
+
+Caveat on the ordering claim: the commit times above are the scratch repository's own (self-asserted, and a bundle's commit dates can be rewritten), and the "first server output" times are file modification times of uncommitted scratch files. Neither is an independent timestamp. What the files do establish is that the committed blobs equal the files used and that the harness outputs were written after those commits; they cannot prove the classification was done before the first request.

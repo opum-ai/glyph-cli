@@ -1,0 +1,3384 @@
+[
+ {
+  "file": "__init__.py",
+  "name": "check_compatibility",
+  "qualname": "check_compatibility",
+  "kind": "function",
+  "category": "function",
+  "line": 60,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "__init__.py",
+  "name": "_check_cryptography",
+  "qualname": "_check_cryptography",
+  "kind": "function",
+  "category": "function",
+  "line": 99,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_internal_utils.py",
+  "name": "to_native_string",
+  "qualname": "to_native_string",
+  "kind": "function",
+  "category": "function",
+  "line": 26,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_internal_utils.py",
+  "name": "unicode_is_ascii",
+  "qualname": "unicode_is_ascii",
+  "kind": "function",
+  "category": "function",
+  "line": 39,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_types.py",
+  "name": "SupportsRead",
+  "qualname": "SupportsRead",
+  "kind": "class",
+  "category": "class",
+  "line": 28,
+  "decorators": [
+   "runtime_checkable"
+  ],
+  "bases": [
+   "Protocol[_T_co]"
+  ]
+ },
+ {
+  "file": "_types.py",
+  "name": "read",
+  "qualname": "SupportsRead.read",
+  "kind": "function",
+  "category": "method",
+  "line": 29,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_types.py",
+  "name": "has_read",
+  "qualname": "has_read",
+  "kind": "function",
+  "category": "function",
+  "line": 32,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_types.py",
+  "name": "SupportsItems",
+  "qualname": "SupportsItems",
+  "kind": "class",
+  "category": "class",
+  "line": 38,
+  "decorators": [
+   "runtime_checkable"
+  ],
+  "bases": [
+   "Protocol[_KT_co, _VT_co]"
+  ]
+ },
+ {
+  "file": "_types.py",
+  "name": "items",
+  "qualname": "SupportsItems.items",
+  "kind": "function",
+  "category": "method",
+  "line": 39,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_types.py",
+  "name": "is_prepared",
+  "qualname": "is_prepared",
+  "kind": "function",
+  "category": "function",
+  "line": 47,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "_types.py",
+  "name": "_ValidatedRequest",
+  "qualname": "_ValidatedRequest",
+  "kind": "class",
+  "category": "class",
+  "line": 69,
+  "decorators": [],
+  "bases": [
+   "PreparedRequest"
+  ]
+ },
+ {
+  "file": "_types.py",
+  "name": "BaseRequestKwargs",
+  "qualname": "BaseRequestKwargs",
+  "kind": "class",
+  "category": "class",
+  "line": 157,
+  "decorators": [],
+  "bases": [
+   "TypedDict"
+  ]
+ },
+ {
+  "file": "_types.py",
+  "name": "RequestKwargs",
+  "qualname": "RequestKwargs",
+  "kind": "class",
+  "category": "class",
+  "line": 170,
+  "decorators": [],
+  "bases": [
+   "BaseRequestKwargs"
+  ]
+ },
+ {
+  "file": "_types.py",
+  "name": "GetKwargs",
+  "qualname": "GetKwargs",
+  "kind": "class",
+  "category": "class",
+  "line": 177,
+  "decorators": [],
+  "bases": [
+   "BaseRequestKwargs"
+  ]
+ },
+ {
+  "file": "_types.py",
+  "name": "PostKwargs",
+  "qualname": "PostKwargs",
+  "kind": "class",
+  "category": "class",
+  "line": 181,
+  "decorators": [],
+  "bases": [
+   "BaseRequestKwargs"
+  ]
+ },
+ {
+  "file": "_types.py",
+  "name": "DataKwargs",
+  "qualname": "DataKwargs",
+  "kind": "class",
+  "category": "class",
+  "line": 184,
+  "decorators": [],
+  "bases": [
+   "BaseRequestKwargs"
+  ]
+ },
+ {
+  "file": "adapters.py",
+  "name": "SOCKSProxyManager",
+  "qualname": "SOCKSProxyManager",
+  "kind": "function",
+  "category": "function",
+  "line": 66,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "_urllib3_request_context",
+  "qualname": "_urllib3_request_context",
+  "kind": "function",
+  "category": "function",
+  "line": 85,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "BaseAdapter",
+  "qualname": "BaseAdapter",
+  "kind": "class",
+  "category": "class",
+  "line": 122,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "__init__",
+  "qualname": "BaseAdapter.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 125,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "send",
+  "qualname": "BaseAdapter.send",
+  "kind": "function",
+  "category": "method",
+  "line": 128,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "close",
+  "qualname": "BaseAdapter.close",
+  "kind": "function",
+  "category": "method",
+  "line": 153,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "HTTPAdapter",
+  "qualname": "HTTPAdapter",
+  "kind": "class",
+  "category": "class",
+  "line": 158,
+  "decorators": [],
+  "bases": [
+   "BaseAdapter"
+  ]
+ },
+ {
+  "file": "adapters.py",
+  "name": "__init__",
+  "qualname": "HTTPAdapter.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 201,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "__getstate__",
+  "qualname": "HTTPAdapter.__getstate__",
+  "kind": "function",
+  "category": "method",
+  "line": 223,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "__setstate__",
+  "qualname": "HTTPAdapter.__setstate__",
+  "kind": "function",
+  "category": "method",
+  "line": 226,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "init_poolmanager",
+  "qualname": "HTTPAdapter.init_poolmanager",
+  "kind": "function",
+  "category": "method",
+  "line": 239,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "proxy_manager_for",
+  "qualname": "HTTPAdapter.proxy_manager_for",
+  "kind": "function",
+  "category": "method",
+  "line": 269,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "cert_verify",
+  "qualname": "HTTPAdapter.cert_verify",
+  "kind": "function",
+  "category": "method",
+  "line": 307,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "build_response",
+  "qualname": "HTTPAdapter.build_response",
+  "kind": "function",
+  "category": "method",
+  "line": 365,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "build_connection_pool_key_attributes",
+  "qualname": "HTTPAdapter.build_connection_pool_key_attributes",
+  "kind": "function",
+  "category": "method",
+  "line": 403,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "get_connection_with_tls_context",
+  "qualname": "HTTPAdapter.get_connection_with_tls_context",
+  "kind": "function",
+  "category": "method",
+  "line": 455,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "get_connection",
+  "qualname": "HTTPAdapter.get_connection",
+  "kind": "function",
+  "category": "method",
+  "line": 512,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "close",
+  "qualname": "HTTPAdapter.close",
+  "kind": "function",
+  "category": "method",
+  "line": 555,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "request_url",
+  "qualname": "HTTPAdapter.request_url",
+  "kind": "function",
+  "category": "method",
+  "line": 565,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "add_headers",
+  "qualname": "HTTPAdapter.add_headers",
+  "kind": "function",
+  "category": "method",
+  "line": 599,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "proxy_headers",
+  "qualname": "HTTPAdapter.proxy_headers",
+  "kind": "function",
+  "category": "method",
+  "line": 613,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "adapters.py",
+  "name": "send",
+  "qualname": "HTTPAdapter.send",
+  "kind": "function",
+  "category": "method",
+  "line": 634,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "api.py",
+  "name": "request",
+  "qualname": "request",
+  "kind": "function",
+  "category": "function",
+  "line": 24,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "api.py",
+  "name": "get",
+  "qualname": "get",
+  "kind": "function",
+  "category": "function",
+  "line": 74,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "api.py",
+  "name": "options",
+  "qualname": "options",
+  "kind": "function",
+  "category": "function",
+  "line": 90,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "api.py",
+  "name": "head",
+  "qualname": "head",
+  "kind": "function",
+  "category": "function",
+  "line": 102,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "api.py",
+  "name": "post",
+  "qualname": "post",
+  "kind": "function",
+  "category": "function",
+  "line": 117,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "api.py",
+  "name": "put",
+  "qualname": "put",
+  "kind": "function",
+  "category": "function",
+  "line": 137,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "api.py",
+  "name": "patch",
+  "qualname": "patch",
+  "kind": "function",
+  "category": "function",
+  "line": 154,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "api.py",
+  "name": "delete",
+  "qualname": "delete",
+  "kind": "function",
+  "category": "function",
+  "line": 171,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "_basic_auth_str",
+  "qualname": "_basic_auth_str",
+  "kind": "function",
+  "category": "function",
+  "line": 34,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "AuthBase",
+  "qualname": "AuthBase",
+  "kind": "class",
+  "category": "class",
+  "line": 78,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "__call__",
+  "qualname": "AuthBase.__call__",
+  "kind": "function",
+  "category": "method",
+  "line": 81,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "HTTPBasicAuth",
+  "qualname": "HTTPBasicAuth",
+  "kind": "class",
+  "category": "class",
+  "line": 85,
+  "decorators": [],
+  "bases": [
+   "AuthBase"
+  ]
+ },
+ {
+  "file": "auth.py",
+  "name": "__init__",
+  "qualname": "HTTPBasicAuth.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 92,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "__init__",
+  "qualname": "HTTPBasicAuth.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 94,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "__init__",
+  "qualname": "HTTPBasicAuth.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 96,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "__eq__",
+  "qualname": "HTTPBasicAuth.__eq__",
+  "kind": "function",
+  "category": "method",
+  "line": 100,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "__ne__",
+  "qualname": "HTTPBasicAuth.__ne__",
+  "kind": "function",
+  "category": "method",
+  "line": 108,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "__call__",
+  "qualname": "HTTPBasicAuth.__call__",
+  "kind": "function",
+  "category": "method",
+  "line": 111,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "HTTPProxyAuth",
+  "qualname": "HTTPProxyAuth",
+  "kind": "class",
+  "category": "class",
+  "line": 116,
+  "decorators": [],
+  "bases": [
+   "HTTPBasicAuth"
+  ]
+ },
+ {
+  "file": "auth.py",
+  "name": "__call__",
+  "qualname": "HTTPProxyAuth.__call__",
+  "kind": "function",
+  "category": "method",
+  "line": 119,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "HTTPDigestAuth",
+  "qualname": "HTTPDigestAuth",
+  "kind": "class",
+  "category": "class",
+  "line": 124,
+  "decorators": [],
+  "bases": [
+   "AuthBase"
+  ]
+ },
+ {
+  "file": "auth.py",
+  "name": "__init__",
+  "qualname": "HTTPDigestAuth.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 137,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "__init__",
+  "qualname": "HTTPDigestAuth.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 139,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "__init__",
+  "qualname": "HTTPDigestAuth.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 141,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "init_per_thread_state",
+  "qualname": "HTTPDigestAuth.init_per_thread_state",
+  "kind": "function",
+  "category": "method",
+  "line": 147,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "build_digest_header",
+  "qualname": "HTTPDigestAuth.build_digest_header",
+  "kind": "function",
+  "category": "method",
+  "line": 157,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "md5_utf8",
+  "qualname": "HTTPDigestAuth.build_digest_header.md5_utf8",
+  "kind": "function",
+  "category": "nested",
+  "line": 176,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "sha_utf8",
+  "qualname": "HTTPDigestAuth.build_digest_header.sha_utf8",
+  "kind": "function",
+  "category": "nested",
+  "line": 184,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "sha256_utf8",
+  "qualname": "HTTPDigestAuth.build_digest_header.sha256_utf8",
+  "kind": "function",
+  "category": "nested",
+  "line": 192,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "sha512_utf8",
+  "qualname": "HTTPDigestAuth.build_digest_header.sha512_utf8",
+  "kind": "function",
+  "category": "nested",
+  "line": 200,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "KD",
+  "qualname": "HTTPDigestAuth.build_digest_header.KD",
+  "kind": "function",
+  "category": "nested",
+  "line": 210,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "handle_redirect",
+  "qualname": "HTTPDigestAuth.handle_redirect",
+  "kind": "function",
+  "category": "method",
+  "line": 268,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "handle_401",
+  "qualname": "HTTPDigestAuth.handle_401",
+  "kind": "function",
+  "category": "method",
+  "line": 273,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "__call__",
+  "qualname": "HTTPDigestAuth.__call__",
+  "kind": "function",
+  "category": "method",
+  "line": 321,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "__eq__",
+  "qualname": "HTTPDigestAuth.__eq__",
+  "kind": "function",
+  "category": "method",
+  "line": 345,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "auth.py",
+  "name": "__ne__",
+  "qualname": "HTTPDigestAuth.__ne__",
+  "kind": "function",
+  "category": "method",
+  "line": 353,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "compat.py",
+  "name": "_resolve_char_detection",
+  "qualname": "_resolve_char_detection",
+  "kind": "function",
+  "category": "function",
+  "line": 36,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "MockRequest",
+  "qualname": "MockRequest",
+  "kind": "class",
+  "category": "class",
+  "line": 31,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "__init__",
+  "qualname": "MockRequest.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 45,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "get_type",
+  "qualname": "MockRequest.get_type",
+  "kind": "function",
+  "category": "method",
+  "line": 51,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "get_host",
+  "qualname": "MockRequest.get_host",
+  "kind": "function",
+  "category": "method",
+  "line": 54,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "get_origin_req_host",
+  "qualname": "MockRequest.get_origin_req_host",
+  "kind": "function",
+  "category": "method",
+  "line": 57,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "get_full_url",
+  "qualname": "MockRequest.get_full_url",
+  "kind": "function",
+  "category": "method",
+  "line": 60,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "is_unverifiable",
+  "qualname": "MockRequest.is_unverifiable",
+  "kind": "function",
+  "category": "method",
+  "line": 80,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "has_header",
+  "qualname": "MockRequest.has_header",
+  "kind": "function",
+  "category": "method",
+  "line": 83,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "get_header",
+  "qualname": "MockRequest.get_header",
+  "kind": "function",
+  "category": "method",
+  "line": 86,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "add_header",
+  "qualname": "MockRequest.add_header",
+  "kind": "function",
+  "category": "method",
+  "line": 89,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "add_unredirected_header",
+  "qualname": "MockRequest.add_unredirected_header",
+  "kind": "function",
+  "category": "method",
+  "line": 95,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "get_new_headers",
+  "qualname": "MockRequest.get_new_headers",
+  "kind": "function",
+  "category": "method",
+  "line": 98,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "unverifiable",
+  "qualname": "MockRequest.unverifiable",
+  "kind": "function",
+  "category": "property",
+  "line": 102,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "origin_req_host",
+  "qualname": "MockRequest.origin_req_host",
+  "kind": "function",
+  "category": "property",
+  "line": 106,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "host",
+  "qualname": "MockRequest.host",
+  "kind": "function",
+  "category": "property",
+  "line": 110,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "MockResponse",
+  "qualname": "MockResponse",
+  "kind": "class",
+  "category": "class",
+  "line": 114,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "__init__",
+  "qualname": "MockResponse.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 121,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "info",
+  "qualname": "MockResponse.info",
+  "kind": "function",
+  "category": "method",
+  "line": 128,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "getheaders",
+  "qualname": "MockResponse.getheaders",
+  "kind": "function",
+  "category": "method",
+  "line": 131,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "extract_cookies_to_jar",
+  "qualname": "extract_cookies_to_jar",
+  "kind": "function",
+  "category": "function",
+  "line": 135,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "get_cookie_header",
+  "qualname": "get_cookie_header",
+  "kind": "function",
+  "category": "function",
+  "line": 153,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "remove_cookie_by_name",
+  "qualname": "remove_cookie_by_name",
+  "kind": "function",
+  "category": "function",
+  "line": 164,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "CookieConflictError",
+  "qualname": "CookieConflictError",
+  "kind": "class",
+  "category": "class",
+  "line": 185,
+  "decorators": [],
+  "bases": [
+   "RuntimeError"
+  ]
+ },
+ {
+  "file": "cookies.py",
+  "name": "RequestsCookieJar",
+  "qualname": "RequestsCookieJar",
+  "kind": "class",
+  "category": "class",
+  "line": 191,
+  "decorators": [],
+  "bases": [
+   "CookieJar",
+   "MutableMapping[str, str | None]"
+  ]
+ },
+ {
+  "file": "cookies.py",
+  "name": "get",
+  "qualname": "RequestsCookieJar.get",
+  "kind": "function",
+  "category": "method",
+  "line": 211,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "set",
+  "qualname": "RequestsCookieJar.set",
+  "kind": "function",
+  "category": "method",
+  "line": 229,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "iterkeys",
+  "qualname": "RequestsCookieJar.iterkeys",
+  "kind": "function",
+  "category": "method",
+  "line": 250,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "keys",
+  "qualname": "RequestsCookieJar.keys",
+  "kind": "function",
+  "category": "method",
+  "line": 259,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "itervalues",
+  "qualname": "RequestsCookieJar.itervalues",
+  "kind": "function",
+  "category": "method",
+  "line": 267,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "values",
+  "qualname": "RequestsCookieJar.values",
+  "kind": "function",
+  "category": "method",
+  "line": 276,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "iteritems",
+  "qualname": "RequestsCookieJar.iteritems",
+  "kind": "function",
+  "category": "method",
+  "line": 284,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "items",
+  "qualname": "RequestsCookieJar.items",
+  "kind": "function",
+  "category": "method",
+  "line": 293,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "list_domains",
+  "qualname": "RequestsCookieJar.list_domains",
+  "kind": "function",
+  "category": "method",
+  "line": 302,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "list_paths",
+  "qualname": "RequestsCookieJar.list_paths",
+  "kind": "function",
+  "category": "method",
+  "line": 310,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "multiple_domains",
+  "qualname": "RequestsCookieJar.multiple_domains",
+  "kind": "function",
+  "category": "method",
+  "line": 318,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "get_dict",
+  "qualname": "RequestsCookieJar.get_dict",
+  "kind": "function",
+  "category": "method",
+  "line": 331,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "__iter__",
+  "qualname": "RequestsCookieJar.__iter__",
+  "kind": "function",
+  "category": "method",
+  "line": 348,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "__contains__",
+  "qualname": "RequestsCookieJar.__contains__",
+  "kind": "function",
+  "category": "method",
+  "line": 352,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "__getitem__",
+  "qualname": "RequestsCookieJar.__getitem__",
+  "kind": "function",
+  "category": "method",
+  "line": 358,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "__setitem__",
+  "qualname": "RequestsCookieJar.__setitem__",
+  "kind": "function",
+  "category": "method",
+  "line": 367,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "__delitem__",
+  "qualname": "RequestsCookieJar.__delitem__",
+  "kind": "function",
+  "category": "method",
+  "line": 376,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "set_cookie",
+  "qualname": "RequestsCookieJar.set_cookie",
+  "kind": "function",
+  "category": "method",
+  "line": 382,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "update",
+  "qualname": "RequestsCookieJar.update",
+  "kind": "function",
+  "category": "method",
+  "line": 391,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "_find",
+  "qualname": "RequestsCookieJar._find",
+  "kind": "function",
+  "category": "method",
+  "line": 401,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "_find_no_duplicates",
+  "qualname": "RequestsCookieJar._find_no_duplicates",
+  "kind": "function",
+  "category": "method",
+  "line": 423,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "__getstate__",
+  "qualname": "RequestsCookieJar.__getstate__",
+  "kind": "function",
+  "category": "method",
+  "line": 454,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "__setstate__",
+  "qualname": "RequestsCookieJar.__setstate__",
+  "kind": "function",
+  "category": "method",
+  "line": 461,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "copy",
+  "qualname": "RequestsCookieJar.copy",
+  "kind": "function",
+  "category": "method",
+  "line": 467,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "get_policy",
+  "qualname": "RequestsCookieJar.get_policy",
+  "kind": "function",
+  "category": "method",
+  "line": 474,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "_copy_cookie_jar",
+  "qualname": "_copy_cookie_jar",
+  "kind": "function",
+  "category": "function",
+  "line": 479,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "create_cookie",
+  "qualname": "create_cookie",
+  "kind": "function",
+  "category": "function",
+  "line": 494,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "morsel_to_cookie",
+  "qualname": "morsel_to_cookie",
+  "kind": "function",
+  "category": "function",
+  "line": 531,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "cookiejar_from_dict",
+  "qualname": "cookiejar_from_dict",
+  "kind": "function",
+  "category": "function",
+  "line": 564,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "cookiejar_from_dict",
+  "qualname": "cookiejar_from_dict",
+  "kind": "function",
+  "category": "function",
+  "line": 572,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "cookiejar_from_dict",
+  "qualname": "cookiejar_from_dict",
+  "kind": "function",
+  "category": "function",
+  "line": 579,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "cookies.py",
+  "name": "merge_cookies",
+  "qualname": "merge_cookies",
+  "kind": "function",
+  "category": "function",
+  "line": 604,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "RequestException",
+  "qualname": "RequestException",
+  "kind": "class",
+  "category": "class",
+  "line": 20,
+  "decorators": [],
+  "bases": [
+   "IOError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__init__",
+  "qualname": "RequestException.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 28,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "InvalidJSONError",
+  "qualname": "InvalidJSONError",
+  "kind": "class",
+  "category": "class",
+  "line": 38,
+  "decorators": [],
+  "bases": [
+   "RequestException"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "JSONDecodeError",
+  "qualname": "JSONDecodeError",
+  "kind": "class",
+  "category": "class",
+  "line": 42,
+  "decorators": [],
+  "bases": [
+   "InvalidJSONError",
+   "CompatJSONDecodeError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__init__",
+  "qualname": "JSONDecodeError.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 45,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "__reduce__",
+  "qualname": "JSONDecodeError.__reduce__",
+  "kind": "function",
+  "category": "method",
+  "line": 55,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "exceptions.py",
+  "name": "HTTPError",
+  "qualname": "HTTPError",
+  "kind": "class",
+  "category": "class",
+  "line": 66,
+  "decorators": [],
+  "bases": [
+   "RequestException"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "ConnectionError",
+  "qualname": "ConnectionError",
+  "kind": "class",
+  "category": "class",
+  "line": 70,
+  "decorators": [],
+  "bases": [
+   "RequestException"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "ProxyError",
+  "qualname": "ProxyError",
+  "kind": "class",
+  "category": "class",
+  "line": 74,
+  "decorators": [],
+  "bases": [
+   "ConnectionError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "SSLError",
+  "qualname": "SSLError",
+  "kind": "class",
+  "category": "class",
+  "line": 78,
+  "decorators": [],
+  "bases": [
+   "ConnectionError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "Timeout",
+  "qualname": "Timeout",
+  "kind": "class",
+  "category": "class",
+  "line": 82,
+  "decorators": [],
+  "bases": [
+   "RequestException"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "ConnectTimeout",
+  "qualname": "ConnectTimeout",
+  "kind": "class",
+  "category": "class",
+  "line": 91,
+  "decorators": [],
+  "bases": [
+   "ConnectionError",
+   "Timeout"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "ReadTimeout",
+  "qualname": "ReadTimeout",
+  "kind": "class",
+  "category": "class",
+  "line": 98,
+  "decorators": [],
+  "bases": [
+   "Timeout"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "URLRequired",
+  "qualname": "URLRequired",
+  "kind": "class",
+  "category": "class",
+  "line": 102,
+  "decorators": [],
+  "bases": [
+   "RequestException"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "TooManyRedirects",
+  "qualname": "TooManyRedirects",
+  "kind": "class",
+  "category": "class",
+  "line": 106,
+  "decorators": [],
+  "bases": [
+   "RequestException"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "MissingSchema",
+  "qualname": "MissingSchema",
+  "kind": "class",
+  "category": "class",
+  "line": 110,
+  "decorators": [],
+  "bases": [
+   "RequestException",
+   "ValueError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "InvalidSchema",
+  "qualname": "InvalidSchema",
+  "kind": "class",
+  "category": "class",
+  "line": 114,
+  "decorators": [],
+  "bases": [
+   "RequestException",
+   "ValueError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "InvalidURL",
+  "qualname": "InvalidURL",
+  "kind": "class",
+  "category": "class",
+  "line": 118,
+  "decorators": [],
+  "bases": [
+   "RequestException",
+   "ValueError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "InvalidHeader",
+  "qualname": "InvalidHeader",
+  "kind": "class",
+  "category": "class",
+  "line": 122,
+  "decorators": [],
+  "bases": [
+   "RequestException",
+   "ValueError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "InvalidProxyURL",
+  "qualname": "InvalidProxyURL",
+  "kind": "class",
+  "category": "class",
+  "line": 126,
+  "decorators": [],
+  "bases": [
+   "InvalidURL"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "ChunkedEncodingError",
+  "qualname": "ChunkedEncodingError",
+  "kind": "class",
+  "category": "class",
+  "line": 130,
+  "decorators": [],
+  "bases": [
+   "RequestException"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "ContentDecodingError",
+  "qualname": "ContentDecodingError",
+  "kind": "class",
+  "category": "class",
+  "line": 134,
+  "decorators": [],
+  "bases": [
+   "RequestException",
+   "BaseHTTPError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "StreamConsumedError",
+  "qualname": "StreamConsumedError",
+  "kind": "class",
+  "category": "class",
+  "line": 138,
+  "decorators": [],
+  "bases": [
+   "RequestException",
+   "TypeError"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "RetryError",
+  "qualname": "RetryError",
+  "kind": "class",
+  "category": "class",
+  "line": 142,
+  "decorators": [],
+  "bases": [
+   "RequestException"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "UnrewindableBodyError",
+  "qualname": "UnrewindableBodyError",
+  "kind": "class",
+  "category": "class",
+  "line": 146,
+  "decorators": [],
+  "bases": [
+   "RequestException"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "RequestsWarning",
+  "qualname": "RequestsWarning",
+  "kind": "class",
+  "category": "class",
+  "line": 153,
+  "decorators": [],
+  "bases": [
+   "Warning"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "FileModeWarning",
+  "qualname": "FileModeWarning",
+  "kind": "class",
+  "category": "class",
+  "line": 157,
+  "decorators": [],
+  "bases": [
+   "RequestsWarning",
+   "DeprecationWarning"
+  ]
+ },
+ {
+  "file": "exceptions.py",
+  "name": "RequestsDependencyWarning",
+  "qualname": "RequestsDependencyWarning",
+  "kind": "class",
+  "category": "class",
+  "line": 161,
+  "decorators": [],
+  "bases": [
+   "RequestsWarning"
+  ]
+ },
+ {
+  "file": "help.py",
+  "name": "_implementation",
+  "qualname": "_implementation",
+  "kind": "function",
+  "category": "function",
+  "line": 35,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "help.py",
+  "name": "info",
+  "qualname": "info",
+  "kind": "function",
+  "category": "function",
+  "line": 67,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "help.py",
+  "name": "main",
+  "qualname": "main",
+  "kind": "function",
+  "category": "function",
+  "line": 126,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "hooks.py",
+  "name": "default_hooks",
+  "qualname": "default_hooks",
+  "kind": "function",
+  "category": "function",
+  "line": 25,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "hooks.py",
+  "name": "dispatch_hook",
+  "qualname": "dispatch_hook",
+  "kind": "function",
+  "category": "function",
+  "line": 32,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "RequestEncodingMixin",
+  "qualname": "RequestEncodingMixin",
+  "kind": "class",
+  "category": "class",
+  "line": 108,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "path_url",
+  "qualname": "RequestEncodingMixin.path_url",
+  "kind": "function",
+  "category": "property",
+  "line": 112,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "_encode_params",
+  "qualname": "RequestEncodingMixin._encode_params",
+  "kind": "function",
+  "category": "staticmethod",
+  "line": 134,
+  "decorators": [
+   "overload",
+   "staticmethod"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "_encode_params",
+  "qualname": "RequestEncodingMixin._encode_params",
+  "kind": "function",
+  "category": "staticmethod",
+  "line": 138,
+  "decorators": [
+   "overload",
+   "staticmethod"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "_encode_params",
+  "qualname": "RequestEncodingMixin._encode_params",
+  "kind": "function",
+  "category": "staticmethod",
+  "line": 142,
+  "decorators": [
+   "overload",
+   "staticmethod"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "_encode_params",
+  "qualname": "RequestEncodingMixin._encode_params",
+  "kind": "function",
+  "category": "staticmethod",
+  "line": 148,
+  "decorators": [
+   "overload",
+   "staticmethod"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "_encode_params",
+  "qualname": "RequestEncodingMixin._encode_params",
+  "kind": "function",
+  "category": "staticmethod",
+  "line": 151,
+  "decorators": [
+   "staticmethod"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "_encode_files",
+  "qualname": "RequestEncodingMixin._encode_files",
+  "kind": "function",
+  "category": "staticmethod",
+  "line": 183,
+  "decorators": [
+   "staticmethod"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "RequestHooksMixin",
+  "qualname": "RequestHooksMixin",
+  "kind": "class",
+  "category": "class",
+  "line": 254,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "register_hook",
+  "qualname": "RequestHooksMixin.register_hook",
+  "kind": "function",
+  "category": "method",
+  "line": 257,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "deregister_hook",
+  "qualname": "RequestHooksMixin.deregister_hook",
+  "kind": "function",
+  "category": "method",
+  "line": 272,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "Request",
+  "qualname": "Request",
+  "kind": "class",
+  "category": "class",
+  "line": 284,
+  "decorators": [],
+  "bases": [
+   "RequestHooksMixin"
+  ]
+ },
+ {
+  "file": "models.py",
+  "name": "__init__",
+  "qualname": "Request.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 323,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "__repr__",
+  "qualname": "Request.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 357,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "prepare",
+  "qualname": "Request.prepare",
+  "kind": "function",
+  "category": "method",
+  "line": 360,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "PreparedRequest",
+  "qualname": "PreparedRequest",
+  "kind": "class",
+  "category": "class",
+  "line": 378,
+  "decorators": [],
+  "bases": [
+   "RequestEncodingMixin",
+   "RequestHooksMixin"
+  ]
+ },
+ {
+  "file": "models.py",
+  "name": "__init__",
+  "qualname": "PreparedRequest.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 407,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "prepare",
+  "qualname": "PreparedRequest.prepare",
+  "kind": "function",
+  "category": "method",
+  "line": 424,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "__repr__",
+  "qualname": "PreparedRequest.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 453,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "copy",
+  "qualname": "PreparedRequest.copy",
+  "kind": "function",
+  "category": "method",
+  "line": 456,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "prepare_method",
+  "qualname": "PreparedRequest.prepare_method",
+  "kind": "function",
+  "category": "method",
+  "line": 467,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "_get_idna_encoded_host",
+  "qualname": "PreparedRequest._get_idna_encoded_host",
+  "kind": "function",
+  "category": "staticmethod",
+  "line": 474,
+  "decorators": [
+   "staticmethod"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "prepare_url",
+  "qualname": "PreparedRequest.prepare_url",
+  "kind": "function",
+  "category": "method",
+  "line": 483,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "prepare_headers",
+  "qualname": "PreparedRequest.prepare_headers",
+  "kind": "function",
+  "category": "method",
+  "line": 565,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "prepare_body",
+  "qualname": "PreparedRequest.prepare_body",
+  "kind": "function",
+  "category": "method",
+  "line": 576,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "prepare_content_length",
+  "qualname": "PreparedRequest.prepare_content_length",
+  "kind": "function",
+  "category": "method",
+  "line": 654,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "prepare_auth",
+  "qualname": "PreparedRequest.prepare_auth",
+  "kind": "function",
+  "category": "method",
+  "line": 670,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "prepare_cookies",
+  "qualname": "PreparedRequest.prepare_cookies",
+  "kind": "function",
+  "category": "method",
+  "line": 699,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "prepare_hooks",
+  "qualname": "PreparedRequest.prepare_hooks",
+  "kind": "function",
+  "category": "method",
+  "line": 722,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "Response",
+  "qualname": "Response",
+  "kind": "class",
+  "category": "class",
+  "line": 732,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "__init__",
+  "qualname": "Response.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 765,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "__enter__",
+  "qualname": "Response.__enter__",
+  "kind": "function",
+  "category": "method",
+  "line": 812,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "__exit__",
+  "qualname": "Response.__exit__",
+  "kind": "function",
+  "category": "method",
+  "line": 815,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "__getstate__",
+  "qualname": "Response.__getstate__",
+  "kind": "function",
+  "category": "method",
+  "line": 818,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "__setstate__",
+  "qualname": "Response.__setstate__",
+  "kind": "function",
+  "category": "method",
+  "line": 826,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "__repr__",
+  "qualname": "Response.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 834,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "__bool__",
+  "qualname": "Response.__bool__",
+  "kind": "function",
+  "category": "method",
+  "line": 837,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "__nonzero__",
+  "qualname": "Response.__nonzero__",
+  "kind": "function",
+  "category": "method",
+  "line": 847,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "__iter__",
+  "qualname": "Response.__iter__",
+  "kind": "function",
+  "category": "method",
+  "line": 857,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "ok",
+  "qualname": "Response.ok",
+  "kind": "function",
+  "category": "property",
+  "line": 862,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "is_redirect",
+  "qualname": "Response.is_redirect",
+  "kind": "function",
+  "category": "property",
+  "line": 877,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "is_permanent_redirect",
+  "qualname": "Response.is_permanent_redirect",
+  "kind": "function",
+  "category": "property",
+  "line": 884,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "next",
+  "qualname": "Response.next",
+  "kind": "function",
+  "category": "property",
+  "line": 892,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "apparent_encoding",
+  "qualname": "Response.apparent_encoding",
+  "kind": "function",
+  "category": "property",
+  "line": 897,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "iter_content",
+  "qualname": "Response.iter_content",
+  "kind": "function",
+  "category": "method",
+  "line": 907,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "iter_content",
+  "qualname": "Response.iter_content",
+  "kind": "function",
+  "category": "method",
+  "line": 911,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "iter_content",
+  "qualname": "Response.iter_content",
+  "kind": "function",
+  "category": "method",
+  "line": 914,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "generate",
+  "qualname": "Response.iter_content.generate",
+  "kind": "function",
+  "category": "nested",
+  "line": 935,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "iter_lines",
+  "qualname": "Response.iter_lines",
+  "kind": "function",
+  "category": "method",
+  "line": 980,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "iter_lines",
+  "qualname": "Response.iter_lines",
+  "kind": "function",
+  "category": "method",
+  "line": 987,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "iter_lines",
+  "qualname": "Response.iter_lines",
+  "kind": "function",
+  "category": "method",
+  "line": 994,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "content",
+  "qualname": "Response.content",
+  "kind": "function",
+  "category": "property",
+  "line": 1035,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "text",
+  "qualname": "Response.text",
+  "kind": "function",
+  "category": "property",
+  "line": 1054,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "json",
+  "qualname": "Response.json",
+  "kind": "function",
+  "category": "method",
+  "line": 1091,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "links",
+  "qualname": "Response.links",
+  "kind": "function",
+  "category": "property",
+  "line": 1127,
+  "decorators": [
+   "property"
+  ],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "raise_for_status",
+  "qualname": "Response.raise_for_status",
+  "kind": "function",
+  "category": "method",
+  "line": 1144,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "models.py",
+  "name": "close",
+  "qualname": "Response.close",
+  "kind": "function",
+  "category": "method",
+  "line": 1173,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "merge_setting",
+  "qualname": "merge_setting",
+  "kind": "function",
+  "category": "function",
+  "line": 76,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "merge_hooks",
+  "qualname": "merge_hooks",
+  "kind": "function",
+  "category": "function",
+  "line": 108,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "SessionRedirectMixin",
+  "qualname": "SessionRedirectMixin",
+  "kind": "class",
+  "category": "class",
+  "line": 127,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "send",
+  "qualname": "SessionRedirectMixin.send",
+  "kind": "function",
+  "category": "method",
+  "line": 132,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "get_redirect_target",
+  "qualname": "SessionRedirectMixin.get_redirect_target",
+  "kind": "function",
+  "category": "method",
+  "line": 134,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "should_strip_auth",
+  "qualname": "SessionRedirectMixin.should_strip_auth",
+  "kind": "function",
+  "category": "method",
+  "line": 154,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "resolve_redirects",
+  "qualname": "SessionRedirectMixin.resolve_redirects",
+  "kind": "function",
+  "category": "method",
+  "line": 186,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "rebuild_auth",
+  "qualname": "SessionRedirectMixin.rebuild_auth",
+  "kind": "function",
+  "category": "method",
+  "line": 309,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "rebuild_proxies",
+  "qualname": "SessionRedirectMixin.rebuild_proxies",
+  "kind": "function",
+  "category": "method",
+  "line": 334,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "rebuild_method",
+  "qualname": "SessionRedirectMixin.rebuild_method",
+  "kind": "function",
+  "category": "method",
+  "line": 370,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "Session",
+  "qualname": "Session",
+  "kind": "class",
+  "category": "class",
+  "line": 395,
+  "decorators": [],
+  "bases": [
+   "SessionRedirectMixin"
+  ]
+ },
+ {
+  "file": "sessions.py",
+  "name": "__init__",
+  "qualname": "Session.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 442,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "__enter__",
+  "qualname": "Session.__enter__",
+  "kind": "function",
+  "category": "method",
+  "line": 505,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "__exit__",
+  "qualname": "Session.__exit__",
+  "kind": "function",
+  "category": "method",
+  "line": 508,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "prepare_request",
+  "qualname": "Session.prepare_request",
+  "kind": "function",
+  "category": "method",
+  "line": 511,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "request",
+  "qualname": "Session.request",
+  "kind": "function",
+  "category": "method",
+  "line": 557,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "get",
+  "qualname": "Session.get",
+  "kind": "function",
+  "category": "method",
+  "line": 655,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "options",
+  "qualname": "Session.options",
+  "kind": "function",
+  "category": "method",
+  "line": 673,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "head",
+  "qualname": "Session.head",
+  "kind": "function",
+  "category": "method",
+  "line": 684,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "post",
+  "qualname": "Session.post",
+  "kind": "function",
+  "category": "method",
+  "line": 695,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "put",
+  "qualname": "Session.put",
+  "kind": "function",
+  "category": "method",
+  "line": 714,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "patch",
+  "qualname": "Session.patch",
+  "kind": "function",
+  "category": "method",
+  "line": 728,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "delete",
+  "qualname": "Session.delete",
+  "kind": "function",
+  "category": "method",
+  "line": 742,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "send",
+  "qualname": "Session.send",
+  "kind": "function",
+  "category": "method",
+  "line": 752,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "merge_environment_settings",
+  "qualname": "Session.merge_environment_settings",
+  "kind": "function",
+  "category": "method",
+  "line": 831,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "get_adapter",
+  "qualname": "Session.get_adapter",
+  "kind": "function",
+  "category": "method",
+  "line": 870,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "close",
+  "qualname": "Session.close",
+  "kind": "function",
+  "category": "method",
+  "line": 883,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "mount",
+  "qualname": "Session.mount",
+  "kind": "function",
+  "category": "method",
+  "line": 888,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "__getstate__",
+  "qualname": "Session.__getstate__",
+  "kind": "function",
+  "category": "method",
+  "line": 899,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "__setstate__",
+  "qualname": "Session.__setstate__",
+  "kind": "function",
+  "category": "method",
+  "line": 903,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "sessions.py",
+  "name": "session",
+  "qualname": "session",
+  "kind": "function",
+  "category": "function",
+  "line": 908,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "status_codes.py",
+  "name": "_init",
+  "qualname": "_init",
+  "kind": "function",
+  "category": "function",
+  "line": 109,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "status_codes.py",
+  "name": "doc",
+  "qualname": "_init.doc",
+  "kind": "function",
+  "category": "nested",
+  "line": 116,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "CaseInsensitiveDict",
+  "qualname": "CaseInsensitiveDict",
+  "kind": "class",
+  "category": "class",
+  "line": 20,
+  "decorators": [],
+  "bases": [
+   "MutableMapping[str, _VT]",
+   "Generic[_VT]"
+  ]
+ },
+ {
+  "file": "structures.py",
+  "name": "__init__",
+  "qualname": "CaseInsensitiveDict.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 49,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "__setitem__",
+  "qualname": "CaseInsensitiveDict.__setitem__",
+  "kind": "function",
+  "category": "method",
+  "line": 59,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "__getitem__",
+  "qualname": "CaseInsensitiveDict.__getitem__",
+  "kind": "function",
+  "category": "method",
+  "line": 64,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "__delitem__",
+  "qualname": "CaseInsensitiveDict.__delitem__",
+  "kind": "function",
+  "category": "method",
+  "line": 67,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "__iter__",
+  "qualname": "CaseInsensitiveDict.__iter__",
+  "kind": "function",
+  "category": "method",
+  "line": 70,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "__len__",
+  "qualname": "CaseInsensitiveDict.__len__",
+  "kind": "function",
+  "category": "method",
+  "line": 73,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "lower_items",
+  "qualname": "CaseInsensitiveDict.lower_items",
+  "kind": "function",
+  "category": "method",
+  "line": 76,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "__eq__",
+  "qualname": "CaseInsensitiveDict.__eq__",
+  "kind": "function",
+  "category": "method",
+  "line": 80,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "copy",
+  "qualname": "CaseInsensitiveDict.copy",
+  "kind": "function",
+  "category": "method",
+  "line": 89,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "__repr__",
+  "qualname": "CaseInsensitiveDict.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 92,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "LookupDict",
+  "qualname": "LookupDict",
+  "kind": "class",
+  "category": "class",
+  "line": 96,
+  "decorators": [],
+  "bases": [
+   "dict[str, _VT]"
+  ]
+ },
+ {
+  "file": "structures.py",
+  "name": "__init__",
+  "qualname": "LookupDict.__init__",
+  "kind": "function",
+  "category": "method",
+  "line": 101,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "__repr__",
+  "qualname": "LookupDict.__repr__",
+  "kind": "function",
+  "category": "method",
+  "line": 105,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "__getattr__",
+  "qualname": "LookupDict.__getattr__",
+  "kind": "function",
+  "category": "method",
+  "line": 108,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "__getitem__",
+  "qualname": "LookupDict.__getitem__",
+  "kind": "function",
+  "category": "method",
+  "line": 118,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "get",
+  "qualname": "LookupDict.get",
+  "kind": "function",
+  "category": "method",
+  "line": 124,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "get",
+  "qualname": "LookupDict.get",
+  "kind": "function",
+  "category": "method",
+  "line": 127,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "structures.py",
+  "name": "get",
+  "qualname": "LookupDict.get",
+  "kind": "function",
+  "category": "method",
+  "line": 129,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "proxy_bypass_registry",
+  "qualname": "proxy_bypass_registry",
+  "kind": "function",
+  "category": "function",
+  "line": 99,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "proxy_bypass",
+  "qualname": "proxy_bypass",
+  "kind": "function",
+  "category": "function",
+  "line": 137,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "dict_to_sequence",
+  "qualname": "dict_to_sequence",
+  "kind": "function",
+  "category": "function",
+  "line": 149,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "super_len",
+  "qualname": "super_len",
+  "kind": "function",
+  "category": "function",
+  "line": 160,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "get_netrc_auth",
+  "qualname": "get_netrc_auth",
+  "kind": "function",
+  "category": "function",
+  "line": 231,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "guess_filename",
+  "qualname": "guess_filename",
+  "kind": "function",
+  "category": "function",
+  "line": 283,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "extract_zipped_paths",
+  "qualname": "extract_zipped_paths",
+  "kind": "function",
+  "category": "function",
+  "line": 290,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "atomic_open",
+  "qualname": "atomic_open",
+  "kind": "function",
+  "category": "function",
+  "line": 329,
+  "decorators": [
+   "contextlib.contextmanager"
+  ],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "from_key_val_list",
+  "qualname": "from_key_val_list",
+  "kind": "function",
+  "category": "function",
+  "line": 341,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "to_key_val_list",
+  "qualname": "to_key_val_list",
+  "kind": "function",
+  "category": "function",
+  "line": 371,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "to_key_val_list",
+  "qualname": "to_key_val_list",
+  "kind": "function",
+  "category": "function",
+  "line": 373,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "to_key_val_list",
+  "qualname": "to_key_val_list",
+  "kind": "function",
+  "category": "function",
+  "line": 376,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "parse_list_header",
+  "qualname": "parse_list_header",
+  "kind": "function",
+  "category": "function",
+  "line": 408,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "parse_dict_header",
+  "qualname": "parse_dict_header",
+  "kind": "function",
+  "category": "function",
+  "line": 440,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "unquote_header_value",
+  "qualname": "unquote_header_value",
+  "kind": "function",
+  "category": "function",
+  "line": 475,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "dict_from_cookiejar",
+  "qualname": "dict_from_cookiejar",
+  "kind": "function",
+  "category": "function",
+  "line": 500,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "add_dict_to_cookiejar",
+  "qualname": "add_dict_to_cookiejar",
+  "kind": "function",
+  "category": "function",
+  "line": 511,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "get_encodings_from_content",
+  "qualname": "get_encodings_from_content",
+  "kind": "function",
+  "category": "function",
+  "line": 522,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "_parse_content_type_header",
+  "qualname": "_parse_content_type_header",
+  "kind": "function",
+  "category": "function",
+  "line": 547,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "get_encoding_from_headers",
+  "qualname": "get_encoding_from_headers",
+  "kind": "function",
+  "category": "function",
+  "line": 569,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "stream_decode_response_unicode",
+  "qualname": "stream_decode_response_unicode",
+  "kind": "function",
+  "category": "function",
+  "line": 594,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "iter_slices",
+  "qualname": "iter_slices",
+  "kind": "function",
+  "category": "function",
+  "line": 614,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "iter_slices",
+  "qualname": "iter_slices",
+  "kind": "function",
+  "category": "function",
+  "line": 618,
+  "decorators": [
+   "overload"
+  ],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "iter_slices",
+  "qualname": "iter_slices",
+  "kind": "function",
+  "category": "function",
+  "line": 621,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "get_unicode_from_response",
+  "qualname": "get_unicode_from_response",
+  "kind": "function",
+  "category": "function",
+  "line": 633,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "unquote_unreserved",
+  "qualname": "unquote_unreserved",
+  "kind": "function",
+  "category": "function",
+  "line": 680,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "requote_uri",
+  "qualname": "requote_uri",
+  "kind": "function",
+  "category": "function",
+  "line": 704,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "address_in_network",
+  "qualname": "address_in_network",
+  "kind": "function",
+  "category": "function",
+  "line": 726,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "dotted_netmask",
+  "qualname": "dotted_netmask",
+  "kind": "function",
+  "category": "function",
+  "line": 741,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "is_ipv4_address",
+  "qualname": "is_ipv4_address",
+  "kind": "function",
+  "category": "function",
+  "line": 752,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "is_valid_cidr",
+  "qualname": "is_valid_cidr",
+  "kind": "function",
+  "category": "function",
+  "line": 763,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "set_environ",
+  "qualname": "set_environ",
+  "kind": "function",
+  "category": "function",
+  "line": 788,
+  "decorators": [
+   "contextlib.contextmanager"
+  ],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "should_bypass_proxies",
+  "qualname": "should_bypass_proxies",
+  "kind": "function",
+  "category": "function",
+  "line": 810,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "get_proxy",
+  "qualname": "should_bypass_proxies.get_proxy",
+  "kind": "function",
+  "category": "nested",
+  "line": 819,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "get_environ_proxies",
+  "qualname": "get_environ_proxies",
+  "kind": "function",
+  "category": "function",
+  "line": 873,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "select_proxy",
+  "qualname": "select_proxy",
+  "kind": "function",
+  "category": "function",
+  "line": 885,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "resolve_proxies",
+  "qualname": "resolve_proxies",
+  "kind": "function",
+  "category": "function",
+  "line": 911,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "default_user_agent",
+  "qualname": "default_user_agent",
+  "kind": "function",
+  "category": "function",
+  "line": 942,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "default_headers",
+  "qualname": "default_headers",
+  "kind": "function",
+  "category": "function",
+  "line": 951,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "parse_header_links",
+  "qualname": "parse_header_links",
+  "kind": "function",
+  "category": "function",
+  "line": 965,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "guess_json_utf",
+  "qualname": "guess_json_utf",
+  "kind": "function",
+  "category": "function",
+  "line": 1008,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "prepend_scheme_if_needed",
+  "qualname": "prepend_scheme_if_needed",
+  "kind": "function",
+  "category": "function",
+  "line": 1040,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "get_auth_from_url",
+  "qualname": "get_auth_from_url",
+  "kind": "function",
+  "category": "function",
+  "line": 1070,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "check_header_validity",
+  "qualname": "check_header_validity",
+  "kind": "function",
+  "category": "function",
+  "line": 1087,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "_validate_header_part",
+  "qualname": "_validate_header_part",
+  "kind": "function",
+  "category": "function",
+  "line": 1098,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "urldefragauth",
+  "qualname": "urldefragauth",
+  "kind": "function",
+  "category": "function",
+  "line": 1122,
+  "decorators": [],
+  "bases": []
+ },
+ {
+  "file": "utils.py",
+  "name": "rewind_body",
+  "qualname": "rewind_body",
+  "kind": "function",
+  "category": "function",
+  "line": 1139,
+  "decorators": [],
+  "bases": []
+ }
+]

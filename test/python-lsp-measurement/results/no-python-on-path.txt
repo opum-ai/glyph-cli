@@ -1,0 +1,6 @@
+No Python interpreter on PATH (env -i PATH=<node only>), same harness, same targets, all files open:
+targets whose incoming/outgoing/references answers differ from the run with Python on PATH: []
+definition outcomes with Python on PATH:    {'external-typeshed': 648, 'in-package': 312, 'none': 66, 'external-other (installed package)': 2}
+definition outcomes without Python on PATH: {'external-typeshed': 648, 'in-package': 312, 'none': 68}
+Reading: pyright ran and answered with no interpreter; stdlib resolves from its bundled typeshed; the two calls into an installed
+third-party package (certifi) become unresolved. Total ms with no Python: 4621 (one run, not compared with the six).

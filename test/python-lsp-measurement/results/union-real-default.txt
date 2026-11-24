@@ -1,0 +1,37 @@
+
+== truth set 1: 46 targets, 65 true sites ==
+set                site recall                        site precision                     targets fully correct       
+incoming           58/65 = 0.892 (0.794-0.947)        58/58 = 1.000 (0.938-1.000)        42/46 = 0.913 (0.797-0.966) 
+outgoing           56/65 = 0.862 (0.757-0.925)        56/56 = 1.000 (0.936-1.000)        40/46 = 0.870 (0.743-0.939) 
+union              58/65 = 0.892 (0.794-0.947)        58/58 = 1.000 (0.938-1.000)        42/46 = 0.913 (0.797-0.966) 
+union + ctor map   64/65 = 0.985 (0.918-0.997)        64/64 = 1.000 (0.943-1.000)        45/46 = 0.978 (0.887-0.996) 
+
+cluster view over the 37 targets that have at least one true site (the zero-truth targets are precision controls and would inflate a target-level figure):
+set                targets fully correct          recall, cluster bootstrap 95%      precision, cluster bootstrap 95%  
+incoming           33/37 = 0.892 (0.753-0.957)    0.768-0.985                       1.000-1.000
+outgoing           31/37 = 0.838 (0.689-0.923)    0.726-0.963                       1.000-1.000
+union              33/37 = 0.892 (0.753-0.957)    0.768-0.985                       1.000-1.000
+union + ctor map   36/37 = 0.973 (0.862-0.995)    0.946-1.000                       1.000-1.000
+  differs: status_codes.py:109 _init | outgoing: tp=0 fp=0 fn=1
+  differs: __init__.py:99 _check_cryptography | outgoing: tp=0 fp=0 fn=1
+  differs: utils.py:99 proxy_bypass_registry | incoming: tp=0 fp=0 fn=1; outgoing: tp=0 fp=0 fn=1; union: tp=0 fp=0 fn=1; union + ctor map: tp=0 fp=0 fn=1
+  differs: models.py:407 PreparedRequest.__init__ | incoming: tp=0 fp=0 fn=3; outgoing: tp=0 fp=0 fn=3; union: tp=0 fp=0 fn=3
+  differs: auth.py:96 HTTPBasicAuth.__init__ | incoming: tp=0 fp=0 fn=1; outgoing: tp=0 fp=0 fn=1; union: tp=0 fp=0 fn=1
+  differs: cookies.py:45 MockRequest.__init__ | incoming: tp=0 fp=0 fn=2; outgoing: tp=0 fp=0 fn=2; union: tp=0 fp=0 fn=2
+
+== truth set 2: 4 targets, 15 true sites ==
+set                site recall                        site precision                     targets fully correct       
+incoming           2/15 = 0.133 (0.037-0.379)         2/2 = 1.000 (0.342-1.000)          1/4 = 0.250 (0.046-0.699)   
+outgoing           15/15 = 1.000 (0.796-1.000)        15/15 = 1.000 (0.796-1.000)        4/4 = 1.000 (0.510-1.000)   
+union              15/15 = 1.000 (0.796-1.000)        15/15 = 1.000 (0.796-1.000)        4/4 = 1.000 (0.510-1.000)   
+union + ctor map   15/15 = 1.000 (0.796-1.000)        15/15 = 1.000 (0.796-1.000)        4/4 = 1.000 (0.510-1.000)   
+
+cluster view over the 3 targets that have at least one true site (the zero-truth targets are precision controls and would inflate a target-level figure):
+set                targets fully correct          recall, cluster bootstrap 95%      precision, cluster bootstrap 95%  
+incoming           0/3 = 0.000 (0.000-0.562)      0.000-0.667                       1.000-1.000
+outgoing           3/3 = 1.000 (0.438-1.000)      1.000-1.000                       1.000-1.000
+union              3/3 = 1.000 (0.438-1.000)      1.000-1.000                       1.000-1.000
+union + ctor map   3/3 = 1.000 (0.438-1.000)      1.000-1.000                       1.000-1.000
+  differs: _types.py:47 is_prepared | incoming: tp=0 fp=0 fn=10
+  differs: exceptions.py:42 JSONDecodeError | incoming: tp=0 fp=0 fn=2
+  differs: exceptions.py:78 SSLError | incoming: tp=2 fp=0 fn=1

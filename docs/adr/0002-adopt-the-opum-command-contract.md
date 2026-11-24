@@ -190,3 +190,22 @@ unresolved-first-party-import count and a per-answer constructor note — are
 left to the slices that produce them. Declaring a union member or field no code
 emits would contradict how this contract treats an absent field (omit it, do not
 declare a constant).
+
+## Amendment, 2026-11-23 (GCLI-72): the additive `qualname` symbol field
+
+DEC-303 (a5) Q6 (opum-ai/opum-doc#1932, commit 5b0781e4) rules arm A for
+qualified names: the Python indexer emits an additive, optional `qualname` field
+on every `SymbolEntry`, carrying the full enclosing qualified name (for example
+`Parameter.type_cast_value._convert`). It is absent for TypeScript, so existing
+TypeScript indexes are unchanged and a consumer that ignores unknown fields is
+unaffected. `container` keeps its documented meaning (the nearest
+class/interface/enum); symbol identity uses `qualname`, not `container` + `name`.
+The Python gate scorer (`test/python-gate/gate_score.py`) reads `qualname` and
+treats a symbol without it as a missing target (exit 6). `qualname` is the dotted
+enclosing path with **no** PEP 3155 `<locals>` segment: an indexer that emitted a
+symbol's `__qualname__` verbatim would carry `<locals>` and exit 6 on the nested
+targets — for example `Parameter.type_cast_value._convert`,
+`wrap_text._flush_par`, `should_bypass_proxies.get_proxy` and `_init.doc`. This is
+an additive contract entry under this record: a new optional field, no existing
+field changed.
+
