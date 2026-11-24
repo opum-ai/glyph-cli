@@ -377,6 +377,17 @@ function collectAllValue(value: Node | null, data: ModuleData): void {
 	}
 }
 
+/** `__all__.append(x)` takes one value; a literal string is a name, anything else is non-literal. */
+function collectAllElement(value: Node | null, data: ModuleData): void {
+	if (value === null) {
+		data.allNonLiteral = true;
+		return;
+	}
+	const literal = literalString(value);
+	if (literal === null) data.allNonLiteral = true;
+	else data.allLiterals.push(literal);
+}
+
 function valueAfterAssignment(node: Node): Node | null {
 	let value: Node | null = null;
 	for (let index = 1; index < node.namedChildCount; index++) {
@@ -545,7 +556,12 @@ function pushBranches(stack: WalkFrame[], node: Node, condition: string | null, 
 			const prefix = node.type === "elif_clause" ? "elif " : "";
 			const branch = combineCondition(condition, `${prefix}${children[0]?.text ?? ""}`);
 			for (let index = children.length - 1; index >= 0; index--) {
-				stack.push({ node: children[index] as Node, condition: index === 0 ? condition : branch, scope });
+				const child = children[index] as Node;
+				// The condition expression keeps the parent condition; the body takes this
+				// branch; an elif/else clause keeps the parent so its own text reads
+				// "elif X" / "else" rather than "ifcond && elif X".
+				const childCondition = index === 0 ? condition : child.type === "block" ? branch : condition;
+				stack.push({ node: child, condition: childCondition, scope });
 			}
 			return true;
 		}
@@ -627,6 +643,9 @@ function extractModuleData(tree: Tree, path: string, dropped: DroppedImport[]): 
 			const imports = parseImportNode(node, path, condition);
 			if (scope === "module") data.imports.push(...imports);
 			else {
+				// Rule 16 limit, stated: a function- or class-local import is recorded as
+				// text only. It is never resolved and never checked for exit 7, so a
+				// first-party package imported only lazily does not trigger the guard.
 				const line = node.startPosition.row + 1;
 				data.localImports.push({ path, line, text: node.text });
 			}
@@ -634,7 +653,17 @@ function extractModuleData(tree: Tree, path: string, dropped: DroppedImport[]): 
 		}
 		if (node.type === "call") {
 			const callee = node.namedChild(0)?.text ?? "";
-			if (DYNAMIC_CALLEES.has(callee)) {
+			if (callee === "__all__.append" || callee === "__all__.extend") {
+				if (scope === "module") {
+					data.hasAll = true;
+					// The call's argument list wraps the value: `append("b")`,
+					// `extend(["c", "d"])`; take the first argument.
+					const args = node.namedChild(1);
+					const value = args?.type === "argument_list" ? args.namedChild(0) : args;
+					if (callee === "__all__.append") collectAllElement(value, data);
+					else collectAllValue(value, data);
+				}
+			} else if (DYNAMIC_CALLEES.has(callee)) {
 				data.dynamic.push({ path, line: node.startPosition.row + 1, callee, text: node.text });
 			}
 		}
@@ -737,6 +766,15 @@ function collapseNameResolutions(list: readonly NameResolution[]): {
 	return { outcome: "unresolved", target: null, reason: list[0]?.reason ?? "unresolved", alternatives: [] };
 }
 
+/** Map a single module resolution to a name resolution (no alternatives). */
+function plainResolution(resolution: Resolution): NameResolution {
+	if (resolution.outcome === "resolved" && resolution.target !== null) {
+		return { outcome: "resolved", target: resolution.target, reason: null };
+	}
+	if (resolution.outcome === "external") return { outcome: "external", target: null, reason: null };
+	return { outcome: "unresolved", target: null, reason: resolution.reason ?? "unresolved" };
+}
+
 /** The set of indexed .py paths plus every directory prefix, for O(1) existence checks. */
 class FileIndex {
 	private readonly files: Set<string>;
@@ -764,6 +802,12 @@ class FileIndex {
 
 class ModuleResolver {
 	private readonly rawResolutions = new Map<string, RawResolution[]>();
+	/**
+	 * Completed export sets, memoized (finding 9). Only a set with `reason === null`
+	 * is cached: a partial set's names depend on which modules are on the recursion
+	 * stack, so caching one could return a stack-dependent answer later.
+	 */
+	private readonly exportCache = new Map<string, ExportSet>();
 
 	constructor(
 		private readonly index: FileIndex,
@@ -925,11 +969,24 @@ class ModuleResolver {
 	}
 
 	private moduleBindingResolution(resolution: RawResolution): NameResolution {
-		if (resolution.outcome === "resolved" && resolution.target !== null) {
-			return { outcome: "resolved", target: resolution.target, reason: null };
+		const raw = resolution.raw;
+		// `import a.b` binds the name `a`, which is the package a/__init__.py, not the
+		// leaf a/b.py; `import a.b as c` binds the leaf, so only the unaliased dotted
+		// form is redirected to the top package (finding 4).
+		if (raw.kind === "import" && raw.alias === null) {
+			const parts = moduleComponents(raw.module);
+			if (parts.length > 1) {
+				if (resolution.outcome === "external") return { outcome: "external", target: null, reason: null };
+				if (resolution.outcome === "resolved" && resolution.target !== null) {
+					return plainResolution(this.resolveAbsolute(parts[0] as string));
+				}
+			}
 		}
-		if (resolution.outcome === "external") return { outcome: "external", target: null, reason: null };
-		return { outcome: "unresolved", target: null, reason: resolution.reason ?? "unresolved" };
+		return plainResolution({
+			outcome: resolution.outcome,
+			target: resolution.target,
+			reason: resolution.reason,
+		});
 	}
 
 	/**
@@ -945,7 +1002,7 @@ class ModuleResolver {
 		exclude: RawResolution | null,
 		depth: number,
 	): NameResolution[] {
-		if (depth > 64) return [{ outcome: "unresolved", target: null, reason: "import-cycle" }];
+		if (depth > 64) return [{ outcome: "unresolved", target: null, reason: "depth-limit" }];
 		const key = `name:${modulePath}#${name}@${exclude?.id ?? "none"}`;
 		if (visited.has(key)) return [{ outcome: "unresolved", target: null, reason: "import-cycle" }];
 		visited.add(key);
@@ -953,15 +1010,24 @@ class ModuleResolver {
 			const moduleData = this.data.get(modulePath);
 			if (moduleData === undefined) return [{ outcome: "unresolved", target: null, reason: "not-indexed" }];
 			const results: NameResolution[] = [];
+			const starReasons: string[] = [];
 			if (moduleData.localNames.has(name)) results.push({ outcome: "resolved", target: modulePath, reason: null });
 			for (const resolution of this.rawResolutions.get(modulePath) ?? []) {
 				if (resolution === exclude) continue;
 				const raw = resolution.raw;
 				if (raw.kind === "star") {
-					if (resolution.outcome !== "resolved" || resolution.target === null) continue;
-					const exports = this.moduleExports(resolution.target, visited);
-					if (exports.names.has(name)) {
-						results.push(...this.resolveName(resolution.target, name, visited, null, depth + 1));
+					if (resolution.outcome === "resolved" && resolution.target !== null) {
+						const exports = this.moduleExports(resolution.target, visited);
+						if (exports.names.has(name)) {
+							results.push(...this.resolveName(resolution.target, name, visited, null, depth + 1));
+						}
+						// A partial set means `name` may come from the part we could not
+						// enumerate; carry its reason instead of attribute-not-found.
+						if (exports.reason !== null) starReasons.push(exports.reason);
+					} else if (resolution.outcome === "external") {
+						starReasons.push("star-import");
+					} else {
+						starReasons.push(resolution.reason ?? "unresolved");
 					}
 					continue;
 				}
@@ -975,6 +1041,9 @@ class ModuleResolver {
 				} else if (raw.name !== null) {
 					results.push(...this.resolveAttribute(resolution.target, raw.name, visited, resolution, depth + 1));
 				}
+			}
+			if (results.length === 0 && starReasons.length > 0) {
+				results.push({ outcome: "unresolved", target: null, reason: starReasons[0] as string });
 			}
 			return dedupeNameResolutions(results);
 		} finally {
@@ -1007,6 +1076,8 @@ class ModuleResolver {
 
 	/** A module's exported names for a star import (rule 9). */
 	private moduleExports(modulePath: string, visited: Set<string>): ExportSet {
+		const cached = this.exportCache.get(modulePath);
+		if (cached !== undefined) return cached;
 		const key = `exports:${modulePath}`;
 		if (visited.has(key)) return { names: new Set(), reason: "import-cycle" };
 		visited.add(key);
@@ -1015,9 +1086,12 @@ class ModuleResolver {
 			if (moduleData === undefined) return { names: new Set(), reason: "not-indexed" };
 			if (moduleData.hasAll) {
 				if (moduleData.allNonLiteral) return { names: new Set(), reason: "non-literal-all" };
-				return { names: new Set(moduleData.allLiterals), reason: null };
+				const complete: ExportSet = { names: new Set(moduleData.allLiterals), reason: null };
+				this.exportCache.set(modulePath, complete);
+				return complete;
 			}
 			const names = new Set<string>();
+			let reason: string | null = null;
 			for (const local of moduleData.localNames) {
 				if (!local.startsWith("_")) names.add(local);
 			}
@@ -1025,15 +1099,22 @@ class ModuleResolver {
 				const raw = resolution.raw;
 				if (raw.kind === "star") {
 					if (resolution.outcome === "resolved" && resolution.target !== null) {
+						// Propagate the first nested reason so a partial set is never
+						// reported as complete (finding 3); the names found so far stand.
 						const nested = this.moduleExports(resolution.target, visited);
 						for (const name of nested.names) names.add(name);
+						if (reason === null && nested.reason !== null) reason = nested.reason;
+					} else if (reason === null) {
+						reason = resolution.outcome === "external" ? "star-import" : (resolution.reason ?? "unresolved");
 					}
 					continue;
 				}
 				const bound = boundNameOf(raw);
 				if (bound !== "" && bound !== "*" && !bound.startsWith("_")) names.add(bound);
 			}
-			return { names, reason: null };
+			const result: ExportSet = { names, reason };
+			if (reason === null) this.exportCache.set(modulePath, result);
+			return result;
 		} finally {
 			visited.delete(key);
 		}
@@ -1244,7 +1325,9 @@ export async function buildModuleGraph(
 	const collisions: NameCollision[] = [];
 	for (const [top, list] of byTop) {
 		// Only a root's entry for the top-level name itself ("<top>/__init__.py"
-		// or "<top>.py") competes; its submodules belong to that entry.
+		// or "<top>.py") competes; its submodules belong to that entry. A nested
+		// pkg/sub.py beside pkg/sub/__init__.py is resolved package-first but is not
+		// counted as shadowed — a stated limit, since only top-level entries compete.
 		const topEntries = list.filter((provider) => provider.module === top);
 		const winnerPerRoot = new Map<number, Provider>();
 		const losersWithinRoot: Provider[] = [];
@@ -1304,11 +1387,20 @@ export async function buildModuleGraph(
 		}
 	}
 
+	// Rules 6/12 and DEC-303 (a6): the guard's first-party package set comes from
+	// ALL non-excluded candidates, whatever roots are declared, so declaring roots
+	// never switches it off for a first-party package outside them. Only TOPMOST
+	// package directories count — a directory holding __init__.py whose parent does
+	// not — so a nested stdlib-named subpackage (django/http, sqlalchemy/ext/
+	// asyncio) cannot turn an unrelated `import json` into exit 7.
+	const packageDirs = new Set<string>();
+	for (const candidate of candidates) {
+		if (baseName(candidate.path) === "__init__.py") packageDirs.add(dirOf(candidate.path));
+	}
 	const packageRootsByBase = new Map<string, string[]>();
-	for (const file of indexed) {
-		if (baseName(file.path) !== "__init__.py") continue;
-		const dir = dirOf(file.path);
+	for (const dir of packageDirs) {
 		if (dir === "") continue;
+		if (packageDirs.has(dirOf(dir))) continue;
 		const base = baseName(dir);
 		const list = packageRootsByBase.get(base) ?? [];
 		list.push(dir);
@@ -1324,7 +1416,7 @@ export async function buildModuleGraph(
 		data,
 	);
 	const { bindings, exit7 } = resolver.resolveAll();
-	bindings.sort((a, b) => byPathThenLine(a, b) || a.original.localeCompare(b.original));
+	bindings.sort((a, b) => byPathThenLine(a, b) || (a.original < b.original ? -1 : a.original > b.original ? 1 : 0));
 
 	const importsByPath = new Map<string, ImportBinding[]>();
 	for (const binding of bindings) {
@@ -1351,7 +1443,10 @@ export async function buildModuleGraph(
 			dots: binding.dots,
 			name: binding.name,
 			reason: binding.reason ?? "unresolved",
-			firstParty: binding.reason !== "star-import",
+			// Rule 3: a namespace package is not first-party, so it is counted but not
+			// reported as a first-party gap. A star import of an external module is the
+			// other non-first-party bin.
+			firstParty: binding.reason !== "star-import" && binding.reason !== "namespace-package",
 		}));
 
 	const dynamic: DynamicImport[] = [];
@@ -1387,6 +1482,9 @@ export async function buildModuleGraph(
 	};
 
 	return {
+		// Exactness (rule 14) covers parse and decode only; a non-empty exit7 is a
+		// separate indeterminate signal the wiring slice must check (exit7.length)
+		// rather than read `exact` alone.
 		exact: parseIssues.length === 0,
 		modules,
 		files: indexed.map((file) => ({

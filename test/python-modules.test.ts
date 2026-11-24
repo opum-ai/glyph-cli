@@ -56,6 +56,36 @@ describe("rule 1 — source roots", () => {
 		]);
 	});
 
+	test("packages/*/src roots are ordered, so the earlier root wins a collision", async () => {
+		// Collisions record the winner by root order, so this checks the order the
+		// sorted package roots are given, which sorting the module list itself cannot.
+		const graph = await buildModuleGraph([
+			py("packages/two/src/dup/__init__.py", ""),
+			py("packages/one/src/dup/__init__.py", ""),
+		]);
+		expect(graph.collisions).toEqual([
+			{
+				name: "dup",
+				roots: ["packages/one/src", "packages/two/src"],
+				winner: "packages/one/src",
+				shadowedPaths: ["packages/two/src/dup/__init__.py"],
+			},
+		]);
+		expect(graph.counts.shadowed).toBe(1);
+	});
+
+	test("permuting the input files yields an identical graph", async () => {
+		const inputs: PythonModuleInput[] = [
+			py("src/app/__init__.py", "from .b import Box\n"),
+			py("src/app/b.py", "class Box:\n    pass\n"),
+			py("src/a.py", "from app import Box\nfrom . import nope\nimport os\n"),
+			py("src/c.py", "from app.b import Box as B\n"),
+		];
+		const forward = await buildModuleGraph(inputs);
+		const reversed = await buildModuleGraph([...inputs].reverse());
+		expect(JSON.stringify(reversed)).toBe(JSON.stringify(forward));
+	});
+
 	test("options.roots replaces the default list literally", async () => {
 		const graph = await buildModuleGraph([py("src/app/a.py", "")], { roots: ["src"] });
 		expect(graph.modules[0]?.module).toBe("app.a");
@@ -91,12 +121,16 @@ describe("rule 2 — module identity", () => {
 });
 
 describe("rule 3 — first-party packages", () => {
-	test("a directory without __init__.py is a namespace package: unresolved, counted", async () => {
+	test("a directory without __init__.py is a namespace package: unresolved, counted, not first-party", async () => {
 		const graph = await buildModuleGraph([py("src/ns/inner.py", ""), py("src/a.py", "import ns.inner\n")]);
 		const binding = bindingIn(graph, "src/a.py", "ns.inner");
 		expect(binding.outcome).toBe("unresolved");
 		expect(binding.reason).toBe("namespace-package");
-		expect(graph.counts.unresolvedFirstParty).toBe(1);
+		// Rule 3: a namespace package is not a first-party package, so it is counted
+		// as unresolved but not as a first-party gap.
+		expect(graph.counts.unresolved).toBe(1);
+		expect(graph.counts.unresolvedFirstParty).toBe(0);
+		expect(graph.unresolved[0]?.firstParty).toBe(false);
 	});
 
 	test("an excluded directory is not indexed and is named", async () => {
@@ -213,6 +247,17 @@ describe("rule 6 — relative imports", () => {
 		expect(graph.exit7).toEqual([]);
 	});
 
+	test("three dots walk up two packages", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/top.py", ""),
+			py("src/pkg/sub/__init__.py", ""),
+			py("src/pkg/sub/deep/__init__.py", ""),
+			py("src/pkg/sub/deep/mod.py", "from ... import top\n"),
+		]);
+		expect(bindingIn(graph, "src/pkg/sub/deep/mod.py", "top").target).toBe("src/pkg/top.py");
+	});
+
 	test("a relative import in a file with no package is no-package", async () => {
 		const graph = await buildModuleGraph([py("src/script.py", "from . import x\n")]);
 		expect(bindingIn(graph, "src/script.py", "x").reason).toBe("no-package");
@@ -269,6 +314,31 @@ describe("rule 8 — re-exports", () => {
 		expect(bindingIn(graph, "src/p/__init__.py", "y").reason).toBe("import-cycle");
 		expect(graph.counts.unresolvedFirstParty).toBe(3);
 	});
+
+	test("a re-export chain past the depth cap is depth-limit, not import-cycle", async () => {
+		const files: PythonModuleInput[] = [];
+		const depth = 66;
+		for (let index = 0; index < depth - 1; index++) {
+			files.push(py(`src/m${index}.py`, `from m${index + 1} import x\n`));
+		}
+		files.push(py(`src/m${depth - 1}.py`, "def x():\n    pass\n"));
+		files.push(py("src/use.py", "from m0 import x\n"));
+		const graph = await buildModuleGraph(files);
+		expect(bindingIn(graph, "src/use.py", "x").reason).toBe("depth-limit");
+	});
+
+	test("a re-export of a plain dotted import resolves to the top package, not the leaf", async () => {
+		const graph = await buildModuleGraph([
+			py("src/a/__init__.py", ""),
+			py("src/a/b.py", ""),
+			py("src/a/c.py", ""),
+			py("src/m.py", "import a.b\nimport a.c\n"),
+			py("src/use.py", "from m import a\n"),
+		]);
+		const binding = bindingIn(graph, "src/use.py", "a");
+		expect(binding.target).toBe("src/a/__init__.py");
+		expect(binding.reason).toBeNull();
+	});
 });
 
 describe("rule 9 — star imports", () => {
@@ -316,6 +386,50 @@ describe("rule 9 — star imports", () => {
 		expect(binding.reason).toBe("star-import");
 		expect(graph.unresolved[0]?.firstParty).toBe(false);
 	});
+
+	test("a literal __all__.append and __all__.extend add names to the export set", async () => {
+		const graph = await buildModuleGraph([
+			py(
+				"src/m.py",
+				"__all__ = ['a']\n__all__.append('b')\n__all__.extend(['c', 'd'])\ndef a():\n    pass\ndef b():\n    pass\ndef c():\n    pass\ndef d():\n    pass\n",
+			),
+			py("src/use.py", "from m import *\n"),
+		]);
+		expect(bindingIn(graph, "src/use.py", "*").starNames).toEqual(["a", "b", "c", "d"]);
+	});
+
+	test("a nested star import from an external module is carried as a partial set", async () => {
+		const graph = await buildModuleGraph([
+			py("src/m.py", "from os import *\ndef f():\n    pass\n"),
+			py("src/use.py", "from m import *\n"),
+		]);
+		const binding = bindingIn(graph, "src/use.py", "*");
+		expect(binding.outcome).toBe("unresolved");
+		expect(binding.reason).toBe("star-import");
+		expect(binding.starNames).toEqual(["f"]);
+		expect(graph.counts.unresolvedFirstParty).toBe(0);
+	});
+
+	test("a non-literal __all__ two hops away is carried as a partial set", async () => {
+		const graph = await buildModuleGraph([
+			py("src/n.py", "__all__ = make_list()\ndef pub():\n    pass\n"),
+			py("src/m.py", "from n import *\n"),
+			py("src/use.py", "from m import *\n"),
+		]);
+		const binding = bindingIn(graph, "src/use.py", "*");
+		expect(binding.outcome).toBe("unresolved");
+		expect(binding.reason).toBe("non-literal-all");
+	});
+
+	test("a from-import name that could come from a partial star reports the star's reason", async () => {
+		const graph = await buildModuleGraph([
+			py("src/m.py", "from os import *\ndef f():\n    pass\n"),
+			py("src/use.py", "from m import g\n"),
+		]);
+		const binding = bindingIn(graph, "src/use.py", "g");
+		expect(binding.outcome).toBe("unresolved");
+		expect(binding.reason).toBe("star-import");
+	});
 });
 
 describe("rule 10 — conditional imports", () => {
@@ -354,6 +468,33 @@ describe("rule 10 — conditional imports", () => {
 		expect(byBound.get("Y")?.condition).toContain("TYPE_CHECKING");
 		expect(byBound.get("win")?.target).toBe("src/win.py");
 		expect(byBound.get("posix")?.target).toBe("src/posix.py");
+		expect(byBound.get("posix")?.condition).toBe("else");
+	});
+
+	test("elif and else branches carry their own condition text", async () => {
+		const graph = await buildModuleGraph([
+			py("src/c.py", "if x:\n    import a\nelif y:\n    import b\nelse:\n    import c\n"),
+			py("src/a.py", ""),
+			py("src/b.py", ""),
+		]);
+		const byBound = new Map(graph.bindings.map((binding) => [binding.boundName, binding]));
+		expect(byBound.get("a")?.condition).toBe("x");
+		expect(byBound.get("b")?.condition).toBe("elif y");
+		expect(byBound.get("c")?.condition).toBe("else");
+	});
+
+	test("a name re-exported from both try/except arms is multiply-bound with alternatives", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", "try:\n    from .fast import f\nexcept ImportError:\n    from .slow import f\n"),
+			py("src/pkg/fast.py", "def f():\n    pass\n"),
+			py("src/pkg/slow.py", "def f():\n    pass\n"),
+			py("src/use.py", "from pkg import f\n"),
+		]);
+		const binding = bindingIn(graph, "src/use.py", "f");
+		expect(binding.outcome).toBe("resolved");
+		expect(binding.reason).toBe("multiply-bound");
+		expect(binding.target).toBe("src/pkg/fast.py");
+		expect(binding.alternatives).toEqual(["src/pkg/slow.py"]);
 	});
 });
 
@@ -386,6 +527,40 @@ describe("rule 12 — exit 7", () => {
 		expect(graph.exit7).toEqual([]);
 		expect(graph.counts.unresolvedFirstParty).toBe(1);
 		expect(graph.unresolved[0]?.reason).toBe("module-not-found");
+	});
+
+	test("a nested subpackage's basename does not make an external import exit 7 (DEC-303 (a6))", async () => {
+		// src/app/json is a subpackage, not a topmost package root, so `import json`
+		// is external even though a directory basenamed "json" exists (rule 11).
+		const graph = await buildModuleGraph([
+			py("src/app/__init__.py", ""),
+			py("src/app/json/__init__.py", ""),
+			py("src/a.py", "import json\n"),
+		]);
+		expect(graph.exit7).toEqual([]);
+		expect(bindingIn(graph, "src/a.py", "json").outcome).toBe("external");
+		expect(graph.counts.unresolvedFirstParty).toBe(0);
+	});
+
+	test("declared roots do not switch off the guard for a first-party package outside them", async () => {
+		const graph = await buildModuleGraph([py("lib/foo/__init__.py", ""), py("src/a.py", "import foo\n")], {
+			roots: ["src"],
+		});
+		// The file is outside the declared roots and ignored for RESOLUTION, but the
+		// guard's first-party set still knows lib/foo, so it must not go external.
+		expect(graph.ignored).toContainEqual({ path: "lib/foo/__init__.py", reason: "outside-roots" });
+		expect(graph.exit7).toEqual([
+			{ path: "src/a.py", line: 1, name: "foo", original: "foo", directories: ["lib/foo"] },
+		]);
+		const binding = bindingIn(graph, "src/a.py", "foo");
+		expect(binding.outcome).toBe("unresolved");
+		expect(binding.reason).toBe("unresolved-package-root");
+	});
+
+	test("without declared roots the same package resolves as first-party", async () => {
+		const graph = await buildModuleGraph([py("lib/foo/__init__.py", ""), py("src/a.py", "import foo\n")]);
+		expect(graph.exit7).toEqual([]);
+		expect(bindingIn(graph, "src/a.py", "foo").target).toBe("lib/foo/__init__.py");
 	});
 });
 
@@ -437,6 +612,17 @@ describe("rule 15 — self-imports and mirroring directories", () => {
 		expect(graph.counts.shadowed).toBe(2);
 		expect(graph.shadowed).toEqual(["src/app/__init__.py", "src/app/y.py"]);
 	});
+
+	test("within one root a package wins over a bare module of the same name", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", "VALUE = 'package'\n"),
+			py("src/pkg.py", "VALUE = 'module'\n"),
+			py("src/use.py", "from pkg import VALUE\n"),
+		]);
+		expect(bindingIn(graph, "src/use.py", "VALUE").target).toBe("src/pkg/__init__.py");
+		const shadowed = graph.modules.find((module) => module.path === "src/pkg.py");
+		expect(shadowed?.shadowed).toBe(true);
+	});
 });
 
 describe("rule 16 — non-module-scope imports", () => {
@@ -448,6 +634,17 @@ describe("rule 16 — non-module-scope imports", () => {
 			{ path: "src/l.py", line: 4, text: "import sys" },
 		]);
 		expect(graph.counts.localImports).toBe(2);
+	});
+
+	test("a function-local import of an unrooted package is text only, never exit 7 (stated limit)", async () => {
+		// Rule 16/10 limit: local imports are not resolved and not checked by the
+		// guard, so a first-party package imported only lazily does not trigger exit 7.
+		const graph = await buildModuleGraph([
+			py("tools/other/__init__.py", ""),
+			py("src/a.py", "def f():\n    import other.thing\n"),
+		]);
+		expect(graph.exit7).toEqual([]);
+		expect(graph.localImports).toEqual([{ path: "src/a.py", line: 2, text: "import other.thing" }]);
 	});
 });
 
