@@ -204,6 +204,42 @@ describe("rule 3 — first-party packages", () => {
 		expect(bindingIn(graph, "src/build/__init__.py", "thing").target).toBe("src/build/impl.py");
 	});
 
+	test("a declared list splits build-output names (root-only) from other names (any depth)", async () => {
+		const graph = await buildModuleGraph(
+			[
+				py("src/build/__init__.py", "from .impl import thing\n"),
+				py("src/build/impl.py", "def thing():\n    pass\n"),
+				py("app/venv/lib/site-packages/requests/__init__.py", ""),
+				py("src/a.py", "import requests\n"),
+			],
+			{ excludedDirs: ["build", "venv"] },
+		);
+		// build-output name: root-only and package-exempt, so src/build is kept.
+		expect(graph.modules.map((module) => module.path)).toContain("src/build/__init__.py");
+		expect(bindingIn(graph, "src/build/__init__.py", "thing").target).toBe("src/build/impl.py");
+		// other name: excluded at any depth.
+		expect(graph.ignored).toContainEqual({
+			path: "app/venv/lib/site-packages/requests/__init__.py",
+			reason: "excluded-path",
+		});
+		// requests is never seen as first-party, so it is external, not exit 7.
+		expect(bindingIn(graph, "src/a.py", "requests").outcome).toBe("external");
+		expect(graph.exit7).toEqual([]);
+	});
+
+	test("a declared venv is excluded below the root, so its package is not exit 7", async () => {
+		const graph = await buildModuleGraph(
+			[py("app/venv/lib/site-packages/requests/__init__.py", ""), py("src/a.py", "import requests\n")],
+			{ excludedDirs: ["venv"] },
+		);
+		expect(graph.ignored).toContainEqual({
+			path: "app/venv/lib/site-packages/requests/__init__.py",
+			reason: "excluded-path",
+		});
+		expect(graph.exit7).toEqual([]);
+		expect(bindingIn(graph, "src/a.py", "requests").outcome).toBe("external");
+	});
+
 	test("a vendored package is indexed and its import is guarded, not excluded (DEC-303 (a8))", async () => {
 		const graph = await buildModuleGraph([py("vendor/requests/__init__.py", ""), py("src/a.py", "import requests\n")]);
 		expect(graph.ignored).toEqual([]);

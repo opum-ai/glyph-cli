@@ -45,7 +45,9 @@ export const DEFAULT_BUILD_OUTPUT_DIRS: readonly string[] = ["build", "dist", "c
 
 /**
  * Directory names that are never package roots (DEC-303 (a7) clause 1, names
- * fixed by DEC-303 (a8)); matched case-insensitively.
+ * fixed by DEC-303 (a8)); matched case-insensitively. A stated limit: a
+ * top-level package named `testing/` (or any test-named directory) is never a
+ * guard root.
  */
 export const TEST_DIR_NAMES: ReadonlySet<string> = new Set(["test", "tests", "testing", "unittests"]);
 
@@ -65,7 +67,11 @@ export interface PythonModuleInput {
 export interface ModuleGraphOptions {
 	/** Declared roots, replacing the defaults literally (no glob); used for an unusual layout. */
 	roots?: readonly string[];
-	/** Explicit excluded-directory names, replacing the defaults. */
+	/**
+	 * Explicit excluded-directory names, replacing the defaults. A name in
+	 * `DEFAULT_BUILD_OUTPUT_DIRS` stays root-only and package-exempt; every other
+	 * declared name is excluded at any depth.
+	 */
 	excludedDirs?: readonly string[];
 }
 
@@ -290,9 +296,18 @@ interface ExclusionRules {
 
 function exclusionRules(declared: readonly string[] | undefined): ExclusionRules {
 	if (declared !== undefined) {
-		// A declared name behaves like a build-output name: root-only and never a
-		// package (finding 7), so declaring ["build"] does not exclude src/build/.
-		return { anyDepth: new Set(), rootBuildOutput: new Set(declared) };
+		// A declared build-output name keeps the root-only, package-exempt rule
+		// (finding 7); every other declared name is excluded at any depth, so a
+		// declared venv/node_modules/.git/cache still applies below the root
+		// (DEC-303 (a7) NB11, (a8) list).
+		const buildOutput = new Set(DEFAULT_BUILD_OUTPUT_DIRS);
+		const anyDepth = new Set<string>();
+		const rootBuildOutput = new Set<string>();
+		for (const name of declared) {
+			if (buildOutput.has(name)) rootBuildOutput.add(name);
+			else anyDepth.add(name);
+		}
+		return { anyDepth, rootBuildOutput };
 	}
 	return { anyDepth: new Set(DEFAULT_EXCLUDED_DIRS), rootBuildOutput: new Set(DEFAULT_BUILD_OUTPUT_DIRS) };
 }
