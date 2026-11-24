@@ -54,6 +54,13 @@ describe("rule 1 — identity", () => {
 		expect(byQualname(table, "baz").startLine).toBe(8);
 	});
 
+	test("a trailing comment on the previous line is not a leading comment", async () => {
+		// `# note` trails `x = 1`; only a comment that starts its own line leads.
+		const source = "x = 1  # note\ndef f():\n    pass\n";
+		const table = await collect(source);
+		expect(byQualname(table, "f").startLine).toBe(2);
+	});
+
 	test("a decorated async def takes the async/def line, not the decorator line", async () => {
 		const table = await collect("@d\nasync def go():\n    pass\n");
 		const go = table.symbols[0] as PythonSymbol;
@@ -127,6 +134,13 @@ describe("rule 3 — kinds", () => {
 		expect(byQualname(table, "C.s").kind).toBe("method");
 		expect(byQualname(table, "C.c").kind).toBe("method");
 	});
+
+	test("@cached_property is a method, not a property (only property/.setter/.getter/.deleter are)", async () => {
+		const source =
+			"from functools import cached_property\nclass C:\n    @cached_property\n    def x(self):\n        return 1\n";
+		const table = await collect(source);
+		expect(byQualname(table, "C.x").kind).toBe("method");
+	});
 });
 
 describe("rule 4 — overload groups", () => {
@@ -177,6 +191,24 @@ describe("rule 4 — overload groups", () => {
 		expect(table.overloadStubsCollapsed).toBe(1);
 	});
 
+	test("a dotted @typing.overload is detected like a bare @overload", async () => {
+		const source = [
+			"import typing",
+			"@typing.overload",
+			"def f(x: int) -> int: ...",
+			"@typing.overload",
+			"def f(x: str) -> str: ...",
+			"def f(x):",
+			"    return x",
+		].join("\n");
+		const table = await collect(source);
+		const symbols = table.symbols.filter((symbol) => symbol.qualname === "f");
+		expect(symbols).toHaveLength(1);
+		expect(symbols[0]?.line).toBe(6);
+		expect(symbols[0]?.collapsedOverloadStubs).toEqual([3, 5]);
+		expect(table.overloadStubsCollapsed).toBe(2);
+	});
+
 	test("implementation definitions in separate branches are all kept", async () => {
 		const source = [
 			"@overload",
@@ -210,7 +242,20 @@ describe("rule 5 — branch-conditional definitions", () => {
 	});
 
 	test("definitions inside try/for/while are emitted", async () => {
-		const source = "try:\n    def a(): pass\nexcept Exception:\n    pass\nfor _ in []:\n    def b(): pass\n";
+		const source =
+			"try:\n    def a(): pass\nexcept Exception:\n    pass\nfor _ in []:\n    def b(): pass\nwhile False:\n    def c(): pass\n";
+		const table = await collect(source);
+		expect(table.symbols.map((symbol) => symbol.qualname).sort()).toEqual(["a", "b", "c"]);
+	});
+
+	test("a name defined in both a try arm and its except arm is emitted in both", async () => {
+		const source = "try:\n    def f(): return 1\nexcept Exception:\n    def f(): return 2\n";
+		const table = await collect(source);
+		expect(table.symbols.filter((symbol) => symbol.qualname === "f").map((symbol) => symbol.line)).toEqual([2, 4]);
+	});
+
+	test("definitions inside match/case arms are emitted", async () => {
+		const source = "match x:\n    case 1:\n        def a(): pass\n    case _:\n        def b(): pass\n";
 		const table = await collect(source);
 		expect(table.symbols.map((symbol) => symbol.qualname).sort()).toEqual(["a", "b"]);
 	});
@@ -333,14 +378,18 @@ describe("rule 11 — async def", () => {
 });
 
 describe("rule 12 — ERROR and MISSING", () => {
-	test("a definition inside an ERROR region is dropped and the file is named", async () => {
-		// Measured: tree-sitter nests the outer def under module > ERROR here.
+	test("a definition inside an ERROR region, and a definition nested in it, are dropped and the file is named", async () => {
+		// Measured: tree-sitter nests the outer def under module > ERROR here, and
+		// `g` sits in that def's own body. Both are part of the loss, so both are
+		// counted rather than the outer one only.
 		const source = "def f():\n    x = ]\n        def g(): pass\n";
 		const table = await collect(source, "broken.py");
 		expect(table.symbols).toEqual([]);
 		expect(table.errorFiles).toEqual(["broken.py"]);
+		expect(table.parseErrorFiles).toEqual(["broken.py"]);
 		expect(table.droppedDefinitions).toEqual([
 			{ file: "broken.py", reason: "error-region", nodeType: "function_definition", line: 1 },
+			{ file: "broken.py", reason: "error-region", nodeType: "function_definition", line: 3 },
 		]);
 	});
 
@@ -360,12 +409,30 @@ describe("rule 12 — ERROR and MISSING", () => {
 		expect(table.droppedDefinitions).toEqual([]);
 	});
 
-	test("a nameless def yields no symbol (the grammar makes it an ERROR, not a def node)", async () => {
+	test("a nameless def yields no symbol; the file is named and the parse error counts are carried", async () => {
+		// `def :` parses as module > ERROR with the def broken into loose tokens,
+		// so there is no recognised def node to record as dropped. The file must
+		// still be named and the counts carried, or a caller sees a clean file.
 		const parse = await parsePython("def :\n    pass\n", "nameless.py");
-		expect(parse.errorCount).toBeGreaterThan(0);
+		const errorCount = parse.errorCount;
+		const missingCount = parse.missingCount;
+		expect(errorCount).toBeGreaterThan(0);
 		const table = collectPythonSymbols(parse);
 		parse.tree.delete();
 		expect(table.symbols).toEqual([]);
+		expect(table.parseErrorFiles).toEqual(["nameless.py"]);
+		// No recognised def node, so nothing is counted as a dropped definition.
+		expect(table.errorFiles).toEqual([]);
+		expect(table.droppedDefinitions).toEqual([]);
+		expect(table.errorCount).toBe(errorCount);
+		expect(table.missingCount).toBe(missingCount);
+	});
+
+	test("buildPythonSymbols carries the parse error state for a def broken into loose tokens", async () => {
+		const table = await buildPythonSymbols("def :\n    pass\n", "nameless.py");
+		expect(table.symbols).toEqual([]);
+		expect(table.parseErrorFiles).toEqual(["nameless.py"]);
+		expect(table.errorCount).toBeGreaterThan(0);
 	});
 
 	test("a file needing UTF-8 decode replacements is named", async () => {
@@ -381,12 +448,36 @@ describe("purity and tree ownership", () => {
 		try {
 			const first = collectPythonSymbols(parse);
 			const second = collectPythonSymbols(parse);
+			// Two independent tables with the same content: the second call did
+			// not reuse or mutate the first. (An array `not.toBe` alone held
+			// trivially, so compare the whole tables.)
+			expect(first).not.toBe(second);
+			expect(first.symbols).toEqual(second.symbols);
 			expect(first.symbols.map((symbol) => symbol.qualname)).toEqual(["f"]);
-			expect(second.symbols.map((symbol) => symbol.qualname)).toEqual(["f"]);
-			// Distinct result objects: the first table is not mutated by the second.
-			expect(first.symbols).not.toBe(second.symbols);
+			// The tree is still alive and owned by the caller: reading it after
+			// both calls proves neither freed it.
+			expect(parse.tree.rootNode.type).toBe("module");
 		} finally {
 			parse.tree.delete();
 		}
+	});
+});
+
+describe("traversal depth", () => {
+	test("a 50k-term expression and 50k-deep literals do not overflow; a def after them is found", async () => {
+		const chain = `a${" + a".repeat(50000)}`;
+		const lists = `x = ${"[".repeat(50000)}1${"]".repeat(50000)}`;
+		const table = await collect(`${chain}\n${lists}\ndef after():\n    pass\n`, "deep.py");
+		expect(table.symbols.map((symbol) => symbol.qualname)).toEqual(["after"]);
+		expect(table.parseErrorFiles).toEqual([]);
+	});
+
+	test("a deep expression in a function body does not overflow scope-hint collection", async () => {
+		const chain = `a${" + a".repeat(50000)}`;
+		const lists = `${"[".repeat(50000)}1${"]".repeat(50000)}`;
+		const table = await collect(`def holder():\n    global KEEP\n    y = ${chain}\n    z = ${lists}\n`, "deep-body.py");
+		expect(table.scopeHints).toEqual([
+			{ file: "deep-body.py", function: "holder", line: 1, global: ["KEEP"], nonlocal: [] },
+		]);
 	});
 });

@@ -87,6 +87,17 @@ export interface PythonSymbolTable {
 	droppedDefinitions: PythonDroppedDefinition[];
 	/** Files that lost a definition to an ERROR region. */
 	errorFiles: string[];
+	/**
+	 * Files whose parse contained at least one ERROR or MISSING node, whether or
+	 * not a definition was lost. A file named only here still parsed badly
+	 * (e.g. a `def :` that error recovery broke into loose tokens); the counts
+	 * below say how badly.
+	 */
+	parseErrorFiles: string[];
+	/** ERROR node count in this file's parse; 0 for a clean parse. */
+	errorCount: number;
+	/** MISSING node count in this file's parse; 0 for a clean parse. */
+	missingCount: number;
 	/** Files whose parse needed UTF-8 decode replacements. */
 	decodeReplacementFiles: string[];
 	scopeHints: PythonScopeHint[];
@@ -94,6 +105,33 @@ export interface PythonSymbolTable {
 
 const OVERLOAD_NAME = "overload";
 const PROPERTY_DECORATOR_NAMES = new Set(["property", "setter", "getter", "deleter"]);
+
+/**
+ * Node types whose bodies are statement lists, so a definition, a nested
+ * block or a `global`/`nonlocal` can sit below them. Traversal descends only
+ * through these (plus ERROR under recovery): a definition is a statement, so an
+ * expression subtree holds none, and skipping expressions bounds traversal
+ * depth on a machine-generated 50k-term expression.
+ */
+const STATEMENT_CONTAINER_TYPES = new Set<string>([
+	"module",
+	"block",
+	"if_statement",
+	"elif_clause",
+	"else_clause",
+	"for_statement",
+	"while_statement",
+	"with_statement",
+	"try_statement",
+	"except_clause",
+	"finally_clause",
+	"match_statement",
+	"case_clause",
+]);
+
+function isDefinitionNode(type: string): boolean {
+	return type === "function_definition" || type === "class_definition" || type === "decorated_definition";
+}
 
 type EnclosingScope = "module" | "class" | "function";
 
@@ -140,13 +178,29 @@ function collectDecorators(wrapper: Node): PythonDecorator[] {
 }
 
 /**
+ * True when the comment is the first thing on its line, i.e. not a trailing
+ * comment after code (`x = 1  # note`). A trailing comment ends the same row it
+ * starts, with another sibling ending on that row before it.
+ */
+function startsItsOwnLine(comment: Node): boolean {
+	const before = comment.previousSibling;
+	return before === null || before.endPosition.row < comment.startPosition.row;
+}
+
+/**
  * The span's 1-based start line: the definition (or its first decorator) plus
- * any comment lines directly above it with no blank line between.
+ * any comment lines directly above it with no blank line between. A comment
+ * that trails code on the previous line is not a leading comment.
  */
 function leadingStartLine(node: Node): number {
 	let startRow = node.startPosition.row;
 	let sibling = node.previousNamedSibling;
-	while (sibling !== null && sibling.type === "comment" && sibling.endPosition.row + 1 === startRow) {
+	while (
+		sibling !== null &&
+		sibling.type === "comment" &&
+		sibling.endPosition.row + 1 === startRow &&
+		startsItsOwnLine(sibling)
+	) {
 		startRow = sibling.startPosition.row;
 		sibling = sibling.previousNamedSibling;
 	}
@@ -168,27 +222,37 @@ function collectScopeHints(definition: Node, qualname: string, file: string, tab
 	if (body === null) return;
 	const global: string[] = [];
 	const nonlocal: string[] = [];
-	const visit = (node: Node): void => {
+	// An explicit stack, descending only through statement containers: a deep
+	// expression in the body cannot drive this recursion.
+	const stack: Node[] = [body];
+	while (stack.length > 0) {
+		const node = stack.pop() as Node;
 		// A nested definition owns its own declarations; do not descend into it.
-		if (
-			node.type === "function_definition" ||
-			node.type === "class_definition" ||
-			node.type === "decorated_definition"
-		) {
-			return;
-		}
+		if (isDefinitionNode(node.type)) continue;
 		if (node.type === "global_statement" || node.type === "nonlocal_statement") {
 			const target = node.type === "global_statement" ? global : nonlocal;
 			for (const child of node.namedChildren) {
 				if (child !== null && child.type === "identifier") target.push(child.text);
 			}
-			return;
+			continue;
 		}
-		for (const child of node.namedChildren) {
-			if (child !== null) visit(child);
+		// Anything but a statement container is a leaf statement or an
+		// expression; neither can hold a declaration.
+		if (!STATEMENT_CONTAINER_TYPES.has(node.type)) continue;
+		const children = node.namedChildren;
+		for (let index = children.length - 1; index >= 0; index--) {
+			const child = children[index];
+			if (child === null || child === undefined) continue;
+			if (
+				STATEMENT_CONTAINER_TYPES.has(child.type) ||
+				isDefinitionNode(child.type) ||
+				child.type === "global_statement" ||
+				child.type === "nonlocal_statement"
+			) {
+				stack.push(child);
+			}
 		}
-	};
-	visit(body);
+	}
 	if (global.length > 0 || nonlocal.length > 0) {
 		table.scopeHints.push({ file, function: qualname, line: definition.startPosition.row + 1, global, nonlocal });
 	}
@@ -208,35 +272,94 @@ function recordDropped(
 	});
 }
 
-function walk(node: Node, ctx: WalkContext, file: string, table: PythonSymbolTable): void {
-	if (node.type === "decorated_definition") {
-		const definition = node.childForFieldName("definition");
-		if (definition === null) return;
+interface WalkFrame {
+	node: Node;
+	ctx: WalkContext;
+}
+
+/** Push a node's named children reversed, so the stack pops them in document order. */
+function pushNamedChildren(node: Node, ctx: WalkContext, stack: WalkFrame[], keep?: (child: Node) => boolean): void {
+	const children = node.namedChildren;
+	for (let index = children.length - 1; index >= 0; index--) {
+		const child = children[index];
+		if (child === null || child === undefined) continue;
+		if (keep !== undefined && !keep(child)) continue;
+		stack.push({ node: child, ctx });
+	}
+}
+
+/**
+ * Push a definition's body for walking. Under error recovery the body field can
+ * be absent, so every named child is pushed instead.
+ */
+function pushDefinitionBody(definition: Node, ctx: WalkContext, stack: WalkFrame[]): void {
+	const body = definition.childForFieldName("body");
+	if (body !== null) {
+		stack.push({ node: body, ctx });
+		return;
+	}
+	pushNamedChildren(definition, ctx, stack);
+}
+
+/**
+ * Walk the tree for definitions and ERROR regions with an explicit stack, so
+ * depth is bounded by the heap rather than the call stack. Normal subtrees are
+ * descended only through statement containers (a definition is a statement, and
+ * an expression holds none); an ERROR subtree is descended fully, because error
+ * recovery can nest a definition under any node.
+ */
+function walk(root: Node, rootCtx: WalkContext, file: string, table: PythonSymbolTable): void {
+	const stack: WalkFrame[] = [{ node: root, ctx: rootCtx }];
+	while (stack.length > 0) {
+		const { node, ctx } = stack.pop() as WalkFrame;
+
+		if (node.type === "decorated_definition") {
+			const definition = node.childForFieldName("definition");
+			if (definition === null) {
+				// Unreachable in grammar 0.3.1, but a wrapper with no inner
+				// definition must be recorded rather than disappear silently.
+				recordDropped(node, file, "missing-name", table);
+				continue;
+			}
+			if (ctx.underError) {
+				// The definition is inside an ERROR region: drop it, then descend
+				// into its body so a definition nested inside it is counted too.
+				recordDropped(definition, file, "error-region", table);
+				pushDefinitionBody(definition, { ...ctx, underError: true }, stack);
+				continue;
+			}
+			handleDefinition(definition, node, collectDecorators(node), ctx, file, table, stack);
+			continue;
+		}
+		if (node.type === "function_definition" || node.type === "class_definition") {
+			if (ctx.underError) {
+				recordDropped(node, file, "error-region", table);
+				pushDefinitionBody(node, { ...ctx, underError: true }, stack);
+				continue;
+			}
+			handleDefinition(node, null, [], ctx, file, table, stack);
+			continue;
+		}
+		if (node.type === "ERROR") {
+			pushNamedChildren(node, { ...ctx, underError: true }, stack);
+			continue;
+		}
 		if (ctx.underError) {
-			// The definition is inside an ERROR region: drop it, name the file.
-			recordDropped(definition, file, "error-region", table);
-			return;
+			// Under error recovery a definition can hang off any node, so descend
+			// through every named child; the explicit stack keeps this bounded.
+			pushNamedChildren(node, ctx, stack);
+			continue;
 		}
-		handleDefinition(definition, node, collectDecorators(node), ctx, file, table);
-		return;
-	}
-	if (node.type === "function_definition" || node.type === "class_definition") {
-		if (ctx.underError) {
-			recordDropped(node, file, "error-region", table);
-			return;
+		if (STATEMENT_CONTAINER_TYPES.has(node.type)) {
+			pushNamedChildren(
+				node,
+				ctx,
+				stack,
+				(child) => STATEMENT_CONTAINER_TYPES.has(child.type) || isDefinitionNode(child.type) || child.type === "ERROR",
+			);
 		}
-		handleDefinition(node, null, [], ctx, file, table);
-		return;
-	}
-	if (node.type === "ERROR") {
-		const inside: WalkContext = { ...ctx, underError: true };
-		for (const child of node.namedChildren) {
-			if (child !== null) walk(child, inside, file, table);
-		}
-		return;
-	}
-	for (const child of node.namedChildren) {
-		if (child !== null) walk(child, ctx, file, table);
+		// Any other node is an expression or a leaf statement: it cannot hold a
+		// definition, so it is not descended into.
 	}
 }
 
@@ -247,9 +370,12 @@ function handleDefinition(
 	ctx: WalkContext,
 	file: string,
 	table: PythonSymbolTable,
+	stack: WalkFrame[],
 ): void {
 	const nameNode = definition.childForFieldName("name");
-	if (nameNode === null) {
+	// A zero-width MISSING name (or none) is a dropped definition, not a symbol
+	// named "": route it to the missing-name reason (rule 12).
+	if (nameNode === null || nameNode.isMissing) {
 		recordDropped(definition, file, "missing-name", table);
 		return;
 	}
@@ -289,9 +415,7 @@ function handleDefinition(
 				enclosing: "function",
 				underError: false,
 			};
-	for (const child of definition.namedChildren) {
-		if (child !== null) walk(child, nested, file, table);
-	}
+	pushDefinitionBody(definition, nested, stack);
 }
 
 /**
@@ -402,11 +526,21 @@ export function collectPythonSymbols(parse: PythonParseResult): PythonSymbolTabl
 		overloadGroupsWithoutImplementation: [],
 		droppedDefinitions: [],
 		errorFiles: [],
+		parseErrorFiles: [],
+		errorCount: 0,
+		missingCount: 0,
 		decodeReplacementFiles: [],
 		scopeHints: [],
 	};
 	const file = parse.path;
 	if (parse.decodeReplacements > 0) table.decodeReplacementFiles.push(file);
+
+	// Carry the parse's own error state onto the table: a caller of
+	// `buildPythonSymbols` sees only the table, and a file whose definitions were
+	// broken into loose tokens by error recovery would otherwise look clean.
+	table.errorCount = parse.errorCount;
+	table.missingCount = parse.missingCount;
+	if (parse.hasError) table.parseErrorFiles.push(file);
 
 	walk(
 		parse.tree.rootNode,

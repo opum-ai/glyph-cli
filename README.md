@@ -20,16 +20,35 @@ recorded in [ADR 0001](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0
 ### Python symbols (not yet wired)
 
 Python symbol collection exists behind the parse wrapper in `src/python/` and is
-not yet wired to the CLI (ADR 0008). Its stated limits:
+not yet wired to the CLI (ADR 0008). Its stated limits (the full record is the
+GCLI-76 implementation notes):
 
-- A symbol's id column counts UTF-16 code units, the same unit TypeScript uses:
+- **Parse errors are named, not resolved.** A file whose parse contains an ERROR
+  or MISSING node is listed in `parseErrorFiles`, with `errorCount` and
+  `missingCount` carried on the table; a recognised definition inside an ERROR
+  region is dropped and counted in `droppedDefinitions` and `errorFiles`, and a
+  definition nested in it is counted too. A `def :` is broken into loose tokens
+  by error recovery, so it yields no symbol and no dropped-definition entry, only
+  the file-level parse error.
+- **Overload groups are grouped by qualname within one file.** A group split
+  across branches is not distinguished, and a group with several non-`@overload`
+  definitions keeps every implementation.
+- **Decorated symbols are flagged, never dropped.** Whether a decorator replaces
+  the name with another object (click's `@command`) cannot be decided
+  statically; every decorated symbol carries `decorated: true` and its
+  decorators, and a later slice decides the decorator site kind.
+- **`__all__` is read only as a literal list or tuple at module level.** A
+  non-literal assignment, `__all__ += ...`, or `__all__.extend(...)` falls back to
+  the leading-underscore rule, and a literal inside an `if` is not read.
+- **Class-body assignments emit no symbol**, while class-body defs are members.
+- **`cached_property` is collected as a method**, not a property; only
+  `property`, `.setter`, `.getter` and `.deleter` are `property`.
+- **The id column counts UTF-16 code units**, the same unit TypeScript uses:
   `parsePython` decodes bytes to a string before parsing, so a preceding
   non-BMP character shifts a UTF-8 byte offset but not this column.
-- `test/python-gate/check_symbol_targets.ts` is a TypeScript reproduction of the
-  gate scorer's target mapping, not a run of `gate_score.py`; the real
+- **`test/python-gate/check_symbol_targets.ts` is a TypeScript reproduction** of
+  the gate scorer's target mapping, not a run of `gate_score.py`; the real
   end-to-end gate run is S8.
-- `cached_property` is collected as a method, not a property.
-- Class-body assignments emit no symbol.
 
 ## Run it
 
