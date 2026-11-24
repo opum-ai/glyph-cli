@@ -19,20 +19,12 @@ import { parsePython } from "./parse.ts";
 export const DEFAULT_PYTHON_ROOTS: readonly string[] = ["", "src", "lib"];
 
 /**
- * Excluded directory names, matched on any path segment (rule 3). The ruling
- * names virtual environments; the rest mirrors `src/discover.ts`'s
- * language-agnostic set plus Python caches and environments.
+ * Directory names excluded at any depth (rule 3; DEC-303 (a7), NB11): version
+ * control, environments and caches. These are never first-party packages.
  */
 export const DEFAULT_EXCLUDED_DIRS: readonly string[] = [
 	".git",
 	"node_modules",
-	"dist",
-	"build",
-	"out",
-	"coverage",
-	"vendor",
-	".next",
-	".nuxt",
 	"__pycache__",
 	".venv",
 	"venv",
@@ -40,6 +32,25 @@ export const DEFAULT_EXCLUDED_DIRS: readonly string[] = [
 	".nox",
 	"site-packages",
 ];
+
+/**
+ * Build-output directory names (DEC-303 (a7), NB11): excluded only as a direct
+ * child of the repository root, and only when the directory is not a package.
+ * So `src/build/` and a root `coverage/` holding `__init__.py` are indexed;
+ * a root `build/` output directory without `__init__.py` stays excluded.
+ */
+export const DEFAULT_BUILD_OUTPUT_DIRS: readonly string[] = [
+	"dist",
+	"build",
+	"out",
+	"coverage",
+	"vendor",
+	".next",
+	".nuxt",
+];
+
+/** Directory names that are never package roots (DEC-303 (a7): test-named directories). */
+export const TEST_DIR_NAMES: ReadonlySet<string> = new Set(["test", "tests"]);
 
 export interface PythonModuleInput {
 	/** Repository-relative POSIX path of the file. */
@@ -143,7 +154,7 @@ export interface NameCollision {
 
 export interface IgnoredInput {
 	path: string;
-	reason: "stub" | "non-python" | "excluded-path" | "outside-roots" | "duplicate";
+	reason: "stub" | "non-python" | "excluded-path" | "duplicate";
 }
 
 export interface ParseIssue {
@@ -260,13 +271,50 @@ function rootOrderRoots(paths: readonly string[], declared: readonly string[] | 
 	return [...roots, ...[...packageRoots].sort()];
 }
 
-function excludedSet(declared: readonly string[] | undefined): Set<string> {
-	return new Set(declared ?? DEFAULT_EXCLUDED_DIRS);
+interface ExclusionRules {
+	/** Names excluded at any depth. */
+	anyDepth: ReadonlySet<string>;
+	/** Build-output names excluded only as a non-package direct child of the root. */
+	rootBuildOutput: ReadonlySet<string>;
 }
 
-function isExcludedPath(path: string, excluded: ReadonlySet<string>): boolean {
+function exclusionRules(declared: readonly string[] | undefined): ExclusionRules {
+	if (declared !== undefined) return { anyDepth: new Set(declared), rootBuildOutput: new Set() };
+	return { anyDepth: new Set(DEFAULT_EXCLUDED_DIRS), rootBuildOutput: new Set(DEFAULT_BUILD_OUTPUT_DIRS) };
+}
+
+/**
+ * A path is excluded when a directory segment names an any-depth exclusion, or
+ * when its repo-root-level segment names a build-output directory that is not
+ * itself a package (DEC-303 (a7), NB11). `packageDirs` is every input directory
+ * holding `__init__.py`.
+ */
+function isExcludedPath(path: string, rules: ExclusionRules, packageDirs: ReadonlySet<string>): boolean {
 	const directories = path.split("/").slice(0, -1);
-	return directories.some((segment) => excluded.has(segment) || segment.endsWith(".egg-info"));
+	for (let index = 0; index < directories.length; index++) {
+		const segment = directories[index] as string;
+		if (segment.endsWith(".egg-info")) return true;
+		if (rules.anyDepth.has(segment)) return true;
+		if (index === 0 && rules.rootBuildOutput.has(segment) && !packageDirs.has(segment)) return true;
+	}
+	return false;
+}
+
+/** True when any segment of `dir` is a test-named directory (DEC-303 (a7) clause 1). */
+function isInsideTestNamedDir(dir: string): boolean {
+	return dir.split("/").some((segment) => TEST_DIR_NAMES.has(segment));
+}
+
+/**
+ * True when a proper ancestor of `dir` holds `__init__.py` (DEC-303 (a7)
+ * clause 1). `""` (the repository root) is never a parent package (clause 2).
+ */
+function hasPackageAncestor(dir: string, packageDirs: ReadonlySet<string>): boolean {
+	const parts = dir.split("/");
+	for (let index = 1; index < parts.length; index++) {
+		if (packageDirs.has(parts.slice(0, index).join("/"))) return true;
+	}
+	return false;
 }
 
 function selectRoot(path: string, roots: readonly string[]): number {
@@ -708,6 +756,12 @@ interface NameResolution {
 	outcome: ImportOutcome;
 	target: string | null;
 	reason: string | null;
+	/**
+	 * True for a star-only fallback reason (a name that may come from a partial
+	 * `import *`). It is not a real binding, so `resolveAttribute` may still try a
+	 * submodule before using it (finding 1).
+	 */
+	starOnly?: boolean;
 }
 
 interface ExportSet {
@@ -1043,7 +1097,7 @@ class ModuleResolver {
 				}
 			}
 			if (results.length === 0 && starReasons.length > 0) {
-				results.push({ outcome: "unresolved", target: null, reason: starReasons[0] as string });
+				results.push({ outcome: "unresolved", target: null, reason: starReasons[0] as string, starOnly: true });
 			}
 			return dedupeNameResolutions(results);
 		} finally {
@@ -1060,7 +1114,11 @@ class ModuleResolver {
 		depth: number,
 	): NameResolution[] {
 		const direct = this.resolveName(targetPath, name, visited, fromRaw, depth);
-		if (direct.length > 0) return direct;
+		// From-import order is binding, then submodule, then attribute-not-found.
+		// A real result (resolved, external or a binding's own unresolved reason)
+		// outranks a submodule; a star-only fallback reason does not, so the
+		// submodule is tried first (finding 1).
+		if (direct.some((item) => item.starOnly !== true)) return direct;
 		if (isPackageFile(targetPath)) {
 			const dir = dirOf(targetPath);
 			const packageInit = joinPath(dir, name, "__init__.py");
@@ -1071,7 +1129,7 @@ class ModuleResolver {
 				return [{ outcome: "unresolved", target: null, reason: "namespace-package" }];
 			}
 		}
-		return [{ outcome: "unresolved", target: null, reason: "attribute-not-found" }];
+		return direct.length > 0 ? direct : [{ outcome: "unresolved", target: null, reason: "attribute-not-found" }];
 	}
 
 	/** A module's exported names for a star import (rule 9). */
@@ -1247,10 +1305,18 @@ export async function buildModuleGraph(
 	const ignored: IgnoredInput[] = [];
 	const seenPaths = new Set<string>();
 	const candidates: { path: string; bytes: Uint8Array }[] = [];
-	const excluded = excludedSet(options.excludedDirs);
+	const rules = exclusionRules(options.excludedDirs);
+	const entries = files.map((file) => ({ path: normalizePath(file.path), bytes: file.bytes }));
+	// Every input directory holding __init__.py, including paths that will be
+	// excluded, so a root-level build-output name can tell a package from output
+	// (DEC-303 (a7), NB11).
+	const allPackageDirs = new Set<string>();
+	for (const entry of entries) {
+		if (baseName(entry.path) === "__init__.py") allPackageDirs.add(dirOf(entry.path));
+	}
 
-	for (const file of files) {
-		const path = normalizePath(file.path);
+	for (const entry of entries) {
+		const path = entry.path;
 		if (seenPaths.has(path)) {
 			ignored.push({ path, reason: "duplicate" });
 			continue;
@@ -1264,25 +1330,28 @@ export async function buildModuleGraph(
 			ignored.push({ path, reason: "non-python" });
 			continue;
 		}
-		if (isExcludedPath(path, excluded)) {
+		if (isExcludedPath(path, rules, allPackageDirs)) {
 			ignored.push({ path, reason: "excluded-path" });
 			continue;
 		}
-		candidates.push({ path, bytes: file.bytes });
+		candidates.push({ path, bytes: entry.bytes });
 	}
 
 	const roots = rootOrderRoots(
 		candidates.map((candidate) => candidate.path),
 		options.roots,
 	);
+	// DEC-303 (a7) clause 3 (ruling 10): a file outside every declared root is
+	// still parsed and indexed; only resolution is restricted to the roots. Such
+	// files take a synthetic, non-resolving root label "" with an index after
+	// every real root, so they never win a shadow collision.
+	const outsideRootIndex = roots.length;
+	const rootLabels = [...roots, ""];
 	const indexed: IndexedFile[] = [];
 	for (const candidate of candidates) {
-		const rootIndex = selectRoot(candidate.path, roots);
-		if (rootIndex < 0) {
-			ignored.push({ path: candidate.path, reason: "outside-roots" });
-			continue;
-		}
-		const root = roots[rootIndex] as string;
+		const found = selectRoot(candidate.path, roots);
+		const rootIndex = found < 0 ? outsideRootIndex : found;
+		const root = found < 0 ? "" : (roots[found] as string);
 		indexed.push({
 			...candidate,
 			root,
@@ -1355,8 +1424,8 @@ export async function buildModuleGraph(
 			}
 			collisions.push({
 				name: top,
-				roots: rootIndexes.map((rootIndex) => roots[rootIndex] as string),
-				winner: roots[winnerIndex] as string,
+				roots: rootIndexes.map((rootIndex) => rootLabels[rootIndex] as string),
+				winner: rootLabels[winnerIndex] as string,
 				shadowedPaths: [...shadowed, ...losersWithinRoot.map((provider) => provider.path)].sort(),
 			});
 		}
@@ -1387,12 +1456,14 @@ export async function buildModuleGraph(
 		}
 	}
 
-	// Rules 6/12 and DEC-303 (a6): the guard's first-party package set comes from
-	// ALL non-excluded candidates, whatever roots are declared, so declaring roots
-	// never switches it off for a first-party package outside them. Only TOPMOST
-	// package directories count — a directory holding __init__.py whose parent does
-	// not — so a nested stdlib-named subpackage (django/http, sqlalchemy/ext/
-	// asyncio) cannot turn an unrelated `import json` into exit 7.
+	// DEC-303 (a7) clause 1: the guard's first-party package set comes from ALL
+	// non-excluded candidates, whatever roots are declared, so declaring roots
+	// never switches it off for a package outside them. A package directory is a
+	// root only when NO ancestor up to the repository root holds __init__.py
+	// (pkg/ns/inner is pkg.ns.inner, not topmost), it is not inside a test-named
+	// directory (tests/json is not a root), and, per clause 2, "" is never a
+	// parent package. So a nested stdlib-named subpackage (django/http,
+	// sqlalchemy/ext/asyncio) cannot turn `import json` into exit 7.
 	const packageDirs = new Set<string>();
 	for (const candidate of candidates) {
 		if (baseName(candidate.path) === "__init__.py") packageDirs.add(dirOf(candidate.path));
@@ -1400,7 +1471,8 @@ export async function buildModuleGraph(
 	const packageRootsByBase = new Map<string, string[]>();
 	for (const dir of packageDirs) {
 		if (dir === "") continue;
-		if (packageDirs.has(dirOf(dir))) continue;
+		if (isInsideTestNamedDir(dir)) continue;
+		if (hasPackageAncestor(dir, packageDirs)) continue;
 		const base = baseName(dir);
 		const list = packageRootsByBase.get(base) ?? [];
 		list.push(dir);
