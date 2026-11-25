@@ -60,3 +60,5 @@
 - 2026-11-25T00:14:55-06:00 d4730765914586763396eb6e2dc69e0d9fe16d30 docs(GCLI-82): declare parseErrorFiles and the code-map fallback (DEC-303 (a15) 19-21, review N1)
 - 2026-11-25T00:19:27-06:00 8a8a3cf9d43b0ee7f97ef47e8657944ce0044729 docs(GCLI-82): name the DEC-303 (a15) ruling accurately in ADR 0002 (Q1 a narrow arm B, Q2 arm A)
 - 2026-11-25T00:25:41-06:00 d9422852e6f61344616bea6290daa604d2e108bf docs(GCLI-82): the code-map build runs at tier 3's position (DEC-303 (a16), rules 23-24)
+- 2026-11-25T00:30:15-06:00 fe934a79ead11fc677fb1ff4766af394e1c3c790 feat(GCLI-82): wire Python into callers, impact, diff, code-map and --stream (S7) (#130)
+- 2026-11-25T01:06:05-06:00 d4de42eef5531d79f26ec2e678f69608f085b125 docs(GCLI-85): name nested project roots in ADR 0008 and the README (DEC-303 (a18))
