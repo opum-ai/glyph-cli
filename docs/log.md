@@ -66,3 +66,4 @@
 - 2026-11-25T01:21:12-06:00 64765f7962f6a42358b10e868582437f711bbb71 chore(GCLI-83): record the S8 gate result (FAIL on click and requests), ADR 0007/0008 follow-through, README gate status; complete GCLI-85
 - 2026-11-25T01:22:00-06:00 1859cfeb1b6080f1b3c00a83800c388c70182b28 chore(GCLI-83): the tag waits on the operator's release-scope decision, not a settled answer; check AC 1 with its evidence
 - 2026-11-25T01:24:39-06:00 ac3ea93792c64e8dcbbfbbfaeb3bd7cf4a9414be chore(GCLI-83): S8 gate result (FAIL on click and requests), ADR 0007/0008 follow-through, README gate status; GCLI-85 complete; file GCLI-86 (#135)
+- 2026-11-25T07:28:03-06:00 59ebcb880a08f0fce5564123c55982324ee1ae78 chore(GCLI-87): prepare the glyph 0.1.0 release (README limits, CHANGELOG, package metadata; DEC-303 (a20))
