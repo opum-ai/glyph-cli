@@ -1793,3 +1793,87 @@ describe("DEC-303 (a26) — a base reached through a namespace directory", () =>
 		expect(linesTo(result, symbolId(result, "helper", "src/pkg/ns/mod.py"))).toEqual([3, 3]);
 	});
 });
+
+// DEC-303 (a22) item 3, group A4: `from m import m` where the source is a module FILE
+// m.py that defines `m`. Fixtures are written from Python semantics, not from a repository.
+describe("A4 — from m import m for a module file", () => {
+	const helperDef = "def helper():\n    pass\n";
+
+	test("from .helper import helper resolves the call to the function in helper.py", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/helper.py", helperDef),
+			py("pkg/use.py", "from .helper import helper\n\ndef f():\n    helper()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "pkg/helper.py"))).toEqual([4]);
+		expect(result.callBins.nameNotBound).toBe(0);
+	});
+
+	test("the absolute form and an alias resolve too", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/helper.py", helperDef),
+			py("src/use.py", "from pkg.helper import helper\nfrom pkg.helper import helper as h\n\nhelper()\nh()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "src/pkg/helper.py"))).toEqual([4, 5]);
+	});
+
+	test("a class in the same-named module resolves as a construction", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/widget.py", "class widget:\n    pass\n"),
+			py("pkg/use.py", "from .widget import widget\n\nwidget()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "widget", "pkg/widget.py"))).toEqual([3]);
+	});
+
+	test("a re-export inside the module file is followed", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/impl.py", helperDef),
+			py("pkg/helper.py", "from .impl import helper\n"),
+			py("pkg/use.py", "from .helper import helper\n\nhelper()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "pkg/impl.py"))).toEqual([3]);
+	});
+
+	test("the name reached as a module attribute (mod.helper()) resolves the same way", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/helper.py", helperDef),
+			py("pkg/reexport.py", "from .helper import helper\n"),
+			py("pkg/use.py", "from . import reexport\n\nreexport.helper()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "pkg/helper.py"))).toEqual([3]);
+	});
+
+	test("negative: a package named helper stays unresolved (an __init__ is not admitted)", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/helper/__init__.py", helperDef),
+			py("pkg/use.py", "from .helper import helper\n\nhelper()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "pkg/helper/__init__.py"))).toEqual([]);
+		expect(result.callBins.nameNotBound).toBe(1);
+	});
+
+	test("negative: from . import helper binds the submodule, so calling it stays module-called", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/helper.py", helperDef),
+			py("pkg/use.py", "from . import helper\n\nhelper()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "pkg/helper.py"))).toEqual([]);
+		expect(result.callBins.nameNotBound).toBe(1);
+	});
+
+	test("negative: a module file that does not define the name leaves the call unresolved", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/helper.py", "def other():\n    pass\n"),
+			py("pkg/use.py", "from .helper import helper\n\nhelper()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "other", "pkg/helper.py"))).toEqual([]);
+		expect(result.callBins.resolvedInRepo).toBe(0);
+	});
+});
