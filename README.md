@@ -25,11 +25,15 @@ GCLI-76 implementation notes):
 
 - **Parse errors are named, not resolved.** A file whose parse contains an ERROR
   or MISSING node is listed in `parseErrorFiles`, with `errorCount` and
-  `missingCount` carried on the table; a recognised definition inside an ERROR
-  region is dropped and counted in `droppedDefinitions` and `errorFiles`, and a
-  definition nested in it is counted too. A `def :` is broken into loose tokens
-  by error recovery, so it yields no symbol and no dropped-definition entry, only
-  the file-level parse error.
+  `missingCount` carried on the table — read from the parse itself, so the file
+  is named regardless of what the walk reaches. A recognised definition inside an
+  ERROR region the walk enters is dropped and counted in `droppedDefinitions` and
+  `errorFiles`, and a definition nested inside it is counted too. Outside an ERROR
+  the walk descends only through statement containers and definitions, so an
+  ERROR nested inside an expression is not entered and a definition hidden there
+  is neither dropped nor counted. A `def :` is broken into loose tokens by error
+  recovery, so it yields no symbol and no dropped-definition entry, only the
+  file-level parse error.
 - **Overload groups are grouped by qualname within one file.** A group split
   across branches is not distinguished, and a group with several non-`@overload`
   definitions keeps every implementation.
@@ -38,8 +42,11 @@ GCLI-76 implementation notes):
   statically; every decorated symbol carries `decorated: true` and its
   decorators, and a later slice decides the decorator site kind.
 - **`__all__` is read only as a literal list or tuple at module level.** A
-  non-literal assignment, `__all__ += ...`, or `__all__.extend(...)` falls back to
-  the leading-underscore rule, and a literal inside an `if` is not read.
+  non-literal assignment or `__all__ += ...` falls back to the leading-underscore
+  rule; `__all__.extend(...)` and `__all__.append(...)` are calls, not
+  assignments, so they are skipped rather than read — they contribute no names,
+  a literal assignment beside them still governs, and a module with only such
+  calls falls back. A literal inside an `if` is not read.
 - **Class-body assignments emit no symbol**, while class-body defs are members.
 - **`cached_property` is collected as a method**, not a property; only
   `property`, `.setter`, `.getter` and `.deleter` are `property`.
