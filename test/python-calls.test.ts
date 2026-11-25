@@ -1766,7 +1766,7 @@ describe("DEC-303 (a26) — a base reached through a namespace directory", () =>
 		expect(linesTo(bare, symbolId(bare, "helper", "src/pkg/ns/mod.py"))).toEqual([]);
 	});
 
-	test("Q2: a bare import pkg then pkg.ns.mod.helper() resolves under a non-empty anchor (positive)", async () => {
+	test("Q2: a bare import pkg then pkg.ns.mod.helper() resolves under an empty and a non-empty anchor (positive)", async () => {
 		const bareOk = await analyze([
 			py("src/pkg/__init__.py", 'from .app import Flask\n\n__all__ = ["Flask"]\n__version__ = "1"\n'),
 			py("src/pkg/app.py", "class Flask:\n    pass\n"),
@@ -1774,6 +1774,12 @@ describe("DEC-303 (a26) — a base reached through a namespace directory", () =>
 			py("src/use.py", "import pkg\n\npkg.ns.mod.helper()\n"),
 		]);
 		expect(linesTo(bareOk, symbolId(bareOk, "helper", "src/pkg/ns/mod.py"))).toEqual([3]);
+		const emptyAnchor = await analyze([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/use.py", "import pkg\n\npkg.ns.mod.helper()\n"),
+		]);
+		expect(linesTo(emptyAnchor, symbolId(emptyAnchor, "helper", "src/pkg/ns/mod.py"))).toEqual([3]);
 	});
 
 	test("Q1 at the call level: from pkg.ns import mod then mod.helper(), and from . import mod inside the directory", async () => {

@@ -4,7 +4,7 @@ Development data for DEC-303 (a21) to (a25), recorded under (a24) arm A. Nothing
 
 ## What it measures
 
-The share of human-attributable, in-package call sites that the analyzer resolves to the right symbol, on development repositories. Targets are every `def` and `class` in the package directory (tests excluded), ordered by `sha256(seed + file + ":" + qualname)`. For each target `census.py` enumerates, by regex and independent of glyph, every call-form and reference-form occurrence of the name across the package (the alias census). A human then labels each hit: a true site of that target, false (docstring, another object, a definition line), or excluded as ambiguous, polymorphic or value-dependent (DEC-303 (a3) Q4 and the standing rule). The labels are one labeller's (the glyph-cli worker; development data).
+The share of human-attributable, in-package call sites that the analyzer resolves to the right symbol, on development repositories. Targets are every `def` and `class` in the package directory (tests excluded), ordered by `sha256(seed + file + ":" + qualname)`. `census.py` drops dunder names (`census.py:24`) and every target with no call-form occurrence or more than 14 occurrences across the package (`census.py:41`) before the first `max-targets` survivors are taken. For each target `census.py` enumerates, by regex and independent of glyph, every call-form and reference-form occurrence of the name across the package (the alias census). A human then labels each hit: a true site of that target, false (docstring, another object, a definition line), or excluded as ambiguous, polymorphic or value-dependent (DEC-303 (a3) Q4 and the standing rule). The labels are one labeller's (the glyph-cli worker; development data).
 
 | sample | repository | commit | seed | package | targets | true sites | excluded |
 |---|---|---|---|---|---|---|---|
@@ -21,7 +21,7 @@ Label categories: D direct name, import or module attribute; N nested local def;
 - `measure.ts`: `bun test/python-dev-measurement/measure.ts <repo-root>` prints the call bins for a checkout.
 - `score-dev.ts`: `bun test/python-dev-measurement/score-dev.ts <repo-root> <enum.json> <labels.json>` scores the labels against the repository's own analyzer (an edge from the site's file and line to the target symbol).
 
-Clone each repository at the commit above (`git clone`, then `git checkout <sha>`).
+Clone each repository at the commit above (`git clone`, then `git checkout <sha>`). To reproduce a row, check out the analyzer commit it names, overlay `test/python-dev-measurement/` from this tree onto that checkout (the scripts import `src/python/` relatively, so the analyzer measured is the checkout's), and run `census.py` with `max-targets` 110 for tqdm and 40 for flask. Group sizes for the unresolved calls at the analyzer commits are in `item3-group-sizes.tsv` (GCLI-93).
 
 ## Rows and the commit that reproduces each
 
@@ -31,6 +31,7 @@ Run `score-dev.ts` from a checkout of the named commit, pointing it at the clone
 |---|---|---|---|
 | (i) current rules as built | `1d2441d1603995784e05e59071b570e9c806faa6`, dev before GCLI-89 (opum-ai/glyph-cli#139) | 62/89 = 0.6966 | 21/29 = 0.7241 |
 | (i') with the attribute-target defect fixed | `4f313f77d02c17d15d6e21e4b7ed49bb7d63eb0e`, GCLI-89's merge commit on dev | 79/89 = 0.8876 | 24/29 = 0.8276 |
+| (i'') with GCLI-91 (resolution through a namespace directory) | `61ec0292f2e43fd5bf26db6f2796dbf30589052a`, GCLI-91's squash on dev (opum-ai/glyph-cli#143) | 79/89 = 0.8876 | 29/29 = 1.0000 |
 
 By category on tqdm: row (i) D 40/40, N 3/3, C 3/3, S 16/33, Q2 0/5, ALIAS 0/4, TS 0/1; row (i') the same except S 33/33.
 

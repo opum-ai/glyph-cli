@@ -1,0 +1,40 @@
+group	pre-89 total	pre-89 in-pkg	post-89 total	post-89 in-pkg	dev total	dev in-pkg	dev flask	dev jinja	dev httpx	dev rich	dev tqdm
+TOTAL unresolved calls	9839	3693	9474	3453	9480	3459	1769	2448	2207	1874	1182
+L2 local bound to another call result (return-value inference)	1991	509	2101	604	2101	604	198	801	532	344	226
+P1 parameter (unannotated)	2360	808	1949	422	1947	420	887	640	120	171	129
+A1 star re-export (module.Name)	883	0	883	0	883	0	0	0	883	0	0
+S2 self.attr.m() (instance attribute receiver)	522	483	699	650	699	650	57	220	128	205	89
+N2 callee is a local/other assignment	545	383	545	383	545	383	21	94	9	278	143
+E2 other call result (return-value inference)	418	143	418	143	418	143	69	155	48	85	61
+W with ... as x	342	32	342	32	342	32	21	12	129	78	102
+F for / comprehension target	273	219	273	219	273	219	25	46	86	94	22
+N1 callee is a parameter (callback)	266	43	266	43	266	43	25	40	42	5	154
+L4 local bound to another expression (attr, subscript, await, ...)	214	146	235	167	235	167	26	21	76	69	43
+LIT local bound only to a literal/comprehension (builtin type)	218	125	234	137	234	137	72	66	37	29	30
+I1 attribute chain on a known-class local (obj.attr.m())	172	11	192	20	192	20	36	10	4	141	1
+R5 local bound to Cls(...) and to something else	308	59	166	14	166	14	8	130	5	4	19
+M1 module-level name imported from another module	146	68	152	69	152	69	87	8	1	48	8
+S1 self.m() where m is not a method in the MRO	95	76	119	100	130	111	21	37	8	33	31
+P2 annotated parameter (annotation not resolved to a repo class)	101	97	123	119	123	119	12	45	13	53	0
+U tuple-unpack / aug-assign / other rebinding	351	262	108	77	108	77	7	33	15	26	27
+E3 subscript result	107	47	107	47	107	47	16	13	38	26	14
+R4 local bound only to Cls(...) in several places (same-class join)	99	10	106	16	106	16	15	6	0	58	27
+D2 callee is an expression (subscript/call/paren)	85	40	85	40	85	40	57	8	1	8	11
+A3 module.var/func attr chain (value, not a class)	65	2	76	2	76	2	70	3	2	0	1
+K1 unbound name (e.g. *args/**kwargs, builtin class attr)	51	46	71	66	71	66	23	24	18	3	3
+E1 Cls(...).m() chain, Cls a class defined in the repo	54	11	54	11	54	11	1	4	2	47	0
+E5 other expression receiver (paren, comprehension)	53	15	53	15	53	15	9	12	7	3	22
+A4 from m import m (same-name module and attribute)	30	4	30	4	30	4	0	0	0	30	0
+N4 callee imported name with no single symbol	28	13	28	13	25	10	0	7	0	12	6
+N3 call of a known-class instance (__call__)	22	10	22	10	22	10	0	0	0	17	5
+E4 builtin type constructor result (str(x).m())	12	11	12	11	12	11	0	6	1	2	3
+N9 other bare-call	13	11	9	9	9	9	0	6	0	3	0
+Z other: def	6	1	6	1	6	1	6	0	0	0	0
+?	3	3	3	3	3	3	0	0	0	0	3
+Z other: param:annotated{other<string:"Text | str">}	1	1	1	1	1	1	0	0	0	1	0
+Z other: param:annotated{union(none,other<parenthesized_expression:(typing.Mapping[str, BaseTransport | None])>)}	1	1	1	1	1	1	0	0	1	0	0
+Z other: param:annotated{other<union_type:Mapping[str, StyleType] | None>}	0	0	1	1	1	1	0	0	0	1	0
+Z other: param:annotated{union(none,other<parenthesized_expression:(typing.Mapping[str, AsyncBaseTransport | None])>)}	1	1	1	1	1	1	0	0	1	0	0
+Z other: param:annotated{other<string:"t.AsyncIterable[V] | t.Iterable[V]">}	1	1	1	1	1	1	0	1	0	0	0
+Z other: assign:alias	1	1	1	1	1	1	0	0	0	0	1
+Z other: class	1	0	1	0	1	0	0	0	0	0	1

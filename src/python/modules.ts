@@ -1307,7 +1307,7 @@ class ModuleResolver {
 		return false;
 	}
 
-	/** A submodule file or package below a single-portion namespace directory, or null. */
+	/** What `name` binds below a single-portion namespace directory: a submodule file or package, the namespace package itself, or a first-party miss. */
 	private namespaceMember(dir: string, name: string): NameResolution {
 		const packageInit = joinPath(dir, name, "__init__.py");
 		if (this.index.has(packageInit)) return { outcome: "resolved", target: packageInit, reason: null };
