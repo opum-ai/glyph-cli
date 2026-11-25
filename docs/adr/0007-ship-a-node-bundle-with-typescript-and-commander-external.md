@@ -1,18 +1,18 @@
 ---
 # yaml-language-server: $schema=../../.lore/schemas/adr.schema.json
 type: ADR
-title: Ship one Node bundle with TypeScript and Commander external
+title: Ship one Node bundle with TypeScript, Commander and the tree-sitter wasm external
 tags:
   - packaging
   - release
   - node
-summary: glyph ships as one bundled dist/glyph.js for Node >=24, with typescript and commander left external as runtime dependencies because the indexer reads TypeScript's own library files from disk.
+summary: glyph ships one bundled dist/glyph.js for Node >=24 with typescript, commander and the tree-sitter wasm external as runtime dependencies.
 generated:
   by: lore/0.14.1
   at: 2026-11-22T22:10:28.000Z
 ---
 
-# Ship one Node bundle with TypeScript and Commander external
+# Ship one Node bundle with TypeScript, Commander and the tree-sitter wasm external
 
 ## Status
 
@@ -41,8 +41,10 @@ does not exist there.
   and made executable. `package.json` exposes it as `bin.glyph`, ships
   `files: ["dist", "README.md", "LICENSE"]`, and targets `engines.node >= 24`.
   Development and tests stay on Bun.
-- `typescript` and `commander` are marked `--external` and remain runtime
-  `dependencies`, installed with the package. Everything else is bundled.
+- `typescript`, `commander` and `@vscode/tree-sitter-wasm` (the third external,
+  added with the Python indexer, ADR 0008 and DEC-303) are marked `--external`
+  and remain runtime `dependencies`, installed with the package. Everything else
+  is bundled.
 - `prepack` runs the build, so `npm pack` cannot produce a tarball without the
   bundle.
 - The shipped source has no `Bun.*` global: `src/git.ts` and `src/codemap.ts`
@@ -52,7 +54,15 @@ does not exist there.
   EACCES, E2BIG, EMFILE and any other exec-level error) while reporting a
   timeout or buffer overflow as a result for the caller to classify.
 
-## Why the two externals
+## Why the externals
+
+`typescript` is external for the library-path reason below. `commander` is a
+simplification. `@vscode/tree-sitter-wasm` is external because the Python parser
+resolves its `.wasm` grammar files from the installed package at run time, so
+the wasm must be resolvable from the INSTALLED tarball's dependency tree, not
+from the building checkout. The packaging gate imports it as a bare specifier and
+runs `--language python callers pygreet` from the installed tarball under node
+(measured 2026-11-25, GCLI-83: exit 0 with a JSON envelope).
 
 `src/snapshot.ts` serves the running TypeScript package's own library directory
 from disk (`ts.getDefaultLibFilePath({})`), and `src/indexer.ts` builds every
@@ -90,8 +100,12 @@ the dependency classification unchanged.
 
 ## Consequences
 
-- The published tarball requires `typescript` and `commander` from the registry;
-  `npm install` supplies them.
+- The published tarball requires `typescript`, `commander` and
+  `@vscode/tree-sitter-wasm` from the registry; `npm install` supplies them.
+  Footprint, packed 2026-11-25 (GCLI-83, 0.1.0 tree at the S8 gate head
+  5aeead3): the tarball is 68,793 bytes holding `dist/glyph.js` (242,670
+  bytes), `README.md`, `LICENSE` and `package.json`; the wasm is not in the
+  tarball.
 - (a1)'s condition is enforced, not assumed. `scripts/check-package.mjs` packs
   the tarball, installs it into a clean directory with `--ignore-scripts`, and
   copies `scripts/lib-probe.mjs` into that install so the probe's
@@ -101,7 +115,7 @@ the dependency classification unchanged.
   including `impact --ref` (the git cat-file/stdin path). It rejects an installed
   `dist/glyph.js` containing a baked absolute `__dirname`/`__filename`, the
   signature of an inlined dependency, and requires the installed bundle to
-  import `typescript` and `commander` as BARE SPECIFIERS (`from "x"` or
+  import `typescript`, `commander` and `@vscode/tree-sitter-wasm` as BARE SPECIFIERS (`from "x"` or
   `require("x")`), which catches inlining regardless of how the bundler spells
   its shim. Measured 2026-11-22: dropping `--external typescript` fails the
   typescript bare-specifier check; dropping `--external commander` fails the

@@ -612,6 +612,17 @@ revisions of a repository are retained.
   whose name is not valid UTF-8, or is a Unicode name stored decomposed (NFD),
   as on macOS, makes `code-map` exit 7 in 0.1.0 rather than skip that file.
 
+## Python gate status
+
+The Python indexer failed its 0.1.0 accuracy gate on 2026-11-25 (ADR 0008, "The
+gate result"): incoming-call recall 68/80 = 0.8500 (Wilson lower 0.7559) with
+precision 68/69 = 0.9855 on click 7.1.2, and recall 57/65 = 0.8769 (Wilson lower
+0.7755) with precision 57/57 = 1.0000 on requests. That is a FAIL against the
+recall bar of 0.9 with a Wilson lower bound of 0.8 on both repositories;
+precision passed on both. Unresolved calls stay counted in `unresolvedSites` and
+the call bins, so a miss shows as a number, but that does not excuse the recall
+shortfall and a Python answer must not be read as complete.
+
 ## Development
 
 ```sh

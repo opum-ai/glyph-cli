@@ -62,3 +62,6 @@
 - 2026-11-25T00:25:41-06:00 d9422852e6f61344616bea6290daa604d2e108bf docs(GCLI-82): the code-map build runs at tier 3's position (DEC-303 (a16), rules 23-24)
 - 2026-11-25T00:30:15-06:00 fe934a79ead11fc677fb1ff4766af394e1c3c790 feat(GCLI-82): wire Python into callers, impact, diff, code-map and --stream (S7) (#130)
 - 2026-11-25T01:06:05-06:00 d4de42eef5531d79f26ec2e678f69608f085b125 docs(GCLI-85): name nested project roots in ADR 0008 and the README (DEC-303 (a18))
+- 2026-11-25T01:14:08-06:00 5aeead3a39e53f168be9f0e9670e573680cf9b67 feat(GCLI-85): discover nested project roots by their marker (S8a, DEC-303 (a18)) (#133)
+- 2026-11-25T01:21:12-06:00 64765f7962f6a42358b10e868582437f711bbb71 chore(GCLI-83): record the S8 gate result (FAIL on click and requests), ADR 0007/0008 follow-through, README gate status; complete GCLI-85
+- 2026-11-25T01:22:00-06:00 1859cfeb1b6080f1b3c00a83800c388c70182b28 chore(GCLI-83): the tag waits on the operator's release-scope decision, not a settled answer; check AC 1 with its evidence
