@@ -261,6 +261,12 @@ type NameOutcome =
 	| { kind: "runtime"; reason: string }
 	| { kind: "multiply"; symbols: PythonSymbol[] };
 
+/** Rule 40: state carried across one name's whole star lookup. */
+type StarLookupContext = { visited: Set<string>; hops: number; cycle: boolean };
+
+/** Rule 40: `cycle` is true when the path was cut by a revisit or the hop bound. */
+type StarBoundResult = { outcome: NameOutcome; cycle: boolean };
+
 type ModuleAttrOutcome =
 	| { kind: "symbol"; symbol: PythonSymbol }
 	| { kind: "module"; path: string }
@@ -432,6 +438,8 @@ const BUILTINS: ReadonlySet<string> = new Set([
 
 const MAX_ALIAS_HOPS = 8;
 const MAX_MODULE_DEPTH = 64;
+/** Rule 40: a star lookup may take at most this many hops before the path is cut. */
+const MAX_STAR_HOPS = 16;
 const FIRST_SITES_LIMIT = 5;
 
 /** Rule 29c: literals whose type is fixed by syntax, not by inference (`"x".join`, `[].append`). */
@@ -1484,19 +1492,51 @@ class Resolver {
 	}
 
 	/**
+	 * Rule 36(i)/43: the class scope rebinds the def's name by a later non-def
+	 * binding, so an instance's attribute is not this def and a call to the name
+	 * is unresolved (rule 5). Bindings are collected in source order, so the last
+	 * one is the class attribute's value.
+	 */
+	private isReboundDef(classInfo: ClassInfo, functionName: string | null): boolean {
+		if (functionName === null) return false;
+		const bindings = classInfo.scope?.bindings.get(functionName);
+		if (bindings === undefined || bindings.length === 0) return false;
+		return (bindings[bindings.length - 1] as RawBinding).kind !== "def";
+	}
+
+	/**
+	 * Rule 46: a decorator name `staticmethod` or `classmethod` that only a
+	 * partial or unknown star import may supply cannot be claimed as the builtin,
+	 * so whether the def is static or a class method is not statically known. A
+	 * local, module or complete-star binding is a known non-builtin and keeps the
+	 * ordinary method reading (rule 26).
+	 */
+	private isStarPossiblyBuiltin(name: string, scope: Scope | null, use?: UsePosition): boolean {
+		if (scope === null) return false;
+		if (this.lookupBindings(name, scope, use) !== null) return false;
+		const stars = this.starBindingsByPath.get(moduleScopeOf(scope).file);
+		if (stars === undefined) return false;
+		for (const star of stars) {
+			if (star.outcome === "resolved" && star.target !== null && star.reason === null) {
+				if (star.starNames.includes(name)) return false;
+			} else {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Rule 36: a def in a class body yields no receiver when (i) the class scope
-	 * rebinds its name by a later non-def binding, so an instance's attribute is
-	 * not this def, or (ii) its name is used bare in its own class body (a
-	 * decorator or call), so the def also runs as a plain function.
+	 * rebinds its name by a later non-def binding, or (ii) its name is used bare
+	 * in its own class body (a decorator or call), so the def also runs as a plain
+	 * function. Rule 43 withholds only the receiver in shape (ii); calls to the
+	 * def still resolve.
 	 */
 	private isNoReceiverDef(classInfo: ClassInfo, functionName: string | null): boolean {
 		if (functionName === null) return false;
 		if (classInfo.classBodyBareUses.has(functionName)) return true;
-		const bindings = classInfo.scope?.bindings.get(functionName);
-		if (bindings === undefined || bindings.length === 0) return false;
-		// Bindings are collected in source order, so the last one is the class
-		// attribute's value; a trailing non-def binding means the def was rebound.
-		return (bindings[bindings.length - 1] as RawBinding).kind !== "def";
+		return this.isReboundDef(classInfo, functionName);
 	}
 
 	/**
@@ -1514,13 +1554,19 @@ class Resolver {
 		if (this.isNoReceiverDef(classInfo, scope.functionName)) return null;
 		const decoratorScope = scope.parent;
 		const use = scope.line > 0 ? { line: scope.line, column: 1 } : undefined;
-		const isStatic =
-			scope.decorators.includes("staticmethod") && this.isUnshadowedBuiltin("staticmethod", decoratorScope, use);
+		const hasStatic = scope.decorators.includes("staticmethod");
+		const hasClass = scope.decorators.includes("classmethod");
+		// Rule 46: a `staticmethod`/`classmethod` that only a partial or unknown star
+		// may supply leaves the kind unknown, so the first parameter is no receiver
+		// and a `cls(...)` under it is not a construction.
+		if (hasStatic && this.isStarPossiblyBuiltin("staticmethod", decoratorScope, use)) return null;
+		if (hasClass && this.isStarPossiblyBuiltin("classmethod", decoratorScope, use)) return null;
+		const isStatic = hasStatic && this.isUnshadowedBuiltin("staticmethod", decoratorScope, use);
 		// An explicit @staticmethod wins (there is no receiver); otherwise a
 		// recognised @classmethod or an implicit classmethod takes the class.
 		if (isStatic) return null;
 		const isClass =
-			(scope.decorators.includes("classmethod") && this.isUnshadowedBuiltin("classmethod", decoratorScope, use)) ||
+			(hasClass && this.isUnshadowedBuiltin("classmethod", decoratorScope, use)) ||
 			scope.functionName === "__init_subclass__" ||
 			scope.functionName === "__class_getitem__" ||
 			scope.functionName === "__new__";
@@ -1568,9 +1614,15 @@ class Resolver {
 		);
 	}
 
-	resolveBareName(name: string, scope: Scope, hops: number, use?: UsePosition): NameOutcome {
+	resolveBareName(
+		name: string,
+		scope: Scope,
+		hops: number,
+		use?: UsePosition,
+		starCtx?: StarLookupContext,
+	): NameOutcome {
 		const found = this.lookupBindings(name, scope, use);
-		if (found === null) return this.resolveUnbound(name, scope, use);
+		if (found === null) return this.resolveUnbound(name, scope, use, starCtx);
 		const bindings = found.bindings;
 		const dynamic = bindings.some(
 			(binding) => binding.kind === "param" || binding.kind === "assign" || binding.kind === "rebound",
@@ -1580,7 +1632,7 @@ class Resolver {
 				const binding = bindings[0] as RawBinding;
 				if (binding.kind === "assign" && binding.rhs !== undefined && binding.rhs.kind === "alias") {
 					if (hops >= MAX_ALIAS_HOPS) return { kind: "unresolved", reason: "alias-depth" };
-					return this.resolveBareName(binding.rhs.name, found.scope, hops + 1);
+					return this.resolveBareName(binding.rhs.name, found.scope, hops + 1, undefined, starCtx);
 				}
 				return { kind: "runtime", reason: "run-time-bound" };
 			}
@@ -1590,22 +1642,35 @@ class Resolver {
 		return this.resolveMultiply(bindings);
 	}
 
-	private resolveUnbound(name: string, scope: Scope, use?: UsePosition): NameOutcome {
-		// Rule 33: when the module's star imports have a complete export set (S3)
+	private resolveUnbound(name: string, scope: Scope, use?: UsePosition, starCtx?: StarLookupContext): NameOutcome {
+		// Rule 33/45: when the module's star imports have a complete export set (S3)
 		// and the name is in it, the name is bound by the star target and never
-		// falls back to the builtin. A partial or unknown star set makes the name
-		// star-import (rule 29b); a complete set that lacks the name falls through.
+		// falls back to the builtin. Rule 45 walks the star imports last to first: a
+		// complete star that exports the name resolves to it, a complete one that
+		// does not is skipped, and a partial or unknown star reached first makes the
+		// name star-bound even if an earlier complete star exports it.
 		const stars = this.starBindingsByPath.get(scope.file);
+		const ctx: StarLookupContext = starCtx ?? { visited: new Set<string>(), hops: 0, cycle: false };
 		let partial = false;
+		let cycleHit = false;
 		if (stars !== undefined) {
-			for (const star of stars) {
+			for (let index = stars.length - 1; index >= 0; index--) {
+				const star = stars[index] as ImportBinding;
 				if (star.outcome === "resolved" && star.target !== null && star.reason === null) {
-					if (star.starNames.includes(name)) return this.resolveStarBound(star.target, name);
-				} else {
-					partial = true;
+					if (!star.starNames.includes(name)) continue;
+					if (partial) return { kind: "unresolved", reason: "star-bound" };
+					const result = this.resolveStarBound(star.target, name, ctx);
+					if (result.cycle) {
+						cycleHit = true;
+						continue;
+					}
+					return result.outcome;
 				}
+				partial = true;
 			}
 		}
+		// Rule 40: a name found on no path where a cycle was hit reports the cycle.
+		if (cycleHit || ctx.cycle) return { kind: "unresolved", reason: "import-cycle" };
 		if (partial) return { kind: "unresolved", reason: "star-import" };
 		// Rule 37: use the one shadow rule for the builtin test (rule 4c / 29b).
 		if (BUILTINS.has(name) && this.isUnshadowedBuiltin(name, scope, use)) return { kind: "external" };
@@ -1613,28 +1678,36 @@ class Resolver {
 	}
 
 	/**
-	 * Rule 33: resolve a name the star import binds in its target the way the
+	 * Rule 33/40: resolve a name the star import binds in its target the way the
 	 * import itself binds it — defs, classes and imports (and re-exports) through
 	 * rules 4a/4b, a single alias assignment through 4e, any other assignment as
 	 * run-time-bound (4d), and a name the complete set names but the target does
-	 * not bind statically as star-bound.
+	 * not bind statically as star-bound. Rule 40 carries one visited set of
+	 * (target, name) pairs and a hop bound through the whole lookup: a revisit or
+	 * the bound ends that path as "not found here" and reports a cycle, and the
+	 * caller continues with the remaining star sets.
 	 */
-	private resolveStarBound(target: string, name: string): NameOutcome {
+	private resolveStarBound(target: string, name: string, ctx: StarLookupContext): StarBoundResult {
+		const key = `${target}\u0000${name}`;
+		if (ctx.visited.has(key) || ctx.hops >= MAX_STAR_HOPS) {
+			ctx.cycle = true;
+			return { outcome: { kind: "unresolved", reason: "import-cycle" }, cycle: true };
+		}
+		ctx.visited.add(key);
+		ctx.hops += 1;
 		const targetScope = this.moduleScopesByPath.get(target);
-		if (targetScope === undefined) return { kind: "unresolved", reason: "star-bound" };
-		if (this.lookupBindings(name, targetScope) !== null) {
-			return this.resolveBareName(name, targetScope, 0);
+		if (targetScope === undefined) return { outcome: { kind: "unresolved", reason: "star-bound" }, cycle: false };
+		const hasLocal = this.lookupBindings(name, targetScope) !== null;
+		const outcome = this.resolveBareName(name, targetScope, 0, undefined, ctx);
+		if (hasLocal) return { outcome, cycle: outcome.kind === "unresolved" && outcome.reason === "import-cycle" };
+		if (outcome.kind === "symbol" || outcome.kind === "module" || outcome.kind === "multiply") {
+			return { outcome, cycle: false };
 		}
-		// No local binding: the target may still re-export it through its own star
-		// imports. Anything that bottoms out as the builtin fallback or an unbound
-		// name is a name the target does not statically bind.
-		const outcome = this.resolveBareName(name, targetScope, 0);
-		if (outcome.kind === "symbol" || outcome.kind === "module" || outcome.kind === "multiply") return outcome;
-		if (outcome.kind === "runtime") return outcome;
+		if (outcome.kind === "runtime") return { outcome, cycle: false };
 		if (outcome.kind === "unresolved" && outcome.reason !== "unbound" && outcome.reason !== "star-import") {
-			return outcome;
+			return { outcome, cycle: outcome.reason === "import-cycle" };
 		}
-		return { kind: "unresolved", reason: "star-bound" };
+		return { outcome: { kind: "unresolved", reason: "star-bound" }, cycle: false };
 	}
 
 	private resolveStatic(binding: RawBinding): NameOutcome {
@@ -2062,9 +2135,10 @@ class Resolver {
 				if (symbol !== undefined) symbols.push(symbol);
 			}
 			if (symbols.length === 0) continue;
-			// Rule 36: a def the class body rebinds or uses bare has no receiver, so
-			// a call through a receiver is rule 6f (unresolved receiver), not an edge.
-			if (this.isNoReceiverDef(entry.info, name)) return { bin: "receiver", reason: "needs-inference" };
+			// Rule 43: only a class-scope rebinding (rule 36(i)) makes a call to the
+			// def unresolved; a bare-used def still resolves, with its own receiver
+			// withheld (rule 36(ii)).
+			if (this.isReboundDef(entry.info, name)) return { bin: "receiver", reason: "needs-inference" };
 			// Rule 10: a property is not callable as a plain attribute; calling it is
 			// rule 6f (receiver needs inference), never an edge to the property.
 			const callables = symbols.filter((symbol) => symbol.kind !== "property");
@@ -2146,9 +2220,15 @@ class Resolver {
 			case "attr":
 				return this.resolveAttributeCall(call.callee, call.scope, site);
 			default:
-				return call.callee.typeInstance === true
-					? { bin: "receiver", reason: "needs-inference" }
-					: { bin: "name", reason: "dynamic-callee" };
+				// Rule 44: the `type` in `type(x)(...)` is a builtin test; a shadowed or
+				// possibly-shadowed name is an ordinary call of whatever it binds.
+				if (call.callee.typeInstance === true) {
+					if (!this.isUnshadowedBuiltin("type", call.scope, site)) {
+						return this.resolveBareCall("type", call.scope, site);
+					}
+					return { bin: "receiver", reason: "needs-inference" };
+				}
+				return { bin: "name", reason: "dynamic-callee" };
 		}
 	}
 
@@ -2226,7 +2306,14 @@ class Resolver {
 			return { bin: "external", reason: "external" };
 		}
 		if (base.kind === "dynamic") return { bin: "receiver", reason: "needs-inference" };
-		if (base.kind === "super") return this.resolveSuper(base, segments, scope);
+		if (base.kind === "super") {
+			// Rule 44: `super` is a builtin test; a shadowed or possibly-shadowed name
+			// is an ordinary call, so its result is a dynamic receiver (rule 6f).
+			if (!this.isUnshadowedBuiltin("super", scope, site)) {
+				return { bin: "receiver", reason: "needs-inference" };
+			}
+			return this.resolveSuper(base, segments, scope);
+		}
 		// Rule 26: the first parameter of a method is the receiver whatever its name.
 		const receiver = this.receiverOf(base.name, scope);
 		if (receiver !== null) {

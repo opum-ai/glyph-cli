@@ -1328,13 +1328,16 @@ describe("rule 36 — a rebound or bare-used def yields no receiver", () => {
 		expect(linesTo(result, symbolId(result, "C.helper"))).toEqual([]);
 	});
 
-	test("rule 36: a def used as @_deco in its own class body yields no receiver", async () => {
+	test("rule 36/43: a def used as @_deco in its own class body still takes calls to it", async () => {
 		const result = await one(
 			"class C:\n    def _deco(self):\n        pass\n    @_deco\n    def target(self):\n        pass\ndef f(c: C):\n    c._deco()\n",
 		);
-		expect(result.callBins.receiverNeedsInference).toBe(1);
+		// Rule 43: a decorator use does not rebind the name, so the call resolves.
 		const deco = symbolId(result, "C._deco");
-		expect(result.sites.filter((site) => site.kind === "call" && site.calleeId === deco)).toEqual([]);
+		expect(
+			result.sites.filter((site) => site.kind === "call" && site.calleeId === deco).map((site) => site.line),
+		).toEqual([8]);
+		expect(result.callBins.receiverNeedsInference).toBe(0);
 	});
 
 	test("rule 36: a def used by that bare name only inside a method body keeps its receiver", async () => {
@@ -1355,11 +1358,12 @@ describe("rule 37 — one shadow rule for every builtin test", () => {
 		expect(result.callBins.nameNotBound).toBe(1);
 	});
 
-	test("rule 37: a partial star import blocks @staticmethod recognition", async () => {
+	test("rule 37/46: a partial star import leaves @staticmethod unknown, so no receiver", async () => {
 		const result = await one(
 			"from os import *\nclass C:\n    def helper(self):\n        pass\n    @staticmethod\n    def m(self):\n        self.helper()\n",
 		);
-		expect(linesTo(result, symbolId(result, "C.helper"))).toEqual([7]);
+		expect(linesTo(result, symbolId(result, "C.helper"))).toEqual([]);
+		expect(result.callBins.receiverNeedsInference).toBe(1);
 	});
 
 	test("rule 37: a partial star import blocks the rule 4c builtin", async () => {
@@ -1416,6 +1420,189 @@ describe("rule 38 — class-body imports are order-aware", () => {
 	test("rule 38: a class-body attribute call after the import resolves external", async () => {
 		const result = await one("class C:\n    from os import path\n    path.join('a', 'b')\n");
 		expect(result.callBins.resolvedExternal).toBe(1);
+	});
+});
+
+// --- rule 40 ---------------------------------------------------------------
+
+describe("rule 40 — star lookup is bounded", () => {
+	test("rule 40: a two-module mutual star cycle terminates and reports import-cycle", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/a.py", '__all__ = ["x"]\nfrom .b import *\n'),
+			py("pkg/b.py", '__all__ = ["x"]\nfrom .a import *\n'),
+			py("pkg/use.py", "from .a import *\ndef f():\n    x()\n"),
+		]);
+		expect(result.callBins.nameNotBound).toBe(1);
+		expect(result.unresolvedNameReasons).toEqual([
+			{ reason: "import-cycle", count: 1, firstSites: [{ file: "pkg/use.py", line: 3, column: 5 }] },
+		]);
+	});
+
+	test("rule 40/45: a path cut by a cycle does not stop an earlier star that exports the name", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/a.py", '__all__ = ["x"]\nfrom .b import *\n'),
+			py("pkg/b.py", '__all__ = ["x"]\nfrom .a import *\nfrom .c import *\n'),
+			py("pkg/c.py", '__all__ = ["x"]\ndef x():\n    pass\n'),
+			py("pkg/use.py", "from .b import *\ndef f():\n    x()\n"),
+		]);
+		// Rule 45 walks b's stars last to first, so c (which defines x) is read
+		// before a (which cycles); the cycle still terminates the a path.
+		expect(linesTo(result, symbolId(result, "x", "pkg/c.py"))).toEqual([3]);
+		expect(result.callBins.nameNotBound).toBe(0);
+	});
+});
+
+// --- rule 41 ---------------------------------------------------------------
+
+describe("rule 41 — rule 36 and the typed splat are pinned", () => {
+	test("rule 41a: a def rebound by staticmethod has no receiver for its own first parameter", async () => {
+		const result = await one(
+			"class C:\n    def other(self):\n        pass\n    def helper(self):\n        self.other()\n    helper = staticmethod(helper)\n",
+		);
+		expect(result.callBins.receiverNeedsInference).toBe(1);
+		expect(linesTo(result, symbolId(result, "C.other"))).toEqual([]);
+	});
+
+	test("rule 41b: a def used as @_deco in its own class body has no receiver for its own first parameter", async () => {
+		const result = await one(
+			"class C:\n    def other(self):\n        pass\n    def _deco(f):\n        f.other()\n    @_deco\n    def target(self):\n        pass\n",
+		);
+		expect(result.callBins.receiverNeedsInference).toBe(1);
+		expect(linesTo(result, symbolId(result, "C.other"))).toEqual([]);
+	});
+
+	test("rule 41c: a def used by bare name only inside a method body keeps its receiver", async () => {
+		const result = await one(
+			"class C:\n    def other(self):\n        pass\n    def helper(self):\n        self.other()\n    def use(self):\n        helper()\n",
+		);
+		expect(linesTo(result, symbolId(result, "C.other"))).toEqual([5]);
+		expect(result.callBins.receiverNeedsInference).toBe(0);
+	});
+
+	test("rule 41d: a typed splat first parameter is no receiver; typed and defaulted plain ones are", async () => {
+		const result = await one(
+			"class C:\n    def other(self):\n        pass\n    def m(*args: Any):\n        args.other()\n    def p(self: Any):\n        self.other()\n    def q(self=None):\n        self.other()\n",
+		);
+		expect(linesTo(result, symbolId(result, "C.other"))).toEqual([7, 9]);
+		expect(result.callBins.receiverNeedsInference).toBe(1);
+	});
+});
+
+// --- rule 43 ---------------------------------------------------------------
+
+describe("rule 43 — calls to a bare-used def still resolve", () => {
+	test("rule 43: self._deco() resolves when _deco is also used as @_deco in its own class body", async () => {
+		const result = await one(
+			"class C:\n    def _deco(self):\n        pass\n    @_deco\n    def target(self):\n        pass\n    def m(self):\n        self._deco()\n",
+		);
+		const deco = symbolId(result, "C._deco");
+		expect(
+			result.sites.filter((site) => site.kind === "call" && site.calleeId === deco).map((site) => site.line),
+		).toEqual([8]);
+		expect(result.callBins.resolvedInRepo).toBe(1);
+	});
+
+	test("rule 43: a class-scope rebinding still makes calls to the def unresolved", async () => {
+		const result = await one(
+			"class C:\n    def helper(self):\n        pass\n    helper = staticmethod(helper)\n    def m(self):\n        self.helper()\n",
+		);
+		expect(result.callBins.receiverNeedsInference).toBe(1);
+		expect(linesTo(result, symbolId(result, "C.helper"))).toEqual([]);
+	});
+});
+
+// --- rule 44 ---------------------------------------------------------------
+
+describe("rule 44 — super and type are builtin tests", () => {
+	test("rule 44: a module binding of super makes super().m() an ordinary call", async () => {
+		const result = await one(
+			"def super():\n    pass\nclass B:\n    def m(self):\n        pass\nclass C(B):\n    def m(self):\n        super().m()\n",
+		);
+		// The inner super() resolves to the module def; the outer call must not
+		// reach the base method the builtin super() would find.
+		expect(linesTo(result, symbolId(result, "super"))).toEqual([8]);
+		expect(linesTo(result, symbolId(result, "B.m"))).toEqual([]);
+		expect(result.callBins.receiverNeedsInference).toBe(1);
+	});
+
+	test("rule 44: a module binding of type makes type(x)(...) an ordinary call", async () => {
+		const result = await one("def type(x):\n    pass\nclass C:\n    def m(self):\n        type(self)()\n");
+		expect(result.callBins.resolvedInRepo).toBe(2);
+		expect(result.callBins.receiverNeedsInference).toBe(0);
+		const builtin = await one("class C:\n    def m(self):\n        type(self)()\n");
+		expect(builtin.callBins.resolvedExternal).toBe(1);
+		expect(builtin.callBins.receiverNeedsInference).toBe(1);
+	});
+
+	test("rule 44: a partial star makes super star-bound even when a complete star exports it", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/mod.py", '__all__ = ["super"]\ndef super():\n    pass\n'),
+			py("pkg/use.py", "from .mod import *\nfrom os import *\nclass C:\n    def m(self):\n        super().m()\n"),
+		]);
+		expect(result.unresolvedNameReasons.map((entry) => entry.reason)).toEqual(["star-bound"]);
+		expect(result.callBins.receiverNeedsInference).toBe(1);
+	});
+});
+
+// --- rule 45 ---------------------------------------------------------------
+
+describe("rule 45 — several star imports, last wins", () => {
+	test("rule 45: the last star import that exports the name wins", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/a.py", "def x():\n    pass\n"),
+			py("pkg/b.py", "def x():\n    pass\n"),
+			py("pkg/c.py", "def x():\n    pass\n"),
+			py("pkg/use.py", "from .a import *\nfrom .b import *\nfrom .c import *\ndef f():\n    x()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "x", "pkg/c.py"))).toEqual([5]);
+	});
+
+	test("rule 45: a later complete star that does not export the name is skipped", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/a.py", "def x():\n    pass\n"),
+			py("pkg/b.py", "def y():\n    pass\n"),
+			py("pkg/use.py", "from .a import *\nfrom .b import *\ndef f():\n    x()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "x", "pkg/a.py"))).toEqual([4]);
+	});
+
+	test("rule 45: a later partial star makes the name star-bound even over an earlier complete exporter", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/a.py", "def x():\n    pass\n"),
+			py("pkg/use.py", "from .a import *\nfrom os import *\ndef f():\n    x()\n"),
+		]);
+		expect(result.callBins.nameNotBound).toBe(1);
+		expect(result.unresolvedNameReasons.map((entry) => entry.reason)).toEqual(["star-bound"]);
+	});
+});
+
+// --- rule 46 ---------------------------------------------------------------
+
+describe("rule 46 — staticmethod and classmethod under a partial star", () => {
+	test("rule 46: @staticmethod under a partial star gives no receiver but calls to it resolve", async () => {
+		const result = await one(
+			"from os import *\nclass C:\n    def helper(self):\n        pass\n    @staticmethod\n    def m(self):\n        self.helper()\n    def use(self):\n        C.m()\n",
+		);
+		expect(linesTo(result, symbolId(result, "C.helper"))).toEqual([]);
+		expect(result.callBins.receiverNeedsInference).toBe(1);
+		expect(linesTo(result, symbolId(result, "C.m"))).toEqual([9]);
+	});
+
+	test("rule 46: @classmethod under a partial star gives no receiver and no construction", async () => {
+		const result = await one(
+			"from os import *\nclass C:\n    def helper(self):\n        pass\n    @classmethod\n    def m(cls):\n        cls.helper()\n        cls()\n    def use(self):\n        C.m()\n",
+		);
+		expect(linesTo(result, symbolId(result, "C.helper"))).toEqual([]);
+		expect(linesTo(result, symbolId(result, "C"))).toEqual([]);
+		expect(result.callBins.receiverNeedsInference).toBe(1);
+		expect(result.callBins.nameNotBound).toBe(1);
+		expect(linesTo(result, symbolId(result, "C.m"))).toEqual([10]);
 	});
 });
 

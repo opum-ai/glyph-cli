@@ -84,12 +84,23 @@ stays unresolved when the target depends on a run-time type. Stated limits:
   (a class body runs top to bottom with `LOAD_NAME`), so a use before it takes the
   enclosing binding.
 - **A method the class body rebinds or uses bare has no receiver.** `helper =
-  staticmethod(helper)` (or any later non-def binding of the name), and a def whose
-  name is used bare in its own class body as a decorator or call, make a call
-  through a receiver unresolved-receiver rather than an edge. Known limitation:
-  a method wrapped by an opaque (external, non-`property`) decorator is still
-  attributed as a method — whether that decorator replaced the function object
-  with something that does not bind the first parameter cannot be known statically.
+  staticmethod(helper)` (or any later non-def binding of the name) makes a call
+  through a receiver unresolved-receiver rather than an edge; a def whose name is
+  used bare in its own class body as a decorator or call keeps calls to it
+  resolving, but its own first parameter is not a receiver. A `@staticmethod` or
+  `@classmethod` that a partial or unknown star import might supply is not known to
+  be the builtin, so the first parameter is not a receiver there either. Known
+  limitation: a method wrapped by an opaque (external, non-`property`) decorator is
+  still attributed as a method — whether that decorator replaced the function
+  object with something that does not bind the first parameter cannot be known
+  statically.
+- **The bare-use and class-body-import readings are known limitations.** The
+  bare-use set behind the no-receiver rule ignores order and scope inside the class
+  body: a class-body call written before the `def`, or inside a class-body
+  comprehension, still counts as a bare use. The order-aware class-body import rule
+  is lost across an alias hop (`x = target; x()` before `from .mod import target`
+  takes the module binding, not the import). A name that an external module
+  re-exports two star hops deep comes back `star-bound`, not external.
 - **A literal written directly as a receiver is external** — `"x".join(...)`,
   `[].append(...)`, `{}.keys()` — because its type is fixed by syntax. A name
   bound to a literal (`items = []`) is a value in a variable and stays
@@ -108,13 +119,17 @@ stays unresolved when the target depends on a run-time type. Stated limits:
   37) keeps the note. Any other metaclass, an inherited one, or a defined
   `__new__` keeps it.
 - **One shadow rule governs every builtin test** (builtin names, `classmethod`,
-  `staticmethod`, and the `type` of `metaclass=type`): the name is the builtin only
-  when no binding supplies it and no star import could. A partial or unknown
-  `import *` shadows it. A name in a **complete** star set is bound by the star
-  target, never the builtin: it resolves to the target's def, class, import or
-  re-export (a single alias is followed), is `run-time-bound` for any other
-  assignment, and is `star-bound` when the target does not statically bind it.
-  A complete star set that lacks the name leaves the builtin.
+  `staticmethod`, `super(...)`, `type(x)(...)`, and the `type` of `metaclass=type`):
+  the name is the builtin only when no binding supplies it and no star import
+  could. A partial or unknown `import *` shadows it. A name in a **complete** star
+  set is bound by the star target, never the builtin: it resolves to the target's
+  def, class, import or re-export (a single alias is followed), is `run-time-bound`
+  for any other assignment, and is `star-bound` when the target does not statically
+  bind it. A complete star set that lacks the name leaves the builtin. Several
+  star imports are read last to first, as Python binds them: the last complete
+  exporter wins, and a later partial star leaves the name `star-bound`. A star
+  lookup is bounded, so a mutual star cycle terminates and reports `import-cycle`
+  instead of overflowing.
 - **A method found only in an external base is resolved external**; an opaque
   base before a match is flagged `externalBaseBefore`.
 - **Polymorphic dispatch is reported, never guessed.** A site whose in-repository
