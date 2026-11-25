@@ -9,15 +9,17 @@
  *
  * It touches no filesystem, no cache and no CLI surface: a later slice wires it
  * up. The rule-per-case list this implements is the GCLI-81 rules commits
- * (part 1 `ea40d01`, part 2 `b925c2e`, rules 1-22). Comments below name the rule
- * they enforce. Every call expression outside an ERROR region lands in exactly
- * one of the four bins (`callBins`), and the four counts sum to the number of
- * such call expressions; `test/python-calls.test.ts` pins both.
+ * (part 1 `ea40d01`, part 2 `b925c2e`, part 3 `bea0b64`, rules 1-31). Comments
+ * below name the rule they enforce. Every call expression outside an ERROR region
+ * lands in exactly one of the four bins (`callBins`), and the four counts sum to
+ * the number of such call expressions; `test/python-calls.test.ts` pins both.
  *
  * Construction is the one place a call expression yields more than one edge
  * (rule 8): a resolved class is one site in `resolvedInRepo` with an edge to the
  * class and an edge to its resolved `__init__`. Multiply-bound callees (rule 20)
- * yield one edge per in-repository alternative, each flagged.
+ * yield one edge per in-repository alternative, each flagged; a multiply-bound
+ * class alternative is a construction, so it yields its class and `__init__` edges
+ * (rule 25).
  */
 
 import type { Node } from "@vscode/tree-sitter-wasm";
@@ -30,6 +32,7 @@ import {
 	type ModuleGraph,
 	type ModuleGraphOptions,
 	type PythonModuleInput,
+	resolveLocalImportNode,
 } from "./modules.ts";
 import { parsePython } from "./parse.ts";
 import { collectPythonSymbols, type PythonSymbol } from "./symbols.ts";
@@ -134,6 +137,7 @@ type CalleeDesc =
 type BaseDesc =
 	| { kind: "name"; name: string }
 	| { kind: "super"; argCount: number; firstArg: CalleeDesc | null }
+	| { kind: "literal" }
 	| { kind: "dynamic" };
 
 type BindingRhs = { kind: "alias"; name: string } | { kind: "call"; callee: CalleeDesc } | { kind: "other" };
@@ -166,6 +170,8 @@ interface Scope {
 	globalNames: Set<string>;
 	nonlocalNames: Set<string>;
 	firstParam: string | null;
+	/** Rule 26: the function's own name, for the implicit classmethods `__init_subclass__`, `__class_getitem__`, `__new__`. */
+	functionName: string | null;
 	decorators: string[];
 	classInfo: ClassInfo | null;
 	enclosingClass: ClassInfo | null;
@@ -410,6 +416,18 @@ const MAX_ALIAS_HOPS = 8;
 const MAX_MODULE_DEPTH = 64;
 const FIRST_SITES_LIMIT = 5;
 
+/** Rule 29c: literals whose type is fixed by syntax, not by inference (`"x".join`, `[].append`). */
+const LITERAL_BASE_TYPES: ReadonlySet<string> = new Set([
+	"string",
+	"integer",
+	"float",
+	"list",
+	"dictionary",
+	"set",
+	"tuple",
+	"concatenated_string",
+]);
+
 // --- small helpers ---------------------------------------------------------
 
 function normalizeInputPath(path: string): string {
@@ -424,6 +442,50 @@ function compareText(a: string, b: string): number {
 
 function sortedUnique(list: readonly string[]): string[] {
 	return [...new Set(list)].sort(compareText);
+}
+
+/** The names an import statement binds, in source order (used for the module-level map and the fallback). */
+function importStatementNames(node: Node): string[] {
+	const names: string[] = [];
+	if (node.type === "import_statement") {
+		for (const child of node.namedChildren) {
+			if (child === null) continue;
+			if (child.type === "aliased_import") {
+				const alias = child.namedChild(1);
+				if (alias !== null) names.push(alias.text);
+			} else if (child.type === "dotted_name") {
+				const first = child.namedChild(0);
+				if (first !== null) names.push(first.text);
+			}
+		}
+		return names;
+	}
+	if (node.type === "future_import_statement") {
+		// A future import has no module child: every named child is an imported name.
+		for (const child of node.namedChildren) {
+			if (child === null) continue;
+			if (child.type === "aliased_import") {
+				const alias = child.namedChild(1);
+				if (alias !== null) names.push(alias.text);
+			} else if (child.type === "dotted_name") {
+				names.push(child.text);
+			}
+		}
+		return names;
+	}
+	// A from-import: the first named child is the module.
+	const children = node.namedChildren.filter((child): child is Node => child !== null);
+	for (let index = 1; index < children.length; index++) {
+		const child = children[index] as Node;
+		if (child.type === "wildcard_import") continue;
+		if (child.type === "aliased_import") {
+			const alias = child.namedChild(1);
+			if (alias !== null) names.push(alias.text);
+		} else if (child.type === "dotted_name") {
+			names.push(child.text);
+		}
+	}
+	return names;
 }
 
 function describeCallee(node: Node): CalleeDesc {
@@ -445,6 +507,9 @@ function describeCallee(node: Node): CalleeDesc {
 	let base: BaseDesc;
 	if (current !== null && current.type === "identifier") {
 		base = { kind: "name", name: current.text };
+	} else if (current !== null && LITERAL_BASE_TYPES.has(current.type)) {
+		// Rule 29c: a literal written directly as the receiver has a type fixed by syntax.
+		base = { kind: "literal" };
 	} else if (current !== null && current.type === "call") {
 		const fn = current.childForFieldName("function");
 		if (fn !== null && fn.type === "identifier" && fn.text === "super") {
@@ -614,6 +679,7 @@ class FileWalker {
 		private readonly file: string,
 		moduleScope: Scope,
 		importBindingsByKey: Map<string, ImportBinding>,
+		private readonly localImportResolver: (node: Node) => ImportBinding[],
 	) {
 		this.moduleScope = moduleScope;
 		this.importBindingsByKey = importBindingsByKey;
@@ -756,6 +822,7 @@ class FileWalker {
 			globalNames: new Set(),
 			nonlocalNames: new Set(),
 			firstParam,
+			functionName: null,
 			decorators,
 			classInfo,
 			enclosingClass,
@@ -918,6 +985,8 @@ class FileWalker {
 			null,
 			frame.scope.kind === "class" ? frame.scope.classInfo : null,
 		);
+		// Rule 26: the name is needed for the implicit classmethods.
+		fnScope.functionName = name;
 		for (const param of params) {
 			if (param.name !== null) {
 				this.addBinding(fnScope, param.name, {
@@ -966,7 +1035,14 @@ class FileWalker {
 				if (child === null || child.type === "comment") continue;
 				if (child.type === "keyword_argument") {
 					const key = child.childForFieldName("name");
-					if (key !== null && key.text === "metaclass") ownMetaclass = true;
+					if (key !== null && key.text === "metaclass") {
+						// Rule 29a: `metaclass=type` is the default metaclass, whose
+						// `type.__call__` runs `__init__`; it is not a note trigger. Any
+						// other metaclass keeps the note.
+						const value = child.childForFieldName("value");
+						const isType = value !== null && value.type === "identifier" && value.text === "type";
+						if (!isType) ownMetaclass = true;
+					}
 					this.pushOuter(stack, child, frame);
 					continue;
 				}
@@ -1066,49 +1142,27 @@ class FileWalker {
 
 	private handleImport(scope: Scope, node: Node): void {
 		const line = node.startPosition.row + 1;
-		const names: string[] = [];
-		if (node.type === "import_statement") {
-			for (const child of node.namedChildren) {
-				if (child === null) continue;
-				if (child.type === "aliased_import") {
-					const alias = child.namedChild(1);
-					if (alias !== null) names.push(alias.text);
-				} else if (child.type === "dotted_name") {
-					const first = child.namedChild(0);
-					if (first !== null) names.push(first.text);
-				}
+		if (scope.kind === "module") {
+			for (const name of importStatementNames(node)) {
+				const binding = this.importBindingsByKey.get(`${this.file}\u0000${line}\u0000${name}`);
+				if (binding !== undefined) this.addBinding(scope, name, { kind: "import", importBinding: binding });
+				else this.addBinding(scope, name, { kind: "localimport" });
 			}
-		} else if (node.type === "future_import_statement") {
-			// A future import has no module child: every named child is an imported name.
-			for (const child of node.namedChildren) {
-				if (child === null) continue;
-				if (child.type === "aliased_import") {
-					const alias = child.namedChild(1);
-					if (alias !== null) names.push(alias.text);
-				} else if (child.type === "dotted_name") {
-					names.push(child.text);
-				}
-			}
-		} else {
-			// from-import and future-import: the first named child is the module.
-			const children = node.namedChildren.filter((child): child is Node => child !== null);
-			for (let index = 1; index < children.length; index++) {
-				const child = children[index] as Node;
-				if (child.type === "wildcard_import") continue;
-				if (child.type === "aliased_import") {
-					const alias = child.namedChild(1);
-					if (alias !== null) names.push(alias.text);
-				} else if (child.type === "dotted_name") {
-					names.push(child.text);
-				}
-			}
+			return;
 		}
-		for (const name of names) {
-			const binding =
-				scope.kind === "module" ? this.importBindingsByKey.get(`${this.file}\u0000${line}\u0000${name}`) : undefined;
-			if (binding !== undefined) this.addBinding(scope, name, { kind: "import", importBinding: binding });
-			else this.addBinding(scope, name, { kind: "localimport" });
+		// Rule 23: a function- or class-local import binds its names in that scope
+		// and resolves through S3's machinery, carrying S3's outcome and reason.
+		const bindings = this.localImportResolver(node);
+		if (bindings.length > 0) {
+			for (const binding of bindings) {
+				// A `from x import *` in a function binds no name of its own.
+				if (binding.boundName === "") continue;
+				this.addBinding(scope, binding.boundName, { kind: "import", importBinding: binding });
+			}
+			return;
 		}
+		// Fallback only for an import statement S3 could not parse into a binding.
+		for (const name of importStatementNames(node)) this.addBinding(scope, name, { kind: "localimport" });
 	}
 
 	private handleAssignment(stack: WalkFrame[], frame: WalkFrame, node: Node): void {
@@ -1192,6 +1246,7 @@ function makeModuleScope(file: string): Scope {
 		globalNames: new Set(),
 		nonlocalNames: new Set(),
 		firstParam: null,
+		functionName: null,
 		decorators: [],
 		classInfo: null,
 		enclosingClass: null,
@@ -1307,12 +1362,74 @@ class Resolver {
 		return null;
 	}
 
-	/** True when the name is rebound in this very scope (rule 6a). */
-	private isRebound(name: string, scope: Scope): boolean {
-		const bindings = scope.bindings.get(name);
-		if (bindings === undefined) return false;
-		if (bindings.length === 1 && (bindings[0] as RawBinding).kind === "param") return false;
-		return true;
+	/** Rule 26: `classmethod`/`staticmethod` are recognised only as the unshadowed builtin. */
+	private isUnshadowedBuiltin(name: string, scope: Scope | null): boolean {
+		if (scope === null) return true;
+		return this.lookupBindings(name, scope) === null;
+	}
+
+	/**
+	 * Rule 26: the receiver of a method scope, whatever the first parameter is
+	 * called. A plain method takes the instance; `@classmethod`, `__init_subclass__`,
+	 * `__class_getitem__` and `__new__` take the class; `@staticmethod` has none.
+	 */
+	private methodReceiver(scope: Scope): { kind: "instance" | "class"; name: string; classInfo: ClassInfo } | null {
+		if (scope.kind !== "function" || scope.enclosingClass === null) return null;
+		const name = scope.firstParam;
+		if (name === null) return null;
+		const decoratorScope = scope.parent;
+		const isStatic =
+			scope.decorators.includes("staticmethod") && this.isUnshadowedBuiltin("staticmethod", decoratorScope);
+		// An explicit @staticmethod wins (there is no receiver); otherwise a
+		// recognised @classmethod or an implicit classmethod takes the class.
+		if (isStatic) return null;
+		const isClass =
+			(scope.decorators.includes("classmethod") && this.isUnshadowedBuiltin("classmethod", decoratorScope)) ||
+			scope.functionName === "__init_subclass__" ||
+			scope.functionName === "__class_getitem__" ||
+			scope.functionName === "__new__";
+		return { kind: isClass ? "class" : "instance", name, classInfo: scope.enclosingClass };
+	}
+
+	/**
+	 * Rule 26: does `name` resolve, through LEGB, to the first parameter of an
+	 * enclosing method that is still receiving? A nested def, lambda or
+	 * comprehension inherits the enclosing method's receiver; a name rebound on the
+	 * way there does not (rule 6a).
+	 */
+	private receiverOf(name: string, scope: Scope): { kind: "instance" | "class"; classInfo: ClassInfo } | null {
+		let current: Scope | null = scope;
+		while (current !== null) {
+			const receiver = this.methodReceiver(current);
+			if (receiver !== null && receiver.name === name) {
+				const found = this.lookupBindings(name, scope);
+				if (
+					found !== null &&
+					found.scope === current &&
+					found.bindings.length === 1 &&
+					(found.bindings[0] as RawBinding).kind === "param"
+				) {
+					return { kind: receiver.kind, classInfo: receiver.classInfo };
+				}
+				return null;
+			}
+			current = current.parent;
+		}
+		return null;
+	}
+
+	/**
+	 * Rule 24: true when the name is bound only by imports whose S3 outcome is
+	 * external, so an attribute call on it is external without inference. An alias
+	 * or call result is a run-time value and is not covered.
+	 */
+	private isExternalImportReceiver(name: string, scope: Scope): boolean {
+		const found = this.lookupBindings(name, scope);
+		if (found === null) return false;
+		return found.bindings.every(
+			(binding) =>
+				binding.kind === "import" && binding.importBinding != null && binding.importBinding.outcome === "external",
+		);
 	}
 
 	resolveBareName(name: string, scope: Scope, hops: number): NameOutcome {
@@ -1338,10 +1455,12 @@ class Resolver {
 	}
 
 	private resolveUnbound(name: string, scope: Scope): NameOutcome {
-		if (BUILTINS.has(name)) return { kind: "external" };
+		// Rule 29b: a builtin is the callee only when no star import could shadow it.
+		// A partial or unknown star set makes the name star-import; a complete set
+		// that does not contain the name leaves the builtin.
 		const stars = this.starBindingsByPath.get(scope.file);
+		let partial = false;
 		if (stars !== undefined) {
-			let partial = false;
 			for (const star of stars) {
 				if (star.outcome === "resolved" && star.target !== null && star.reason === null) {
 					if (star.starNames.includes(name)) {
@@ -1352,8 +1471,9 @@ class Resolver {
 					partial = true;
 				}
 			}
-			if (partial) return { kind: "unresolved", reason: "star-import" };
 		}
+		if (partial) return { kind: "unresolved", reason: "star-import" };
+		if (BUILTINS.has(name)) return { kind: "external" };
 		return { kind: "unresolved", reason: "unbound" };
 	}
 
@@ -1797,7 +1917,7 @@ class Resolver {
 	private construction(
 		classInfo: ClassInfo,
 		site: { file: string; line: number; column: number },
-		options: { polymorphic?: boolean; multiplyBound?: boolean; classOnly?: boolean },
+		options: { polymorphic?: boolean; multiplyBound?: boolean },
 	): CallResolution {
 		const classSymbol = this.symbolsById.get(classInfo.id);
 		if (classSymbol === undefined) return { bin: "receiver", reason: "unresolved-class" };
@@ -1807,14 +1927,6 @@ class Resolver {
 				polymorphic: options.polymorphic || undefined,
 			}),
 		];
-		if (options.classOnly === true) {
-			return {
-				bin: "inRepo",
-				edges,
-				polymorphic: options.polymorphic === true,
-				multiplyBound: options.multiplyBound === true,
-			};
-		}
 		const reasons: string[] = [];
 		const mro = this.computeMro(classInfo);
 		if (mro.ok) {
@@ -1874,12 +1986,12 @@ class Resolver {
 		scope: Scope,
 		site: { file: string; line: number; column: number },
 	): CallResolution {
-		const methodClass = scope.kind === "function" ? scope.enclosingClass : null;
-		const firstParam = scope.kind === "function" ? scope.firstParam : null;
-		if (name === "cls" && methodClass !== null && firstParam === "cls" && !this.isRebound("cls", scope)) {
-			// Rule 8: `cls(...)` constructs the enclosing class.
-			return this.construction(methodClass, site, {
-				polymorphic: this.descendantsOf(methodClass).length > 0,
+		// Rule 26: a classmethod's first parameter is the class whatever its name;
+		// calling it constructs the enclosing class (rule 8).
+		const receiver = this.receiverOf(name, scope);
+		if (receiver !== null && receiver.kind === "class") {
+			return this.construction(receiver.classInfo, site, {
+				polymorphic: this.descendantsOf(receiver.classInfo).length > 0,
 			});
 		}
 		const outcome = this.resolveBareName(name, scope, 0);
@@ -1906,12 +2018,15 @@ class Resolver {
 			case "unresolved":
 				return { bin: "name", reason: outcome.reason };
 			case "multiply": {
+				// Rule 25: each in-repository class alternative is a full construction
+				// (rule 8), so it gets an edge to the class and one to its resolved
+				// `__init__`; every edge is flagged multiplyBound and the site is one.
 				const edges: EdgeSpec[] = [];
 				for (const symbol of outcome.symbols) {
 					if (symbol.kind === "class") {
 						const classInfo = this.classById.get(symbol.id);
 						if (classInfo !== undefined) {
-							const resolved = this.construction(classInfo, site, { multiplyBound: true, classOnly: true });
+							const resolved = this.construction(classInfo, site, { multiplyBound: true });
 							if (resolved.bin === "inRepo") edges.push(...resolved.edges);
 						} else {
 							edges.push(symbolEdge(symbol, "new", { multiplyBound: true }));
@@ -1934,20 +2049,22 @@ class Resolver {
 		const { base, segments } = callee;
 		if (segments.length === 0) return { bin: "receiver", reason: "needs-inference" };
 		const lastName = segments[segments.length - 1] as string;
+		if (base.kind === "literal") {
+			// Rule 29c: a literal written directly as the receiver has a type fixed by
+			// syntax, so its method is a builtin (external) without inference.
+			return { bin: "external", reason: "external" };
+		}
 		if (base.kind === "dynamic") return { bin: "receiver", reason: "needs-inference" };
 		if (base.kind === "super") return this.resolveSuper(base, segments, scope);
-		// Rule 6a: self/cls as the first parameter of a method.
-		const methodClass = scope.kind === "function" ? scope.enclosingClass : null;
-		const firstParam = scope.kind === "function" ? scope.firstParam : null;
-		if (
-			(base.name === "self" || base.name === "cls") &&
-			methodClass !== null &&
-			firstParam === base.name &&
-			!this.isRebound(base.name, scope)
-		) {
+		// Rule 26: the first parameter of a method is the receiver whatever its name.
+		const receiver = this.receiverOf(base.name, scope);
+		if (receiver !== null) {
 			if (segments.length > 1) return { bin: "receiver", reason: "needs-inference" };
-			return this.methodLookup(methodClass, lastName, false, true);
+			return this.methodLookup(receiver.classInfo, lastName, false, true);
 		}
+		// Rule 24: an attribute call on a name bound directly by an import of an
+		// external module or name is external; a value computed from one is not.
+		if (this.isExternalImportReceiver(base.name, scope)) return { bin: "external", reason: "external" };
 		// Rule 6d: a known-class binding.
 		const known = this.knownClassOf(base.name, scope);
 		if (known !== null) {
@@ -2154,7 +2271,9 @@ export async function analyzePythonCalls(
 		try {
 			if (parse.errorCount > 0) errorFiles.push(path);
 			allSymbols.push(...collectPythonSymbols(parse).symbols);
-			const walker = new FileWalker(path, makeModuleScope(path), bindingsByKey);
+			const walker = new FileWalker(path, makeModuleScope(path), bindingsByKey, (node) =>
+				resolveLocalImportNode(graph, path, node),
+			);
 			walker.walk(parse.tree.rootNode);
 			const result = walker.result;
 			allCalls.push(...result.calls);

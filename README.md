@@ -63,15 +63,38 @@ Call resolution builds on the module graph (S3) and the symbol table (S4) in
 `src/python/calls.ts` and is not yet wired to the CLI. Every call expression
 outside a parse-error region lands in exactly one of four bins — resolved in the
 repository (an edge), resolved external, unresolved because the receiver needs
-inference, and unresolved because the name is not statically bound. Stated
-limits:
+inference, and unresolved because the name is not statically bound. A call
+resolves when Python's static binding rules fix its target without inference; it
+stays unresolved when the target depends on a run-time type. Stated limits:
 
-- **No inference of builtin types.** `"x".join(...)`, `items.append(...)` and
-  `x.m()` on an unannotated parameter are unresolved-receiver, which keeps them
-  out of unknown in-repository calls; only `self`, `cls`, a class name, and a
-  single constructor/import/annotation binding are attributed.
+- **A value's type is never inferred.** `items.append(...)` and `x.m()` on an
+  unannotated parameter are unresolved-receiver, which keeps them out of unknown
+  in-repository calls. Attribution follows static binding only: a receiver that is
+  a method's first parameter (whatever its name; the class for a `@classmethod`,
+  and for `__new__`/`__init_subclass__`/`__class_getitem__`), a class name, a
+  single constructor or annotation binding, or a name bound directly by an import.
+- **Imports bind in the scope that writes them, module-level or local.** A
+  function- or class-body import resolves exactly like a module-level one
+  (first-party in-repo, external, or S3's unresolved reason), so a lazy
+  `from .mod import target` inside a function still resolves.
+- **A literal written directly as a receiver is external** — `"x".join(...)`,
+  `[].append(...)`, `{}.keys()` — because its type is fixed by syntax. A name
+  bound to a literal (`items = []`) is a value in a variable and stays
+  unresolved-receiver.
+- **An attribute call on a name bound directly by an external import is external**
+  (`from os import path; path.join(...)`), whether the imported name is a module or
+  a class; a value computed from one (`p = Path(); p.exists()`) stays
+  unresolved-receiver.
 - **`self.x.m()` is unresolved-receiver and counted**, and return annotations are
   not followed — only parameter and variable annotations are.
+- **A multiply-bound class name constructs every in-repository alternative**: each
+  gets a class edge and an edge to its resolved `__init__`, every edge flagged
+  `multiplyBound`.
+- **`metaclass=type` written explicitly is not a constructor note**; any other
+  metaclass, an inherited one, or a defined `__new__` keeps it.
+- **A builtin is attributed only when no star import could shadow it**: a partial
+  or unknown `import *` makes an unbound builtin name unresolved (reason
+  `star-import`), while a complete star set that lacks the name leaves the builtin.
 - **A method found only in an external base is resolved external**; an opaque
   base before a match is flagged `externalBaseBefore`.
 - **Polymorphic dispatch is reported, never guessed.** A site whose in-repository

@@ -87,6 +87,32 @@ const FIXTURES: { name: string; files: PythonModuleInput[]; options?: { roots?: 
 		files: [py("src/a.py", "import foo\nfoo.bar()\n"), py("lib/foo/__init__.py", "")],
 		options: { roots: ["src"] },
 	},
+	{
+		name: "local imports, external receivers, literals and receivers by decorator",
+		files: [
+			py("pkg/__init__.py", ""),
+			py("pkg/mod.py", "def target():\n    pass\n"),
+			py(
+				"pkg/use.py",
+				[
+					"from os import path",
+					"class C:",
+					"    def helper(self):",
+					"        pass",
+					"    @classmethod",
+					"    def make(klass):",
+					"        return klass()",
+					"    def m(this):",
+					"        this.helper()",
+					"def f():",
+					"    from .mod import target",
+					"    target()",
+					"    path.join('a', 'b')",
+					"    [].append(1)",
+				].join("\n"),
+			),
+		],
+	},
 ];
 
 // --- rule 1 ----------------------------------------------------------------
@@ -426,11 +452,12 @@ describe("rule 6 — attribute call receivers", () => {
 		expect(result.callBins.receiverNeedsInference).toBe(1);
 	});
 
-	test("rule 6f: a call result, a literal and a builtin value need inference, never guessed", async () => {
+	test("rule 6f / rule 29c: a call result and a builtin value need inference; a literal receiver is external", async () => {
 		const result = await one(
 			"def make():\n    return None\ndef f(items):\n    make().m()\n    'x'.join([])\n    items.append(1)\n",
 		);
-		expect(result.callBins.receiverNeedsInference).toBe(3);
+		expect(result.callBins.receiverNeedsInference).toBe(2);
+		expect(result.callBins.resolvedExternal).toBe(1);
 	});
 });
 
@@ -841,6 +868,274 @@ describe("rule 22 — Q4: method in an external base", () => {
 	test("rule 22: every base in the repository and no method is instance-attribute (rule 7)", async () => {
 		const result = await one("class A:\n    pass\nclass B(A):\n    pass\ndef f(b: B):\n    b.missing()\n");
 		expect(result.unresolvedReceiverReasons.map((entry) => entry.reason)).toEqual(["instance-attribute"]);
+	});
+});
+
+// --- rule 23 ---------------------------------------------------------------
+
+describe("rule 23 — local imports", () => {
+	test("rule 23: a function-local first-party import resolves like a module-level one", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/mod.py", "def target():\n    pass\n"),
+			py("pkg/use.py", "def f():\n    from .mod import target\n    target()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "target", "pkg/mod.py"))).toEqual([3]);
+	});
+
+	test("rule 23: a class-body local import binds in the class body's own scope", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/mod.py", "def target():\n    pass\n"),
+			py("pkg/use.py", "class C:\n    from .mod import target\n    x = target()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "target", "pkg/mod.py"))).toEqual([3]);
+	});
+
+	test("rule 23: a local import of an external module is resolved external", async () => {
+		const result = await one("def f():\n    import os\n    os.getcwd()\n");
+		expect(result.callBins.resolvedExternal).toBe(1);
+	});
+
+	test("rule 23: an unresolved local import carries S3's reason, not a new one", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/use.py", "def f():\n    from .missing import target\n    target()\n"),
+		]);
+		expect(result.unresolvedNameReasons.map((entry) => entry.reason)).toContain("module-not-found");
+	});
+
+	test("rule 23: a nested function's local import binds in its own scope (LEGB)", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/mod.py", "def target():\n    pass\n"),
+			py("pkg/use.py", "def outer():\n    def inner():\n        from .mod import target\n        target()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "target", "pkg/mod.py"))).toEqual([4]);
+	});
+});
+
+// --- rule 24 ---------------------------------------------------------------
+
+describe("rule 24 — from-imported external names as receivers", () => {
+	test("rule 24: an external from-import of a module resolves attribute calls external", async () => {
+		const result = await one("from os import path\ndef f():\n    path.join('a', 'b')\n");
+		expect(result.callBins.resolvedExternal).toBe(1);
+		expect(result.sites).toEqual([]);
+	});
+
+	test("rule 24: an external from-import of a class resolves attribute calls external", async () => {
+		const result = await one("from pathlib import PathLike\ndef f():\n    PathLike.register(int)\n");
+		expect(result.callBins.resolvedExternal).toBe(1);
+	});
+
+	test("rule 24: a value computed from an external name stays unresolved-receiver", async () => {
+		const result = await one("from pathlib import Path\ndef f():\n    p = Path()\n    p.exists()\n");
+		expect(result.callBins.receiverNeedsInference).toBe(1);
+		expect(result.sites).toEqual([]);
+	});
+});
+
+// --- rule 25 ---------------------------------------------------------------
+
+describe("rule 25 — multiply-bound class alternatives", () => {
+	test("rule 25: each class alternative is a construction with a class and an __init__ edge, all flagged", async () => {
+		const result = await one(
+			[
+				"try:",
+				"    class K:",
+				"        def __init__(self):",
+				"            pass",
+				"except Exception:",
+				"    class K:",
+				"        def __init__(self):",
+				"            pass",
+				"def f():",
+				"    K()",
+			].join("\n"),
+		);
+		expect(result.callBins.resolvedInRepo).toBe(1);
+		expect(result.multiplyBoundCount).toBe(1);
+		expect(result.sites).toHaveLength(4);
+		expect(result.sites.every((site) => site.multiplyBound === true)).toBe(true);
+		expect(result.sites.every((site) => site.kind === "new")).toBe(true);
+	});
+});
+
+// --- rule 26 ---------------------------------------------------------------
+
+describe("rule 26 — the first parameter of a method is the receiver by decorator", () => {
+	test("rule 26: a plain method's receiver works renamed `this`", async () => {
+		const result = await one(
+			"class C:\n    def helper(self):\n        pass\n    def m(this):\n        this.helper()\n",
+		);
+		expect(linesTo(result, symbolId(result, "C.helper"))).toEqual([5]);
+	});
+
+	test("rule 26: a @classmethod's receiver works renamed `klass` (lookup and construction)", async () => {
+		const lookup = await one(
+			"class C:\n    def helper(self):\n        pass\n    @classmethod\n    def m(klass):\n        klass.helper()\n",
+		);
+		expect(linesTo(lookup, symbolId(lookup, "C.helper"))).toEqual([6]);
+		const build = await one("class C:\n    @classmethod\n    def m(klass):\n        return klass()\n");
+		expect(linesTo(build, symbolId(build, "C"))).toEqual([4]);
+	});
+
+	test("rule 26: a @staticmethod's first parameter is not a receiver", async () => {
+		const result = await one(
+			"class C:\n    def helper(self):\n        pass\n    @staticmethod\n    def m(self):\n        self.helper()\n",
+		);
+		expect(result.callBins.receiverNeedsInference).toBe(1);
+		expect(linesTo(result, symbolId(result, "C.helper"))).toEqual([]);
+	});
+
+	test("rule 26: @classmethod shadowed by a local name is not recognised", async () => {
+		const result = await one(
+			"class C:\n    classmethod = None\n    @classmethod\n    def m(cls):\n        return cls()\n",
+		);
+		expect(result.sites).toEqual([]);
+		expect(result.callBins.nameNotBound).toBe(1);
+	});
+
+	test("rule 26: a nested def and a lambda use the enclosing method's receiver via LEGB", async () => {
+		const nested = await one(
+			"class C:\n    def helper(self):\n        pass\n    def m(self):\n        def inner():\n            self.helper()\n        return inner\n",
+		);
+		expect(linesTo(nested, symbolId(nested, "C.helper"))).toEqual([6]);
+		const lambda = await one(
+			"class C:\n    def helper(self):\n        pass\n    def m(self):\n        return lambda: self.helper()\n",
+		);
+		expect(linesTo(lambda, symbolId(lambda, "C.helper"))).toEqual([5]);
+	});
+
+	test("rule 26: a nested function that rebinds the receiver name is not the receiver", async () => {
+		const result = await one(
+			"class C:\n    def helper(self):\n        pass\n    def m(self):\n        def inner(self):\n            self.helper()\n        return inner\n",
+		);
+		expect(result.callBins.receiverNeedsInference).toBe(1);
+		expect(linesTo(result, symbolId(result, "C.helper"))).toEqual([]);
+	});
+
+	test("rule 26: the implicit classmethods __new__ and __init_subclass__ take the class", async () => {
+		const newer = await one(
+			"class C:\n    def helper(self):\n        pass\n    def __new__(cls):\n        return cls.helper()\n",
+		);
+		expect(linesTo(newer, symbolId(newer, "C.helper"))).toEqual([5]);
+		const subclass = await one(
+			"class C:\n    @staticmethod\n    def helper():\n        pass\n    def __init_subclass__(cls):\n        cls.helper()\n",
+		);
+		expect(linesTo(subclass, symbolId(subclass, "C.helper"))).toEqual([6]);
+	});
+});
+
+// --- rule 27 ---------------------------------------------------------------
+
+describe("rule 27 — property attribute calls stay unresolved", () => {
+	test("rule 27: calling a @property attribute is unresolved-receiver, with no edge", async () => {
+		const result = await one("class C:\n    @property\n    def p(self):\n        return 1\ndef f(c: C):\n    c.p()\n");
+		expect(result.callBins.receiverNeedsInference).toBe(1);
+		expect(result.sites).toEqual([]);
+	});
+});
+
+// --- rule 28 ---------------------------------------------------------------
+
+describe("rule 28 — MRO failure keeps the class edge", () => {
+	test("rule 28: a class that cannot be linearised keeps its class edge with an mro-failed note", async () => {
+		const result = await one(
+			[
+				"class A:",
+				"    pass",
+				"class B:",
+				"    pass",
+				"class C(A, B):",
+				"    pass",
+				"class D(B, A):",
+				"    pass",
+				"class E(C, D):",
+				"    pass",
+				"def f():",
+				"    E()",
+			].join("\n"),
+		);
+		expect(result.callBins.resolvedInRepo).toBe(1);
+		expect(sitesTo(result, symbolId(result, "E"))).toHaveLength(1);
+		expect(result.constructorNotes.map((note) => note.reasons)).toEqual([["mro-failed"]]);
+	});
+});
+
+// --- rule 29 ---------------------------------------------------------------
+
+describe("rule 29a — metaclass=type", () => {
+	test("rule 29a: an explicit metaclass=type is not a constructor-note trigger", async () => {
+		const result = await one("class C(metaclass=type):\n    def __init__(self):\n        pass\ndef f():\n    C()\n");
+		expect(result.constructorNotes).toEqual([]);
+		expect(result.callBins.resolvedInRepo).toBe(1);
+		expect(result.sites).toHaveLength(2);
+	});
+
+	test("rule 29a: an inherited non-type metaclass still keeps the note", async () => {
+		const result = await one(
+			[
+				"class Meta(type):",
+				"    def __init__(self):",
+				"        pass",
+				"class B(metaclass=Meta):",
+				"    pass",
+				"class C(B):",
+				"    pass",
+				"def f():",
+				"    C()",
+			].join("\n"),
+		);
+		expect(result.constructorNotes.map((note) => note.reasons)).toEqual([["metaclass"]]);
+	});
+});
+
+describe("rule 29b — builtin versus a star import", () => {
+	test("rule 29b: a partial or unknown star import blocks the builtin", async () => {
+		const result = await one("from os import *\ndef f():\n    len([])\n");
+		expect(result.callBins.nameNotBound).toBe(1);
+		expect(result.unresolvedNameReasons).toEqual([
+			{ reason: "star-import", count: 1, firstSites: [{ file: "app.py", line: 3, column: 5 }] },
+		]);
+	});
+
+	test("rule 29b: a complete star set that does not contain the name leaves the builtin", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/mod.py", "def starred():\n    pass\n"),
+			py("pkg/use.py", "from .mod import *\ndef f():\n    starred()\n    len([])\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "starred", "pkg/mod.py"))).toEqual([3]);
+		expect(result.callBins.resolvedExternal).toBe(1);
+		expect(result.callBins.nameNotBound).toBe(0);
+	});
+});
+
+describe("rule 29c — literal receivers", () => {
+	test("rule 29c: a string literal receiver is resolved external", async () => {
+		const result = await one("def f():\n    'x'.join([])\n");
+		expect(result.callBins.resolvedExternal).toBe(1);
+	});
+
+	test("rule 29c: list, dict, set, tuple and f-string literal receivers are external", async () => {
+		const result = await one(
+			"def f():\n    [].append(1)\n    {}.keys()\n    {1}.add(2)\n    (1, 2).count(1)\n    f'{1}'.upper()\n",
+		);
+		expect(result.callBins.resolvedExternal).toBe(5);
+	});
+
+	test("rule 29c: a name bound to a literal stays unresolved-receiver", async () => {
+		const result = await one("items = []\ndef f():\n    items.append(1)\n");
+		expect(result.callBins.receiverNeedsInference).toBe(1);
+	});
+});
+
+describe("rule 29g — an unaliased dotted import binds the top package", () => {
+	test("rule 29g: import os.path binds os, so os.getcwd() is external", async () => {
+		const result = await one("import os.path\ndef f():\n    os.getcwd()\n");
+		expect(result.callBins.resolvedExternal).toBe(1);
 	});
 });
 
