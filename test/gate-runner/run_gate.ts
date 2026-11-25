@@ -544,7 +544,7 @@ const PINNED_REPOSITORIES: readonly Omit<RepositorySpec, "checkout">[] = [
 		url: "https://github.com/psf/requests.git",
 		pinnedCommit: "3c7baaa05ab4aa49cc819ce3a819d260de19c157",
 		scoredPackage: "src/requests",
-		symbol: "to_key_val_list",
+		symbol: "get_encoding_from_headers",
 		file: "src/requests/utils.py",
 	},
 ];
