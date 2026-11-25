@@ -251,3 +251,31 @@ seam, the asynchronous seam method, the Python cache-key scope, `--ref` reading
 the commit's blobs as bytes, and `code-map`'s symbol tier reading the selected
 language's index — is implementation of ADR 0008 and adds no contract entry
 beyond items 1 to 5.
+
+## Amendment, 2026-11-25 (GCLI-82): the parse-error field, DEC-303 (a15)
+
+DEC-303 (a15) (ODOC-640, relayed 2026-11-25, arm A) adds one optional output
+entry to the Python contract above and rules that exactness stays internal. They
+are output entries, not flags, so the `help --json` manifest needs no new
+declaration: it has no slot for output fields. Every entry below is absent —
+never null, never `[]`, never zero-filled — from a TypeScript index and envelope,
+so TypeScript-only answers stay byte-identical.
+
+1. **`parseErrorFiles` is an optional `GlyphIndex` field, Python only.** It is a
+   list of `{path, droppedCalls}` ordered by path (code-unit order): one entry
+   per file whose parse holds an ERROR node, carrying the call expressions
+   dropped inside that file's ERROR regions. It is set only when the list is
+   non-empty.
+2. **The `callers`, `impact` and `--stream` result data carry `parseErrorFiles`
+   beside `callBins`**, only when the index carries it — batch and stream result
+   line alike, so the two forms cannot drift. A TypeScript answer and a clean
+   Python run carry no such key.
+3. **`exact` stays internal.** The index keeps its `exact` flag; no envelope
+   publishes it and no exit code derives from it. An answer whose exactness was
+   lowered names the files and dropped-call counts in `parseErrorFiles` instead.
+4. **`code-map` and a failing Python index.** A non-empty exit7 list, a grammar
+   init failure or a git read failure during `code-map`'s Python tier-3 build is
+   a missing tier, not a failed run: tiers 1, 2 and 4 still answer with exit 0.
+   The rule that a non-empty exit7 list raises exit 7 applies to `callers`,
+   `impact`, `diff` and `--stream`, not to `code-map`. The code-map clock starts
+   before the Python prebuild, so a slow build is a `symbol index` budget stop.

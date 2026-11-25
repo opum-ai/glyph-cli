@@ -23,12 +23,18 @@ Python symbol collection lives behind the parse wrapper in `src/python/` and is
 wired to the CLI by the native indexer (ADR 0008, S7). Its stated limits (the
 full record is the GCLI-76 implementation notes):
 
-- **Parse errors are named, not resolved.** A file whose parse contains an ERROR
-  or MISSING node is listed in `parseErrorFiles`, with `errorCount` and
-  `missingCount` carried on the table — read from the parse itself, so the file
-  is named regardless of what the walk reaches. A recognised definition inside an
-  ERROR region the walk enters is dropped and counted in `droppedDefinitions` and
-  `errorFiles`, and a definition nested inside it is counted too. Outside an ERROR
+- **Parse errors are named through one published field, `parseErrorFiles`.**
+  A file whose parse contains an ERROR node is named in `parseErrorFiles`
+  (`[{path, droppedCalls}]`, ordered by path) with the call expressions dropped
+  inside its ERROR regions (DEC-303 (a15)). The field rides beside `callBins` in
+  the `callers`, `impact` and `--stream` results and is present only when the
+  list is non-empty — absent, never `null` and never `[]`, for TypeScript and for
+  a clean Python run. The parse table's `errorCount`, `missingCount`,
+  `droppedDefinitions` and `errorFiles` are internal: no envelope carries them.
+  **Exactness is not published**: the index keeps its `exact` flag, but no
+  envelope publishes it and no exit code derives from it. A recognised
+  definition inside an ERROR region the walk enters is dropped and counted
+  internally, and a definition nested inside it is counted too. Outside an ERROR
   the walk descends only through statement containers and definitions, so an
   ERROR nested inside an expression is not entered and a definition hidden there
   is neither dropped nor counted. A `def :` is broken into loose tokens by error
@@ -137,10 +143,15 @@ Stated limits:
 - **Polymorphic dispatch is reported, never guessed.** A site whose in-repository
   subclass overrides the method is flagged and counted; the edge goes to the
   declared class's resolution only.
-- **Parse errors drop calls and are named.** A call inside an ERROR region is
-  dropped and the file listed with the dropped count; that run does not claim the
-  count exact. A non-empty S3 exit-7 list is raised as **indeterminate** (exit 7)
-  naming the first trigger and the count; it is never an empty or partial answer.
+- **Parse errors drop calls, and the files are named in `parseErrorFiles`.** A
+  call inside an ERROR region is dropped, and the file is named in
+  `parseErrorFiles` with its dropped-call count (DEC-303 (a15)); exactness is not
+  published. A non-empty S3 exit-7 list is raised as **indeterminate** (exit 7)
+  naming the first trigger and the count; it is never an empty or partial answer
+  in `callers`, `impact`, `diff` or `--stream`. In `code-map` a failing Python
+  index — a non-empty exit-7 list, a grammar init failure or a git read failure —
+  is a missing tier, not a failed run: tiers 1, 2 and 4 still answer with exit 0
+  (DEC-303 (a15)).
 - **`test/python-gate/check_call_sites.ts` reports the bins** over click and
   requests; scoring a `GlyphIndex` through `gate_score.py` there is NOT the gate
   run (S8 owns the gate).
@@ -356,7 +367,7 @@ Python-only repository like that is `not_found` with the ordinary
 
 ### Machine contract additions for Python
 
-These are the output entries DEC-303 (a14) rules and [ADR 0002](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0002-adopt-the-opum-command-contract.md)
+These are the output entries DEC-303 (a14) and (a15) rule and [ADR 0002](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0002-adopt-the-opum-command-contract.md)
 records. They are absent — never `null`, never zero-filled — from a
 TypeScript-only index and its envelopes. They add no `help --json` declaration,
 because the manifest has no slot for output fields.
@@ -377,6 +388,13 @@ because the manifest has no slot for output fields.
   `externalBaseBefore` and `decorated` on sites, and `decorators`, `decorated`
   and `collapsedOverloadStubs` on symbols, live in the cached index and appear in
   no envelope. `qualname` is a documented symbol field and appears when present.
+- **`parseErrorFiles` names dropped-call files (DEC-303 (a15)).** A Python index
+  whose parses hold ERROR nodes carries `parseErrorFiles` — `[{path,
+  droppedCalls}]`, ordered by path — beside `callBins` on the `callers`, `impact`
+  and `--stream` result data, present only when non-empty. It is absent for
+  TypeScript and for a clean Python run. `exact` itself is not published.
+  In `code-map`, a failing Python index is a missing tier, not a failed run:
+  tiers 1, 2 and 4 still answer with exit 0.
 
 ## Streaming (`--stream`)
 
