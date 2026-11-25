@@ -254,7 +254,7 @@ beyond items 1 to 5.
 
 ## Amendment, 2026-11-25 (GCLI-82): the parse-error field, DEC-303 (a15)
 
-DEC-303 (a15) (ODOC-640, relayed 2026-11-25, arm A) adds one optional output
+DEC-303 (a15) (ODOC-640, relayed 2026-11-25; Q1 a narrow arm B, the contract gains parseErrorFiles and exact stays internal; Q2 arm A) adds one optional output
 entry to the Python contract above and rules that exactness stays internal. They
 are output entries, not flags, so the `help --json` manifest needs no new
 declaration: it has no slot for output fields. Every entry below is absent —
