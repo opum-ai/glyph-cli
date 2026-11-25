@@ -70,13 +70,26 @@ stays unresolved when the target depends on a run-time type. Stated limits:
 - **A value's type is never inferred.** `items.append(...)` and `x.m()` on an
   unannotated parameter are unresolved-receiver, which keeps them out of unknown
   in-repository calls. Attribution follows static binding only: a receiver that is
-  a method's first parameter (whatever its name; the class for a `@classmethod`,
-  and for `__new__`/`__init_subclass__`/`__class_getitem__`), a class name, a
-  single constructor or annotation binding, or a name bound directly by an import.
+  a method's first **plain** parameter (an identifier, possibly annotated or with
+  a default, whatever its name; the class for a `@classmethod`, and for
+  `__new__`/`__init_subclass__`/`__class_getitem__`), a class name, a single
+  constructor or annotation binding, or a name bound directly by an import. A
+  `*args`, `**kwargs`, bare `*`/`/` first parameter, or no parameters at all, is
+  not a receiver: the splat is a tuple or dict value, so a call on it needs
+  inference.
 - **Imports bind in the scope that writes them, module-level or local.** A
-  function- or class-body import resolves exactly like a module-level one
-  (first-party in-repo, external, or S3's unresolved reason), so a lazy
-  `from .mod import target` inside a function still resolves.
+  function-body import resolves exactly like a module-level one (first-party
+  in-repo, external, or S3's unresolved reason) and is local for the whole body,
+  wherever it appears. A **class-body** import binds only for statements after it
+  (a class body runs top to bottom with `LOAD_NAME`), so a use before it takes the
+  enclosing binding.
+- **A method the class body rebinds or uses bare has no receiver.** `helper =
+  staticmethod(helper)` (or any later non-def binding of the name), and a def whose
+  name is used bare in its own class body as a decorator or call, make a call
+  through a receiver unresolved-receiver rather than an edge. Known limitation:
+  a method wrapped by an opaque (external, non-`property`) decorator is still
+  attributed as a method — whether that decorator replaced the function object
+  with something that does not bind the first parameter cannot be known statically.
 - **A literal written directly as a receiver is external** — `"x".join(...)`,
   `[].append(...)`, `{}.keys()` — because its type is fixed by syntax. A name
   bound to a literal (`items = []`) is a value in a variable and stays
@@ -90,11 +103,18 @@ stays unresolved when the target depends on a run-time type. Stated limits:
 - **A multiply-bound class name constructs every in-repository alternative**: each
   gets a class edge and an edge to its resolved `__init__`, every edge flagged
   `multiplyBound`.
-- **`metaclass=type` written explicitly is not a constructor note**; any other
-  metaclass, an inherited one, or a defined `__new__` keeps it.
-- **A builtin is attributed only when no star import could shadow it**: a partial
-  or unknown `import *` makes an unbound builtin name unresolved (reason
-  `star-import`), while a complete star set that lacks the name leaves the builtin.
+- **`metaclass=type` written explicitly is not a constructor note** only while
+  `type` is the unshadowed builtin; a shadowed or possibly-shadowed `type` (rule
+  37) keeps the note. Any other metaclass, an inherited one, or a defined
+  `__new__` keeps it.
+- **One shadow rule governs every builtin test** (builtin names, `classmethod`,
+  `staticmethod`, and the `type` of `metaclass=type`): the name is the builtin only
+  when no binding supplies it and no star import could. A partial or unknown
+  `import *` shadows it. A name in a **complete** star set is bound by the star
+  target, never the builtin: it resolves to the target's def, class, import or
+  re-export (a single alias is followed), is `run-time-bound` for any other
+  assignment, and is `star-bound` when the target does not statically bind it.
+  A complete star set that lacks the name leaves the builtin.
 - **A method found only in an external base is resolved external**; an opaque
   base before a match is flagged `externalBaseBefore`.
 - **Polymorphic dispatch is reported, never guessed.** A site whose in-repository

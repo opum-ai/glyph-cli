@@ -720,9 +720,11 @@ function extractModuleData(tree: Tree, path: string, dropped: DroppedImport[]): 
 			const imports = parseImportNode(node, path, condition);
 			if (scope === "module") data.imports.push(...imports);
 			else {
-				// Rule 16 limit, stated: a function- or class-local import is recorded as
-				// text only. It is never resolved and never checked for exit 7, so a
-				// first-party package imported only lazily does not trigger the guard.
+				// Rule 23 reading: the module graph records a function- or class-local
+				// import as text only (it is not an S3 exit-7 trigger and S3 does not
+				// resolve it). S5 resolves it through the same machinery with
+				// `resolveLocalImportNode`, so a local import still binds and resolves in
+				// its own scope; only its exit-7 surfacing is withheld.
 				const line = node.startPosition.row + 1;
 				data.localImports.push({ path, line, text: node.text });
 			}

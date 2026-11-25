@@ -142,6 +142,12 @@ type BaseDesc =
 
 type BindingRhs = { kind: "alias"; name: string } | { kind: "call"; callee: CalleeDesc } | { kind: "other" };
 
+/** A source position (one-based) for rule 38's order-aware class-body imports. */
+interface UsePosition {
+	line: number;
+	column: number;
+}
+
 type AnnotationDesc =
 	| { kind: "name"; name: string }
 	| { kind: "dotted"; segments: string[] }
@@ -157,6 +163,8 @@ interface RawBinding {
 	rhs?: BindingRhs;
 	annotation?: AnnotationDesc | null;
 	annotationScope?: Scope | null;
+	/** Rule 38: the statement's start, so a class-body import binds only later uses. */
+	position?: UsePosition;
 }
 
 interface Scope {
@@ -172,6 +180,8 @@ interface Scope {
 	firstParam: string | null;
 	/** Rule 26: the function's own name, for the implicit classmethods `__init_subclass__`, `__class_getitem__`, `__new__`. */
 	functionName: string | null;
+	/** Rule 26/36: the def's line, so a class-body import after it does not shadow it (rule 38). */
+	line: number;
 	decorators: string[];
 	classInfo: ClassInfo | null;
 	enclosingClass: ClassInfo | null;
@@ -196,9 +206,17 @@ interface ClassInfo {
 	scope?: Scope;
 	parentScope: Scope;
 	bases: BaseRef[];
-	ownMetaclass: boolean;
+	/**
+	 * Rule 29a/37: the `metaclass=` keyword — "none" when absent, "type-name" when
+	 * written `metaclass=type`, "other" for any other expression. Whether
+	 * `metaclass=type` is the default is decided at resolution under the rule 37
+	 * shadow rule, not here.
+	 */
+	metaclassValue: "none" | "type-name" | "other";
 	decorators: string[];
 	methods: Map<string, string[]>;
+	/** Rule 36(ii): bare names used in this class body as a decorator or call. */
+	classBodyBareUses: Set<string>;
 	mro?: MroResult;
 }
 
@@ -647,6 +665,24 @@ function parameterName(node: Node): Node | null {
 	}
 }
 
+/**
+ * Rule 32: only a plain first parameter is a receiver — an identifier, a typed
+ * identifier, or one with a default. `*args`, `**kwargs`, a bare `*`/`/` marker
+ * (`keyword_separator`/`positional_separator`) and an absent first parameter are
+ * not: Python binds the instance to `args[0]` or to nothing, never the splat.
+ */
+function isPlainParameter(node: Node): boolean {
+	switch (node.type) {
+		case "identifier":
+		case "typed_parameter":
+		case "typed_default_parameter":
+		case "default_parameter":
+			return true;
+		default:
+			return false;
+	}
+}
+
 function parameterInfo(node: Node): ParamInfo {
 	const nameNode = parameterName(node);
 	let annotationNode: Node | null = null;
@@ -730,17 +766,24 @@ class FileWalker {
 				case "lambda":
 					this.handleLambda(stack, frame, node);
 					continue;
-				case "call":
+				case "call": {
+					const callee = describeCallee(node.childForFieldName("function") ?? node);
+					// Rule 36(ii): a bare name called in its own class body runs as a
+					// plain function, so that def yields no receiver.
+					if (callee.kind === "name" && frame.scope.kind === "class" && frame.scope.classInfo !== null) {
+						frame.scope.classInfo.classBodyBareUses.add(callee.name);
+					}
 					this.calls.push({
 						file: this.file,
 						line: node.startPosition.row + 1,
 						column: node.startPosition.column + 1,
 						callerId: frame.callerId,
 						scope: frame.scope,
-						callee: describeCallee(node.childForFieldName("function") ?? node),
+						callee,
 					});
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					continue;
+				}
 				case "import_statement":
 				case "import_from_statement":
 				case "future_import_statement":
@@ -823,6 +866,7 @@ class FileWalker {
 			nonlocalNames: new Set(),
 			firstParam,
 			functionName: null,
+			line: 0,
 			decorators,
 			classInfo,
 			enclosingClass,
@@ -894,6 +938,11 @@ class FileWalker {
 				});
 			} else {
 				// Rule 1: a bare `@d` is a decorator site to d.
+				// Rule 36(ii): a bare decorator name in its own class body runs the
+				// def as a plain function, so that def yields no receiver.
+				if (expression.type === "identifier" && frame.scope.kind === "class" && frame.scope.classInfo !== null) {
+					frame.scope.classInfo.classBodyBareUses.add(expression.text);
+				}
 				this.decoratorSites.push({
 					file: this.file,
 					line: expression.startPosition.row + 1,
@@ -957,6 +1006,7 @@ class FileWalker {
 
 		const paramsNode = node.childForFieldName("parameters");
 		const params: ParamInfo[] = [];
+		let firstParamNode: Node | null = null;
 		if (paramsNode !== null) {
 			for (const child of paramsNode.namedChildren) {
 				if (child === null || child.type === "comment") continue;
@@ -970,10 +1020,16 @@ class FileWalker {
 					});
 					continue;
 				}
+				if (firstParamNode === null) firstParamNode = child;
 				params.push(parameterInfo(child));
 			}
 		}
-		const firstParam = params.length > 0 ? (params[0] as ParamInfo).name : null;
+		// Rule 32: only a plain first parameter is a receiver; a splat or marker
+		// first parameter (or none) yields none.
+		const firstParam =
+			firstParamNode !== null && isPlainParameter(firstParamNode)
+				? (parameterName(firstParamNode)?.text ?? null)
+				: null;
 
 		const fnScope = this.newScope(
 			"function",
@@ -987,6 +1043,7 @@ class FileWalker {
 		);
 		// Rule 26: the name is needed for the implicit classmethods.
 		fnScope.functionName = name;
+		fnScope.line = node.startPosition.row + 1;
 		for (const param of params) {
 			if (param.name !== null) {
 				this.addBinding(fnScope, param.name, {
@@ -1028,7 +1085,7 @@ class FileWalker {
 		}
 
 		const bases: BaseRef[] = [];
-		let ownMetaclass = false;
+		let metaclassValue: ClassInfo["metaclassValue"] = "none";
 		const superclasses = node.childForFieldName("superclasses");
 		if (superclasses !== null) {
 			for (const child of superclasses.namedChildren) {
@@ -1036,12 +1093,15 @@ class FileWalker {
 				if (child.type === "keyword_argument") {
 					const key = child.childForFieldName("name");
 					if (key !== null && key.text === "metaclass") {
-						// Rule 29a: `metaclass=type` is the default metaclass, whose
-						// `type.__call__` runs `__init__`; it is not a note trigger. Any
-						// other metaclass keeps the note.
+						// Rule 29a/37: `metaclass=type` is the default metaclass only when
+						// `type` is unshadowed under the one shadow rule; any other value,
+						// or a shadowed/possibly-shadowed `type`, keeps the note. That
+						// decision is made at resolution (rule 37 needs the module scope).
 						const value = child.childForFieldName("value");
-						const isType = value !== null && value.type === "identifier" && value.text === "type";
-						if (!isType) ownMetaclass = true;
+						metaclassValue =
+							value !== null && value.type === "identifier" && value.text === "type" ? "type-name" : "other";
+						this.pushOuter(stack, child, frame);
+						continue;
 					}
 					this.pushOuter(stack, child, frame);
 					continue;
@@ -1062,12 +1122,14 @@ class FileWalker {
 						line: node.startPosition.row + 1,
 						parentScope: frame.scope,
 						bases,
-						ownMetaclass,
+						metaclassValue,
 						decorators,
 						methods: new Map(),
+						classBodyBareUses: new Set<string>(),
 					}
 				: null;
 		const classScope = this.newScope("class", frame.scope, qualname, symbolId, null, decorators, classInfo, classInfo);
+		classScope.line = node.startPosition.row + 1;
 		if (classInfo !== null) {
 			classInfo.scope = classScope;
 			this.classes.push(classInfo);
@@ -1142,11 +1204,14 @@ class FileWalker {
 
 	private handleImport(scope: Scope, node: Node): void {
 		const line = node.startPosition.row + 1;
+		// Rule 38: a class-body import binds only for statements after it. The
+		// position is carried on the binding; a function body ignores it.
+		const position: UsePosition = { line, column: node.startPosition.column + 1 };
 		if (scope.kind === "module") {
 			for (const name of importStatementNames(node)) {
 				const binding = this.importBindingsByKey.get(`${this.file}\u0000${line}\u0000${name}`);
-				if (binding !== undefined) this.addBinding(scope, name, { kind: "import", importBinding: binding });
-				else this.addBinding(scope, name, { kind: "localimport" });
+				if (binding !== undefined) this.addBinding(scope, name, { kind: "import", importBinding: binding, position });
+				else this.addBinding(scope, name, { kind: "localimport", position });
 			}
 			return;
 		}
@@ -1157,12 +1222,12 @@ class FileWalker {
 			for (const binding of bindings) {
 				// A `from x import *` in a function binds no name of its own.
 				if (binding.boundName === "") continue;
-				this.addBinding(scope, binding.boundName, { kind: "import", importBinding: binding });
+				this.addBinding(scope, binding.boundName, { kind: "import", importBinding: binding, position });
 			}
 			return;
 		}
 		// Fallback only for an import statement S3 could not parse into a binding.
-		for (const name of importStatementNames(node)) this.addBinding(scope, name, { kind: "localimport" });
+		for (const name of importStatementNames(node)) this.addBinding(scope, name, { kind: "localimport", position });
 	}
 
 	private handleAssignment(stack: WalkFrame[], frame: WalkFrame, node: Node): void {
@@ -1247,6 +1312,7 @@ function makeModuleScope(file: string): Scope {
 		nonlocalNames: new Set(),
 		firstParam: null,
 		functionName: null,
+		line: 0,
 		decorators: [],
 		classInfo: null,
 		enclosingClass: null,
@@ -1308,6 +1374,11 @@ function symbolEdge(symbol: PythonSymbol, kind: "call" | "new" | "decorator", ex
 	return { calleeId: symbol.id, kind, decorated: symbol.decorated || undefined, ...extra };
 }
 
+/** Rule 38: is `a` strictly before `b` in source order? */
+function positionBefore(a: UsePosition, b: UsePosition): boolean {
+	return a.line < b.line || (a.line === b.line && a.column < b.column);
+}
+
 class Resolver {
 	private readonly symbolsById = new Map<string, PythonSymbol>();
 	private readonly fileSymbols = new Map<string, PythonSymbol[]>();
@@ -1316,12 +1387,20 @@ class Resolver {
 	private readonly modulePathByName = new Map<string, string>();
 	private readonly fileBindingsByPath = new Map<string, ImportBinding[]>();
 	private readonly starBindingsByPath = new Map<string, ImportBinding[]>();
+	/** Rule 33: each file's module scope, for reading a star target's bindings. */
+	private readonly moduleScopesByPath: Map<string, Scope>;
 	private readonly computingMro = new Set<ClassInfo>();
 	private childrenMap: Map<string, ClassInfo[]> | null = null;
 	private descendantsCache = new Map<string, ClassInfo[]>();
 	readonly notes: ConstructorNote[] = [];
 
-	constructor(graph: ModuleGraph, symbols: readonly PythonSymbol[], classes: readonly ClassInfo[]) {
+	constructor(
+		graph: ModuleGraph,
+		symbols: readonly PythonSymbol[],
+		classes: readonly ClassInfo[],
+		moduleScopes: Map<string, Scope>,
+	) {
+		this.moduleScopesByPath = moduleScopes;
 		for (const symbol of symbols) {
 			if (!this.symbolsById.has(symbol.id)) this.symbolsById.set(symbol.id, symbol);
 			const list = this.fileSymbols.get(symbol.file);
@@ -1346,15 +1425,34 @@ class Resolver {
 
 	// --- name lookup -------------------------------------------------------
 
-	private lookupBindings(name: string, scope: Scope): { scope: Scope; bindings: RawBinding[] } | null {
+	private lookupBindings(
+		name: string,
+		scope: Scope,
+		use?: UsePosition,
+	): { scope: Scope; bindings: RawBinding[] } | null {
 		let current: Scope | null = scope;
 		let first = true;
 		while (current !== null) {
 			// A class body is not an enclosing scope for its methods (rule 3): only
 			// the starting scope may be a class body.
 			if (first || current.kind !== "class") {
-				const bindings = current.bindings.get(name);
-				if (bindings !== undefined && bindings.length > 0) return { scope: current, bindings };
+				let bindings: RawBinding[] | undefined = current.bindings.get(name);
+				if (bindings !== undefined && bindings.length > 0) {
+					// Rule 38: in the starting class body an import binds only for
+					// statements that follow it; an earlier use falls through to the
+					// enclosing binding. Function and module scope stay flow-insensitive.
+					if (first && current.kind === "class" && use !== undefined) {
+						bindings = bindings.filter(
+							(binding) =>
+								!(
+									(binding.kind === "import" || binding.kind === "localimport") &&
+									binding.position !== undefined &&
+									!positionBefore(binding.position, use)
+								),
+						);
+					}
+					if (bindings.length > 0) return { scope: current, bindings };
+				}
 			}
 			first = false;
 			current = current.parent;
@@ -1362,33 +1460,71 @@ class Resolver {
 		return null;
 	}
 
-	/** Rule 26: `classmethod`/`staticmethod` are recognised only as the unshadowed builtin. */
-	private isUnshadowedBuiltin(name: string, scope: Scope | null): boolean {
+	/**
+	 * Rule 37: the one shadow rule shared by every builtin test. The name is the
+	 * unshadowed builtin when it is bound nowhere in the enclosing scopes, no
+	 * complete star set supplies it (rule 33), and no partial or unknown star
+	 * import could supply it (a partial star shadows builtins, rule 29b).
+	 */
+	private isUnshadowedBuiltin(name: string, scope: Scope | null, use?: UsePosition): boolean {
 		if (scope === null) return true;
-		return this.lookupBindings(name, scope) === null;
+		if (this.lookupBindings(name, scope, use) !== null) return false;
+		const stars = this.starBindingsByPath.get(moduleScopeOf(scope).file);
+		if (stars !== undefined) {
+			for (const star of stars) {
+				if (star.outcome === "resolved" && star.target !== null && star.reason === null) {
+					if (star.starNames.includes(name)) return false;
+				} else {
+					// A partial or unknown star import may bind the name.
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Rule 36: a def in a class body yields no receiver when (i) the class scope
+	 * rebinds its name by a later non-def binding, so an instance's attribute is
+	 * not this def, or (ii) its name is used bare in its own class body (a
+	 * decorator or call), so the def also runs as a plain function.
+	 */
+	private isNoReceiverDef(classInfo: ClassInfo, functionName: string | null): boolean {
+		if (functionName === null) return false;
+		if (classInfo.classBodyBareUses.has(functionName)) return true;
+		const bindings = classInfo.scope?.bindings.get(functionName);
+		if (bindings === undefined || bindings.length === 0) return false;
+		// Bindings are collected in source order, so the last one is the class
+		// attribute's value; a trailing non-def binding means the def was rebound.
+		return (bindings[bindings.length - 1] as RawBinding).kind !== "def";
 	}
 
 	/**
 	 * Rule 26: the receiver of a method scope, whatever the first parameter is
 	 * called. A plain method takes the instance; `@classmethod`, `__init_subclass__`,
 	 * `__class_getitem__` and `__new__` take the class; `@staticmethod` has none.
+	 * Rules 32 and 36 narrow this: a splat first parameter and a rebound or
+	 * bare-used def yield no receiver.
 	 */
 	private methodReceiver(scope: Scope): { kind: "instance" | "class"; name: string; classInfo: ClassInfo } | null {
 		if (scope.kind !== "function" || scope.enclosingClass === null) return null;
+		const classInfo = scope.enclosingClass;
 		const name = scope.firstParam;
 		if (name === null) return null;
+		if (this.isNoReceiverDef(classInfo, scope.functionName)) return null;
 		const decoratorScope = scope.parent;
+		const use = scope.line > 0 ? { line: scope.line, column: 1 } : undefined;
 		const isStatic =
-			scope.decorators.includes("staticmethod") && this.isUnshadowedBuiltin("staticmethod", decoratorScope);
+			scope.decorators.includes("staticmethod") && this.isUnshadowedBuiltin("staticmethod", decoratorScope, use);
 		// An explicit @staticmethod wins (there is no receiver); otherwise a
 		// recognised @classmethod or an implicit classmethod takes the class.
 		if (isStatic) return null;
 		const isClass =
-			(scope.decorators.includes("classmethod") && this.isUnshadowedBuiltin("classmethod", decoratorScope)) ||
+			(scope.decorators.includes("classmethod") && this.isUnshadowedBuiltin("classmethod", decoratorScope, use)) ||
 			scope.functionName === "__init_subclass__" ||
 			scope.functionName === "__class_getitem__" ||
 			scope.functionName === "__new__";
-		return { kind: isClass ? "class" : "instance", name, classInfo: scope.enclosingClass };
+		return { kind: isClass ? "class" : "instance", name, classInfo };
 	}
 
 	/**
@@ -1423,8 +1559,8 @@ class Resolver {
 	 * external, so an attribute call on it is external without inference. An alias
 	 * or call result is a run-time value and is not covered.
 	 */
-	private isExternalImportReceiver(name: string, scope: Scope): boolean {
-		const found = this.lookupBindings(name, scope);
+	private isExternalImportReceiver(name: string, scope: Scope, use?: UsePosition): boolean {
+		const found = this.lookupBindings(name, scope, use);
 		if (found === null) return false;
 		return found.bindings.every(
 			(binding) =>
@@ -1432,9 +1568,9 @@ class Resolver {
 		);
 	}
 
-	resolveBareName(name: string, scope: Scope, hops: number): NameOutcome {
-		const found = this.lookupBindings(name, scope);
-		if (found === null) return this.resolveUnbound(name, scope);
+	resolveBareName(name: string, scope: Scope, hops: number, use?: UsePosition): NameOutcome {
+		const found = this.lookupBindings(name, scope, use);
+		if (found === null) return this.resolveUnbound(name, scope, use);
 		const bindings = found.bindings;
 		const dynamic = bindings.some(
 			(binding) => binding.kind === "param" || binding.kind === "assign" || binding.kind === "rebound",
@@ -1454,27 +1590,51 @@ class Resolver {
 		return this.resolveMultiply(bindings);
 	}
 
-	private resolveUnbound(name: string, scope: Scope): NameOutcome {
-		// Rule 29b: a builtin is the callee only when no star import could shadow it.
-		// A partial or unknown star set makes the name star-import; a complete set
-		// that does not contain the name leaves the builtin.
+	private resolveUnbound(name: string, scope: Scope, use?: UsePosition): NameOutcome {
+		// Rule 33: when the module's star imports have a complete export set (S3)
+		// and the name is in it, the name is bound by the star target and never
+		// falls back to the builtin. A partial or unknown star set makes the name
+		// star-import (rule 29b); a complete set that lacks the name falls through.
 		const stars = this.starBindingsByPath.get(scope.file);
 		let partial = false;
 		if (stars !== undefined) {
 			for (const star of stars) {
 				if (star.outcome === "resolved" && star.target !== null && star.reason === null) {
-					if (star.starNames.includes(name)) {
-						const symbol = this.symbolInModule(star.target, name);
-						if (symbol !== null) return { kind: "symbol", symbol };
-					}
+					if (star.starNames.includes(name)) return this.resolveStarBound(star.target, name);
 				} else {
 					partial = true;
 				}
 			}
 		}
 		if (partial) return { kind: "unresolved", reason: "star-import" };
-		if (BUILTINS.has(name)) return { kind: "external" };
+		// Rule 37: use the one shadow rule for the builtin test (rule 4c / 29b).
+		if (BUILTINS.has(name) && this.isUnshadowedBuiltin(name, scope, use)) return { kind: "external" };
 		return { kind: "unresolved", reason: "unbound" };
+	}
+
+	/**
+	 * Rule 33: resolve a name the star import binds in its target the way the
+	 * import itself binds it — defs, classes and imports (and re-exports) through
+	 * rules 4a/4b, a single alias assignment through 4e, any other assignment as
+	 * run-time-bound (4d), and a name the complete set names but the target does
+	 * not bind statically as star-bound.
+	 */
+	private resolveStarBound(target: string, name: string): NameOutcome {
+		const targetScope = this.moduleScopesByPath.get(target);
+		if (targetScope === undefined) return { kind: "unresolved", reason: "star-bound" };
+		if (this.lookupBindings(name, targetScope) !== null) {
+			return this.resolveBareName(name, targetScope, 0);
+		}
+		// No local binding: the target may still re-export it through its own star
+		// imports. Anything that bottoms out as the builtin fallback or an unbound
+		// name is a name the target does not statically bind.
+		const outcome = this.resolveBareName(name, targetScope, 0);
+		if (outcome.kind === "symbol" || outcome.kind === "module" || outcome.kind === "multiply") return outcome;
+		if (outcome.kind === "runtime") return outcome;
+		if (outcome.kind === "unresolved" && outcome.reason !== "unbound" && outcome.reason !== "star-import") {
+			return outcome;
+		}
+		return { kind: "unresolved", reason: "star-bound" };
 	}
 
 	private resolveStatic(binding: RawBinding): NameOutcome {
@@ -1691,14 +1851,16 @@ class Resolver {
 		return null;
 	}
 
-	private resolveCalleeToSymbol(desc: CalleeDesc, scope: Scope, depth: number): PythonSymbol | null {
+	private resolveCalleeToSymbol(desc: CalleeDesc, scope: Scope, depth: number, use?: UsePosition): PythonSymbol | null {
 		if (depth > MAX_MODULE_DEPTH) return null;
 		switch (desc.kind) {
-			case "name":
-				return this.resolveBareNameToSymbol(desc.name, scope);
+			case "name": {
+				const outcome = this.resolveBareName(desc.name, scope, 0, use);
+				return outcome.kind === "symbol" ? outcome.symbol : null;
+			}
 			case "attr": {
 				if (desc.base.kind !== "name") return null;
-				const base = this.resolveBareName(desc.base.name, scope, 0);
+				const base = this.resolveBareName(desc.base.name, scope, 0, use);
 				if (base.kind === "module" && base.path !== null) {
 					const outcome = this.resolveModuleChain(base.path, desc.segments, 0);
 					return outcome.kind === "symbol" ? outcome.symbol : null;
@@ -1715,13 +1877,8 @@ class Resolver {
 		}
 	}
 
-	private resolveBareNameToSymbol(name: string, scope: Scope): PythonSymbol | null {
-		const outcome = this.resolveBareName(name, scope, 0);
-		return outcome.kind === "symbol" ? outcome.symbol : null;
-	}
-
-	private knownClassOf(name: string, scope: Scope): ClassInfo | null {
-		const found = this.lookupBindings(name, scope);
+	private knownClassOf(name: string, scope: Scope, use?: UsePosition): ClassInfo | null {
+		const found = this.lookupBindings(name, scope, use);
 		if (found === null || found.bindings.length !== 1) return null;
 		const binding = found.bindings[0] as RawBinding;
 		if (binding.kind === "import" && binding.importBinding) {
@@ -1810,8 +1967,19 @@ class Resolver {
 		return null;
 	}
 
+	/**
+	 * Rule 29a/37: a class has a non-default metaclass when it writes any
+	 * `metaclass=` other than an unshadowed `type`. A shadowed or
+	 * possibly-shadowed `type` (rule 37) keeps the note.
+	 */
+	private hasOwnMetaclass(classInfo: ClassInfo): boolean {
+		if (classInfo.metaclassValue === "none") return false;
+		if (classInfo.metaclassValue === "other") return true;
+		return !this.isUnshadowedBuiltin("type", classInfo.parentScope, { line: classInfo.line, column: 1 });
+	}
+
 	private effectiveMetaclass(classInfo: ClassInfo, guard: Set<string> = new Set()): boolean {
-		if (classInfo.ownMetaclass) return true;
+		if (this.hasOwnMetaclass(classInfo)) return true;
 		if (guard.has(classInfo.id)) return false;
 		guard.add(classInfo.id);
 		for (const base of classInfo.bases) {
@@ -1894,6 +2062,9 @@ class Resolver {
 				if (symbol !== undefined) symbols.push(symbol);
 			}
 			if (symbols.length === 0) continue;
+			// Rule 36: a def the class body rebinds or uses bare has no receiver, so
+			// a call through a receiver is rule 6f (unresolved receiver), not an edge.
+			if (this.isNoReceiverDef(entry.info, name)) return { bin: "receiver", reason: "needs-inference" };
 			// Rule 10: a property is not callable as a plain attribute; calling it is
 			// rule 6f (receiver needs inference), never an edge to the property.
 			const callables = symbols.filter((symbol) => symbol.kind !== "property");
@@ -1994,7 +2165,7 @@ class Resolver {
 				polymorphic: this.descendantsOf(receiver.classInfo).length > 0,
 			});
 		}
-		const outcome = this.resolveBareName(name, scope, 0);
+		const outcome = this.resolveBareName(name, scope, 0, site);
 		switch (outcome.kind) {
 			case "symbol": {
 				if (outcome.symbol.kind === "class") {
@@ -2064,14 +2235,14 @@ class Resolver {
 		}
 		// Rule 24: an attribute call on a name bound directly by an import of an
 		// external module or name is external; a value computed from one is not.
-		if (this.isExternalImportReceiver(base.name, scope)) return { bin: "external", reason: "external" };
+		if (this.isExternalImportReceiver(base.name, scope, site)) return { bin: "external", reason: "external" };
 		// Rule 6d: a known-class binding.
-		const known = this.knownClassOf(base.name, scope);
+		const known = this.knownClassOf(base.name, scope, site);
 		if (known !== null) {
 			if (segments.length > 1) return { bin: "receiver", reason: "needs-inference" };
 			return this.methodLookup(known, lastName, false, true);
 		}
-		const outcome = this.resolveBareName(base.name, scope, 0);
+		const outcome = this.resolveBareName(base.name, scope, 0, site);
 		switch (outcome.kind) {
 			case "module":
 				if (outcome.path === null) return { bin: "external", reason: "external-module" };
@@ -2142,7 +2313,10 @@ class Resolver {
 	}
 
 	resolveDecoratorSite(site: RawDecoratorSite): EdgeSpec | null {
-		const symbol = this.resolveCalleeToSymbol(site.callee, site.scope, 0);
+		const symbol = this.resolveCalleeToSymbol(site.callee, site.scope, 0, {
+			line: site.line,
+			column: site.column,
+		});
 		if (symbol === null) return null;
 		return symbolEdge(symbol, "decorator");
 	}
@@ -2288,7 +2462,12 @@ export async function analyzePythonCalls(
 
 	applyScopeRedirects(allScopes);
 
-	const resolver = new Resolver(graph, allSymbols, allClasses);
+	// Rule 33: each file's module scope, so a star target's own bindings can be read.
+	const moduleScopes = new Map<string, Scope>();
+	for (const scope of allScopes) {
+		if (scope.kind === "module") moduleScopes.set(scope.file, scope);
+	}
+	const resolver = new Resolver(graph, allSymbols, allClasses, moduleScopes);
 	const binaries: CallBinCounts = {
 		resolvedInRepo: 0,
 		resolvedExternal: 0,
