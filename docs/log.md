@@ -57,3 +57,4 @@
 - 2026-11-23T18:11:06-06:00 cedecbe43447c41c0d14ecc241c1f7e758eff9d4 feat(GCLI-70): language seam, --language flag and notIndexed coverage (S1) (#119)
 - 2026-11-24T20:33:10-06:00 bc84dfec65dea93f8bb47cb5d75b56784e308c3f feat(GCLI-75): Python module graph and import resolution (S3, not yet wired) (#121)
 - 2026-11-24T23:47:02-06:00 831d628ba16e26c550218e5c62f4eb0fa8a6b09c feat(GCLI-82): wire the native Python indexer behind the language seam
+- 2026-11-25T00:14:55-06:00 d4730765914586763396eb6e2dc69e0d9fe16d30 docs(GCLI-82): declare parseErrorFiles and the code-map fallback (DEC-303 (a15) 19-21, review N1)
