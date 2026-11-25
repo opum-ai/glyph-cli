@@ -384,6 +384,57 @@ describe("rule 5 — rebound names", () => {
 		]);
 	});
 
+	// DEC-303 (a23) item 1: Python binds no name through an attribute or subscript
+	// target. Fixtures are written from that language rule, not from any repository.
+	test("rule 5: an attribute target (self.x = v) binds no name, so self.m() still resolves", async () => {
+		const result = await one(
+			"class C:\n    def target(self):\n        pass\n    def m(self):\n        self.x = 1\n        self.target()\n",
+		);
+		expect(result.callBins.receiverNeedsInference).toBe(0);
+		expect(linesTo(result, symbolId(result, "C.target"))).toEqual([6]);
+	});
+
+	test("rule 5: a tuple of attribute targets (self.a, self.b = ...) binds no name", async () => {
+		const result = await one(
+			"class C:\n    def target(self):\n        pass\n    def m(self):\n        self.a, self.b = 1, 2\n        self.target()\n",
+		);
+		expect(result.callBins.receiverNeedsInference).toBe(0);
+		expect(linesTo(result, symbolId(result, "C.target"))).toEqual([6]);
+	});
+
+	test("rule 5: a subscript target (d[k] = v) binds no name, so a known-class local still resolves", async () => {
+		const result = await one(
+			"class K:\n    def target(self):\n        pass\ndef f(c):\n    pass\ndef g():\n    k = K()\n    k.items = 1\n    k[0] = 2\n    k.target()\n",
+		);
+		expect(linesTo(result, symbolId(result, "K.target"))).toEqual([10]);
+	});
+
+	test("rule 5: an attribute target in a for statement binds no name", async () => {
+		const result = await one(
+			"class C:\n    def target(self):\n        pass\n    def m(self, xs):\n        for self.i in xs:\n            pass\n        self.target()\n",
+		);
+		expect(linesTo(result, symbolId(result, "C.target"))).toEqual([7]);
+	});
+
+	test("rule 5: bare-name, starred and tuple-of-names targets still bind (negative)", async () => {
+		const bare = await one(
+			"class C:\n    def target(self):\n        pass\n    def m(self):\n        self = other\n        self.target()\n",
+		);
+		expect(linesTo(bare, symbolId(bare, "C.target"))).toEqual([]);
+		const tuple = await one(
+			"class C:\n    def target(self):\n        pass\n    def m(self):\n        self, y = other\n        self.target()\n",
+		);
+		expect(linesTo(tuple, symbolId(tuple, "C.target"))).toEqual([]);
+		const starred = await one(
+			"class C:\n    def target(self):\n        pass\n    def m(self):\n        *self, y = other\n        self.target()\n",
+		);
+		expect(linesTo(starred, symbolId(starred, "C.target"))).toEqual([]);
+		const loop = await one(
+			"class C:\n    def target(self):\n        pass\n    def m(self, xs):\n        for self in xs:\n            pass\n        self.target()\n",
+		);
+		expect(linesTo(loop, symbolId(loop, "C.target"))).toEqual([]);
+	});
+
 	test("rule 5: two defs only are multiply-bound (rule 20), never rebound", async () => {
 		const result = await one(
 			"try:\n    def f():\n        pass\nexcept Exception:\n    def f():\n        pass\ndef g():\n    f()\n",

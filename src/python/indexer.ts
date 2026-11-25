@@ -23,9 +23,11 @@ import { grammarVersion } from "./parse.ts";
  * it when the Python analysis changes in a way the injected grammar version and
  * `INDEX_FORMAT` do not capture. Bumped to 2 for S8a's nested project roots
  * (DEC-303 (a18)): the marker directories also enter the key, but a marker-less
- * repository still needs the new key rather than a stale pre-S8a answer.
+ * repository still needs the new key rather than a stale pre-S8a answer. Bumped to
+ * 3 for GCLI-89: an attribute or subscript assignment target no longer rebinds its
+ * base name (DEC-303 (a23) item 1), which changes which calls resolve.
  */
-export const PYTHON_ANALYZER_VERSION = "2";
+export const PYTHON_ANALYZER_VERSION = "3";
 
 /** The S5 per-site flags, carried in the cached index and never in an envelope (rule 17). */
 interface SiteFlags {

@@ -916,12 +916,13 @@ class FileWalker {
 				for (const child of target.namedChildren) this.addTargetBindings(scope, child);
 				return;
 			}
-			case "attribute":
-			case "subscript":
 			case "as_pattern_target": {
 				for (const child of target.namedChildren) this.addTargetBindings(scope, child);
 				return;
 			}
+			// DEC-303 (a23) item 1: Python binds no name through an attribute or
+			// subscript target (`self.x = v`, `d[k] = v`), so the base name is not
+			// rebound; the default arm below returns without recording one.
 			default:
 				return;
 		}
@@ -1297,14 +1298,13 @@ class FileWalker {
 			case "list_pattern":
 			case "tuple":
 			case "list":
-			case "list_splat_pattern":
-			case "attribute":
-			case "subscript": {
+			case "list_splat_pattern": {
 				for (const child of target.namedChildren) {
 					if (child !== null && child !== undefined) this.addTargetBindingsAsRebound(scope, child);
 				}
 				return;
 			}
+			// DEC-303 (a23) item 1: an attribute or subscript target binds no name.
 			default:
 				return;
 		}
