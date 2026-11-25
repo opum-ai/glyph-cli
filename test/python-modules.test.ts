@@ -1079,14 +1079,55 @@ describe("DEC-303 (a26) — resolving through a namespace directory", () => {
 		expect(bindingIn(graph, "src/pkg/sub/use.py", "X").target).toBe("src/pkg/ns/mod.py");
 	});
 
-	test("a module inside a namespace directory resolves a sibling relative import; `from . import x` stays namespace-package", async () => {
+	test("a module inside a namespace directory resolves a sibling relative import and `from . import x` (DEC-303 (a27) Q1)", async () => {
 		const graph = await buildModuleGraph([
 			py("src/pkg/__init__.py", ""),
 			py("src/pkg/ns/a.py", "from .b import Y\nfrom . import b\n"),
 			py("src/pkg/ns/b.py", "Y = 1\n"),
 		]);
 		expect(bindingIn(graph, "src/pkg/ns/a.py", "Y").target).toBe("src/pkg/ns/b.py");
-		expect(bindingIn(graph, "src/pkg/ns/a.py", "b").reason).toBe("namespace-package");
+		expect(bindingIn(graph, "src/pkg/ns/a.py", "b").target).toBe("src/pkg/ns/b.py");
+		expect(bindingIn(graph, "src/pkg/ns/a.py", "b").outcome).toBe("resolved");
+	});
+
+	test("from pkg.ns import mod binds the submodule file (DEC-303 (a27) Q1)", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/mod.py", "X = 1\n"),
+			py("src/pkg/ns/inner/__init__.py", ""),
+			py("src/pkg/ns/deep/leaf.py", ""),
+			py(
+				"src/use.py",
+				"from pkg.ns import mod\nfrom pkg.ns import inner\nfrom pkg.ns import deep\nfrom pkg.ns import gone\n",
+			),
+		]);
+		expect(bindingIn(graph, "src/use.py", "mod").target).toBe("src/pkg/ns/mod.py");
+		expect(bindingIn(graph, "src/use.py", "inner").target).toBe("src/pkg/ns/inner/__init__.py");
+		// the bound name is itself a namespace package (a26 2(b)), and a missing name is unchanged
+		expect(bindingIn(graph, "src/use.py", "deep").reason).toBe("namespace-package");
+		expect(bindingIn(graph, "src/use.py", "gone").reason).toBe("namespace-package");
+	});
+
+	test("from .. import b where .. is a namespace directory resolves (DEC-303 (a27) Q1)", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/b.py", ""),
+			py("src/pkg/ns/inner/x.py", "from .. import b\n"),
+		]);
+		expect(bindingIn(graph, "src/pkg/ns/inner/x.py", "b").target).toBe("src/pkg/ns/b.py");
+	});
+
+	test("Q1 negative controls: top-level namespace, and a manipulated ancestor, stay namespace-package", async () => {
+		const top = await buildModuleGraph([py("src/ns/mod.py", ""), py("src/use.py", "from ns import mod\n")]);
+		expect(bindingIn(top, "src/use.py", "mod").reason).toBe("namespace-package");
+		const manipulated = await buildModuleGraph([
+			py("src/pkg/__init__.py", "__path__ = []\n"),
+			py("src/pkg/ns/mod.py", ""),
+			py("src/pkg/ns/a.py", "from . import mod\n"),
+			py("src/use.py", "from pkg.ns import mod\n"),
+		]);
+		expect(bindingIn(manipulated, "src/use.py", "mod").reason).toBe("namespace-package");
+		expect(bindingIn(manipulated, "src/pkg/ns/a.py", "mod").reason).toBe("namespace-package");
 	});
 
 	test("a __path__ manipulation in an unrelated package does not block the chain", async () => {
