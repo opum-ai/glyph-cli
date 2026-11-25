@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { produceCodeMap } from "../src/codemap.ts";
 import { CODE_MAP_MAX_FILES } from "../src/codemap-text.ts";
+import { symbolHits } from "../src/codemap-tier3.ts";
+import { INDEX_FORMAT, type GlyphIndex } from "../src/types.ts";
 import { makeFixtureRepo } from "./parity/fixtures.ts";
 
 /**
@@ -186,5 +188,45 @@ describe("tier 3 absent or failing is the deterministic producer's output, byte 
 	test("a commit with no TypeScript or JavaScript source has no index, and tier 3 adds nothing", () => {
 		const root = repoWith({ "docs/a.md": "buildReport\n", "src/a.py": "# buildReport\n" });
 		expect(JSON.stringify(produce(root, TEXT))).toBe(JSON.stringify(produce(root, TEXT, { symbols: false })));
+	});
+});
+
+describe("tier 3 reference verbs", () => {
+	test("a decorator edge reads `decorates`, not the generic `references symbol` (DEC-303 (a14) 1)", () => {
+		const symbol = (id: string, name: string, line: number) => ({
+			id,
+			name,
+			container: null,
+			qualname: name,
+			kind: "function" as const,
+			file: "pkg/a.py",
+			startLine: line,
+			line,
+			column: 4,
+			endLine: line + 1,
+			exported: true,
+		});
+		const index: GlyphIndex = {
+			schemaVersion: INDEX_FORMAT,
+			repo: "/scratch",
+			createdAt: "2026-01-01T00:00:00.000Z",
+			files: ["pkg/a.py"],
+			symbols: [symbol("pkg/a.py:1:4", "wrap", 1), symbol("pkg/a.py:5:4", "decorated", 5)],
+			sites: [
+				{
+					calleeId: "pkg/a.py:1:4",
+					callerId: "pkg/a.py:5:4",
+					file: "pkg/a.py",
+					line: 4,
+					column: 0,
+					kind: "decorator",
+				},
+			],
+			unresolvedSites: 0,
+			unresolvedByKind: { call: 0, import: 0, extends: 0, implements: 0, dynamic: 0 },
+		};
+		const details = symbolHits(index, ["wrap"]).map((hit) => hit.detail);
+		expect(details).toContain("decorates symbol `wrap` (depth 1)");
+		expect(details.join("|")).not.toContain("references symbol");
 	});
 });

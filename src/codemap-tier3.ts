@@ -22,13 +22,16 @@ export interface SymbolHit {
 	detail: string;
 }
 
-/** The verb for one reference site: a call, an import, a heritage clause. */
+/** The verb for one reference site: a call, a construction, an import, a heritage clause, a decorator. */
 const VERBS: Readonly<Record<string, string>> = {
 	call: "calls",
 	new: "constructs",
 	import: "imports",
 	extends: "extends",
 	implements: "implements",
+	// A bare `@d` is a resolved incoming edge in its own kind (DEC-303 (a14) 1);
+	// without this it would fall through to the generic "references".
+	decorator: "decorates",
 };
 
 /**
