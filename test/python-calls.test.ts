@@ -1670,3 +1670,53 @@ describe("traversal depth", () => {
 		expect(result.exact).toBe(true);
 	});
 });
+
+// DEC-303 (a26) item 1: the flask-shaped case. The base class lives in a module
+// reached through a directory with no __init__.py, so the base must resolve in
+// repository rather than leaving Flask with an opaque (external-base) base.
+describe("DEC-303 (a26) — a base reached through a namespace directory", () => {
+	const scaffold = "class Scaffold:\n    def helper(self):\n        pass\n";
+	const base = "from .scaffold import Scaffold\n\nclass App(Scaffold):\n    def m(self):\n        pass\n";
+
+	test("a relative from-import through a namespace directory: self.m() resolves to the in-repo base", async () => {
+		const files = [
+			py("pkg/__init__.py", ""),
+			py("pkg/sansio/scaffold.py", scaffold),
+			py("pkg/sansio/app.py", base),
+			py(
+				"pkg/app.py",
+				"from .sansio.app import App\n\nclass Flask(App):\n    def go(self):\n        self.m()\n        self.helper()\n",
+			),
+		];
+		const result = await analyze(files);
+		expect(result.callBins.resolvedExternal).toBe(0);
+		expect(linesTo(result, symbolId(result, "App.m", "pkg/sansio/app.py"))).toEqual([5]);
+		expect(linesTo(result, symbolId(result, "Scaffold.helper", "pkg/sansio/scaffold.py"))).toEqual([6]);
+	});
+
+	test("the absolute import form resolves the same way", async () => {
+		const files = [
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/sansio/scaffold.py", scaffold),
+			py("src/pkg/sansio/app.py", base),
+			py(
+				"src/pkg/app.py",
+				"import pkg.sansio.app\n\nclass Flask(pkg.sansio.app.App):\n    def go(self):\n        self.m()\n",
+			),
+		];
+		const result = await analyze(files);
+		expect(linesTo(result, symbolId(result, "App.m", "src/pkg/sansio/app.py"))).toEqual([5]);
+	});
+
+	test("negative control: __path__ manipulation in the ancestor keeps the base opaque", async () => {
+		const files = [
+			py("pkg/__init__.py", "import pkgutil\n__path__ = pkgutil.extend_path(__path__, __name__)\n"),
+			py("pkg/sansio/scaffold.py", scaffold),
+			py("pkg/sansio/app.py", base),
+			py("pkg/app.py", "from .sansio.app import App\n\nclass Flask(App):\n    def go(self):\n        self.m()\n"),
+		];
+		const result = await analyze(files);
+		expect(linesTo(result, symbolId(result, "App.m", "pkg/sansio/app.py"))).toEqual([]);
+		expect(result.callBins.resolvedExternal).toBeGreaterThan(0);
+	});
+});

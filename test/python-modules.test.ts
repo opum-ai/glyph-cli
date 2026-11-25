@@ -961,3 +961,103 @@ describe("fixtures-abs — absolute imports under a src layout", () => {
 		expect(graph.counts.resolved).toBe(0);
 	});
 });
+
+// DEC-303 (a26) item 1: a namespace directory whose nearest regular-package ancestor
+// is reached through namespace directories only has exactly one portion, so an import
+// resolves THROUGH it to a real module or package file. Fixtures are written from
+// Python's import semantics, not from any repository.
+describe("DEC-303 (a26) — resolving through a namespace directory", () => {
+	test("an absolute import through a namespace directory resolves to the module", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/mod.py", "X = 1\n"),
+			py("src/use.py", "import pkg.ns.mod\nfrom pkg.ns.mod import X\n"),
+		]);
+		expect(bindingIn(graph, "src/use.py", "pkg.ns.mod").target).toBe("src/pkg/ns/mod.py");
+		expect(bindingIn(graph, "src/use.py", "X").target).toBe("src/pkg/ns/mod.py");
+	});
+
+	test("a relative from-import through a namespace directory resolves", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/mod.py", "X = 1\n"),
+			py("src/pkg/use.py", "from .ns.mod import X\n"),
+		]);
+		expect(bindingIn(graph, "src/pkg/use.py", "X").target).toBe("src/pkg/ns/mod.py");
+		expect(bindingIn(graph, "src/pkg/use.py", "X").outcome).toBe("resolved");
+	});
+
+	test("a two-level chain of namespace directories resolves", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/a/b/mod.py", "X = 1\n"),
+			py("src/use.py", "from pkg.a.b.mod import X\n"),
+		]);
+		expect(bindingIn(graph, "src/use.py", "X").target).toBe("src/pkg/a/b/mod.py");
+	});
+
+	test("a regular package below a namespace directory resolves to its __init__", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/inner/__init__.py", ""),
+			py("src/pkg/ns/inner/leaf.py", ""),
+			py("src/use.py", "import pkg.ns.inner\nimport pkg.ns.inner.leaf\n"),
+		]);
+		expect(bindingIn(graph, "src/use.py", "pkg.ns.inner").target).toBe("src/pkg/ns/inner/__init__.py");
+		expect(bindingIn(graph, "src/use.py", "pkg.ns.inner.leaf").target).toBe("src/pkg/ns/inner/leaf.py");
+	});
+
+	test("a missing module below a namespace directory is module-not-found", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/mod.py", ""),
+			py("src/use.py", "import pkg.ns.gone\n"),
+		]);
+		expect(bindingIn(graph, "src/use.py", "pkg.ns.gone").reason).toBe("module-not-found");
+	});
+
+	test("a top-level namespace directory stays namespace-package (negative control)", async () => {
+		const graph = await buildModuleGraph([py("src/ns/inner.py", ""), py("src/a.py", "import ns.inner\n")]);
+		expect(bindingIn(graph, "src/a.py", "ns.inner").reason).toBe("namespace-package");
+	});
+
+	test("a namespace directory as the last component stays namespace-package (negative control)", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/mod.py", ""),
+			py("src/use.py", "import pkg.ns\nfrom pkg import ns\n"),
+		]);
+		expect(bindingIn(graph, "src/use.py", "pkg.ns").reason).toBe("namespace-package");
+		expect(bindingIn(graph, "src/use.py", "ns").reason).toBe("namespace-package");
+	});
+
+	const manipulations: [string, string][] = [
+		["an assignment to __path__", "__path__ = [__path__[0] + '/extra']\n"],
+		["an augmented assignment to __path__", "__path__ += ['/elsewhere']\n"],
+		["pkgutil.extend_path", "import pkgutil\n__path__ = pkgutil.extend_path(__path__, __name__)\n"],
+		["a bare extend_path", "from pkgutil import extend_path\n__path__ = extend_path(__path__, __name__)\n"],
+		["pkg_resources.declare_namespace", "import pkg_resources\npkg_resources.declare_namespace(__name__)\n"],
+	];
+	for (const [label, init] of manipulations) {
+		test(`${label} in the ancestor's __init__.py keeps the chain namespace-package (negative control)`, async () => {
+			const graph = await buildModuleGraph([
+				py("src/pkg/__init__.py", init),
+				py("src/pkg/ns/mod.py", "X = 1\n"),
+				py("src/pkg/use.py", "from .ns.mod import X\n"),
+				py("src/use.py", "from pkg.ns.mod import X\n"),
+			]);
+			expect(bindingIn(graph, "src/use.py", "X").reason).toBe("namespace-package");
+			expect(bindingIn(graph, "src/pkg/use.py", "X").reason).toBe("namespace-package");
+		});
+	}
+
+	test("a __path__ manipulation in an unrelated package does not block the chain", async () => {
+		const graph = await buildModuleGraph([
+			py("src/other/__init__.py", "__path__ = []\n"),
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/mod.py", "X = 1\n"),
+			py("src/use.py", "from pkg.ns.mod import X\n"),
+		]);
+		expect(bindingIn(graph, "src/use.py", "X").target).toBe("src/pkg/ns/mod.py");
+	});
+});
