@@ -417,7 +417,9 @@ describe("rule 5 — rebound names", () => {
 	});
 
 	test("rule 5: bare-name, starred and tuple-of-names targets still bind (negative)", async () => {
-		const bare = await one("class C:\n    def target(self):\n        pass\n    def m(self):\n        self = other\n        self.target()\n");
+		const bare = await one(
+			"class C:\n    def target(self):\n        pass\n    def m(self):\n        self = other\n        self.target()\n",
+		);
 		expect(linesTo(bare, symbolId(bare, "C.target"))).toEqual([]);
 		const tuple = await one(
 			"class C:\n    def target(self):\n        pass\n    def m(self):\n        self, y = other\n        self.target()\n",
