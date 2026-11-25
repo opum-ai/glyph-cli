@@ -472,6 +472,8 @@ interface ModuleData {
 }
 
 const PATH_MANIPULATION_NAMES = new Set(["__path__", "extend_path", "declare_namespace"]);
+/** An import naming extend_path or declare_namespace, or a star import from pkgutil or pkg_resources. */
+const PATH_MANIPULATION_IMPORT = /\b(extend_path|declare_namespace)\b|\bfrom\s+(pkgutil|pkg_resources)\s+import\s*\*/;
 
 const DYNAMIC_CALLEES = new Set(["importlib.import_module", "__import__", "getattr"]);
 
@@ -782,6 +784,9 @@ function extractModuleData(tree: Tree, path: string, dropped: DroppedImport[]): 
 			node.type === "import_from_statement" ||
 			node.type === "future_import_statement"
 		) {
+			// The import branch does not descend, so an aliased import
+			// (`from pkg_resources import declare_namespace as dn`) is read from its text.
+			if (PATH_MANIPULATION_IMPORT.test(node.text)) data.pathManipulated = true;
 			const imports = parseImportNode(node, path, condition);
 			if (scope === "module") data.imports.push(...imports);
 			else {
@@ -1673,7 +1678,11 @@ export async function buildModuleGraph(
 	for (const file of indexed) {
 		const result = await parsePython(file.bytes, file.path);
 		try {
-			data.set(file.path, extractModuleData(result.tree, file.path, droppedByError));
+			const moduleData = extractModuleData(result.tree, file.path, droppedByError);
+			// A parse error hides text from the walk, so a path manipulation inside it
+			// would be invisible: DEC-303 (a26) 2(c), "not known from the text".
+			if (result.hasError) moduleData.pathManipulated = true;
+			data.set(file.path, moduleData);
 		} finally {
 			result.tree.delete();
 		}

@@ -1037,6 +1037,14 @@ describe("DEC-303 (a26) — resolving through a namespace directory", () => {
 		["pkgutil.extend_path", "import pkgutil\n__path__ = pkgutil.extend_path(__path__, __name__)\n"],
 		["a bare extend_path", "from pkgutil import extend_path\n__path__ = extend_path(__path__, __name__)\n"],
 		["pkg_resources.declare_namespace", "import pkg_resources\npkg_resources.declare_namespace(__name__)\n"],
+		["pkgutil.extend_path with no __path__ token", "import pkgutil\npkgutil.extend_path(['x'], 'pkg')\n"],
+		["an aliased declare_namespace import", "from pkg_resources import declare_namespace as dn\ndn(__name__)\n"],
+		["an aliased extend_path import", "from pkgutil import extend_path as ep\nep(['x'], 'pkg')\n"],
+		["a star import from pkgutil", "from pkgutil import *\n"],
+		[
+			"an unparseable region (a parse error hides the text)",
+			"import pkgutil\nclass (:\n    pkgutil.extend_path(['x'], 'pkg')\n",
+		],
 	];
 	for (const [label, init] of manipulations) {
 		test(`${label} in the ancestor's __init__.py keeps the chain namespace-package (negative control)`, async () => {
@@ -1050,6 +1058,26 @@ describe("DEC-303 (a26) — resolving through a namespace directory", () => {
 			expect(bindingIn(graph, "src/pkg/use.py", "X").reason).toBe("namespace-package");
 		});
 	}
+
+	test("a realistic non-empty ancestor __init__.py does not block the chain (positive control)", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", 'from .app import Flask\n\n__all__ = ["Flask"]\n__version__ = "1"\n'),
+			py("src/pkg/app.py", "class Flask:\n    pass\n"),
+			py("src/pkg/ns/mod.py", "X = 1\n"),
+			py("src/use.py", "from pkg.ns.mod import X\n"),
+		]);
+		expect(bindingIn(graph, "src/use.py", "X").target).toBe("src/pkg/ns/mod.py");
+	});
+
+	test("a relative from-import with two dots through a namespace directory resolves", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/sub/__init__.py", ""),
+			py("src/pkg/sub/use.py", "from ..ns.mod import X\n"),
+			py("src/pkg/ns/mod.py", "X = 1\n"),
+		]);
+		expect(bindingIn(graph, "src/pkg/sub/use.py", "X").target).toBe("src/pkg/ns/mod.py");
+	});
 
 	test("a module inside a namespace directory resolves a sibling relative import; `from . import x` stays namespace-package", async () => {
 		const graph = await buildModuleGraph([
