@@ -68,6 +68,14 @@ export interface CodeMapInput {
 	symbols?: boolean;
 	/** Where tier 3 gets the commit's index; a seam for tests. Null means no index. */
 	loadIndex?: (repositoryPath: string, commit: string) => GlyphIndex | null;
+	/**
+	 * A prebuilt tier-3 index for `commit`, supplied when the selected language's
+	 * index cannot be built synchronously (Python's grammar loads through wasm).
+	 * Used only when `loadIndex` is absent; a mismatch means the ref moved between
+	 * the build and this call, and the tier contributes nothing rather than
+	 * answering from another tree.
+	 */
+	refIndex?: { commit: string; index: GlyphIndex };
 	/** The wall-time budget in ms; defaults to CODE_MAP_TIME_BUDGET_MS. A seam for tests. */
 	timeBudgetMs?: number;
 	/** The clock, in ms; defaults to `performance.now`. A seam for tests. */
@@ -652,7 +660,16 @@ function buildCodeMap(
 		// the pure resolution below is a bug, and surfaces rather than reverting silently.
 		let index: GlyphIndex | null = null;
 		try {
-			index = (input.loadIndex ?? loadRefIndex)(input.repositoryPath, commit);
+			const loader = input.loadIndex;
+			const prebuilt = input.refIndex;
+			index =
+				loader !== undefined
+					? loader(input.repositoryPath, commit)
+					: prebuilt !== undefined
+						? prebuilt.commit === commit
+							? prebuilt.index
+							: null
+						: loadRefIndex(input.repositoryPath, commit);
 		} catch (error) {
 			// A git read the budget cut off (ls-tree, cat-file) is a stop at this stage.
 			if (error instanceof BudgetExpired) stop("symbol index");

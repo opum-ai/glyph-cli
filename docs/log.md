@@ -52,3 +52,7 @@
 - 2026-11-23T10:14:40-06:00 739710305ab489d7e1fd1bc171b1eb250005e3d1 docs(GCLI-66): round 3 - shipped layout scored, absolute-import fixture, one constructor rule, fail-closed unreachable code, decorator rule, D4 shaped
 - 2026-11-23T10:24:53-06:00 9df14a7879833da08901fb5bcf50a4903f5d4aec docs(GCLI-66): round 4 - first-party import fail-closed check measured, callee rule, unreachable limits, label and provenance corrections
 - 2026-11-23T10:33:51-06:00 ac186a651340c1da3e6c1eaf5f3683eb79ef47df docs(GCLI-66): round 5 - first-party import rule specified, D5 added, callee rule tightened, reproduction wording corrected
+- 2026-11-23T17:52:16-06:00 4fe2e50eccb82084454c6cad10cbeb89770a5597 test(GCLI-69): held-out click 7.1.2 ground truth for the Python gate, with ADR 0008 (#116)
+- 2026-11-23T18:05:18-06:00 a464f56e800d87955fe7b69e762ef00f0ad113fc test(GCLI-72): held-out Python gate scorer, stub index and tests (S6) (#118)
+- 2026-11-23T18:11:06-06:00 cedecbe43447c41c0d14ecc241c1f7e758eff9d4 feat(GCLI-70): language seam, --language flag and notIndexed coverage (S1) (#119)
+- 2026-11-24T20:33:10-06:00 bc84dfec65dea93f8bb47cb5d75b56784e308c3f feat(GCLI-75): Python module graph and import resolution (S3, not yet wired) (#121)

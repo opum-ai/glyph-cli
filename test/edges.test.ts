@@ -37,8 +37,8 @@ const M = "export function a(): number {\n  return 1;\n}\n";
 
 describe("import edges", () => {
 	test("the index format is bumped for the new shape", () => {
-		expect(INDEX_FORMAT).toBe(2);
-		expect(indexOf({ "src/m.ts": M }).schemaVersion).toBe(2);
+		expect(INDEX_FORMAT).toBe(3);
+		expect(indexOf({ "src/m.ts": M }).schemaVersion).toBe(3);
 	});
 
 	test("a re-export and alias chain resolves to the original declaration, with the barrel and the importer at depth 1", () => {

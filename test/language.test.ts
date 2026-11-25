@@ -3,9 +3,9 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { discoverSources, SOURCE_EXTENSIONS } from "../src/discover.ts";
-import { GlyphError } from "../src/errors.ts";
 import { buildIndex } from "../src/indexer.ts";
 import {
+	cacheScopeOf,
 	LANGUAGE_EXTENSIONS,
 	detectLanguages,
 	indexWith,
@@ -14,6 +14,8 @@ import {
 	registeredLanguages,
 	selectLanguage,
 } from "../src/language.ts";
+import { PYTHON_ANALYZER_VERSION } from "../src/python/indexer.ts";
+import { grammarVersion } from "../src/python/parse.ts";
 import { makeScratchRepo, type ScratchRepo } from "./helpers.ts";
 
 /**
@@ -73,13 +75,13 @@ function plainDir(files: Record<string, string>): string {
 }
 
 describe("the language seam", () => {
-	test("typescript is the only registered language, and the seam returns the existing index unchanged", () => {
+	test("typescript and python are registered, and the TypeScript seam returns the existing index unchanged", async () => {
 		const repo = committed(TS_FILES);
-		expect(registeredLanguages()).toEqual(["typescript"]);
+		expect(registeredLanguages()).toEqual(["python", "typescript"]);
 
 		const files = discoverSources(repo.root);
 		expect(files.length).toBeGreaterThan(0);
-		const viaSeam = indexWith("typescript", repo.root, files);
+		const viaSeam = await indexWith("typescript", repo.root, files);
 		const direct = buildIndex(repo.root, files);
 		// `createdAt` is the only field that differs between two builds; everything
 		// the queries read is identical, which is the "no behaviour change" claim.
@@ -98,8 +100,14 @@ describe("the language seam", () => {
 			unresolvedSites: direct.unresolvedSites,
 			unresolvedByKind: direct.unresolvedByKind,
 		});
-
-		expect(() => indexWith("python", repo.root, files)).toThrow(/no indexer is registered/);
+		// S7 registers the native Python indexer; every registered language is
+		// indexable, so the seam no longer has an "unregistered" language to refuse.
+		expect(cacheScopeOf("python")).toEqual({
+			language: "python",
+			analyzerVersion: PYTHON_ANALYZER_VERSION,
+			grammarVersion: grammarVersion(),
+		});
+		expect(cacheScopeOf("typescript")).toBeUndefined();
 	});
 
 	test("a path is claimed by its language, and mixed detection keeps the preference order", () => {
@@ -173,18 +181,13 @@ describe("the language seam", () => {
 		expect(mixedSelection.notIndexed).toEqual([{ language: "python", files: 1 }]);
 	});
 
-	test("a Python-only selection is not_found naming the language and its count", () => {
+	test("a Python-only selection picks the registered Python indexer", () => {
 		const repo = committed(PYTHON_FILE);
-		try {
-			selectLanguage(repo.root, undefined);
-			throw new Error("expected selectLanguage to refuse");
-		} catch (error) {
-			expect(error).toBeInstanceOf(GlyphError);
-			expect((error as GlyphError).code).toBe(3);
-			expect((error as GlyphError).message).toBe(
-				"no TypeScript or JavaScript sources; python (1 file) not indexed yet",
-			);
-		}
+		const selection = selectLanguage(repo.root, undefined);
+		expect(selection.id).toBe("python");
+		expect(selection.files).toEqual(["src/tool.py"]);
+		expect(selection.notIndexed).toEqual([]);
+		expect(isDefaultLanguage(selection)).toBe(false);
 	});
 });
 
@@ -207,20 +210,16 @@ describe("--language and detection through the CLI", () => {
 		expect(human.stdout).not.toContain("language not indexed");
 	});
 
-	test("a Python-only repository is not_found naming the count, the same with and without --ref", () => {
+	test("a Python-only repository is indexed, and --ref answers it too", () => {
 		const repo = committed(PYTHON_FILE);
 		const direct = runCli(repo.root, ["--json", "callers", "greet"]);
 		const atRef = runCli(repo.root, ["--json", "impact", "greet", "--ref", "HEAD"]);
-		expect(direct.code).toBe(3);
-		expect(atRef.code).toBe(3);
-		expect(direct.stdout).toBe("");
-		expect(atRef.stdout).toBe("");
-		const directError = errorOf(direct);
-		const refError = errorOf(atRef);
-		expect(directError.error_type).toBe("not_found");
-		expect(directError.message).toBe("no TypeScript or JavaScript sources; python (1 file) not indexed yet");
-		// Identical bytes: the message carries no repository/ref location for this case.
-		expect(refError.message).toBe(directError.message);
+		expect(direct.code).toBe(0);
+		expect(atRef.code).toBe(0);
+		const directIndex = (JSON.parse(direct.stdout) as { data: { index: { language?: string } } }).data.index;
+		const refIndex = (JSON.parse(atRef.stdout) as { data: { index: { language?: string } } }).data.index;
+		expect(directIndex.language).toBe("python");
+		expect(refIndex.language).toBe("python");
 	});
 
 	test("mixed selects TypeScript, names Python with its count, in JSON and in the coverage line", () => {
@@ -293,27 +292,31 @@ describe("--language and detection through the CLI", () => {
 	test("an explicit language that is not registered is a usage error naming the registered languages", () => {
 		const repo = committed(TS_FILES);
 		for (const args of [
-			["--json", "--language", "python", "callers", "helper"],
 			["--json", "--language", "ruby", "callers", "helper"],
-			["--json", "impact", "helper", "--ref", "HEAD", "--language", "python"],
+			["--json", "impact", "helper", "--ref", "HEAD", "--language", "ruby"],
 		]) {
 			const result = runCli(repo.root, args);
 			expect(result.code).toBe(2);
 			expect(result.stdout).toBe("");
 			const error = errorOf(result);
 			expect(error.error_type).toBe("usage");
-			expect(error.message).toContain("registered languages: typescript");
+			expect(error.message).toContain("registered languages: python, typescript");
 		}
 	});
 
 	test("a registered language with no files is not_found naming the language", () => {
-		const repo = committed(PYTHON_FILE);
-		const result = runCli(repo.root, ["--json", "--language", "typescript", "callers", "greet"]);
-		expect(result.code).toBe(3);
-		expect(result.stdout).toBe("");
-		const error = errorOf(result);
+		const pythonRepo = committed(PYTHON_FILE);
+		const tsOnPython = runCli(pythonRepo.root, ["--json", "--language", "typescript", "callers", "greet"]);
+		expect(tsOnPython.code).toBe(3);
+		expect(errorOf(tsOnPython).message).toContain("no typescript sources found");
+
+		const tsRepo = committed(TS_FILES);
+		const pythonOnTs = runCli(tsRepo.root, ["--json", "--language", "python", "callers", "helper"]);
+		expect(pythonOnTs.code).toBe(3);
+		expect(pythonOnTs.stdout).toBe("");
+		const error = errorOf(pythonOnTs);
 		expect(error.error_type).toBe("not_found");
-		expect(error.message).toContain("no typescript sources found");
+		expect(error.message).toContain("no python sources found");
 	});
 
 	test("--language is rejected on a command that reads no index, including help and a bare run", () => {
@@ -358,6 +361,6 @@ describe("--language and detection through the CLI", () => {
 		const language = manifest.globalFlags.find((flag) => flag.name === "language");
 		expect(language).toBeDefined();
 		expect(language?.takesValue).toBe(true);
-		expect(language?.summary).toContain("registered: typescript");
+		expect(language?.summary).toContain("registered: python, typescript");
 	});
 });

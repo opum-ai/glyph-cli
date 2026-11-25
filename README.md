@@ -17,11 +17,11 @@ recorded in [ADR 0001](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0
 - **No UI.** stdout carries either human text or JSON: one envelope per command, or
   one line per item then one result line under `--stream`.
 
-### Python symbols (not yet wired)
+### Python symbols
 
-Python symbol collection exists behind the parse wrapper in `src/python/` and is
-not yet wired to the CLI (ADR 0008). Its stated limits (the full record is the
-GCLI-76 implementation notes):
+Python symbol collection lives behind the parse wrapper in `src/python/` and is
+wired to the CLI by the native indexer (ADR 0008, S7). Its stated limits (the
+full record is the GCLI-76 implementation notes):
 
 - **Parse errors are named, not resolved.** A file whose parse contains an ERROR
   or MISSING node is listed in `parseErrorFiles`, with `errorCount` and
@@ -40,7 +40,8 @@ GCLI-76 implementation notes):
 - **Decorated symbols are flagged, never dropped.** Whether a decorator replaces
   the name with another object (click's `@command`) cannot be decided
   statically; every decorated symbol carries `decorated: true` and its
-  decorators, and a later slice decides the decorator site kind.
+  decorators, and a bare `@d` is recorded as a `decorator` site (see the machine
+  contract additions below).
 - **`__all__` is read only as a literal list or tuple at module level.** A
   non-literal assignment or `__all__ += ...` falls back to the leading-underscore
   rule; `__all__.extend(...)` and `__all__.append(...)` are calls, not
@@ -57,15 +58,16 @@ GCLI-76 implementation notes):
   the gate scorer's target mapping, not a run of `gate_score.py`; the real
   end-to-end gate run is S8.
 
-### Python call resolution (S5, not yet wired)
+### Python call resolution
 
 Call resolution builds on the module graph (S3) and the symbol table (S4) in
-`src/python/calls.ts` and is not yet wired to the CLI. Every call expression
-outside a parse-error region lands in exactly one of four bins — resolved in the
-repository (an edge), resolved external, unresolved because the receiver needs
-inference, and unresolved because the name is not statically bound. A call
-resolves when Python's static binding rules fix its target without inference; it
-stays unresolved when the target depends on a run-time type. Stated limits:
+`src/python/calls.ts` and is wired to the CLI by the native indexer (S7). Every
+call expression outside a parse-error region lands in exactly one of four bins —
+resolved in the repository (an edge), resolved external, unresolved because the
+receiver needs inference, and unresolved because the name is not statically
+bound. A call resolves when Python's static binding rules fix its target without
+inference; it stays unresolved when the target depends on a run-time type.
+Stated limits:
 
 - **A value's type is never inferred.** `items.append(...)` and `x.m()` on an
   unannotated parameter are unresolved-receiver, which keeps them out of unknown
@@ -137,7 +139,8 @@ stays unresolved when the target depends on a run-time type. Stated limits:
   declared class's resolution only.
 - **Parse errors drop calls and are named.** A call inside an ERROR region is
   dropped and the file listed with the dropped count; that run does not claim the
-  count exact, and S3's exit-7 list is carried (raising it is S7's).
+  count exact. A non-empty S3 exit-7 list is raised as **indeterminate** (exit 7)
+  naming the first trigger and the count; it is never an empty or partial answer.
 - **`test/python-gate/check_call_sites.ts` reports the bins** over click and
   requests; scoring a `GlyphIndex` through `gate_score.py` there is NOT the gate
   run (S8 owns the gate).
@@ -316,37 +319,64 @@ same registry the commands use, so it cannot drift from the handlers.
 
 Glyph indexes one language per run. Detection picks it from the file extensions
 present, preferring TypeScript; `--language <id>` overrides the pick. TypeScript
-(with JavaScript) is the only language registered so far; the Python indexer is
-a later slice of the same decision.
+(with JavaScript) and Python are both registered (ADR 0008); the Python indexer
+is native and in process, and its grammar loads through wasm.
 
 Python counting applies a directory rule: a tracked `.py` file under any `venv`,
 `.venv`, `__pycache__` or `.tox` path segment is not counted — a nested
 `tools/venv/x.py` or a package named `venv` is dropped — so a TypeScript
 repository whose only Python sits there gets no `notIndexed` entry, and a
-Python-only repository like that gets the "no TypeScript or JavaScript sources
-found" message.
+Python-only repository like that is `not_found` with the ordinary
+"no TypeScript or JavaScript sources found" message.
 
-- A recognised language that has files but no registered indexer — Python until
-  its indexer lands — is named, with its file count, as not indexed. The human
+- One language is indexed per run. Every other recognised language present in
+  scope is named, with its file count, as not indexed in this run. The human
   coverage line ends `; language not indexed: python (2 files)`, and the JSON
   `index` block carries `language` (the indexed language) and `notIndexed`
   (`[{language, files}]`). It is never dropped silently, and the same entries
-  are carried by the `--ref` answer.
-- A repository whose only recognised language has no indexer is `not_found`
-  (exit 3) naming the language and its file count — for example, "no TypeScript
-  or JavaScript sources; python (1 file) not indexed yet" — identical with and
-  without `--ref`, and never an empty answer. This stands until a later slice
-  registers Python indexing.
+  are carried by the `--ref` answer. A mixed tree with no `--language` indexes
+  TypeScript and names Python; `--language python` swaps which is named.
+- A Python-only repository is indexed, so it is never `not_found` for lacking
+  TypeScript. A repository whose only recognised language has **no registered
+  indexer** is `not_found` (exit 3) naming the language and its file count,
+  identical with and without `--ref`, and never an empty answer.
 - An explicit `--language` naming an unregistered language is a usage error
   (exit 2) listing the registered languages; naming a registered language that
   has no files is `not_found` (exit 3) naming it.
-- `--ref` and `code-map` still build TypeScript only; a ref's recognised
-  non-TypeScript files are counted for the coverage entries but not indexed there
-  until a later slice wires Python in.
+- `--ref` builds the selected language's index for the commit's tree: Python
+  reads the commit's blobs as **bytes** through the snapshot (no checkout), and
+  the cache key is addressed by the commit and the language scope, not by
+  working-tree stats. `code-map` builds the selected language's index at its
+  `--source-ref` for the symbol tier; its text, diff and grep tiers are
+  language-agnostic.
 - When a repository has no recognised non-TypeScript source (only `.py` counts
   today), the `index` block carries neither `language` nor `notIndexed` — both
   are omitted, not `null` or a constant — so that answer is byte-for-byte the one
   earlier releases produced.
+
+### Machine contract additions for Python
+
+These are the output entries DEC-303 (a14) rules and [ADR 0002](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0002-adopt-the-opum-command-contract.md)
+records. They are absent — never `null`, never zero-filled — from a
+TypeScript-only index and its envelopes. They add no `help --json` declaration,
+because the manifest has no slot for output fields.
+
+- **`decorator` is a site kind.** `SiteKind` and `CALL_KINDS` include it, so a
+  bare `@d` is reported by `callers` and `impact` as an incoming edge to `d`.
+  Decorator sites are in no call bin and not in `unresolvedByKind`.
+- **`INDEX_FORMAT` is 3.** It is in the cache key only; a cached format-2 entry
+  is not served, and a TypeScript envelope is unchanged.
+- **Python adds three result entries.** On `callers` and `impact` result data
+  (batch and `--stream` result line alike) a Python index carries `callBins`
+  (`{resolvedInRepo, resolvedExternal, receiverNeedsInference, nameNotBound}`),
+  `unresolvedFirstPartyImports` and `constructorNotes` beside
+  `unresolvedByKind`. The entries are absent from a TypeScript answer, and
+  `unresolvedByKind` itself is unchanged (`.call` is `receiverNeedsInference +
+  nameNotBound`, `.dynamic` is S3's dynamic-import count).
+- **Site and symbol flags stay internal.** `multiplyBound`, `polymorphic`,
+  `externalBaseBefore` and `decorated` on sites, and `decorators`, `decorated`
+  and `collapsedOverloadStubs` on symbols, live in the cached index and appear in
+  no envelope. `qualname` is a documented symbol field and appears when present.
 
 ## Streaming (`--stream`)
 

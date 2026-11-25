@@ -753,7 +753,7 @@ describe("rule 17 — determinism and purity", () => {
 // --- rule 18 ---------------------------------------------------------------
 
 describe("rule 18 — out of scope (unwired)", () => {
-	test("rule 18: the result carries exactly the S5 surface, no CLI wiring", async () => {
+	test("rule 18: the result carries exactly the S5 surface plus S3's first-party count", async () => {
 		const result = await one("def f():\n    pass\n");
 		expect(Object.keys(result).sort()).toEqual(
 			[
@@ -771,6 +771,7 @@ describe("rule 18 — out of scope (unwired)", () => {
 				"sites",
 				"symbols",
 				"unresolvedByKind",
+				"unresolvedFirstPartyImports",
 				"unresolvedNameReasons",
 				"unresolvedReceiverReasons",
 			].sort(),

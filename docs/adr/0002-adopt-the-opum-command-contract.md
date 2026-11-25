@@ -209,3 +209,45 @@ targets — for example `Parameter.type_cast_value._convert`,
 an additive contract entry under this record: a new optional field, no existing
 field changed.
 
+
+## Amendment, 2026-11-25 (GCLI-82): the Python output contract, DEC-303 (a14)
+
+DEC-303 (a14) (opum-doc, 2026-11-25 05:31Z, arm A) rules the additive contract
+entries this record left to the slices that produce them. This amendment records
+them and names DEC-303 (a14) as their decision. They are output entries, not
+flags: the `help --json` manifest needs no new declaration, because it has no slot
+for output fields. TypeScript-only answers stay byte-identical; every entry below
+is absent — never null, never zero-filled — from a TypeScript index and envelope.
+
+1. **`decorator` is a `SiteKind` and a `CALL_KINDS` member.** A bare `@d` is one
+   site with kind `decorator`, `calleeId` of `d` and the caller, line and column
+   S5 emits. `callers` and `impact` therefore report the defs a decorator
+   function decorates. A decorator site is in no call bin and not in
+   `unresolvedByKind`; the four-bin call counts and the unresolved definitions of
+   DEC-303 (a10) do not change.
+2. **`INDEX_FORMAT` is 3.** It appears in the cache key only. A cached format-2
+   entry is not served; a TypeScript index rebuilds once and its envelopes are
+   unchanged.
+3. **`GlyphIndex` gains three optional fields, set for Python only:**
+   `callBins` `{resolvedInRepo, resolvedExternal, receiverNeedsInference,
+   nameNotBound}`, `unresolvedFirstPartyImports` (S3's unresolved-first-party
+   import count) and `constructorNotes` (the number of S5 constructor notes).
+   `unresolvedByKind` is unchanged: `.call` is `receiverNeedsInference +
+   nameNotBound`, `.dynamic` is S3's dynamic-import count, and
+   `resolvedExternal` is not in it.
+4. **The `callers`, `impact` and `--stream` result data carry those three
+   entries beside `unresolvedByKind`, only when the index carries them.** Batch
+   and stream result line alike, so the two forms cannot drift. The human
+   `--no-json` impact coverage line may name them; a TypeScript run's human and
+   JSON bytes are unchanged.
+5. **The S5 flags stay internal.** `multiplyBound`, `polymorphic`,
+   `externalBaseBefore` and `decorated` on sites, and `decorators`, `decorated`
+   and `collapsedOverloadStubs` on symbols, are kept in the cached index and
+   appear in no envelope. The envelope row projections list their fields
+   explicitly, so an index-only field cannot leak.
+
+The S7 wiring itself — registering the native Python indexer behind the language
+seam, the asynchronous seam method, the Python cache-key scope, `--ref` reading
+the commit's blobs as bytes, and `code-map`'s symbol tier reading the selected
+language's index — is implementation of ADR 0008 and adds no contract entry
+beyond items 1 to 5.

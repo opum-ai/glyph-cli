@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { gitRun } from "./git.ts";
+import type { LanguageCacheScope } from "./language.ts";
 import { INDEX_FORMAT, type GlyphIndex } from "./types.ts";
 
 /**
@@ -29,17 +30,33 @@ export function cacheDir(repoRoot: string): string {
 }
 
 /**
+ * The version lines a language-aware key adds beside the index format: the
+ * language id, the analyzer version and the grammar version. A changed any of
+ * the three is a miss (S7 rule 6). TypeScript passes no scope, so its key is
+ * exactly what it was.
+ */
+function updateScope(hash: ReturnType<typeof createHash>, scope: LanguageCacheScope | undefined): void {
+	if (scope === undefined) return;
+	hash.update(`language:${scope.language}\n`);
+	hash.update(`analyzer:${scope.analyzerVersion}\n`);
+	hash.update(`grammar:${scope.grammarVersion}\n`);
+}
+
+/**
  * The key covers everything the index is derived from: the index format, the
- * commit when there is one, and every source file's path, size and mtime.
+ * commit when there is one, and every source file's path, size and mtime. A
+ * Python key adds the language scope above the file list (S7 rule 6); a
+ * TypeScript key is unchanged by that rule.
  *
  * Per-file stats rather than the commit alone, deliberately: a dirty working
  * tree IS what the index describes, so keying on HEAD alone would serve a stale
  * index after an edit — and a directory with no git at all still gets a key
  * that changes when its files do.
  */
-export function computeKey(repoRoot: string, files: string[]): string {
+export function computeKey(repoRoot: string, files: string[], scope?: LanguageCacheScope): string {
 	const hash = createHash("sha1");
 	hash.update(`glyph-index-format:${INDEX_FORMAT}\n`);
+	updateScope(hash, scope);
 	const head = gitRun(repoRoot, ["rev-parse", "HEAD"]);
 	hash.update(`head:${head.code === 0 ? head.stdout.trim() : "none"}\n`);
 	for (const file of files) {
@@ -68,12 +85,13 @@ export function computeKey(repoRoot: string, files: string[]): string {
  * behaviour reaches beyond its `.d.ts` files, or Glyph's own indexer logic
  * beyond `INDEX_FORMAT`. The file list is mixed in as well so two
  * different trees can never collide even if a format bump ever fails to reach
- * this line. Deliberately not stat-based: a `--ref` answer must not move when
- * the checkout does.
+ * this line. A Python key adds the language scope too (S7 rule 6). Deliberately
+ * not stat-based: a `--ref` answer must not move when the checkout does.
  */
-export function computeRefKey(sha: string, files: readonly string[]): string {
+export function computeRefKey(sha: string, files: readonly string[], scope?: LanguageCacheScope): string {
 	const hash = createHash("sha1");
 	hash.update(`glyph-index-format:${INDEX_FORMAT}\n`);
+	updateScope(hash, scope);
 	hash.update(`ref:${sha}\n`);
 	for (const file of files) hash.update(`${file}\n`);
 	return hash.digest("hex").slice(0, 24);

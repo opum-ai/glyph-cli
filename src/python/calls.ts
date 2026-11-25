@@ -123,6 +123,12 @@ export interface PythonCallsResult {
 	exit7: Exit7Trigger[];
 	dynamic: DynamicImport[];
 	unresolvedByKind: UnresolvedByKind;
+	/**
+	 * S3's unresolved-first-party import count, distinct from `unresolvedByKind`
+	 * (which counts every unresolved import): a failed first-party import is the
+	 * one S7 publishes beside the call bins (DEC-303 (a14) 3).
+	 */
+	unresolvedFirstPartyImports: number;
 	exact: boolean;
 	counts: PythonCallsCounts;
 }
@@ -2650,6 +2656,7 @@ export async function analyzePythonCalls(
 		exit7: graph.exit7,
 		dynamic: graph.dynamic,
 		unresolvedByKind,
+		unresolvedFirstPartyImports: graph.counts.unresolvedFirstParty,
 		exact,
 		counts: {
 			callExpressions: callExpressionCount,
