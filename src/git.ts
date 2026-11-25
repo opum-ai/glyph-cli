@@ -83,9 +83,13 @@ export function repoRootFor(dir: string): string | null {
 
 /** Resolve a single ref to a commit SHA, or null. `rev-parse --verify` takes
  * exactly ONE revision per invocation ("fatal: Needed a single revision"
- * otherwise), which is why the two refs are resolved by two calls. */
+ * otherwise), which is why the two refs are resolved by two calls.
+ *
+ * `--end-of-options` keeps a ref (or a `refs/heads/-leading` branch name) from
+ * ever being re-read as a git option, the same hardening code-map's own resolver
+ * uses (DEC-303 (a15) N3). */
 export function resolveCommit(repoRoot: string, ref: string): string | null {
-	const result = gitRun(repoRoot, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
+	const result = gitRun(repoRoot, ["rev-parse", "--verify", "--quiet", "--end-of-options", `${ref}^{commit}`]);
 	const sha = result.stdout.trim();
 	return result.code === 0 && sha !== "" ? sha : null;
 }
