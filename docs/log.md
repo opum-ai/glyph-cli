@@ -65,3 +65,4 @@
 - 2026-11-25T01:14:08-06:00 5aeead3a39e53f168be9f0e9670e573680cf9b67 feat(GCLI-85): discover nested project roots by their marker (S8a, DEC-303 (a18)) (#133)
 - 2026-11-25T01:21:12-06:00 64765f7962f6a42358b10e868582437f711bbb71 chore(GCLI-83): record the S8 gate result (FAIL on click and requests), ADR 0007/0008 follow-through, README gate status; complete GCLI-85
 - 2026-11-25T01:22:00-06:00 1859cfeb1b6080f1b3c00a83800c388c70182b28 chore(GCLI-83): the tag waits on the operator's release-scope decision, not a settled answer; check AC 1 with its evidence
+- 2026-11-25T01:24:39-06:00 ac3ea93792c64e8dcbbfbbfaeb3bd7cf4a9414be chore(GCLI-83): S8 gate result (FAIL on click and requests), ADR 0007/0008 follow-through, README gate status; GCLI-85 complete; file GCLI-86 (#135)
