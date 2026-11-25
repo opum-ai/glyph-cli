@@ -1778,7 +1778,9 @@ class Resolver {
 			return { kind: "module", path: binding.target };
 		}
 		const importedName = binding.name ?? binding.boundName;
-		if (this.isModuleFileForName(binding.target, importedName)) return { kind: "module", path: binding.target };
+		if (this.isModuleFileForName(binding.target, importedName) && !this.isSameNameAttribute(binding, importedName)) {
+			return { kind: "module", path: binding.target };
+		}
 		const targets = [binding.target, ...binding.alternatives];
 		const symbols: PythonSymbol[] = [];
 		for (const target of targets) {
@@ -1829,6 +1831,18 @@ class Resolver {
 	}
 
 	// --- module helpers ----------------------------------------------------
+
+	/**
+	 * DEC-303 (a22) item 3, group A4: `from m import m`, where the source is the module
+	 * FILE m.py (never a package `m/__init__.py`) and it defines `m`, binds that
+	 * attribute, not the module. `from . import m` has no module part and stays a module.
+	 */
+	private isSameNameAttribute(binding: ImportBinding, name: string): boolean {
+		if (binding.target === null || binding.module === "" || !binding.target.endsWith(`${name}.py`)) return false;
+		if (binding.target.endsWith("__init__.py")) return false;
+		if (binding.module.split(".").pop() !== name) return false;
+		return this.symbolInModuleOrReexport(binding.target, name, 0) !== null;
+	}
 
 	private isModuleFileForName(path: string, name: string): boolean {
 		return (
@@ -1886,7 +1900,10 @@ class Resolver {
 				}
 				if (binding.kind === "import") return { kind: "module", path: binding.target };
 				const importedName = binding.name ?? binding.boundName;
-				if (this.isModuleFileForName(binding.target, importedName)) {
+				if (
+					this.isModuleFileForName(binding.target, importedName) &&
+					!this.isSameNameAttribute(binding, importedName)
+				) {
 					return { kind: "module", path: binding.target };
 				}
 				return this.resolveModuleAttribute(binding.target, importedName, visited, depth + 1);
