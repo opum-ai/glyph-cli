@@ -1,7 +1,7 @@
 import { dirname, join, relative, resolve } from "node:path";
 import ts from "typescript";
 import { type ConfigReadHost, loadCompilerOptions, SOURCE_EXTENSIONS } from "./discover.ts";
-import { listTree, readBlobs } from "./git.ts";
+import { listTree, readBlobs, readBlobsBytes } from "./git.ts";
 import { indexProgram } from "./indexer.ts";
 import { groupByLanguage, type LanguagePresence } from "./language.ts";
 import type { GlyphIndex } from "./types.ts";
@@ -131,6 +131,47 @@ export function languageFilesAtRef(repoRoot: string, sha: string): LanguagePrese
 		.map((entry) => posix(entry.path))
 		.sort();
 	return groupByLanguage(paths);
+}
+
+/** One source file read from a commit's tree, as bytes (the Python analyzer's input). */
+export interface SnapshotSourceFile {
+	path: string;
+	bytes: Uint8Array;
+}
+
+/**
+ * The named files of `sha`'s tree, read without a checkout and returned as raw
+ * bytes. The Python adapter reads its inputs this way (S7 rule 2 and rule 7):
+ * the analyzer takes `{path, bytes}` and never a pre-decoded string, so a
+ * non-UTF-8 source is measured by its own bytes rather than by a lossy decode
+ * of them. A tracked blob the tree lists but `git cat-file` cannot now produce
+ * is skipped here, as the TypeScript snapshot does; `listTree` and
+ * `cat-file` failures remain indeterminate.
+ */
+export function sourceBytesAtRef(repoRoot: string, sha: string, files: readonly string[]): SnapshotSourceFile[] {
+	const wanted = new Set(files);
+	const entries = listTree(repoRoot, sha).filter(
+		(entry) =>
+			entry.type === "blob" && (entry.mode === "100644" || entry.mode === "100755") && wanted.has(posix(entry.path)),
+	);
+	const blobs = readBlobsBytes(
+		repoRoot,
+		entries.map((entry) => entry.sha),
+	);
+	const found: SnapshotSourceFile[] = [];
+	const seen = new Set<string>();
+	for (const entry of entries) {
+		const path = posix(entry.path);
+		if (seen.has(path)) continue;
+		const bytes = blobs.get(entry.sha);
+		if (bytes === undefined) continue;
+		seen.add(path);
+		found.push({ path, bytes });
+	}
+	// Codepoint order, never `localeCompare`: the answer must not depend on the
+	// host's ICU default locale.
+	found.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+	return found;
 }
 
 /** Read the tree of `sha` into memory. Throws indeterminate when Git refuses it. */

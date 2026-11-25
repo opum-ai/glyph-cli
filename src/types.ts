@@ -7,7 +7,7 @@
  */
 
 /** Bumped when the index shape changes; part of every cache key. */
-export const INDEX_FORMAT = 2;
+export const INDEX_FORMAT = 3;
 
 export type SymbolKind = "function" | "method" | "property" | "class" | "interface" | "type" | "enum" | "variable";
 
@@ -49,16 +49,22 @@ export interface SymbolEntry {
 
 /**
  * One edge of the index, beside the symbol table. `call` and `new` are resolved
- * call sites; `import` is an import or re-export binding; `extends` and
- * `implements` are heritage clauses (DEC-216 (a3)). `reference` sites (reading
- * a symbol without calling it) are still not recorded: read/write reference
- * edges stay out of scope, which is why an import's dependent is the importing
- * module and not the declarations that use the binding.
+ * call sites; `decorator` is a bare `@d` application, a resolved incoming edge
+ * to `d` in its own kind (DEC-303 (a14) 1); `import` is an import or re-export
+ * binding; `extends` and `implements` are heritage clauses (DEC-216 (a3)).
+ * `reference` sites (reading a symbol without calling it) are still not
+ * recorded: read/write reference edges stay out of scope, which is why an
+ * import's dependent is the importing module and not the declarations that use
+ * the binding.
  */
-export type SiteKind = "call" | "new" | "import" | "extends" | "implements";
+export type SiteKind = "call" | "new" | "decorator" | "import" | "extends" | "implements";
 
-/** The kinds `glyph callers` reports: invocations, never the structural edges. */
-export const CALL_KINDS: readonly SiteKind[] = ["call", "new"];
+/**
+ * The kinds `glyph callers` reports: invocations, never the structural edges.
+ * A decorator application is an incoming edge to the function it applies, so
+ * it belongs here (DEC-303 (a14) 1).
+ */
+export const CALL_KINDS: readonly SiteKind[] = ["call", "new", "decorator"];
 
 export interface SiteEntry {
 	/**
@@ -104,6 +110,40 @@ export interface GlyphIndex {
 	/** Every site that did not resolve in-repo: the sum of `unresolvedByKind`. */
 	unresolvedSites: number;
 	unresolvedByKind: UnresolvedByKind;
+	/**
+	 * Python only (DEC-303 (a14) 3): every call expression falls in exactly one
+	 * of these four bins. ABSENT for TypeScript, never null or zero-filled, so a
+	 * TypeScript index and its envelopes keep their exact bytes.
+	 */
+	callBins?: {
+		resolvedInRepo: number;
+		resolvedExternal: number;
+		receiverNeedsInference: number;
+		nameNotBound: number;
+	};
+	/**
+	 * Python only (DEC-303 (a14) 3): S3's unresolved-first-party import count.
+	 * Absent for TypeScript, like `callBins`.
+	 */
+	unresolvedFirstPartyImports?: number;
+	/** Python only (DEC-303 (a14) 3): the number of S5 constructor notes. */
+	constructorNotes?: number;
+	/**
+	 * Python only (DEC-303 (a15) 19): one entry per file whose parse holds an
+	 * ERROR node, ordered by path, carrying the call expressions dropped inside
+	 * its ERROR regions. ABSENT for TypeScript and for a Python run with no parse
+	 * errors — never null and never `[]`, so no existing golden changes bytes.
+	 * `exact` is not published beside it (rule 20).
+	 */
+	parseErrorFiles?: ParseErrorFile[];
+}
+
+/** One file whose Python parse holds an ERROR node (DEC-303 (a15) 19). */
+export interface ParseErrorFile {
+	/** Repository-relative POSIX path. */
+	path: string;
+	/** Call expressions dropped inside this file's ERROR regions. */
+	droppedCalls: number;
 }
 
 /** Summary of the index source, carried in every query result. */

@@ -140,6 +140,16 @@ function parseEnvelope(stdout, what) {
 function makeFixtureRepo() {
 	const repo = mkdtempSync(join(tmpdir(), "glyph-pack-fixture-"));
 	mkdirSync(join(repo, "src"), { recursive: true });
+	mkdirSync(join(repo, "pkg"), { recursive: true });
+	// A Python package, so an installed run exercises the wasm-backed indexer
+	// (DEC-303 (a15) 22). It is indexed only with `--language python`; detection
+	// still prefers the TypeScript source beside it.
+	writeFileSync(join(repo, "pkg", "__init__.py"), "");
+	writeFileSync(join(repo, "pkg", "py_core.py"), 'def pygreet(name):\n    return "hi " + name\n');
+	writeFileSync(
+		join(repo, "pkg", "py_use.py"),
+		'from .py_core import pygreet\n\n\ndef use_pygreet():\n    return pygreet("caller")\n',
+	);
 	writeFileSync(
 		join(repo, "src", "a.ts"),
 		[
@@ -230,7 +240,16 @@ function verifyPackagedTarball(tarball) {
 		importsBare("commander"),
 		`installed ${label} does not import "commander" as a bare specifier: it was bundled instead of kept external`,
 	);
-	console.log(`  ${label}: typescript and commander are imported as bare specifiers`);
+	// The Python indexer reaches this package through the language seam (GCLI-82).
+	// Kept external for the same reason typescript is: bundling bakes the build
+	// machine's path to its runtime .wasm into the bundle. The bare specifier is
+	// the direct evidence it stayed external, independent of whether the wasm
+	// happens to resolve on the build machine (DEC-303 (a15) 22).
+	must(
+		importsBare("@vscode/tree-sitter-wasm"),
+		`installed ${label} does not import "@vscode/tree-sitter-wasm" as a bare specifier: it was bundled instead of kept external`,
+	);
+	console.log(`  ${label}: typescript, commander and @vscode/tree-sitter-wasm are imported as bare specifiers`);
 	// The baked-path check is the second witness: it only fires for a bundle
 	// that bakes an absolute path, which is why it is narrower than the
 	// bare-specifier check above.
@@ -274,7 +293,15 @@ function verifyPackagedTarball(tarball) {
 	// advertises but this map does not cover FAILS the gate; that is the
 	// coverage rule. Extra invocations (impact --ref) are additional checks.
 	const invocations = new Map([
-		["callers", [{ argv: ["callers", "greet"] }]],
+		[
+			"callers",
+			[
+				{ argv: ["callers", "greet"] },
+				// Runs the wasm-backed Python indexer from the installed tarball
+				// (DEC-303 (a15) 22), so a bundle that cannot load its grammar fails here.
+				{ argv: ["--language", "python", "callers", "pygreet"] },
+			],
+		],
 		["impact", [{ argv: ["impact", "greet"] }, { argv: ["impact", "greet", "--ref", "HEAD"] }]],
 		["diff", [{ argv: ["diff", fixture.base] }]],
 		["code-map", [{ argv: ["code-map", "--source-ref", "HEAD"], stdin: "fix greet in src/a.ts\n" }]],

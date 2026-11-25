@@ -83,9 +83,13 @@ export function repoRootFor(dir: string): string | null {
 
 /** Resolve a single ref to a commit SHA, or null. `rev-parse --verify` takes
  * exactly ONE revision per invocation ("fatal: Needed a single revision"
- * otherwise), which is why the two refs are resolved by two calls. */
+ * otherwise), which is why the two refs are resolved by two calls.
+ *
+ * `--end-of-options` keeps a ref (or a `refs/heads/-leading` branch name) from
+ * ever being re-read as a git option, the same hardening code-map's own resolver
+ * uses (DEC-303 (a15) N3). */
 export function resolveCommit(repoRoot: string, ref: string): string | null {
-	const result = gitRun(repoRoot, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
+	const result = gitRun(repoRoot, ["rev-parse", "--verify", "--quiet", "--end-of-options", `${ref}^{commit}`]);
 	const sha = result.stdout.trim();
 	return result.code === 0 && sha !== "" ? sha : null;
 }
@@ -148,14 +152,15 @@ export function listTree(repoRoot: string, sha: string): TreeEntry[] {
 }
 
 /**
- * Read the contents of `objectIds` in one `git cat-file --batch` invocation.
- * The batch protocol is a text header line (`<sha> <type> <size>`) followed by
- * exactly `size` bytes and a newline, so the reader walks bytes rather than
- * lines: a source file may contain anything, including newlines that look
- * like headers.
+ * Read the contents of `objectIds` in one `git cat-file --batch` invocation,
+ * as raw bytes. The batch protocol is a text header line (`<sha> <type>
+ * <size>`) followed by exactly `size` bytes and a newline, so the reader walks
+ * bytes rather than lines: a source file may contain anything, including
+ * newlines that look like headers. The Python indexer reads blobs through this
+ * path so a non-UTF-8 source is never pre-decoded (S7 rule 2).
  */
-export function readBlobs(repoRoot: string, objectIds: readonly string[]): Map<string, string> {
-	const contents = new Map<string, string>();
+export function readBlobsBytes(repoRoot: string, objectIds: readonly string[]): Map<string, Uint8Array> {
+	const contents = new Map<string, Uint8Array>();
 	if (objectIds.length === 0) return contents;
 	const { timeout, budgeted } = spawnLimits();
 	const proc = spawnResult("git", ["-C", repoRoot, "cat-file", "--batch"], {
@@ -190,10 +195,17 @@ export function readBlobs(repoRoot: string, objectIds: readonly string[]): Map<s
 		if (offset + size > bytes.length) {
 			throw indeterminateError(`git cat-file returned a truncated body for ${id}`);
 		}
-		contents.set(id, decoder.decode(bytes.subarray(offset, offset + size)));
+		contents.set(id, bytes.subarray(offset, offset + size));
 		offset += size + 1; // the body's trailing newline
 	}
 	return contents;
+}
+
+/** The same batch read, decoded as UTF-8 text, for the snapshot's TypeScript host. */
+export function readBlobs(repoRoot: string, objectIds: readonly string[]): Map<string, string> {
+	const raw = readBlobsBytes(repoRoot, objectIds);
+	const decoder = new TextDecoder();
+	return new Map([...raw.entries()].map(([id, bytes]) => [id, decoder.decode(bytes)]));
 }
 
 const C_ESCAPES: Record<string, number> = {

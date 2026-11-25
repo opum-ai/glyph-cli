@@ -50,9 +50,90 @@ export function resolveSymbol(
 	return only;
 }
 
-/** `Container.name` when the symbol sits in one, `name` otherwise. */
+/**
+ * The display name built where a symbol's name is shown: `qualname` when the
+ * language carries one (Python, DEC-303 (a5) Q6 arm A), else `Container.name`
+ * or the bare name. TypeScript symbols carry no qualname, so TypeScript display
+ * is unchanged (S7 rule 5).
+ */
 export function display(symbol: SymbolEntry): string {
+	if (symbol.qualname !== undefined) return symbol.qualname;
 	return symbol.container === null ? symbol.name : `${symbol.container}.${symbol.name}`;
+}
+
+/**
+ * The documented symbol row an envelope carries. Every field is listed
+ * explicitly so a language-only field on the cached index — Python's
+ * `decorators`, `decorated` and `collapsedOverloadStubs` — cannot leak into the
+ * output (DEC-303 (a14) 4). `qualname` is a documented additive field and is
+ * included when the symbol carries one; it is absent for TypeScript, so those
+ * rows keep their exact bytes and key order.
+ */
+export interface SymbolRow {
+	id: string;
+	name: string;
+	container: string | null;
+	qualname?: string;
+	kind: SymbolEntry["kind"];
+	file: string;
+	startLine: number;
+	line: number;
+	column: number;
+	endLine: number;
+	exported: boolean;
+}
+
+export function symbolRow(symbol: SymbolEntry): SymbolRow {
+	const row: SymbolRow = {
+		id: symbol.id,
+		name: symbol.name,
+		container: symbol.container,
+		kind: symbol.kind,
+		file: symbol.file,
+		startLine: symbol.startLine,
+		line: symbol.line,
+		column: symbol.column,
+		endLine: symbol.endLine,
+		exported: symbol.exported,
+	};
+	return symbol.qualname === undefined ? row : withQualname(row, symbol.qualname);
+}
+
+/** The shorter row a caller element carries: the same projection, fewer fields. */
+export interface CallerSymbolRow {
+	id: string;
+	name: string;
+	container: string | null;
+	qualname?: string;
+	kind: SymbolEntry["kind"];
+	file: string;
+	line: number;
+}
+
+export function callerSymbolRow(symbol: SymbolEntry): CallerSymbolRow {
+	const row: CallerSymbolRow = {
+		id: symbol.id,
+		name: symbol.name,
+		container: symbol.container,
+		kind: symbol.kind,
+		file: symbol.file,
+		line: symbol.line,
+	};
+	return symbol.qualname === undefined ? row : withQualname(row, symbol.qualname);
+}
+
+/**
+ * Insert `qualname` after `container`, in one helper so both row shapes keep
+ * the documented key order (and a TypeScript row, with no qualname, is
+ * byte-identical to the object it replaced).
+ */
+function withQualname<T extends { container: string | null }>(row: T, qualname: string): T & { qualname: string } {
+	const ordered: Record<string, unknown> = {};
+	for (const [key, value] of Object.entries(row)) {
+		ordered[key] = value;
+		if (key === "container") ordered.qualname = qualname;
+	}
+	return ordered as T & { qualname: string };
 }
 
 /**

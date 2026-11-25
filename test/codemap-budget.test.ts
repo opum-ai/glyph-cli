@@ -6,6 +6,7 @@ import { produceCodeMap } from "../src/codemap.ts";
 import { GlyphError } from "../src/errors.ts";
 import { CODE_MAP_TIME_BUDGET_MS, TIME_BUDGET_SOURCE } from "../src/codemap-text.ts";
 import { loadRefIndex } from "../src/codemap-tier3.ts";
+import { produceCodeMapWithPrebuild } from "../src/codemap.ts";
 import { makeFixtureRepo } from "./parity/fixtures.ts";
 
 /**
@@ -24,6 +25,23 @@ function repoWith(files: Record<string, string>): string {
 	repo.git("init", "-q", "-b", "base");
 	for (const [path, content] of Object.entries(files)) repo.write(path, content);
 	repo.commit("base");
+	return root;
+}
+
+/**
+ * A repo on a `work` branch that changed one file against `base`, so tier 2 has
+ * an answer beside the named-path tier. `sourceRef: "base"` reads the base tree.
+ */
+function repoWithBranchChange(): string {
+	const root = mkdtempSync(join(tmpdir(), "glyph-budget-"));
+	const repo = makeFixtureRepo(root);
+	repo.git("init", "-q", "-b", "base");
+	repo.write("src/named.ts", "export function buildReport() {\n  return 1;\n}\n");
+	repo.write("src/changed.ts", "export const value = 1;\n");
+	repo.commit("base");
+	repo.git("checkout", "-q", "-b", "work");
+	repo.write("src/changed.ts", "export const value = 2;\n");
+	repo.commit("change");
 	return root;
 }
 
@@ -118,6 +136,48 @@ describe("the time budget", () => {
 		expect(paths).toEqual(["src/a.ts", "src/barrel.ts", "src/c.ts"]);
 		expect(paths).not.toContain("src/0-note.ts");
 		expect(rows[0]?.reason).toContain("3 without line ranges");
+	});
+
+	test("P3: a budget overrun during the Python build keeps tiers 1 and 2 (DEC-303 (a16) 23-24)", async () => {
+		const root = repoWithBranchChange();
+		let clock = 0;
+		const output = await produceCodeMapWithPrebuild(
+			{
+				repositoryPath: root,
+				sourceRef: "base",
+				taskText: "fix src/named.ts and `buildReport`",
+				timeBudgetMs: 1_000,
+				now: () => clock,
+			},
+			async (path, commit) => {
+				const index = loadRefIndex(path, commit);
+				clock += 5_000; // the build overran the budget and could not be interrupted
+				return index ?? undefined;
+			},
+		);
+		// The overrun stops the run at the symbol stage, naming it ...
+		const rows = budgetRows(output);
+		expect(rows).toHaveLength(1);
+		expect(rows[0]?.reason).toContain("symbol index");
+		expect(rows[0]?.reason).toContain("5000 ms elapsed");
+		// ... but the named-path (tier 1) and branch-change (tier 2) answers were
+		// gathered BEFORE the build and are kept, not thrown away by the stop.
+		const paths = output.pointers.map((pointer) => pointer.path);
+		expect(paths).toContain("src/named.ts");
+		expect(paths).toContain("src/changed.ts");
+	});
+
+	test("P4: a throwing build is a missing tier, never a failed run", async () => {
+		const root = repoWith(FILES);
+		const output = await produceCodeMapWithPrebuild(
+			{ repositoryPath: root, sourceRef: "base", taskText: TEXT, timeBudgetMs: 1_000, now: () => 0 },
+			async () => {
+				throw new Error("python: a first-party package root did not resolve");
+			},
+		);
+		// Tier 1 answers from the named path; the failed tier 3 adds nothing and does not stop the run.
+		expect(output.pointers.map((pointer) => pointer.path)).toContain("src/a.ts");
+		expect(budgetRows(output)).toHaveLength(0);
 	});
 
 	test("a budget already spent returns no pointers but never nothing silently", () => {

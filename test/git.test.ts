@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { GlyphError } from "../src/errors.ts";
-import { gitRun, parseDiff, resolveDiffRefs } from "../src/git.ts";
+import { gitRun, parseDiff, resolveCommit, resolveDiffRefs } from "../src/git.ts";
 import { makeScratchRepo } from "./helpers.ts";
 
 describe("git", () => {
@@ -82,5 +82,14 @@ describe("git", () => {
 		}
 		expect(error).toBeInstanceOf(GlyphError);
 		expect((error as GlyphError).code).toBe(3);
+	});
+
+	test("resolveCommit reads a dash-named ref as a revision, never as an option (N3)", () => {
+		const repo = makeScratchRepo({ "src/a.ts": "export const a = 1;\n" });
+		const sha = repo.commit("base");
+		expect(gitRun(repo.root, ["update-ref", "refs/heads/-leading", sha]).code).toBe(0);
+		// Without `--end-of-options`, git reads `-leading^{commit}` as an option and
+		// resolves nothing; with it, the branch name is the revision and resolves.
+		expect(resolveCommit(repo.root, "-leading")).toBe(sha);
 	});
 });

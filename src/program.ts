@@ -19,9 +19,11 @@ import { exitCodeFor, GlyphError, notFoundError, usageError } from "./errors.ts"
 import { parseDiff, repoRootFor, resolveCommit, resolveDiffRefs } from "./git.ts";
 import type { ImpactCaller, ImpactResult } from "./impact.ts";
 import { impactOf } from "./impact.ts";
-import { produceCodeMap } from "./codemap.ts";
+import { produceCodeMapWithPrebuild } from "./codemap.ts";
 import {
+	cacheScopeOf,
 	fileCountLabel,
+	indexRefWith,
 	indexWith,
 	isDefaultLanguage,
 	type LanguageSelection,
@@ -29,8 +31,17 @@ import {
 	selectFromPresence,
 	selectLanguage,
 } from "./language.ts";
-import { type CallerSite, callerSites, callersOf, display, resolveSymbol, touchedSymbols } from "./queries.ts";
-import { indexSnapshot, languageFilesAtRef, snapshotAtRef } from "./snapshot.ts";
+import {
+	type CallerSite,
+	callerSymbolRow,
+	callerSites,
+	callersOf,
+	display,
+	resolveSymbol,
+	symbolRow,
+	touchedSymbols,
+} from "./queries.ts";
+import { languageFilesAtRef } from "./snapshot.ts";
 import { codeMapStreamResultData, createStreamWriter, streamResultData } from "./stream.ts";
 import type { GlyphIndex, IndexInfo, SymbolEntry, UnresolvedByKind } from "./types.ts";
 
@@ -106,8 +117,13 @@ interface LoadedIndex {
  * of `--ref`'s commit, read without a checkout (DEC-216 Q4). The two sources
  * share the cache directory but never a key — the ref key is addressed by the
  * commit rather than by file stats, so a dirty checkout cannot answer for it.
+ *
+ * Asynchronous because the registered Python indexer loads its grammar through
+ * wasm; every caller awaits it (S7 rule 1). A Python key adds the language
+ * scope, so a change of language, analyzer version or grammar version misses
+ * (rule 6); TypeScript passes no scope, so its key is unchanged.
  */
-function loadIndex(context: Context, ref?: string): LoadedIndex {
+async function loadIndex(context: Context, ref?: string): Promise<LoadedIndex> {
 	// An explicit language is validated before either source, so a `--ref` run
 	// cannot silently ignore an unregistered id the working-tree path would reject.
 	if (context.language !== undefined && !registeredLanguages().includes(context.language)) {
@@ -121,28 +137,27 @@ function loadIndex(context: Context, ref?: string): LoadedIndex {
 			throw notFoundError(`could not resolve '${ref}' to a commit in ${context.repoRoot}`);
 		}
 		// The ref's tree is listed once for both the cache key and the language
-		// coverage: the selection carries the TypeScript files to index and any
-		// recognised non-TypeScript language it cannot, exactly as the working-tree
-		// path does. A Python-only ref is the same exit-3 answer as one at HEAD.
+		// coverage: the selection carries the files to index and any recognised
+		// language this run does not index, exactly as the working-tree path does.
 		const present = languageFilesAtRef(context.repoRoot, sha);
 		const selection = selectFromPresence(present, context.language, {
 			where: `at ${ref} (${shortSha(sha)}) in ${context.repoRoot}`,
 			emptyMessage: `no TypeScript or JavaScript sources at ${ref} (${shortSha(sha)}) in ${context.repoRoot}`,
 		});
 		const files = selection.files;
-		const key = computeRefKey(sha, files);
+		const key = computeRefKey(sha, files, cacheScopeOf(selection.id));
 		const cached = readCachedIndex(context.repoRoot, key);
 		if (cached !== null) return { index: cached, info: infoOf(cached, "hit", selection), ref: { ref, sha } };
-		const index = indexSnapshot(snapshotAtRef(context.repoRoot, sha));
+		const index = await indexRefWith(selection.id, context.repoRoot, sha, files);
 		writeCachedIndex(context.repoRoot, key, index);
 		return { index, info: infoOf(index, "miss", selection), ref: { ref, sha } };
 	}
 	const selection = selectLanguage(context.repoRoot, context.language);
 	const files = selection.files;
-	const key = computeKey(context.repoRoot, files);
+	const key = computeKey(context.repoRoot, files, cacheScopeOf(selection.id));
 	const cached = readCachedIndex(context.repoRoot, key);
 	if (cached !== null) return { index: cached, info: infoOf(cached, "hit", selection), ref: null };
-	const index = indexWith(selection.id, context.repoRoot, files);
+	const index = await indexWith(selection.id, context.repoRoot, files);
 	writeCachedIndex(context.repoRoot, key, index);
 	return { index, info: infoOf(index, "miss", selection), ref: null };
 }
@@ -163,6 +178,38 @@ function infoOf(index: GlyphIndex, cache: "hit" | "miss", selection?: LanguageSe
 	return info;
 }
 
+/**
+ * The selected language's index at `commit`, built at tier 3's position when it
+ * needs an asynchronous build (Python; the grammar loads through wasm).
+ * TypeScript returns undefined so code-map's synchronous, ref-keyed cached
+ * loader is used and its deterministic path is byte-for-byte unchanged. A ref
+ * that does not resolve, or one with no indexable source, returns undefined:
+ * tiers 1, 2 and 4 still answer, and the producer reports an unresolvable ref
+ * itself.
+ *
+ * This is called from inside code-map's budgeted and caught tier-3 region
+ * (DEC-303 (a16) 23, refining (a15) 21): its git reads are capped by the same
+ * budget, and a throw here is a missing tier, never a failed run.
+ */
+async function codeMapRefIndex(
+	repositoryPath: string,
+	commit: string,
+	sourceRef: string,
+): Promise<GlyphIndex | undefined> {
+	let selection: LanguageSelection;
+	try {
+		selection = selectFromPresence(languageFilesAtRef(repositoryPath, commit), undefined, {
+			where: `at ${sourceRef} (${shortSha(commit)}) in ${repositoryPath}`,
+			emptyMessage: `no TypeScript or JavaScript sources at ${sourceRef} (${shortSha(commit)}) in ${repositoryPath}`,
+		});
+	} catch (error) {
+		if (error instanceof GlyphError && error.code === 3) return undefined;
+		throw error;
+	}
+	if (cacheScopeOf(selection.id) === undefined) return undefined;
+	return await indexRefWith(selection.id, repositoryPath, commit, selection.files);
+}
+
 function emit(json: boolean, kind: string, data: unknown, renderHuman: () => string): void {
 	if (json) {
 		process.stdout.write(`${JSON.stringify(successEnvelope(kind, data), null, 2)}\n`);
@@ -177,25 +224,49 @@ function callerRow(site: CallerSite): {
 	line: number;
 	column: number;
 	kind: string;
-	caller: { id: string; name: string; container: string | null; kind: string; file: string; line: number } | null;
+	caller: ReturnType<typeof callerSymbolRow> | null;
 } {
 	return {
 		file: site.file,
 		line: site.line,
 		column: site.column,
 		kind: site.kind,
-		caller:
-			site.caller === null
-				? null
-				: {
-						id: site.caller.id,
-						name: site.caller.name,
-						container: site.caller.container,
-						kind: site.caller.kind,
-						file: site.caller.file,
-						line: site.caller.line,
-					},
+		caller: site.caller === null ? null : callerSymbolRow(site.caller),
 	};
+}
+
+/**
+ * The Python-only index counts, carried beside `unresolvedByKind` when the
+ * index has them and ABSENT otherwise, so a TypeScript answer keeps its exact
+ * bytes (DEC-303 (a14) 3, (a15) 19). `parseErrorFiles` rides with them so a
+ * run that dropped calls inside ERROR regions names the files it dropped them
+ * in; `exact` itself stays internal (DEC-303 (a15) 20).
+ */
+function pythonCounts(index: GlyphIndex): Record<string, unknown> {
+	const counts: Record<string, unknown> = {};
+	if (index.callBins !== undefined) counts.callBins = index.callBins;
+	if (index.unresolvedFirstPartyImports !== undefined) {
+		counts.unresolvedFirstPartyImports = index.unresolvedFirstPartyImports;
+	}
+	if (index.constructorNotes !== undefined) counts.constructorNotes = index.constructorNotes;
+	if (index.parseErrorFiles !== undefined && index.parseErrorFiles.length > 0) {
+		counts.parseErrorFiles = index.parseErrorFiles;
+	}
+	return counts;
+}
+
+/** One reported impact caller, projected so no index-only symbol field can leak. */
+function impactCallerRow(caller: ImpactCaller): Omit<ImpactCaller, "symbol"> & {
+	symbol: ReturnType<typeof symbolRow> | null;
+} {
+	return { ...caller, symbol: caller.symbol === null ? null : symbolRow(caller.symbol) };
+}
+
+/** The human-only Python coverage line, absent (so TypeScript text is unchanged) unless the index carries the counts. */
+function pythonCoverageLine(index: GlyphIndex): string | null {
+	const bins = index.callBins;
+	if (bins === undefined) return null;
+	return `  python coverage: call bins resolved in repo ${bins.resolvedInRepo}, resolved external ${bins.resolvedExternal}, receiver needs inference ${bins.receiverNeedsInference}, name not bound ${bins.nameNotBound}; unresolved first-party imports ${index.unresolvedFirstPartyImports ?? 0}; constructor notes ${index.constructorNotes ?? 0}`;
 }
 
 /** `callers --stream`: items as the site scan finds them, then the result line. */
@@ -209,8 +280,9 @@ function streamCallers(index: GlyphIndex, symbol: SymbolEntry, info: IndexInfo):
 		count += 1;
 	}
 	writer.result(kindOf("callers"), {
-		symbol,
+		symbol: symbolRow(symbol),
 		totals: { callers: count, files: files.size },
+		...pythonCounts(index),
 		index: info,
 		itemCount: count,
 	});
@@ -230,15 +302,16 @@ function streamImpact(
 	info: IndexInfo,
 ): void {
 	const writer = createStreamWriter();
-	for (const caller of result.callers) writer.item(itemKindOf("impact"), caller);
+	const callers = result.callers.map(impactCallerRow);
+	for (const caller of callers) writer.item(itemKindOf("impact"), caller);
 	writer.result(
 		kindOf("impact"),
 		streamResultData(
 			{
-				symbol,
+				symbol: symbolRow(symbol),
 				ref,
 				depth: { bound: depth, all: depth === null },
-				callers: result.callers,
+				callers,
 				cycle: result.cycle,
 				truncated: result.truncated,
 				unexplored: result.unexplored,
@@ -246,11 +319,12 @@ function streamImpact(
 				resolvedSites: index.sites.length,
 				unresolvedSites: index.unresolvedSites,
 				unresolvedByKind: index.unresolvedByKind,
-				totals: { callers: result.callers.length, byDepth: byDepth(result.callers) },
+				...pythonCounts(index),
+				totals: { callers: callers.length, byDepth: byDepth(result.callers) },
 				index: info,
 			},
 			"callers",
-			result.callers.length,
+			callers.length,
 		),
 	);
 }
@@ -478,9 +552,9 @@ export function buildProgram(scanned: ScannedArgs): Command {
 		.description("what calls this symbol")
 		.option("--file <pattern>", "narrow to symbols whose file path contains <pattern>")
 		.option("--stream", "stream the answer as NDJSON: one item per line, then the result (implies --json)")
-		.action((name: string, options: { file?: string; stream?: boolean }) => {
+		.action(async (name: string, options: { file?: string; stream?: boolean }) => {
 			const context = contextOf(scanned);
-			const { index, info } = loadIndex(context);
+			const { index, info } = await loadIndex(context);
 			const symbol = resolveSymbol(index, name, options.file);
 			if (context.stream) {
 				streamCallers(index, symbol, info);
@@ -489,9 +563,10 @@ export function buildProgram(scanned: ScannedArgs): Command {
 			const callers = callersOf(index, symbol);
 			const files = new Set(callers.map((site) => site.file)).size;
 			const data = {
-				symbol,
+				symbol: symbolRow(symbol),
 				callers: callers.map(callerRow),
 				totals: { callers: callers.length, files },
+				...pythonCounts(index),
 				index: info,
 			};
 			emit(context.json, kindOf("callers"), data, () => {
@@ -515,10 +590,10 @@ export function buildProgram(scanned: ScannedArgs): Command {
 		.option("--all", "report the full closure instead of a depth")
 		.option("--ref <ref>", "index that commit's tree instead of the working tree")
 		.option("--stream", "stream the answer as NDJSON: one item per line, then the result (implies --json)")
-		.action((name: string, options: { depth?: string; all?: boolean; ref?: string; stream?: boolean }) => {
+		.action(async (name: string, options: { depth?: string; all?: boolean; ref?: string; stream?: boolean }) => {
 			const depth = depthOf(options.depth, options.all === true);
 			const context = contextOf(scanned);
-			const { index, info, ref } = loadIndex(context, options.ref);
+			const { index, info, ref } = await loadIndex(context, options.ref);
 			const symbol = resolveSymbol(index, name, undefined, "impact has no file filter, so the name must be unique");
 			const result = impactOf(index, symbol, depth);
 			if (context.stream) {
@@ -526,11 +601,12 @@ export function buildProgram(scanned: ScannedArgs): Command {
 				return;
 			}
 			const byId = new Map(index.symbols.map((entry) => [entry.id, entry]));
+			const callers = result.callers.map(impactCallerRow);
 			const data = {
-				symbol,
+				symbol: symbolRow(symbol),
 				ref,
 				depth: { bound: depth, all: depth === null },
-				callers: result.callers,
+				callers,
 				cycle: result.cycle,
 				truncated: result.truncated,
 				unexplored: result.unexplored,
@@ -538,7 +614,8 @@ export function buildProgram(scanned: ScannedArgs): Command {
 				resolvedSites: index.sites.length,
 				unresolvedSites: index.unresolvedSites,
 				unresolvedByKind: index.unresolvedByKind,
-				totals: { callers: result.callers.length, byDepth: byDepth(result.callers) },
+				...pythonCounts(index),
+				totals: { callers: callers.length, byDepth: byDepth(result.callers) },
 				index: info,
 			};
 			emit(context.json, kindOf("impact"), data, () => {
@@ -563,6 +640,8 @@ export function buildProgram(scanned: ScannedArgs): Command {
 				lines.push(
 					`  coverage (index-wide): ${index.sites.length} resolved site(s); ${index.unresolvedSites} did not resolve (${unresolvedLine(index.unresolvedByKind)}); an empty answer is not proof of no impact`,
 				);
+				const pythonCoverage = pythonCoverageLine(index);
+				if (pythonCoverage !== null) lines.push(pythonCoverage);
 				lines.push(indexLine(info));
 				return lines.join("\n");
 			});
@@ -571,9 +650,9 @@ export function buildProgram(scanned: ScannedArgs): Command {
 	program
 		.command("diff <base> [head]")
 		.description("which symbols the diff between base and head (default HEAD) touches")
-		.action((base: string, head: string | undefined) => {
+		.action(async (base: string, head: string | undefined) => {
 			const context = contextOf(scanned);
-			const { index, info } = loadIndex(context);
+			const { index, info } = await loadIndex(context);
 			const resolved = resolveDiffRefs(context.repoRoot, base, head ?? "HEAD");
 			const changes = parseDiff(context.repoRoot, resolved.baseSha, resolved.headSha);
 			const touched = touchedSymbols(index, changes);
@@ -581,7 +660,7 @@ export function buildProgram(scanned: ScannedArgs): Command {
 				base: { ref: base, sha: resolved.baseSha },
 				head: { ref: head ?? "HEAD", sha: resolved.headSha },
 				filesChanged: touched.filesChanged,
-				symbols: touched.symbols,
+				symbols: touched.symbols.map(symbolRow),
 				totals: { symbols: touched.symbols.length },
 				index: info,
 			};
@@ -604,26 +683,40 @@ export function buildProgram(scanned: ScannedArgs): Command {
 		.description("pointers into the code a task concerns; the task text is read from stdin")
 		.option("--source-ref <ref>", "the ref every read resolves against (required)")
 		.option("--stream", "stream the answer as NDJSON: one item per line, then the result (implies --json)")
-		.action((options: { sourceRef?: string; stream?: boolean }) => {
+		.action(async (options: { sourceRef?: string; stream?: boolean }) => {
 			const context = contextOf(scanned);
 			if (options.sourceRef === undefined || options.sourceRef === "") {
 				throw usageError("code-map needs --source-ref <ref>");
 			}
-			// Task text on stdin. The bound is enforced by produceCodeMap, which refuses
+			const sourceRef = options.sourceRef;
+			// Task text on stdin. The bound is enforced by the producer, which refuses
 			// text over the limit rather than truncating it.
 			const taskText = readFileSync(0, "utf8");
+			// The selected language's index is built at tier 3's position, inside
+			// code-map's budgeted and caught region (DEC-303 (a16) 23, refining (a15)
+			// 21): a Python build that overruns is a "symbol index" budget stop that
+			// keeps tiers 1 and 2, and a failing one is a missing tier, never a failed
+			// run. TypeScript keeps the synchronous, cached loader (S7 rule 8).
+			const buildRefIndex = (repositoryPath: string, commit: string) =>
+				codeMapRefIndex(repositoryPath, commit, sourceRef);
 			if (context.stream) {
 				const writer = createStreamWriter();
-				const streamed = produceCodeMap({
-					repositoryPath: context.repoRoot,
-					sourceRef: options.sourceRef,
-					taskText,
-					onPointer: (pointer) => writer.item(itemKindOf("code-map"), pointer),
-				});
+				const streamed = await produceCodeMapWithPrebuild(
+					{
+						repositoryPath: context.repoRoot,
+						sourceRef,
+						taskText,
+						onPointer: (pointer) => writer.item(itemKindOf("code-map"), pointer),
+					},
+					buildRefIndex,
+				);
 				writer.result(kindOf("code-map"), codeMapStreamResultData(streamed));
 				return;
 			}
-			const output = produceCodeMap({ repositoryPath: context.repoRoot, sourceRef: options.sourceRef, taskText });
+			const output = await produceCodeMapWithPrebuild(
+				{ repositoryPath: context.repoRoot, sourceRef, taskText },
+				buildRefIndex,
+			);
 			emit(context.json, kindOf("code-map"), output, () => {
 				const lines = [`code map for ${options.sourceRef} — ${output.pointers.length} pointer(s)`];
 				for (const pointer of output.pointers) {

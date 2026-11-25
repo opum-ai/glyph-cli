@@ -209,3 +209,76 @@ targets — for example `Parameter.type_cast_value._convert`,
 an additive contract entry under this record: a new optional field, no existing
 field changed.
 
+
+## Amendment, 2026-11-25 (GCLI-82): the Python output contract, DEC-303 (a14)
+
+DEC-303 (a14) (opum-doc, 2026-11-25 05:31Z, arm A) rules the additive contract
+entries this record left to the slices that produce them. This amendment records
+them and names DEC-303 (a14) as their decision. They are output entries, not
+flags: the `help --json` manifest needs no new declaration, because it has no slot
+for output fields. TypeScript-only answers stay byte-identical; every entry below
+is absent — never null, never zero-filled — from a TypeScript index and envelope.
+
+1. **`decorator` is a `SiteKind` and a `CALL_KINDS` member.** A bare `@d` is one
+   site with kind `decorator`, `calleeId` of `d` and the caller, line and column
+   S5 emits. `callers` and `impact` therefore report the defs a decorator
+   function decorates. A decorator site is in no call bin and not in
+   `unresolvedByKind`; the four-bin call counts and the unresolved definitions of
+   DEC-303 (a10) do not change.
+2. **`INDEX_FORMAT` is 3.** It appears in the cache key only. A cached format-2
+   entry is not served; a TypeScript index rebuilds once and its envelopes are
+   unchanged.
+3. **`GlyphIndex` gains three optional fields, set for Python only:**
+   `callBins` `{resolvedInRepo, resolvedExternal, receiverNeedsInference,
+   nameNotBound}`, `unresolvedFirstPartyImports` (S3's unresolved-first-party
+   import count) and `constructorNotes` (the number of S5 constructor notes).
+   `unresolvedByKind` is unchanged: `.call` is `receiverNeedsInference +
+   nameNotBound`, `.dynamic` is S3's dynamic-import count, and
+   `resolvedExternal` is not in it.
+4. **The `callers`, `impact` and `--stream` result data carry those three
+   entries beside `unresolvedByKind`, only when the index carries them.** Batch
+   and stream result line alike, so the two forms cannot drift. The human
+   `--no-json` impact coverage line may name them; a TypeScript run's human and
+   JSON bytes are unchanged.
+5. **The S5 flags stay internal.** `multiplyBound`, `polymorphic`,
+   `externalBaseBefore` and `decorated` on sites, and `decorators`, `decorated`
+   and `collapsedOverloadStubs` on symbols, are kept in the cached index and
+   appear in no envelope. The envelope row projections list their fields
+   explicitly, so an index-only field cannot leak.
+
+The S7 wiring itself — registering the native Python indexer behind the language
+seam, the asynchronous seam method, the Python cache-key scope, `--ref` reading
+the commit's blobs as bytes, and `code-map`'s symbol tier reading the selected
+language's index — is implementation of ADR 0008 and adds no contract entry
+beyond items 1 to 5.
+
+## Amendment, 2026-11-25 (GCLI-82): the parse-error field, DEC-303 (a15)
+
+DEC-303 (a15) (ODOC-640, relayed 2026-11-25; Q1 a narrow arm B: the contract gains parseErrorFiles and exact stays internal; Q2, refined for the code-map build by (a16)) adds one optional output
+entry to the Python contract above and rules that exactness stays internal. They
+are output entries, not flags, so the `help --json` manifest needs no new
+declaration: it has no slot for output fields. Every entry below is absent —
+never null, never `[]`, never zero-filled — from a TypeScript index and envelope,
+so TypeScript-only answers stay byte-identical.
+
+1. **`parseErrorFiles` is an optional `GlyphIndex` field, Python only.** It is a
+   list of `{path, droppedCalls}` ordered by path (code-unit order): one entry
+   per file whose parse holds an ERROR node, carrying the call expressions
+   dropped inside that file's ERROR regions. It is set only when the list is
+   non-empty.
+2. **The `callers`, `impact` and `--stream` result data carry `parseErrorFiles`
+   beside `callBins`**, only when the index carries it — batch and stream result
+   line alike, so the two forms cannot drift. A TypeScript answer and a clean
+   Python run carry no such key.
+3. **`exact` stays internal.** The index keeps its `exact` flag; no envelope
+   publishes it and no exit code derives from it. An answer whose exactness was
+   lowered names the files and dropped-call counts in `parseErrorFiles` instead.
+4. **`code-map` and a failing Python index.** A non-empty exit7 list, a grammar
+   init failure or a git read failure during `code-map`'s Python tier-3 build is
+   a missing tier, not a failed run: tiers 1, 2 and 4 still answer with exit 0.
+   The rule that a non-empty exit7 list raises exit 7 applies to `callers`,
+   `impact`, `diff` and `--stream`, not to `code-map`. The code-map clock still
+   starts before the first git read; the build runs at tier 3's position, inside
+   code-map's budgeted, caught region, after tiers 1 and 2 have answered. A build
+   that overruns the budget is therefore a `symbol index` budget stop that keeps
+   the tiers 1 and 2 answers gathered before it (DEC-303 (a16) 23).

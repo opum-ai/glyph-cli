@@ -19,6 +19,11 @@ import { fileURLToPath } from "node:url";
  * tarball is installed into an empty directory and every command is run under
  * node by scripts/check-package.mjs.
  *
+ * `@vscode/tree-sitter-wasm` stays EXTERNAL for the same reason: bundling it
+ * bakes the build machine's absolute path to its runtime .wasm into the bundle
+ * (the Python indexer, GCLI-82), so a clean install could not find the grammar.
+ * Kept external, it is a runtime dependency resolved from the installed package.
+ *
  * The entry point starts with a Bun shebang for `bun run src/cli.ts`; the
  * bundle's first line is rewritten to a Node shebang and the file is made
  * executable, so `dist/glyph.js` is runnable directly as well as through the
@@ -43,6 +48,8 @@ const build = spawnSync(
 		"typescript",
 		"--external",
 		"commander",
+		"--external",
+		"@vscode/tree-sitter-wasm",
 	],
 	{ cwd: root, stdio: "inherit" },
 );
