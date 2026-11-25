@@ -58,3 +58,4 @@
 - 2026-11-24T20:33:10-06:00 bc84dfec65dea93f8bb47cb5d75b56784e308c3f feat(GCLI-75): Python module graph and import resolution (S3, not yet wired) (#121)
 - 2026-11-24T23:47:02-06:00 831d628ba16e26c550218e5c62f4eb0fa8a6b09c feat(GCLI-82): wire the native Python indexer behind the language seam
 - 2026-11-25T00:14:55-06:00 d4730765914586763396eb6e2dc69e0d9fe16d30 docs(GCLI-82): declare parseErrorFiles and the code-map fallback (DEC-303 (a15) 19-21, review N1)
+- 2026-11-25T00:19:27-06:00 8a8a3cf9d43b0ee7f97ef47e8657944ce0044729 docs(GCLI-82): name the DEC-303 (a15) ruling accurately in ADR 0002 (Q1 a narrow arm B, Q2 arm A)
