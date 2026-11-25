@@ -73,6 +73,11 @@ resolved in the repository (an edge), resolved external, unresolved because the
 receiver needs inference, and unresolved because the name is not statically
 bound. A call resolves when Python's static binding rules fix its target without
 inference; it stays unresolved when the target depends on a run-time type.
+
+Nested project roots are discovered by their marker (`pyproject.toml`, `setup.py`
+or `setup.cfg`): a first-party absolute import in a file beneath one resolves
+first against that root's own `""`, `src` and `lib` roots and then against the
+repository's, with the nearest enclosing marker winning (DEC-303 (a18)).
 Stated limits:
 
 - **A value's type is never inferred.** `items.append(...)` and `x.m()` on an
