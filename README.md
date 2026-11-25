@@ -1,16 +1,17 @@
 # Glyph
 
 Software intelligence about source code: **what calls this symbol**, **what a
-symbol's change can reach**, and **which symbols a diff touches** — one
-language, one repository at a time.
+symbol's change can reach**, and **which symbols a diff touches** — for
+TypeScript/JavaScript and Python, one repository at a time. Python is measured
+below the project's own accuracy bar; see [Python gate status](#python-gate-status).
 
 Glyph is Opum's software-intelligence primitive, the third peer product
-alongside Lore and Quest. v0 is deliberately narrow; its scope is
+alongside Lore and Quest. 0.1.0 is deliberately narrow; its scope is
 recorded in [ADR 0001](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0001-scope-glyph-v0-to-a-one-language-symbol-and-call-graph.md).
 
 ## Scope
 
-- **TypeScript and JavaScript**, as one language target (recorded in ADR 0001).
+- **TypeScript and JavaScript**, as one language target (recorded in ADR 0001), and **Python** through a native indexer (ADR 0008) whose measured accuracy is stated under [Python gate status](#python-gate-status).
 - **One repository at a time.** There is no cross-repository graph.
 - **A local cache, and nothing else.** Glyph writes nothing into the
   repository it analyzes.
@@ -614,14 +615,23 @@ revisions of a repository are retained.
 
 ## Python gate status
 
-The Python indexer failed its 0.1.0 accuracy gate on 2026-11-25 (ADR 0008, "The
-gate result"): incoming-call recall 68/80 = 0.8500 (Wilson lower 0.7559) with
-precision 68/69 = 0.9855 on click 7.1.2, and recall 57/65 = 0.8769 (Wilson lower
-0.7755) with precision 57/57 = 1.0000 on requests. That is a FAIL against the
-recall bar of 0.9 with a Wilson lower bound of 0.8 on both repositories;
-precision passed on both. Unresolved calls stay counted in `unresolvedSites` and
-the call bins, so a miss shows as a number, but that does not excuse the recall
-shortfall and a Python answer must not be read as complete.
+Glyph 0.1.0 ships Python support (DEC-303 (a20), the operator's release-scope
+decision). Its measured accuracy is **below the gate set for it** (DEC-303 (a2)
+and (a5): incoming-call recall of at least 0.9 with a Wilson lower bound of at
+least 0.8, and precision of at least 0.95, on each repository). The gate was
+run once on 2026-11-25 (ADR 0008, "The gate result"):
+
+| repository | recall | Wilson lower | precision | gate |
+|---|---|---|---|---|
+| click 7.1.2 | 68/80 = 0.8500 | 0.7559 | 68/69 = 0.9855 | FAIL |
+| requests 3c7baaa | 57/65 = 0.8769 | 0.7755 | 57/57 = 1.0000 | FAIL |
+
+Read these as stated limits of the release: precision meets the bar, recall does
+not, so a Python `callers` or `impact` answer can miss real callers and must not
+be read as complete. Unresolved calls stay counted in `unresolvedSites` and the
+call bins, so a miss shows as a number. No later claim that Python passes the
+gate stands without a fresh blind sample (GCLI-86); these two samples are spent
+and are not used to tune the indexer.
 
 ## Development
 
