@@ -57,6 +57,91 @@ GCLI-76 implementation notes):
   the gate scorer's target mapping, not a run of `gate_score.py`; the real
   end-to-end gate run is S8.
 
+### Python call resolution (S5, not yet wired)
+
+Call resolution builds on the module graph (S3) and the symbol table (S4) in
+`src/python/calls.ts` and is not yet wired to the CLI. Every call expression
+outside a parse-error region lands in exactly one of four bins — resolved in the
+repository (an edge), resolved external, unresolved because the receiver needs
+inference, and unresolved because the name is not statically bound. A call
+resolves when Python's static binding rules fix its target without inference; it
+stays unresolved when the target depends on a run-time type. Stated limits:
+
+- **A value's type is never inferred.** `items.append(...)` and `x.m()` on an
+  unannotated parameter are unresolved-receiver, which keeps them out of unknown
+  in-repository calls. Attribution follows static binding only: a receiver that is
+  a method's first **plain** parameter (an identifier, possibly annotated or with
+  a default, whatever its name; the class for a `@classmethod`, and for
+  `__new__`/`__init_subclass__`/`__class_getitem__`), a class name, a single
+  constructor or annotation binding, or a name bound directly by an import. A
+  `*args`, `**kwargs`, bare `*`/`/` first parameter, or no parameters at all, is
+  not a receiver: the splat is a tuple or dict value, so a call on it needs
+  inference.
+- **Imports bind in the scope that writes them, module-level or local.** A
+  function-body import resolves exactly like a module-level one (first-party
+  in-repo, external, or S3's unresolved reason) and is local for the whole body,
+  wherever it appears. A **class-body** import binds only for statements after it
+  (a class body runs top to bottom with `LOAD_NAME`), so a use before it takes the
+  enclosing binding.
+- **A method the class body rebinds or uses bare has no receiver.** `helper =
+  staticmethod(helper)` (or any later non-def binding of the name) makes a call
+  through a receiver unresolved-receiver rather than an edge; a def whose name is
+  used bare in its own class body as a decorator or call keeps calls to it
+  resolving, but its own first parameter is not a receiver. A `@staticmethod` or
+  `@classmethod` that a partial or unknown star import might supply is not known to
+  be the builtin, so the first parameter is not a receiver there either. Known
+  limitation: a method wrapped by an opaque (external, non-`property`) decorator is
+  still attributed as a method — whether that decorator replaced the function
+  object with something that does not bind the first parameter cannot be known
+  statically.
+- **The bare-use and class-body-import readings are known limitations.** The
+  bare-use set behind the no-receiver rule ignores order and scope inside the class
+  body: a class-body call written before the `def`, or inside a class-body
+  comprehension, still counts as a bare use. The order-aware class-body import rule
+  is lost across an alias hop (`x = target; x()` before `from .mod import target`
+  takes the module binding, not the import). A name that an external module
+  re-exports two star hops deep comes back `star-bound`, not external.
+- **A literal written directly as a receiver is external** — `"x".join(...)`,
+  `[].append(...)`, `{}.keys()` — because its type is fixed by syntax. A name
+  bound to a literal (`items = []`) is a value in a variable and stays
+  unresolved-receiver.
+- **An attribute call on a name bound directly by an external import is external**
+  (`from os import path; path.join(...)`), whether the imported name is a module or
+  a class; a value computed from one (`p = Path(); p.exists()`) stays
+  unresolved-receiver.
+- **`self.x.m()` is unresolved-receiver and counted**, and return annotations are
+  not followed — only parameter and variable annotations are.
+- **A multiply-bound class name constructs every in-repository alternative**: each
+  gets a class edge and an edge to its resolved `__init__`, every edge flagged
+  `multiplyBound`.
+- **`metaclass=type` written explicitly is not a constructor note** only while
+  `type` is the unshadowed builtin; a shadowed or possibly-shadowed `type` (rule
+  37) keeps the note. Any other metaclass, an inherited one, or a defined
+  `__new__` keeps it.
+- **One shadow rule governs every builtin test** (builtin names, `classmethod`,
+  `staticmethod`, `super(...)`, `type(x)(...)`, and the `type` of `metaclass=type`):
+  the name is the builtin only when no binding supplies it and no star import
+  could. A partial or unknown `import *` shadows it. A name in a **complete** star
+  set is bound by the star target, never the builtin: it resolves to the target's
+  def, class, import or re-export (a single alias is followed), is `run-time-bound`
+  for any other assignment, and is `star-bound` when the target does not statically
+  bind it. A complete star set that lacks the name leaves the builtin. Several
+  star imports are read last to first, as Python binds them: the last complete
+  exporter wins, and a later partial star leaves the name `star-bound`. A star
+  lookup is bounded, so a mutual star cycle terminates and reports `import-cycle`
+  instead of overflowing.
+- **A method found only in an external base is resolved external**; an opaque
+  base before a match is flagged `externalBaseBefore`.
+- **Polymorphic dispatch is reported, never guessed.** A site whose in-repository
+  subclass overrides the method is flagged and counted; the edge goes to the
+  declared class's resolution only.
+- **Parse errors drop calls and are named.** A call inside an ERROR region is
+  dropped and the file listed with the dropped count; that run does not claim the
+  count exact, and S3's exit-7 list is carried (raising it is S7's).
+- **`test/python-gate/check_call_sites.ts` reports the bins** over click and
+  requests; scoring a `GlyphIndex` through `gate_score.py` there is NOT the gate
+  run (S8 owns the gate).
+
 ## Run it
 
 Glyph needs [Node.js](https://nodejs.org) 24 or newer. Install it from npm and

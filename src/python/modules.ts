@@ -720,9 +720,11 @@ function extractModuleData(tree: Tree, path: string, dropped: DroppedImport[]): 
 			const imports = parseImportNode(node, path, condition);
 			if (scope === "module") data.imports.push(...imports);
 			else {
-				// Rule 16 limit, stated: a function- or class-local import is recorded as
-				// text only. It is never resolved and never checked for exit 7, so a
-				// first-party package imported only lazily does not trigger the guard.
+				// Rule 23 reading: the module graph records a function- or class-local
+				// import as text only (it is not an S3 exit-7 trigger and S3 does not
+				// resolve it). S5 resolves it through the same machinery with
+				// `resolveLocalImportNode`, so a local import still binds and resolves in
+				// its own scope; only its exit-7 surfacing is withheld.
 				const line = node.startPosition.row + 1;
 				data.localImports.push({ path, line, text: node.text });
 			}
@@ -1309,6 +1311,43 @@ class ModuleResolver {
 			starNames: [],
 		};
 	}
+
+	/**
+	 * Rule 23 (S5): resolve one function- or class-local import with exactly the
+	 * module-level machinery. The outcome is S3's; a local import is not a new
+	 * reason. Its `exit7` is deliberately not surfaced: a lazily imported
+	 * first-party package does not become an indeterminate trigger (the S3 limit
+	 * stated at extraction still holds).
+	 */
+	resolveLocal(raw: RawImport): ImportBinding {
+		const resolution: Resolution = this.resolveModuleReference(raw.path, raw);
+		return this.toBinding({
+			raw,
+			outcome: resolution.outcome,
+			target: resolution.target,
+			reason: resolution.reason,
+			exit7: null,
+			id: -1,
+		});
+	}
+}
+
+/**
+ * The resolver behind a graph, so S5 can resolve a local import through the same
+ * code path S3 uses for module-level ones (rule 23). A WeakMap keeps it off the
+ * `ModuleGraph` data shape.
+ */
+const resolverByGraph = new WeakMap<ModuleGraph, ModuleResolver>();
+
+/**
+ * Parse and resolve the imports in one function- or class-body import statement
+ * (rule 23). Returns one `ImportBinding` per imported name, resolved by S3.
+ * Empty when the statement's parse yielded no import form.
+ */
+export function resolveLocalImportNode(graph: ModuleGraph, path: string, node: Node): ImportBinding[] {
+	const resolver = resolverByGraph.get(graph);
+	if (resolver === undefined) return [];
+	return parseImportNode(node, path, null).map((raw) => resolver.resolveLocal(raw));
 }
 
 // --- public entry point ----------------------------------------------------
@@ -1608,7 +1647,7 @@ export async function buildModuleGraph(
 		duplicates: ignored.filter((entry) => entry.reason === "duplicate").length,
 	};
 
-	return {
+	const graph: ModuleGraph = {
 		// Exactness (rule 14) covers parse and decode only; a non-empty exit7 is a
 		// separate indeterminate signal the wiring slice must check (exit7.length)
 		// rather than read `exact` alone.
@@ -1631,4 +1670,6 @@ export async function buildModuleGraph(
 		localImports,
 		counts,
 	};
+	resolverByGraph.set(graph, resolver);
+	return graph;
 }
