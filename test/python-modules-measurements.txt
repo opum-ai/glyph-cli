@@ -1,0 +1,97 @@
+# GCLI-75 (S3) — Python module graph and import resolution: measurements
+
+Worker-measured at code commit a4f61b8; this file's commit adds only this record
+(the measured tree is a4f61b8's src/python/modules.ts and src/python/parse.ts).
+Measured 2026-11-23. Toolchain: bun 1.4.2 (the repository pin),
+@vscode/tree-sitter-wasm 0.3.1 (pinned in package.json and bun.lock), macOS
+arm64. Numbers are this host's, medians of the stated run counts.
+
+Measurement command (from the repository root, with the pinned bun on PATH):
+
+  bun <scratch>/measure.ts
+
+The script is a scratch artefact, not committed; it imports buildModuleGraph and
+parsePython from this branch. All timings use performance.now().
+
+## (a) bytes vs string input
+
+Source: 58,000 bytes / 4,000 lines ("def f0000():\n    return 'é'\n" repeated
+2,000 times).
+
+  parsePython(bytes):  median 10.26 ms over 20 runs
+  parsePython(string): median 10.35 ms over 20 runs
+
+The two paths cost the same within noise: the fatal UTF-8 decode is negligible
+against the parse. The behavioural difference is the documented S2b one and is
+what S3 inherits by accepting bytes only:
+
+  invalid input (a stray 0xFF byte):
+    bytes  -> decodeReplacements=1, limit=invalid-utf-8-replacements
+    string -> decodeReplacements=0, limit=null (the caller already made the lossy conversion)
+
+buildModuleGraph takes { path, bytes } only, so the lossy string path is not
+reachable through the module graph; every graph over such a file is marked not
+exact and the file is named in parseIssues.
+
+## (b) wide-node cost
+
+Source: one 50,000-element list literal, 338,895 bytes. The list node has
+childCount 100,001 (commas included) and namedChildCount 50,000.
+
+  parse: 82.4 ms
+
+Per-child access, 5 runs of 100 calls each (median):
+  child(0)        : 0.085 us/call
+  child(49,999)   : 0.174 us/call
+
+The premise that child(i) is O(i) is not borne out strongly at this size: the
+last index costs about 2x the first, not 50,000x. A full traversal of the list
+(median of 5 runs):
+
+  child(i) loop         : 18.46 ms
+  namedChild(i) loop    : 10.43 ms
+  namedChildren array   :  0.14 ms
+  TreeCursor walk       : 12.94 ms
+
+hasError pruning:
+  rootNode.hasError x1,000: 0.27 ms (0.27 us/call), i.e. cheap; it is not a
+  per-node walk in this binding.
+
+buildModuleGraph over the same file (parse included): 101.7 ms.
+
+Choice, worker-measured, not assumed: the traversal in src/python/modules.ts
+uses the namedChildren array getter. The cursor walk was measured and was NOT
+faster than namedChild(i) on this grammar/runtime, so the brief's conditional
+(use the cursor walk if the traversal is too slow) does not apply; the array
+getter is the fastest path measured, about 75x faster than the namedChild(i)
+loop and about 90x faster than the cursor walk at 50,000 children.
+
+## (c) column units on non-ASCII source
+
+Two one-line sources with a marker identifier "y" after a non-ASCII string:
+
+  source             y column  startIndex  JS UTF-16 index  UTF-8 byte offset
+  x = "é"; y = 1     9         9           9                10
+  x = "😀"; y = 1    10        10          10               12
+
+Both node.startPosition.column and node.startIndex are UTF-16 code-unit offsets
+(JS string indices), not UTF-8 byte offsets: the parser is fed a JS string, so
+"é" advances 1 and "😀" advances 2. A later slice that records a column from a
+Python node must say it is UTF-16-based, or convert.
+
+The module graph itself records only one-based line numbers (row + 1) for each
+binding, dropped import and dynamic call; it records no column, so the column
+unit does not enter the module graph.
+
+## (d) large-file behaviour, no cap or timeout invented
+
+Generated files of "def f<i>(a):\n    return a + <i>\n":
+
+  functions   bytes      lines    buildModuleGraph   throughput
+  1,000       31,780     2,000    10.7 ms            2.84 MB/s
+  10,000      337,780    20,000   109.1 ms           2.95 MB/s
+  50,000      1,777,780  100,000  555.7 ms           3.05 MB/s
+  100,000     3,577,780  200,000  1,063.1 ms         3.21 MB/s
+
+Linear to the largest size measured (3.58 MB / 200,000 lines in about 1.06 s);
+no cap, skip or timeout was added. The graph is exact for each.
