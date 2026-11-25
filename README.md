@@ -17,6 +17,46 @@ recorded in [ADR 0001](https://github.com/opum-ai/glyph-cli/blob/main/docs/adr/0
 - **No UI.** stdout carries either human text or JSON: one envelope per command, or
   one line per item then one result line under `--stream`.
 
+### Python symbols (not yet wired)
+
+Python symbol collection exists behind the parse wrapper in `src/python/` and is
+not yet wired to the CLI (ADR 0008). Its stated limits (the full record is the
+GCLI-76 implementation notes):
+
+- **Parse errors are named, not resolved.** A file whose parse contains an ERROR
+  or MISSING node is listed in `parseErrorFiles`, with `errorCount` and
+  `missingCount` carried on the table — read from the parse itself, so the file
+  is named regardless of what the walk reaches. A recognised definition inside an
+  ERROR region the walk enters is dropped and counted in `droppedDefinitions` and
+  `errorFiles`, and a definition nested inside it is counted too. Outside an ERROR
+  the walk descends only through statement containers and definitions, so an
+  ERROR nested inside an expression is not entered and a definition hidden there
+  is neither dropped nor counted. A `def :` is broken into loose tokens by error
+  recovery, so it yields no symbol and no dropped-definition entry, only the
+  file-level parse error.
+- **Overload groups are grouped by qualname within one file.** A group split
+  across branches is not distinguished, and a group with several non-`@overload`
+  definitions keeps every implementation.
+- **Decorated symbols are flagged, never dropped.** Whether a decorator replaces
+  the name with another object (click's `@command`) cannot be decided
+  statically; every decorated symbol carries `decorated: true` and its
+  decorators, and a later slice decides the decorator site kind.
+- **`__all__` is read only as a literal list or tuple at module level.** A
+  non-literal assignment or `__all__ += ...` falls back to the leading-underscore
+  rule; `__all__.extend(...)` and `__all__.append(...)` are calls, not
+  assignments, so they are skipped rather than read — they contribute no names,
+  a literal assignment beside them still governs, and a module with only such
+  calls falls back. A literal inside an `if` is not read.
+- **Class-body assignments emit no symbol**, while class-body defs are members.
+- **`cached_property` is collected as a method**, not a property; only
+  `property`, `.setter`, `.getter` and `.deleter` are `property`.
+- **The id column counts UTF-16 code units**, the same unit TypeScript uses:
+  `parsePython` decodes bytes to a string before parsing, so a preceding
+  non-BMP character shifts a UTF-8 byte offset but not this column.
+- **`test/python-gate/check_symbol_targets.ts` is a TypeScript reproduction** of
+  the gate scorer's target mapping, not a run of `gate_score.py`; the real
+  end-to-end gate run is S8.
+
 ## Run it
 
 Glyph needs [Node.js](https://nodejs.org) 24 or newer. Install it from npm and
