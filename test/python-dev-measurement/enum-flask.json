@@ -1,0 +1,1452 @@
+[
+ {
+  "file": "src/flask/json/tag.py",
+  "line": 297,
+  "kind": "def",
+  "name": "untag",
+  "qual": "TaggedJSONSerializer.untag",
+  "encl": "TaggedJSONSerializer",
+  "sites": [
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 314,
+    "form": "call",
+    "src": "value = self.untag(value)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/blueprints.py",
+  "line": 104,
+  "kind": "def",
+  "name": "open_resource",
+  "qual": "Blueprint.open_resource",
+  "encl": "Blueprint",
+  "sites": [
+   {
+    "file": "src/flask/app.py",
+    "line": 119,
+    "form": "ref",
+    "src": "For more information about resource loading, see :func:`open_resource`."
+   },
+   {
+    "file": "src/flask/app.py",
+    "line": 412,
+    "form": "call",
+    "src": "def open_resource("
+   },
+   {
+    "file": "src/flask/app.py",
+    "line": 423,
+    "form": "call",
+    "src": "with app.open_resource(\"schema.sql\") as f:"
+   },
+   {
+    "file": "src/flask/app.py",
+    "line": 449,
+    "form": "ref",
+    "src": ":attr:`instance_path`. Unlike :meth:`open_resource`, files in the"
+   },
+   {
+    "file": "src/flask/blueprints.py",
+    "line": 108,
+    "form": "ref",
+    "src": "blueprint-relative equivalent of the app's :meth:`~.Flask.open_resource`"
+   },
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 71,
+    "form": "ref",
+    "src": "For more information about resource loading, see :func:`open_resource`."
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sansio/blueprints.py",
+  "line": 532,
+  "kind": "def",
+  "name": "add_app_template_test",
+  "qual": "Blueprint.add_app_template_test",
+  "encl": "Blueprint",
+  "sites": [
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 510,
+    "form": "ref",
+    "src": "The :meth:`add_app_template_test` method may be used to register a"
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 522,
+    "form": "call",
+    "src": "self.add_app_template_test(name)"
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 526,
+    "form": "call",
+    "src": "self.add_app_template_test(f, name=name)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sansio/app.py",
+  "line": 869,
+  "kind": "def",
+  "name": "_find_error_handler",
+  "qual": "App._find_error_handler",
+  "encl": "App",
+  "sites": [
+   {
+    "file": "src/flask/app.py",
+    "line": 875,
+    "form": "call",
+    "src": "handler = self._find_error_handler(e, ctx.request.blueprints)"
+   },
+   {
+    "file": "src/flask/app.py",
+    "line": 909,
+    "form": "call",
+    "src": "handler = self._find_error_handler(e, ctx.request.blueprints)"
+   },
+   {
+    "file": "src/flask/app.py",
+    "line": 966,
+    "form": "call",
+    "src": "handler = self._find_error_handler(server_error, ctx.request.blueprints)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/json/tag.py",
+  "line": 195,
+  "kind": "def",
+  "name": "check",
+  "qual": "TagUUID.check",
+  "encl": "TagUUID",
+  "sites": [
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 32,
+    "form": "call",
+    "src": "def check(self, value):"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 73,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 103,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 122,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 137,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 150,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 163,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 181,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 209,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 292,
+    "form": "call",
+    "src": "if tag.check(value):"
+   },
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 458,
+    "form": "ref",
+    "src": "it doesn't check ``app.debug`` each time. Only one format is"
+   },
+   {
+    "file": "src/flask/sessions.py",
+    "line": 240,
+    "form": "ref",
+    "src": "This check is usually skipped if the session was deleted."
+   }
+  ]
+ },
+ {
+  "file": "src/flask/cli.py",
+  "line": 791,
+  "kind": "def",
+  "name": "convert",
+  "qual": "CertParamType.convert",
+  "encl": "CertParamType",
+  "sites": [
+   {
+    "file": "src/flask/app.py",
+    "line": 996,
+    "form": "ref",
+    "src": "be a response object.  In order to convert the return value to a"
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 873,
+    "form": "call",
+    "src": "def convert("
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 877,
+    "form": "ref",
+    "src": "super_convert = super().convert"
+   },
+   {
+    "file": "src/flask/config.py",
+    "line": 131,
+    "form": "ref",
+    "src": "are passed through a loading function to attempt to convert them"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/templating.py",
+  "line": 136,
+  "kind": "def",
+  "name": "render_template",
+  "qual": "render_template",
+  "encl": null,
+  "sites": [
+   {
+    "file": "src/flask/__init__.py",
+    "line": 34,
+    "form": "ref",
+    "src": "from .templating import render_template as render_template"
+   },
+   {
+    "file": "src/flask/app.py",
+    "line": 610,
+    "form": "ref",
+    "src": "Context keys passed to ``render_template`` are not overwritten."
+   },
+   {
+    "file": "src/flask/helpers.py",
+    "line": 161,
+    "form": "call",
+    "src": "return render_template('index.html', foo=42)"
+   },
+   {
+    "file": "src/flask/helpers.py",
+    "line": 166,
+    "form": "call",
+    "src": "response = make_response(render_template('index.html', foo=42))"
+   },
+   {
+    "file": "src/flask/helpers.py",
+    "line": 174,
+    "form": "call",
+    "src": "response = make_response(render_template('not_found.html'), 404)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/config.py",
+  "line": 218,
+  "kind": "def",
+  "name": "from_object",
+  "qual": "Config.from_object",
+  "encl": "Config",
+  "sites": [
+   {
+    "file": "src/flask/config.py",
+    "line": 60,
+    "form": "ref",
+    "src": "module that calls :meth:`from_object` or provide an import path to"
+   },
+   {
+    "file": "src/flask/config.py",
+    "line": 67,
+    "form": "call",
+    "src": "app.config.from_object(__name__)"
+   },
+   {
+    "file": "src/flask/config.py",
+    "line": 192,
+    "form": "ref",
+    "src": ":meth:`from_object` function."
+   },
+   {
+    "file": "src/flask/config.py",
+    "line": 215,
+    "form": "call",
+    "src": "self.from_object(d)"
+   },
+   {
+    "file": "src/flask/config.py",
+    "line": 225,
+    "form": "ref",
+    "src": "Objects are usually either modules or classes. :meth:`from_object`"
+   },
+   {
+    "file": "src/flask/config.py",
+    "line": 227,
+    "form": "ref",
+    "src": "object will not work with :meth:`from_object` because the keys of a"
+   },
+   {
+    "file": "src/flask/config.py",
+    "line": 232,
+    "form": "call",
+    "src": "app.config.from_object('yourapplication.default_config')"
+   },
+   {
+    "file": "src/flask/config.py",
+    "line": 234,
+    "form": "call",
+    "src": "app.config.from_object(default_config)"
+   },
+   {
+    "file": "src/flask/config.py",
+    "line": 246,
+    "form": "ref",
+    "src": "using :meth:`from_object`."
+   }
+  ]
+ },
+ {
+  "file": "src/flask/helpers.py",
+  "line": 654,
+  "kind": "class",
+  "name": "_CollectErrors",
+  "qual": "_CollectErrors",
+  "encl": null,
+  "sites": [
+   {
+    "file": "src/flask/app.py",
+    "line": 1496,
+    "form": "call",
+    "src": "collect_errors = _CollectErrors()"
+   },
+   {
+    "file": "src/flask/app.py",
+    "line": 1531,
+    "form": "call",
+    "src": "collect_errors = _CollectErrors()"
+   },
+   {
+    "file": "src/flask/ctx.py",
+    "line": 486,
+    "form": "call",
+    "src": "collect_errors = _CollectErrors()"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sansio/blueprints.py",
+  "line": 590,
+  "kind": "def",
+  "name": "add_app_template_global",
+  "qual": "Blueprint.add_app_template_global",
+  "encl": "Blueprint",
+  "sites": [
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 568,
+    "form": "ref",
+    "src": "The :meth:`add_app_template_global` method may be used to register a"
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 580,
+    "form": "call",
+    "src": "self.add_app_template_global(name)"
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 584,
+    "form": "call",
+    "src": "self.add_app_template_global(f, name=name)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/app.py",
+  "line": 1441,
+  "kind": "def",
+  "name": "process_response",
+  "qual": "Flask.process_response",
+  "encl": "Flask",
+  "sites": [
+   {
+    "file": "src/flask/app.py",
+    "line": 267,
+    "form": "ref",
+    "src": "cls.process_response,"
+   },
+   {
+    "file": "src/flask/app.py",
+    "line": 1080,
+    "form": "call",
+    "src": "response = self.process_response(ctx, response)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/wrappers.py",
+  "line": 60,
+  "kind": "def",
+  "name": "max_content_length",
+  "qual": "Request.max_content_length",
+  "encl": "Request",
+  "sites": [
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 84,
+    "form": "ref",
+    "src": "return super().max_content_length"
+   },
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 88,
+    "form": "ref",
+    "src": "@max_content_length.setter"
+   },
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 89,
+    "form": "call",
+    "src": "def max_content_length(self, value: int | None) -> None:"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/wrappers.py",
+  "line": 89,
+  "kind": "def",
+  "name": "max_content_length",
+  "qual": "Request.max_content_length",
+  "encl": "Request",
+  "sites": [
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 60,
+    "form": "call",
+    "src": "def max_content_length(self) -> int | None:"
+   },
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 84,
+    "form": "ref",
+    "src": "return super().max_content_length"
+   },
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 88,
+    "form": "ref",
+    "src": "@max_content_length.setter"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/cli.py",
+  "line": 429,
+  "kind": "def",
+  "name": "group",
+  "qual": "AppGroup.group",
+  "encl": "AppGroup",
+  "sites": [
+   {
+    "file": "src/flask/cli.py",
+    "line": 433,
+    "form": "ref",
+    "src": ":class:`click.Group` but it defaults the group class to"
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 437,
+    "form": "call",
+    "src": "return super().group(*args, **kwargs)  # type: ignore[no-any-return]"
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 532,
+    "form": "ref",
+    "src": "\"\"\"Special subclass of the :class:`AppGroup` group that supports"
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 604,
+    "form": "ref",
+    "src": "for ep in importlib.metadata.entry_points(group=\"flask.commands\"):"
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 165,
+    "form": "ref",
+    "src": "Blueprints have a ``cli`` group to register nested CLI commands."
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 166,
+    "form": "ref",
+    "src": "The ``cli_group`` parameter controls the name of the group under"
+   },
+   {
+    "file": "src/flask/testing.py",
+    "line": 287,
+    "form": "ref",
+    "src": ":attr:`~flask.app.Flask.cli` group."
+   }
+  ]
+ },
+ {
+  "file": "src/flask/cli.py",
+  "line": 380,
+  "kind": "def",
+  "name": "with_appcontext",
+  "qual": "with_appcontext",
+  "encl": null,
+  "sites": [
+   {
+    "file": "src/flask/cli.py",
+    "line": 408,
+    "form": "ref",
+    "src": "automatically wraps the functions in :func:`with_appcontext`."
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 417,
+    "form": "ref",
+    "src": ":class:`click.Group` but it wraps callbacks in :func:`with_appcontext`"
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 418,
+    "form": "ref",
+    "src": "unless it's disabled by passing ``with_appcontext=False``."
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 420,
+    "form": "ref",
+    "src": "wrap_for_ctx = kwargs.pop(\"with_appcontext\", True)"
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 424,
+    "form": "call",
+    "src": "f = with_appcontext(f)"
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 556,
+    "form": "ref",
+    "src": "``@with_appcontext`` is no longer required for those commands."
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 999,
+    "form": "ref",
+    "src": "@with_appcontext"
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 1059,
+    "form": "ref",
+    "src": "@with_appcontext"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sansio/blueprints.py",
+  "line": 444,
+  "kind": "def",
+  "name": "app_template_filter",
+  "qual": "Blueprint.app_template_filter",
+  "encl": "Blueprint",
+  "sites": [
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 446,
+    "form": "call",
+    "src": "def app_template_filter("
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 450,
+    "form": "call",
+    "src": "def app_template_filter("
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 481,
+    "form": "ref",
+    "src": "The :meth:`app_template_filter` decorator can be used to register a"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sansio/blueprints.py",
+  "line": 446,
+  "kind": "def",
+  "name": "app_template_filter",
+  "qual": "Blueprint.app_template_filter",
+  "encl": "Blueprint",
+  "sites": [
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 444,
+    "form": "call",
+    "src": "def app_template_filter(self, name: T_template_filter) -> T_template_filter: ..."
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 450,
+    "form": "call",
+    "src": "def app_template_filter("
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 481,
+    "form": "ref",
+    "src": "The :meth:`app_template_filter` decorator can be used to register a"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sansio/blueprints.py",
+  "line": 450,
+  "kind": "def",
+  "name": "app_template_filter",
+  "qual": "Blueprint.app_template_filter",
+  "encl": "Blueprint",
+  "sites": [
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 444,
+    "form": "call",
+    "src": "def app_template_filter(self, name: T_template_filter) -> T_template_filter: ..."
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 446,
+    "form": "call",
+    "src": "def app_template_filter("
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 481,
+    "form": "ref",
+    "src": "The :meth:`app_template_filter` decorator can be used to register a"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/helpers.py",
+  "line": 676,
+  "kind": "def",
+  "name": "raise_any",
+  "qual": "_CollectErrors.raise_any",
+  "encl": "_CollectErrors",
+  "sites": [
+   {
+    "file": "src/flask/app.py",
+    "line": 1507,
+    "form": "call",
+    "src": "collect_errors.raise_any(\"Errors during request teardown\")"
+   },
+   {
+    "file": "src/flask/app.py",
+    "line": 1540,
+    "form": "call",
+    "src": "collect_errors.raise_any(\"Errors during app teardown\")"
+   },
+   {
+    "file": "src/flask/ctx.py",
+    "line": 504,
+    "form": "call",
+    "src": "collect_errors.raise_any(\"Errors during context teardown\")"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/wrappers.py",
+  "line": 120,
+  "kind": "def",
+  "name": "max_form_parts",
+  "qual": "Request.max_form_parts",
+  "encl": "Request",
+  "sites": [
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 138,
+    "form": "ref",
+    "src": "return super().max_form_parts"
+   },
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 142,
+    "form": "ref",
+    "src": "@max_form_parts.setter"
+   },
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 143,
+    "form": "call",
+    "src": "def max_form_parts(self, value: int | None) -> None:"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/wrappers.py",
+  "line": 143,
+  "kind": "def",
+  "name": "max_form_parts",
+  "qual": "Request.max_form_parts",
+  "encl": "Request",
+  "sites": [
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 120,
+    "form": "call",
+    "src": "def max_form_parts(self) -> int | None:"
+   },
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 138,
+    "form": "ref",
+    "src": "return super().max_form_parts"
+   },
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 142,
+    "form": "ref",
+    "src": "@max_form_parts.setter"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sessions.py",
+  "line": 195,
+  "kind": "def",
+  "name": "get_cookie_httponly",
+  "qual": "SessionInterface.get_cookie_httponly",
+  "encl": "SessionInterface",
+  "sites": [
+   {
+    "file": "src/flask/sessions.py",
+    "line": 346,
+    "form": "call",
+    "src": "httponly = self.get_cookie_httponly(app)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sessions.py",
+  "line": 150,
+  "kind": "def",
+  "name": "make_null_session",
+  "qual": "SessionInterface.make_null_session",
+  "encl": "SessionInterface",
+  "sites": [
+   {
+    "file": "src/flask/ctx.py",
+    "line": 391,
+    "form": "call",
+    "src": "self._session = si.make_null_session(self.app)"
+   },
+   {
+    "file": "src/flask/sessions.py",
+    "line": 116,
+    "form": "ref",
+    "src": ":meth:`make_null_session` to create a session that acts as replacement"
+   },
+   {
+    "file": "src/flask/sessions.py",
+    "line": 258,
+    "form": "ref",
+    "src": "context will fall back to using :meth:`make_null_session`"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/helpers.py",
+  "line": 645,
+  "kind": "def",
+  "name": "_split_blueprint_path",
+  "qual": "_split_blueprint_path",
+  "encl": null,
+  "sites": [
+   {
+    "file": "src/flask/helpers.py",
+    "line": 649,
+    "form": "call",
+    "src": "out.extend(_split_blueprint_path(name.rpartition(\".\")[0]))"
+   },
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 974,
+    "form": "call",
+    "src": "names, reversed(_split_blueprint_path(endpoint.rpartition(\".\")[0]))"
+   },
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 195,
+    "form": "call",
+    "src": "return _split_blueprint_path(name)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sansio/app.py",
+  "line": 961,
+  "kind": "def",
+  "name": "inject_url_defaults",
+  "qual": "App.inject_url_defaults",
+  "encl": "App",
+  "sites": [
+   {
+    "file": "src/flask/app.py",
+    "line": 1245,
+    "form": "call",
+    "src": "self.inject_url_defaults(endpoint, values)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sessions.py",
+  "line": 249,
+  "kind": "def",
+  "name": "open_session",
+  "qual": "SessionInterface.open_session",
+  "encl": "SessionInterface",
+  "sites": [
+   {
+    "file": "src/flask/ctx.py",
+    "line": 388,
+    "form": "call",
+    "src": "self._session = si.open_session(self.app, self.request)"
+   },
+   {
+    "file": "src/flask/sessions.py",
+    "line": 104,
+    "form": "ref",
+    "src": ":meth:`open_session` and :meth:`save_session`, the others have"
+   },
+   {
+    "file": "src/flask/sessions.py",
+    "line": 107,
+    "form": "ref",
+    "src": "The session object returned by the :meth:`open_session` method has to"
+   },
+   {
+    "file": "src/flask/sessions.py",
+    "line": 115,
+    "form": "ref",
+    "src": "If :meth:`open_session` returns ``None`` Flask will call into"
+   },
+   {
+    "file": "src/flask/sessions.py",
+    "line": 323,
+    "form": "call",
+    "src": "def open_session(self, app: Flask, request: Request) -> SecureCookieSession | None:"
+   },
+   {
+    "file": "src/flask/testing.py",
+    "line": 165,
+    "form": "call",
+    "src": "sess = app.session_interface.open_session(app, ctx.request)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/app.py",
+  "line": 766,
+  "kind": "def",
+  "name": "test_client",
+  "qual": "Flask.test_client",
+  "encl": "Flask",
+  "sites": [
+   {
+    "file": "src/flask/app.py",
+    "line": 779,
+    "form": "call",
+    "src": "client = app.test_client()"
+   },
+   {
+    "file": "src/flask/app.py",
+    "line": 785,
+    "form": "call",
+    "src": "with app.test_client() as c:"
+   },
+   {
+    "file": "src/flask/app.py",
+    "line": 801,
+    "form": "call",
+    "src": "client = app.test_client(authentication='Basic ....')"
+   },
+   {
+    "file": "src/flask/testing.py",
+    "line": 116,
+    "form": "call",
+    "src": "`app.test_client()` includes preset default environment, which can be"
+   },
+   {
+    "file": "src/flask/testing.py",
+    "line": 117,
+    "form": "call",
+    "src": "set after instantiation of the `app.test_client()` object in"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sansio/app.py",
+  "line": 480,
+  "kind": "def",
+  "name": "make_config",
+  "qual": "App.make_config",
+  "encl": "App",
+  "sites": [
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 317,
+    "form": "call",
+    "src": "self.config = self.make_config(instance_relative_config)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/cli.py",
+  "line": 405,
+  "kind": "class",
+  "name": "AppGroup",
+  "qual": "AppGroup",
+  "encl": null,
+  "sites": [
+   {
+    "file": "src/flask/app.py",
+    "line": 338,
+    "form": "call",
+    "src": "self.cli = cli.AppGroup()"
+   },
+   {
+    "file": "src/flask/blueprints.py",
+    "line": 49,
+    "form": "call",
+    "src": "self.cli = AppGroup()"
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 425,
+    "form": "ref",
+    "src": "return super(AppGroup, self).command(*args, **kwargs)(f)  # type: ignore[no-any-return]"
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 434,
+    "form": "ref",
+    "src": ":class:`AppGroup`."
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 436,
+    "form": "ref",
+    "src": "kwargs.setdefault(\"cls\", AppGroup)"
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 531,
+    "form": "ref",
+    "src": "class FlaskGroup(AppGroup):"
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 532,
+    "form": "ref",
+    "src": "\"\"\"Special subclass of the :class:`AppGroup` group that supports"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sansio/blueprints.py",
+  "line": 246,
+  "kind": "def",
+  "name": "make_setup_state",
+  "qual": "Blueprint.make_setup_state",
+  "encl": "Blueprint",
+  "sites": [
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 37,
+    "form": "ref",
+    "src": ":meth:`~flask.Blueprint.make_setup_state` method and later passed"
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 227,
+    "form": "ref",
+    "src": "state as argument as returned by the :meth:`make_setup_state`"
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 321,
+    "form": "call",
+    "src": "state = self.make_setup_state(app, options, first_bp_registration)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/wrappers.py",
+  "line": 212,
+  "kind": "def",
+  "name": "on_json_loading_failed",
+  "qual": "Request.on_json_loading_failed",
+  "encl": "Request",
+  "sites": [
+   {
+    "file": "src/flask/wrappers.py",
+    "line": 214,
+    "form": "call",
+    "src": "return super().on_json_loading_failed(e)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/app.py",
+  "line": 1578,
+  "kind": "def",
+  "name": "test_request_context",
+  "qual": "Flask.test_request_context",
+  "encl": "Flask",
+  "sites": [
+   {
+    "file": "src/flask/app.py",
+    "line": 1569,
+    "form": "ref",
+    "src": "environ is not trivial. Use :meth:`test_request_context` to correctly"
+   },
+   {
+    "file": "src/flask/app.py",
+    "line": 1589,
+    "form": "call",
+    "src": "with app.test_request_context(...):"
+   },
+   {
+    "file": "src/flask/ctx.py",
+    "line": 268,
+    "form": "ref",
+    "src": "app context if needed during setup, and :meth:`.Flask.test_request_context`"
+   },
+   {
+    "file": "src/flask/sansio/scaffold.py",
+    "line": 523,
+    "form": "call",
+    "src": "with app.test_request_context():"
+   },
+   {
+    "file": "src/flask/testing.py",
+    "line": 152,
+    "form": "ref",
+    "src": ":meth:`~flask.Flask.test_request_context` which are directly"
+   },
+   {
+    "file": "src/flask/testing.py",
+    "line": 161,
+    "form": "call",
+    "src": "ctx = app.test_request_context(*args, **kwargs)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sansio/app.py",
+  "line": 982,
+  "kind": "def",
+  "name": "handle_url_build_error",
+  "qual": "App.handle_url_build_error",
+  "encl": "App",
+  "sites": [
+   {
+    "file": "src/flask/app.py",
+    "line": 1179,
+    "form": "ref",
+    "src": "or incorrect values, the app's :meth:`handle_url_build_error`"
+   },
+   {
+    "file": "src/flask/app.py",
+    "line": 1259,
+    "form": "call",
+    "src": "return self.handle_url_build_error(error, endpoint, values)"
+   },
+   {
+    "file": "src/flask/helpers.py",
+    "line": 242,
+    "form": "ref",
+    "src": "Calls ``app.handle_url_build_error`` on build errors."
+   }
+  ]
+ },
+ {
+  "file": "src/flask/json/tag.py",
+  "line": 35,
+  "kind": "def",
+  "name": "to_json",
+  "qual": "TagOrderedDict.to_json",
+  "encl": "TagOrderedDict",
+  "sites": [
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 77,
+    "form": "call",
+    "src": "def to_json(self, value: t.Any) -> t.Any:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 90,
+    "form": "call",
+    "src": "return {self.key: self.to_json(value)}"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 110,
+    "form": "call",
+    "src": "def to_json(self, value: t.Any) -> t.Any:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 125,
+    "form": "call",
+    "src": "def to_json(self, value: t.Any) -> t.Any:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 130,
+    "form": "ref",
+    "src": "tag = to_json"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 140,
+    "form": "call",
+    "src": "def to_json(self, value: t.Any) -> t.Any:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 153,
+    "form": "call",
+    "src": "def to_json(self, value: t.Any) -> t.Any:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 156,
+    "form": "ref",
+    "src": "tag = to_json"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 166,
+    "form": "call",
+    "src": "def to_json(self, value: t.Any) -> t.Any:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 184,
+    "form": "call",
+    "src": "def to_json(self, value: t.Any) -> t.Any:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 198,
+    "form": "call",
+    "src": "def to_json(self, value: t.Any) -> t.Any:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 212,
+    "form": "call",
+    "src": "def to_json(self, value: t.Any) -> t.Any:"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/templating.py",
+  "line": 123,
+  "kind": "def",
+  "name": "_render",
+  "qual": "_render",
+  "encl": null,
+  "sites": [
+   {
+    "file": "src/flask/templating.py",
+    "line": 148,
+    "form": "call",
+    "src": "return _render(ctx, template, context)"
+   },
+   {
+    "file": "src/flask/templating.py",
+    "line": 160,
+    "form": "call",
+    "src": "return _render(ctx, template, context)"
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sansio/app.py",
+  "line": 665,
+  "kind": "def",
+  "name": "template_filter",
+  "qual": "App.template_filter",
+  "encl": "App",
+  "sites": [
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 667,
+    "form": "call",
+    "src": "def template_filter("
+   },
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 671,
+    "form": "call",
+    "src": "def template_filter("
+   },
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 679,
+    "form": "call",
+    "src": "@app.template_filter(\"reverse\")"
+   },
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 705,
+    "form": "ref",
+    "src": "The :meth:`template_filter` decorator can be used to register a function"
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 460,
+    "form": "ref",
+    "src": "blueprint. Equivalent to :meth:`.Flask.template_filter`."
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sansio/app.py",
+  "line": 667,
+  "kind": "def",
+  "name": "template_filter",
+  "qual": "App.template_filter",
+  "encl": "App",
+  "sites": [
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 665,
+    "form": "call",
+    "src": "def template_filter(self, name: T_template_filter) -> T_template_filter: ..."
+   },
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 671,
+    "form": "call",
+    "src": "def template_filter("
+   },
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 679,
+    "form": "call",
+    "src": "@app.template_filter(\"reverse\")"
+   },
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 705,
+    "form": "ref",
+    "src": "The :meth:`template_filter` decorator can be used to register a function"
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 460,
+    "form": "ref",
+    "src": "blueprint. Equivalent to :meth:`.Flask.template_filter`."
+   }
+  ]
+ },
+ {
+  "file": "src/flask/sansio/app.py",
+  "line": 671,
+  "kind": "def",
+  "name": "template_filter",
+  "qual": "App.template_filter",
+  "encl": "App",
+  "sites": [
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 665,
+    "form": "call",
+    "src": "def template_filter(self, name: T_template_filter) -> T_template_filter: ..."
+   },
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 667,
+    "form": "call",
+    "src": "def template_filter("
+   },
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 679,
+    "form": "call",
+    "src": "@app.template_filter(\"reverse\")"
+   },
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 705,
+    "form": "ref",
+    "src": "The :meth:`template_filter` decorator can be used to register a function"
+   },
+   {
+    "file": "src/flask/sansio/blueprints.py",
+    "line": 460,
+    "form": "ref",
+    "src": "blueprint. Equivalent to :meth:`.Flask.template_filter`."
+   }
+  ]
+ },
+ {
+  "file": "src/flask/json/tag.py",
+  "line": 150,
+  "kind": "def",
+  "name": "check",
+  "qual": "PassList.check",
+  "encl": "PassList",
+  "sites": [
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 32,
+    "form": "call",
+    "src": "def check(self, value):"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 73,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 103,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 122,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 137,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 163,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 181,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 195,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 209,
+    "form": "call",
+    "src": "def check(self, value: t.Any) -> bool:"
+   },
+   {
+    "file": "src/flask/json/tag.py",
+    "line": 292,
+    "form": "call",
+    "src": "if tag.check(value):"
+   },
+   {
+    "file": "src/flask/sansio/app.py",
+    "line": 458,
+    "form": "ref",
+    "src": "it doesn't check ``app.debug`` each time. Only one format is"
+   },
+   {
+    "file": "src/flask/sessions.py",
+    "line": 240,
+    "form": "ref",
+    "src": "This check is usually skipped if the session was deleted."
+   }
+  ]
+ },
+ {
+  "file": "src/flask/cli.py",
+  "line": 873,
+  "kind": "def",
+  "name": "convert",
+  "qual": "SeparatedPathType.convert",
+  "encl": "SeparatedPathType",
+  "sites": [
+   {
+    "file": "src/flask/app.py",
+    "line": 996,
+    "form": "ref",
+    "src": "be a response object.  In order to convert the return value to a"
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 791,
+    "form": "call",
+    "src": "def convert("
+   },
+   {
+    "file": "src/flask/cli.py",
+    "line": 877,
+    "form": "ref",
+    "src": "super_convert = super().convert"
+   },
+   {
+    "file": "src/flask/config.py",
+    "line": 131,
+    "form": "ref",
+    "src": "are passed through a loading function to attempt to convert them"
+   }
+  ]
+ }
+]
