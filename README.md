@@ -303,8 +303,10 @@ $ echo 'fix `buildReport` in src/report.ts' | glyph --json code-map --source-ref
   what it has, with one omission whose source is `code-map#time-budget` and whose
   reason starts `time-budget:` and names the stage and the elapsed time; a pointer emitted after the
   deadline says its line ranges were not read. An answer inside the budget is
-  unchanged. The one step the budget cannot interrupt is the cold index build; an
-  overrun there is reported the same way, never silently.
+  unchanged. The one step the budget cannot interrupt is the cold index build. It
+  runs at tier 3's position — after the named-path and branch tiers have
+  answered — so an overrun there is a `symbol index` stop that keeps those
+  answers, reported the same way and never silently (DEC-303 (a16)).
 - Task text over 20,000 UTF-16 code units (JavaScript's string length, so an
   emoji counts as two and `é` as one) is a **usage error**, never a silent
   truncation. A missing `--source-ref` is a usage error too.
@@ -394,7 +396,8 @@ because the manifest has no slot for output fields.
   and `--stream` result data, present only when non-empty. It is absent for
   TypeScript and for a clean Python run. `exact` itself is not published.
   In `code-map`, a failing Python index is a missing tier, not a failed run:
-  tiers 1, 2 and 4 still answer with exit 0.
+  tiers 1, 2 and 4 still answer with exit 0, and a build that overruns keeps
+  tiers 1 and 2 (DEC-303 (a16)).
 
 ## Streaming (`--stream`)
 

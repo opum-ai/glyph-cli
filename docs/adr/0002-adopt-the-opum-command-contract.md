@@ -254,7 +254,7 @@ beyond items 1 to 5.
 
 ## Amendment, 2026-11-25 (GCLI-82): the parse-error field, DEC-303 (a15)
 
-DEC-303 (a15) (ODOC-640, relayed 2026-11-25; Q1 a narrow arm B, the contract gains parseErrorFiles and exact stays internal; Q2 arm A) adds one optional output
+DEC-303 (a15) (ODOC-640, relayed 2026-11-25; Q1 a narrow arm B: the contract gains parseErrorFiles and exact stays internal; Q2, refined for the code-map build by (a16)) adds one optional output
 entry to the Python contract above and rules that exactness stays internal. They
 are output entries, not flags, so the `help --json` manifest needs no new
 declaration: it has no slot for output fields. Every entry below is absent —
@@ -277,5 +277,8 @@ so TypeScript-only answers stay byte-identical.
    init failure or a git read failure during `code-map`'s Python tier-3 build is
    a missing tier, not a failed run: tiers 1, 2 and 4 still answer with exit 0.
    The rule that a non-empty exit7 list raises exit 7 applies to `callers`,
-   `impact`, `diff` and `--stream`, not to `code-map`. The code-map clock starts
-   before the Python prebuild, so a slow build is a `symbol index` budget stop.
+   `impact`, `diff` and `--stream`, not to `code-map`. The code-map clock still
+   starts before the first git read; the build runs at tier 3's position, inside
+   code-map's budgeted, caught region, after tiers 1 and 2 have answered. A build
+   that overruns the budget is therefore a `symbol index` budget stop that keeps
+   the tiers 1 and 2 answers gathered before it (DEC-303 (a16) 23).
