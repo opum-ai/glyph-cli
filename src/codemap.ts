@@ -513,8 +513,8 @@ interface CodeMapClock {
 
 /**
  * Start a code-map run's clock and install it as the git budget, before any git
- * read — the source ref's, the tiers', and (for Python) the tier-3 prebuild's.
- * One deadline then caps them all (DEC-303 (a15) 21).
+ * read — the source ref's, tiers 1 and 2's, and (for Python) the tier-3 build's.
+ * One deadline then caps them all (DEC-303 (a16) 23).
  */
 function startCodeMapClock(input: CodeMapInput): CodeMapClock {
 	const now = input.now ?? (() => performance.now());
@@ -538,25 +538,40 @@ export function produceCodeMapWithSpawn(input: CodeMapInput, spawn: GitSpawn): C
 			// Nothing can be gathered without the commit: no pointers, and the row says why.
 			return { pointers: [], omissions: [timeBudgetRow(clock.budgetMs, "source ref", clock.elapsedMs(), 0)] };
 		}
-		return buildCodeMap(input, commit, clock.budgetMs, clock.elapsedMs, spawn);
+		const state = newCodeMapRun(input, commit, clock, spawn);
+		// Tiers 1 and 2 first, then the (synchronous) index load at tier 3's position.
+		gatherNamedPathsAndBranch(state);
+		if (shouldLoadSymbols(state)) {
+			// Only the LOADER is fallible by design (git, the compiler, the cache). A defect in
+			// the pure resolution is a bug, and surfaces rather than reverting silently.
+			let index: GlyphIndex | null = null;
+			try {
+				index = loadIndexSync(input, commit);
+			} catch (error) {
+				// A git read the budget cut off (ls-tree, cat-file) is a stop at this stage.
+				if (error instanceof BudgetExpired) stopRun(state, "symbol index");
+				index = null;
+			}
+			gatherSymbols(state, index);
+		}
+		gatherIdentifiers(state);
+		return finalizeCodeMap(state);
 	} finally {
 		setGitBudget(null);
 	}
 }
 
 /**
- * The code map with an asynchronous tier-3 prebuild (Python; its grammar loads
- * through wasm), used by the CLI. The clock and the git budget start BEFORE the
- * prebuild, so a slow build is a "symbol index" budget stop, and the prebuild is
- * awaited here, inside this budgeted and caught region: a failing index — a
- * non-empty exit7 list, a grammar init failure, a git read failure — is a
- * missing tier, never a failed run (DEC-303 (a15) 21). `buildRefIndex` returns
- * undefined to mean "no asynchronous index; use the synchronous, ref-keyed
- * loader" (TypeScript, or a ref with no indexable source).
- *
- * A prebuild that overran the deadline cannot be interrupted, so the run is
- * pre-stopped at the symbol stage: the time-budget row names it, and the same
- * row the synchronous loader would produce is what the caller sees.
+ * The code map with an asynchronous tier-3 index build (Python; its grammar
+ * loads through wasm), used by the CLI. The clock and the git budget still start
+ * before the first git read. The build runs at tier 3's POSITION — after tiers 1
+ * and 2 have answered — inside the same budget and inside tier 3's catch
+ * (DEC-303 (a16) 23). A build that overruns the budget is a "symbol index" stop
+ * that KEEPS tiers 1 and 2; a build that fails — a non-empty exit7 list, a
+ * grammar init failure, a git read failure — is tier 3 missing, and tiers 1, 2
+ * and 4 still answer with exit 0 (DEC-303 (a15) 21, refined by (a16) 23).
+ * `buildRefIndex` returns undefined to mean "no asynchronous index; use the
+ * synchronous, ref-keyed loader" (TypeScript, or a ref with no indexable source).
  */
 export async function produceCodeMapWithPrebuild(
 	input: CodeMapInput,
@@ -573,22 +588,24 @@ export async function produceCodeMapWithPrebuild(
 			if (!(error instanceof BudgetExpired)) throw error;
 			return { pointers: [], omissions: [timeBudgetRow(clock.budgetMs, "source ref", clock.elapsedMs(), 0)] };
 		}
-		// Tier 3's index is built here, still inside the budget: its git reads are
-		// capped by the same deadline and the clock already covers it. Any failure is
-		// a missing tier; only a budget cut stops the run, at the symbol stage.
-		let refIndexOverride: { commit: string; index: GlyphIndex | null } | undefined;
-		let prebuildOverran = false;
-		if (input.symbols !== false) {
+		const state = newCodeMapRun(input, commit, clock, spawn);
+		// Tiers 1 and 2 answer BEFORE the build, so a build that overruns keeps them.
+		gatherNamedPathsAndBranch(state);
+		if (shouldLoadSymbols(state)) {
+			// The build runs at tier 3's position, inside this catch: any failure is a missing
+			// tier; a budget cut is a stop at the symbol stage, which the gathered tiers survive.
+			let index: GlyphIndex | null = null;
 			try {
 				const prebuilt = await buildRefIndex(input.repositoryPath, commit);
-				refIndexOverride = prebuilt === undefined ? undefined : { commit, index: prebuilt };
-			} catch {
-				refIndexOverride = { commit, index: null };
+				index = prebuilt === undefined ? loadIndexSync(input, commit) : prebuilt;
+			} catch (error) {
+				if (error instanceof BudgetExpired) stopRun(state, "symbol index");
+				index = null;
 			}
-			prebuildOverran = currentGitBudget()?.expired() === true;
+			gatherSymbols(state, index);
 		}
-		const prestopped = prebuildOverran ? { stage: "symbol index", elapsedMs: clock.elapsedMs() } : undefined;
-		return buildCodeMap(input, commit, clock.budgetMs, clock.elapsedMs, spawn, refIndexOverride, prestopped);
+		gatherIdentifiers(state);
+		return finalizeCodeMap(state);
 	} finally {
 		setGitBudget(null);
 	}
@@ -602,53 +619,75 @@ function timeBudgetRow(budgetMs: number, stage: string, elapsedMs: number, range
 }
 
 /**
- * DEC-216 (a4)(b): past the budget the run stops gathering and returns what it has,
- * with a `time-budget` omission naming the stage it stopped in. The deadline is
- * checked between units of work (a named path, the branch diff, the index load, one
- * identifier's grep, one pointer's range reads) and caps every git read at the time
- * left. The one unit it cannot interrupt is the synchronous index build, which a
- * repository far larger than the measured ones could overrun (DEC-216 (a10)); the
- * omission then names the stage that overran and carries the elapsed time.
+ * DEC-216 (a4)(b): past the budget the run stops gathering and returns what it
+ * has, with a `time-budget` omission naming the stage it stopped in. The deadline
+ * is checked between units of work (a named path, the branch diff, the index
+ * load, one identifier's grep, one pointer's range reads) and caps every git read
+ * at the time left. The one unit it cannot interrupt is the index build; a build
+ * that overruns names its stage and carries the elapsed time. The Python build
+ * runs at tier 3's position, so a run that overruns there keeps the tiers 1 and 2
+ * answers gathered before it (DEC-303 (a16) 23).
  */
-function buildCodeMap(
-	input: CodeMapInput,
-	commit: string,
-	budgetMs: number,
-	elapsedMs: () => number,
-	spawn: GitSpawn,
-	refIndexOverride?: { commit: string; index: GlyphIndex | null },
-	prestopped?: { stage: string; elapsedMs: number },
-): CodeMapOutput {
-	const text = input.taskText;
-	const omissions: CodeMapOmission[] = [];
-	// A prebuild that overran could not be interrupted: the run is already stopped at
-	// that stage, so no later unit runs and the budget row names where the time went.
-	let stoppedAt: string | undefined = prestopped?.stage;
-	let stoppedElapsedMs = prestopped?.elapsedMs ?? 0;
-	let rangesNotRead = 0;
-	// The elapsed time is read when the run stops, so the row says when it stopped.
-	const stop = (stage: string): void => {
-		if (stoppedAt !== undefined) return;
-		stoppedAt = stage;
-		stoppedElapsedMs = elapsedMs();
-	};
-	const spent = (stage: string): boolean => {
-		if (stoppedAt !== undefined) return true;
-		if (currentGitBudget()?.expired() === true) stop(stage);
-		return stoppedAt !== undefined;
-	};
-	const guarded = (stage: string, run: () => void): void => {
-		if (spent(stage)) return;
-		try {
-			run();
-		} catch (error) {
-			if (!(error instanceof BudgetExpired)) throw error;
-			stop(stage);
-		}
-	};
 
-	const candidates = new Map<string, Candidate>();
-	const add = (candidate: {
+/** Mutable state shared by the phases of one code-map run. */
+interface CodeMapRun {
+	input: CodeMapInput;
+	commit: string;
+	spawn: GitSpawn;
+	budgetMs: number;
+	elapsedMs: () => number;
+	identifiers: string[];
+	omissions: CodeMapOmission[];
+	stoppedAt: string | undefined;
+	stoppedElapsedMs: number;
+	rangesNotRead: number;
+	candidates: Map<string, Candidate>;
+	change: BranchChange;
+}
+
+function newCodeMapRun(input: CodeMapInput, commit: string, clock: CodeMapClock, spawn: GitSpawn): CodeMapRun {
+	return {
+		input,
+		commit,
+		spawn,
+		budgetMs: clock.budgetMs,
+		elapsedMs: clock.elapsedMs,
+		identifiers: collectIdentifiers(input.taskText),
+		omissions: [],
+		stoppedAt: undefined,
+		stoppedElapsedMs: 0,
+		rangesNotRead: 0,
+		candidates: new Map(),
+		change: { base: undefined, files: new Map() },
+	};
+}
+
+/** The elapsed time is read when the run stops, so the row says when it stopped. */
+function stopRun(state: CodeMapRun, stage: string): void {
+	if (state.stoppedAt !== undefined) return;
+	state.stoppedAt = stage;
+	state.stoppedElapsedMs = state.elapsedMs();
+}
+
+function spent(state: CodeMapRun, stage: string): boolean {
+	if (state.stoppedAt !== undefined) return true;
+	if (currentGitBudget()?.expired() === true) stopRun(state, stage);
+	return state.stoppedAt !== undefined;
+}
+
+function guarded(state: CodeMapRun, stage: string, run: () => void): void {
+	if (spent(state, stage)) return;
+	try {
+		run();
+	} catch (error) {
+		if (!(error instanceof BudgetExpired)) throw error;
+		stopRun(state, stage);
+	}
+}
+
+function addCandidate(
+	state: CodeMapRun,
+	candidate: {
 		path: string;
 		kind: SourceKind;
 		detail: string;
@@ -657,60 +696,85 @@ function buildCodeMap(
 		identifier?: string;
 		distance?: number;
 		line?: number;
-	}): void => {
-		if (isNonCodePath(candidate.path)) return;
-		const existing = candidates.get(candidate.path);
-		const target: Candidate = existing ?? {
-			path: candidate.path,
-			rank: SOURCE_RANK[candidate.kind],
-			baseRank: undefined,
-			score: 0,
-			distance: Number.POSITIVE_INFINITY,
-			symbolRanges: [],
-			reasons: new Map(),
-			fromBranch: false,
-			identifiers: [],
-		};
-		target.rank = Math.min(target.rank, SOURCE_RANK[candidate.kind]);
-		if (candidate.kind !== "symbol") {
-			target.baseRank = Math.min(target.baseRank ?? SOURCE_RANK[candidate.kind], SOURCE_RANK[candidate.kind]);
-		}
-		if (candidate.distance !== undefined) target.distance = Math.min(target.distance, candidate.distance);
-		if (candidate.line !== undefined) target.symbolRanges.push([candidate.line, candidate.line]);
-		target.score = Math.max(target.score, candidate.score ?? 0);
-		target.fromBranch ||= candidate.fromBranch === true;
-		if (candidate.identifier !== undefined) target.identifiers.push(candidate.identifier);
-		target.reasons.set(`${candidate.kind}:${candidate.detail}`, { kind: candidate.kind, detail: candidate.detail });
-		candidates.set(candidate.path, target);
+	},
+): void {
+	if (isNonCodePath(candidate.path)) return;
+	const existing = state.candidates.get(candidate.path);
+	const target: Candidate = existing ?? {
+		path: candidate.path,
+		rank: SOURCE_RANK[candidate.kind],
+		baseRank: undefined,
+		score: 0,
+		distance: Number.POSITIVE_INFINITY,
+		symbolRanges: [],
+		reasons: new Map(),
+		fromBranch: false,
+		identifiers: [],
 	};
+	target.rank = Math.min(target.rank, SOURCE_RANK[candidate.kind]);
+	if (candidate.kind !== "symbol") {
+		target.baseRank = Math.min(target.baseRank ?? SOURCE_RANK[candidate.kind], SOURCE_RANK[candidate.kind]);
+	}
+	if (candidate.distance !== undefined) target.distance = Math.min(target.distance, candidate.distance);
+	if (candidate.line !== undefined) target.symbolRanges.push([candidate.line, candidate.line]);
+	target.score = Math.max(target.score, candidate.score ?? 0);
+	target.fromBranch ||= candidate.fromBranch === true;
+	if (candidate.identifier !== undefined) target.identifiers.push(candidate.identifier);
+	target.reasons.set(`${candidate.kind}:${candidate.detail}`, { kind: candidate.kind, detail: candidate.detail });
+	state.candidates.set(candidate.path, target);
+}
 
-	// Tier 1: repo-relative paths named in the task text, when they exist at the
-	// source ref as a blob. A directory or a stale path is not a pointer. The read
-	// bound is reported: a text naming more paths than the bound tries cannot
-	// silently lose the rest.
-	const namedPaths = pathsNamedIn(text);
+/** True when tier 3 should run at all: enabled and the budget not already spent. */
+function shouldLoadSymbols(state: CodeMapRun): boolean {
+	return state.input.symbols !== false && !spent(state, "symbol index");
+}
+
+/** The tier-3 index from the injected loader, a prebuilt one, or the ref-keyed cache. */
+function loadIndexSync(input: CodeMapInput, commit: string): GlyphIndex | null {
+	const loader = input.loadIndex;
+	const prebuilt = input.refIndex;
+	return loader !== undefined
+		? loader(input.repositoryPath, commit)
+		: prebuilt !== undefined
+			? prebuilt.commit === commit
+				? prebuilt.index
+				: null
+			: loadRefIndex(input.repositoryPath, commit);
+}
+
+/**
+ * Tiers 1 and 2, gathered BEFORE tier 3's build so a build that overruns the
+ * budget keeps them (DEC-303 (a16) 23).
+ *
+ * Tier 1: repo-relative paths named in the task text, when they exist at the
+ * source ref as a blob. A directory or a stale path is not a pointer. The read
+ * bound is reported: a text naming more paths than the bound tries cannot
+ * silently lose the rest.
+ */
+function gatherNamedPathsAndBranch(state: CodeMapRun): void {
+	const { input, commit, spawn } = state;
+	const namedPaths = pathsNamedIn(input.taskText);
 	if (namedPaths.length > CODE_MAP_MAX_PATH_CANDIDATES) {
-		omissions.push({
+		state.omissions.push({
 			source: READ_BOUND_SOURCE,
 			reason: `over the code-map read bound: ${namedPaths.length} paths named, ${CODE_MAP_MAX_PATH_CANDIDATES} tried`,
 		});
 	}
 	for (const path of namedPaths.slice(0, CODE_MAP_MAX_PATH_CANDIDATES)) {
-		guarded("named paths", () => {
+		guarded(state, "named paths", () => {
 			if (isBlobAt(input.repositoryPath, commit, path, spawn)) {
-				add({ path, kind: "task-text-path", detail: "path named in the task text" });
+				addCandidate(state, { path, kind: "task-text-path", detail: "path named in the task text" });
 			}
 		});
 	}
 
 	// Tier 2: files this branch changed against the source ref. The diff's ranges
 	// are fetched later, for the files that survive the cap only.
-	let change: BranchChange = { base: undefined, files: new Map() };
-	guarded("branch diff", () => {
-		change = branchChange(input.repositoryPath, commit, spawn);
+	guarded(state, "branch diff", () => {
+		state.change = branchChange(input.repositoryPath, commit, spawn);
 	});
-	for (const [path, changedLines] of change.files) {
-		add({
+	for (const [path, changedLines] of state.change.files) {
+		addCandidate(state, {
 			path,
 			kind: "changed-on-branch",
 			detail: `changed on this branch against ${input.sourceRef} (${changedLines} line${changedLines === 1 ? "" : "s"})`,
@@ -718,64 +782,67 @@ function buildCodeMap(
 			fromBranch: true,
 		});
 	}
+}
 
-	// Tier 3: the symbols the text names (the producer's own identifier extraction,
-	// matched by exact name), resolved through the commit's index. An absent or
-	// failing index is a missing tier, never a failed run: the fallback is a true
-	// control, so the output is then the deterministic producer's.
-	const identifiers = collectIdentifiers(text);
-	if (input.symbols !== false && !spent("symbol index")) {
-		// Only the LOADER is fallible by design (git, the compiler, the cache). A defect in
-		// the pure resolution below is a bug, and surfaces rather than reverting silently.
-		let index: GlyphIndex | null = null;
-		try {
-			const loader = input.loadIndex;
-			const prebuilt = refIndexOverride ?? input.refIndex;
-			index =
-				loader !== undefined
-					? loader(input.repositoryPath, commit)
-					: prebuilt !== undefined
-						? prebuilt.commit === commit
-							? prebuilt.index
-							: null
-						: loadRefIndex(input.repositoryPath, commit);
-		} catch (error) {
-			// A git read the budget cut off (ls-tree, cat-file) is a stop at this stage.
-			if (error instanceof BudgetExpired) stop("symbol index");
-			index = null;
-		}
-		// The build cannot be interrupted, so the stage that spent the budget is named here.
-		spent("symbol index");
-		const hits = index === null ? [] : symbolHits(index, identifiers.slice(0, CODE_MAP_MAX_IDENTIFIERS));
-		for (const hit of hits) {
-			add({ path: hit.path, kind: "symbol", detail: hit.detail, distance: hit.distance, line: hit.line });
-		}
+/**
+ * Tier 3: the symbols the text names (the producer's own identifier extraction,
+ * matched by exact name), resolved through the commit's index. An absent or
+ * failing index is a missing tier, never a failed run: the fallback is a true
+ * control, so the output is then the deterministic producer's. The build cannot
+ * be interrupted, so the stage that spent the budget is named here.
+ */
+function gatherSymbols(state: CodeMapRun, index: GlyphIndex | null): void {
+	spent(state, "symbol index");
+	const hits = index === null ? [] : symbolHits(index, state.identifiers.slice(0, CODE_MAP_MAX_IDENTIFIERS));
+	for (const hit of hits) {
+		addCandidate(state, {
+			path: hit.path,
+			kind: "symbol",
+			detail: hit.detail,
+			distance: hit.distance,
+			line: hit.line,
+		});
 	}
+}
 
-	// Tier 4: distinctive identifiers, `git grep -l` at the source ref, capped per
-	// identifier so one common name cannot fill the whole map. Both read bounds
-	// are reported: the identifier cap and the per-identifier file cap.
+/**
+ * Tier 4: distinctive identifiers, `git grep -l` at the source ref, capped per
+ * identifier so one common name cannot fill the whole map. Both read bounds are
+ * reported: the identifier cap and the per-identifier file cap.
+ */
+function gatherIdentifiers(state: CodeMapRun): void {
+	const { input, commit, spawn, identifiers } = state;
 	if (identifiers.length > CODE_MAP_MAX_IDENTIFIERS) {
-		omissions.push({
+		state.omissions.push({
 			source: READ_BOUND_SOURCE,
 			reason: `over the code-map read bound: ${identifiers.length} identifiers found, ${CODE_MAP_MAX_IDENTIFIERS} grepped`,
 		});
 	}
 	for (const identifier of identifiers.slice(0, CODE_MAP_MAX_IDENTIFIERS)) {
-		guarded("identifier grep", () => {
+		guarded(state, "identifier grep", () => {
 			const matches = grepFiles(input.repositoryPath, commit, identifier, spawn);
 			if (matches.length > CODE_MAP_MAX_FILES_PER_IDENTIFIER) {
-				omissions.push({
+				state.omissions.push({
 					source: READ_BOUND_SOURCE,
 					reason: `identifier \`${identifier}\` matched ${matches.length} files; the read bound records ${CODE_MAP_MAX_FILES_PER_IDENTIFIER}`,
 				});
 			}
 			for (const path of matches.slice(0, CODE_MAP_MAX_FILES_PER_IDENTIFIER)) {
-				add({ path, kind: "identifier", detail: `matches identifier \`${identifier}\``, score: 1, identifier });
+				addCandidate(state, {
+					path,
+					kind: "identifier",
+					detail: `matches identifier \`${identifier}\``,
+					score: 1,
+					identifier,
+				});
 			}
 		});
 	}
+}
 
+/** Score, rank and emit, once every tier has gathered. */
+function finalizeCodeMap(state: CodeMapRun): CodeMapOutput {
+	const { input, commit, spawn, candidates, change } = state;
 	// The identifier score is the count of DISTINCT identifiers a file matched.
 	for (const candidate of candidates.values()) {
 		if (candidate.identifiers.length > 0) {
@@ -818,7 +885,7 @@ function buildCodeMap(
 		let ranges: Array<[number, number]> =
 			candidate.fromBranch && change.base !== undefined ? [] : mergeRanges(candidate.symbolRanges);
 		let rangesRead = false;
-		guarded("line ranges", () => {
+		guarded(state, "line ranges", () => {
 			const branchRanges =
 				candidate.fromBranch && change.base !== undefined
 					? diffRanges(input.repositoryPath, change.base, candidate.path, spawn)
@@ -837,7 +904,7 @@ function buildCodeMap(
 		// Past the budget a pointer is still returned, without the git reads that would
 		// have given its line ranges; its reason says so, since an empty range list
 		// otherwise means the whole file.
-		if (!rangesRead) rangesNotRead += 1;
+		if (!rangesRead) state.rangesNotRead += 1;
 		const shown = ranges.slice(0, CODE_MAP_MAX_RANGES_PER_POINTER).map(formatRange);
 		if (ranges.length > CODE_MAP_MAX_RANGES_PER_POINTER) {
 			shown.push(`+${ranges.length - CODE_MAP_MAX_RANGES_PER_POINTER} more ranges`);
@@ -854,7 +921,7 @@ function buildCodeMap(
 		// An over-budget pointer is SKIPPED, not fatal to the list, and the skip is
 		// NAMED: a dropped pointer is an omission row.
 		if (tokens + cost > CODE_MAP_MAX_TOKENS) {
-			omissions.push({
+			state.omissions.push({
 				source: `code-map:${candidate.path}`,
 				reason: `over the code-map token cap: ${tokens} of ${CODE_MAP_MAX_TOKENS} tokens already chosen`,
 			});
@@ -873,7 +940,7 @@ function buildCodeMap(
 	// named as displaced when tier 3 pushes it past the file cap.
 	const accountedFor = new Set([
 		...pointers.map((pointer) => pointer.path),
-		...omissions.map((omission) => omission.source.replace(/^code-map:/, "")),
+		...state.omissions.map((omission) => omission.source.replace(/^code-map:/, "")),
 	]);
 	const withoutSymbols = [...candidates.values()]
 		.filter((candidate) => candidate.baseRank !== undefined)
@@ -883,21 +950,21 @@ function buildCodeMap(
 	for (const candidate of withoutSymbols) {
 		if (accountedFor.has(candidate.path)) continue;
 		displaced += 1;
-		omissions.push({
+		state.omissions.push({
 			source: `code-map:${candidate.path}`,
 			reason: `displaced by symbol pointers at the code-map file cap of ${CODE_MAP_MAX_FILES}`,
 		});
 	}
 	if (overFileCap - displaced > 0) {
-		omissions.push({
+		state.omissions.push({
 			source: FILE_CAP_SOURCE,
 			reason: `${overFileCap - displaced} more over the code-map file cap of ${CODE_MAP_MAX_FILES}`,
 		});
 	}
 
-	if (stoppedAt !== undefined) {
-		omissions.push(timeBudgetRow(budgetMs, stoppedAt, stoppedElapsedMs, rangesNotRead));
+	if (state.stoppedAt !== undefined) {
+		state.omissions.push(timeBudgetRow(state.budgetMs, state.stoppedAt, state.stoppedElapsedMs, state.rangesNotRead));
 	}
 
-	return { pointers, omissions };
+	return { pointers, omissions: state.omissions };
 }

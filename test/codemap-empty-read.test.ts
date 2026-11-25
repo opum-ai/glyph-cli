@@ -569,8 +569,9 @@ describe("the spawn seam is not reachable from the CLI", () => {
 		const cli = readFileSync(join(srcDir, "cli.ts"), "utf8");
 		const program = readFileSync(join(srcDir, "program.ts"), "utf8");
 		// Positive control: we read the real entry points, and program.ts is the one
-		// that imports the code map. The CLI uses the prebuild entry (DEC-303 (a15)
-		// 21), which keeps the spawn seam internal exactly as `produceCodeMap` did.
+		// that imports the code map. The CLI uses the asynchronous tier-3 entry
+		// (DEC-303 (a16) 23), which keeps the spawn seam internal exactly as
+		// `produceCodeMap` did.
 		expect(cli.length).toBeGreaterThan(0);
 		expect(program).toContain('import { produceCodeMapWithPrebuild } from "./codemap.ts"');
 		// The seam is absent from both.

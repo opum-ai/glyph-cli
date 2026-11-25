@@ -179,7 +179,7 @@ function infoOf(index: GlyphIndex, cache: "hit" | "miss", selection?: LanguageSe
 }
 
 /**
- * The selected language's index at `commit`, prebuilt through the seam when it
+ * The selected language's index at `commit`, built at tier 3's position when it
  * needs an asynchronous build (Python; the grammar loads through wasm).
  * TypeScript returns undefined so code-map's synchronous, ref-keyed cached
  * loader is used and its deterministic path is byte-for-byte unchanged. A ref
@@ -187,9 +187,9 @@ function infoOf(index: GlyphIndex, cache: "hit" | "miss", selection?: LanguageSe
  * tiers 1, 2 and 4 still answer, and the producer reports an unresolvable ref
  * itself.
  *
- * This is called from inside code-map's budgeted and caught region (DEC-303
- * (a15) 21): its git reads are capped by the same budget, and a throw here is a
- * missing tier, never a failed run.
+ * This is called from inside code-map's budgeted and caught tier-3 region
+ * (DEC-303 (a16) 23, refining (a15) 21): its git reads are capped by the same
+ * budget, and a throw here is a missing tier, never a failed run.
  */
 async function codeMapRefIndex(
 	repositoryPath: string,
@@ -692,9 +692,10 @@ export function buildProgram(scanned: ScannedArgs): Command {
 			// Task text on stdin. The bound is enforced by the producer, which refuses
 			// text over the limit rather than truncating it.
 			const taskText = readFileSync(0, "utf8");
-			// The selected language's index is built inside code-map's budget and
-			// caught region (DEC-303 (a15) 21): a slow Python build is a "symbol
-			// index" budget stop, and a failing one is a missing tier, never a failed
+			// The selected language's index is built at tier 3's position, inside
+			// code-map's budgeted and caught region (DEC-303 (a16) 23, refining (a15)
+			// 21): a Python build that overruns is a "symbol index" budget stop that
+			// keeps tiers 1 and 2, and a failing one is a missing tier, never a failed
 			// run. TypeScript keeps the synchronous, cached loader (S7 rule 8).
 			const buildRefIndex = (repositoryPath: string, commit: string) =>
 				codeMapRefIndex(repositoryPath, commit, sourceRef);
