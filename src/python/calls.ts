@@ -29,6 +29,7 @@ import {
 	type DynamicImport,
 	type Exit7Trigger,
 	type ImportBinding,
+	isSinglePortionNamespace,
 	type ModuleGraph,
 	type ModuleGraphOptions,
 	type PythonModuleInput,
@@ -1405,6 +1406,9 @@ class Resolver {
 	private readonly classById = new Map<string, ClassInfo>();
 	private readonly pathToModule = new Map<string, string>();
 	private readonly modulePathByName = new Map<string, string>();
+	/** DEC-303 (a27) Q2: a module-name prefix with no file of its own, mapped to its directory. */
+	private readonly namespaceDirByName = new Map<string, string>();
+	private isSinglePortionNamespace: (dir: string) => boolean = () => false;
 	private readonly fileBindingsByPath = new Map<string, ImportBinding[]>();
 	private readonly starBindingsByPath = new Map<string, ImportBinding[]>();
 	/** Rule 33: each file's module scope, for reading a star target's bindings. */
@@ -1434,6 +1438,21 @@ class Resolver {
 			this.pathToModule.set(module.path, module.module);
 			if (!module.shadowed && !this.modulePathByName.has(module.module)) {
 				this.modulePathByName.set(module.module, module.path);
+			}
+		}
+		this.isSinglePortionNamespace = (dir) => isSinglePortionNamespace(graph, dir);
+		for (const module of graph.modules) {
+			if (module.shadowed || module.module === "") continue;
+			const nameParts = module.module.split(".");
+			const pathParts = module.path.split("/");
+			const fileParts = module.isPackage ? 1 : 0;
+			for (let k = 1; k < nameParts.length; k++) {
+				const name = nameParts.slice(0, k).join(".");
+				if (this.modulePathByName.has(name) || this.namespaceDirByName.has(name)) continue;
+				this.namespaceDirByName.set(
+					name,
+					pathParts.slice(0, pathParts.length - fileParts - (nameParts.length - k)).join("/"),
+				);
 			}
 		}
 		for (const file of graph.files) {
@@ -1879,15 +1898,31 @@ class Resolver {
 	private resolveModuleChain(path: string, segments: readonly string[], fromIndex: number): ModuleAttrOutcome {
 		let currentPath = path;
 		let currentName = this.pathToModule.get(path) ?? "";
+		let pending: string | null = null;
 		for (let index = fromIndex; index < segments.length; index++) {
 			const segment = segments[index] as string;
 			const last = index === segments.length - 1;
+			const baseName: string = pending ?? currentName;
+			const subName: string = baseName === "" ? segment : `${baseName}.${segment}`;
+			const subPath = this.modulePathByName.get(subName);
 			if (!last) {
-				const subName = currentName === "" ? segment : `${currentName}.${segment}`;
-				const subPath = this.modulePathByName.get(subName);
-				if (subPath === undefined) return { kind: "unresolved", reason: "attribute-not-found" };
-				currentPath = subPath;
-				currentName = subName;
+				if (subPath !== undefined) {
+					currentPath = subPath;
+					currentName = subName;
+					pending = null;
+				} else {
+					// DEC-303 (a27) Q2: walk through a single-portion namespace directory.
+					const dir = this.namespaceDirByName.get(subName);
+					if (dir === undefined || !this.isSinglePortionNamespace(dir)) {
+						return { kind: "unresolved", reason: "attribute-not-found" };
+					}
+					pending = subName;
+				}
+			} else if (pending !== null) {
+				// A namespace package has no attributes of its own, so only a submodule binds.
+				return subPath !== undefined
+					? { kind: "module", path: subPath }
+					: { kind: "unresolved", reason: "attribute-not-found" };
 			} else {
 				return this.resolveModuleAttribute(currentPath, segment, new Set(), 0);
 			}

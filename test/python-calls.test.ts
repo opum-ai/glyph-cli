@@ -1670,3 +1670,120 @@ describe("traversal depth", () => {
 		expect(result.exact).toBe(true);
 	});
 });
+
+// DEC-303 (a26) item 1: the flask-shaped case. The base class lives in a module
+// reached through a directory with no __init__.py, so the base must resolve in
+// repository rather than leaving Flask with an opaque (external-base) base.
+describe("DEC-303 (a26) — a base reached through a namespace directory", () => {
+	const scaffold = "class Scaffold:\n    def helper(self):\n        pass\n";
+	const base = "from .scaffold import Scaffold\n\nclass App(Scaffold):\n    def m(self):\n        pass\n";
+
+	test("a relative from-import through a namespace directory: self.m() resolves to the in-repo base", async () => {
+		const files = [
+			py("pkg/__init__.py", ""),
+			py("pkg/sansio/scaffold.py", scaffold),
+			py("pkg/sansio/app.py", base),
+			py(
+				"pkg/app.py",
+				"from .sansio.app import App\n\nclass Flask(App):\n    def go(self):\n        self.m()\n        self.helper()\n",
+			),
+		];
+		const result = await analyze(files);
+		expect(result.callBins.resolvedExternal).toBe(0);
+		expect(linesTo(result, symbolId(result, "App.m", "pkg/sansio/app.py"))).toEqual([5]);
+		expect(linesTo(result, symbolId(result, "Scaffold.helper", "pkg/sansio/scaffold.py"))).toEqual([6]);
+	});
+
+	test("the absolute from-import form resolves the same way", async () => {
+		const files = [
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/sansio/scaffold.py", scaffold),
+			py("src/pkg/sansio/app.py", base),
+			py(
+				"src/pkg/app.py",
+				"from pkg.sansio.app import App\n\nclass Flask(App):\n    def go(self):\n        self.m()\n",
+			),
+		];
+		const result = await analyze(files);
+		expect(linesTo(result, symbolId(result, "App.m", "src/pkg/sansio/app.py"))).toEqual([5]);
+	});
+
+	test("negative control: __path__ manipulation in the ancestor keeps the base opaque", async () => {
+		const files = [
+			py("pkg/__init__.py", "import pkgutil\n__path__ = pkgutil.extend_path(__path__, __name__)\n"),
+			py("pkg/sansio/scaffold.py", scaffold),
+			py("pkg/sansio/app.py", base),
+			py("pkg/app.py", "from .sansio.app import App\n\nclass Flask(App):\n    def go(self):\n        self.m()\n"),
+		];
+		const result = await analyze(files);
+		expect(linesTo(result, symbolId(result, "App.m", "pkg/sansio/app.py"))).toEqual([]);
+		expect(result.callBins.resolvedExternal).toBeGreaterThan(0);
+	});
+
+	// DEC-303 (a27) Q2: a dotted attribute chain through a single-portion namespace
+	// directory resolves by (a26) item 1, as it does when the directory has an __init__.py.
+	const mod = "class Base:\n    def m(self):\n        pass\n\ndef helper():\n    pass\n";
+
+	test("Q2: class C(pkg.ns.mod.Base) after import pkg.ns.mod resolves self.m()", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/use.py", "import pkg.ns.mod\n\nclass C(pkg.ns.mod.Base):\n    def go(self):\n        self.m()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "Base.m", "src/pkg/ns/mod.py"))).toEqual([5]);
+	});
+
+	test("Q2: a call pkg.ns.mod.helper() through the chain resolves, and so does a two-level chain", async () => {
+		const one = await analyze([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/use.py", "import pkg.ns.mod\n\npkg.ns.mod.helper()\n"),
+		]);
+		expect(linesTo(one, symbolId(one, "helper", "src/pkg/ns/mod.py"))).toEqual([3]);
+		const two = await analyze([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/a/b/mod.py", mod),
+			py("src/use.py", "import pkg.a.b.mod\n\npkg.a.b.mod.helper()\n"),
+		]);
+		expect(linesTo(two, symbolId(two, "helper", "src/pkg/a/b/mod.py"))).toEqual([3]);
+	});
+
+	test("Q2 negative controls: a top-level namespace chain and a manipulated ancestor stay unresolved", async () => {
+		const top = await analyze([py("src/ns/mod.py", mod), py("src/use.py", "import ns.mod\n\nns.mod.helper()\n")]);
+		expect(linesTo(top, symbolId(top, "helper", "src/ns/mod.py"))).toEqual([]);
+		const manipulated = await analyze([
+			py("src/pkg/__init__.py", "__path__ = []\n"),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/use.py", "import pkg.ns.mod\n\npkg.ns.mod.helper()\n"),
+		]);
+		expect(linesTo(manipulated, symbolId(manipulated, "helper", "src/pkg/ns/mod.py"))).toEqual([]);
+		// the chain is walked from a bare `import pkg`, so the ancestor check must hold there too
+		const bare = await analyze([
+			py("src/pkg/__init__.py", "__path__ = []\n"),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/use.py", "import pkg\n\npkg.ns.mod.helper()\n"),
+		]);
+		expect(linesTo(bare, symbolId(bare, "helper", "src/pkg/ns/mod.py"))).toEqual([]);
+	});
+
+	test("Q2: a bare import pkg then pkg.ns.mod.helper() resolves under a non-empty anchor (positive)", async () => {
+		const bareOk = await analyze([
+			py("src/pkg/__init__.py", 'from .app import Flask\n\n__all__ = ["Flask"]\n__version__ = "1"\n'),
+			py("src/pkg/app.py", "class Flask:\n    pass\n"),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/use.py", "import pkg\n\npkg.ns.mod.helper()\n"),
+		]);
+		expect(linesTo(bareOk, symbolId(bareOk, "helper", "src/pkg/ns/mod.py"))).toEqual([3]);
+	});
+
+	test("Q1 at the call level: from pkg.ns import mod then mod.helper(), and from . import mod inside the directory", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", 'from .app import Flask\n\n__version__ = "1"\n'),
+			py("src/pkg/app.py", "class Flask:\n    pass\n"),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/pkg/ns/sib.py", "from . import mod\n\nmod.helper()\n"),
+			py("src/use.py", "from pkg.ns import mod\n\nmod.helper()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "src/pkg/ns/mod.py"))).toEqual([3, 3]);
+	});
+});
