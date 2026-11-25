@@ -834,6 +834,12 @@ interface Resolution {
 	target: string | null;
 	reason: string | null;
 	exit7?: { name: string; directories: string[] };
+	/**
+	 * DEC-303 (a27) Q1: set on a namespace-package result whose module part ENDS at a
+	 * single-portion namespace directory, so a from-import of a submodule below it can
+	 * still bind that file.
+	 */
+	namespaceDir?: string;
 }
 
 interface FileIdentity {
@@ -850,6 +856,7 @@ interface RawResolution {
 	target: string | null;
 	reason: string | null;
 	exit7: { name: string; directories: string[] } | null;
+	namespaceDir: string | null;
 	id: number;
 }
 
@@ -1028,6 +1035,7 @@ class ModuleResolver {
 					target: resolution.target,
 					reason: resolution.reason,
 					exit7: resolution.exit7 ?? null,
+					namespaceDir: resolution.namespaceDir ?? null,
 					id,
 				};
 				id++;
@@ -1096,11 +1104,20 @@ class ModuleResolver {
 				return { outcome: "unresolved", target: null, reason: "module-not-a-package" };
 			}
 			if (this.index.hasDir(joinPath(currentDir, component))) {
-				// A namespace directory as the last component is the namespace package itself.
-				if (index === parts.length - 1 || anchor === null || this.data.get(anchor)?.pathManipulated !== false) {
-					return { outcome: "unresolved", target: null, reason: "namespace-package" };
+				const known = anchor !== null && this.data.get(anchor)?.pathManipulated === false;
+				const namespaceDir = joinPath(currentDir, component);
+				// A namespace directory as the last component is the namespace package itself;
+				// a from-import of a submodule below it still binds that file (DEC-303 (a27) Q1).
+				if (index === parts.length - 1) {
+					return {
+						outcome: "unresolved",
+						target: null,
+						reason: "namespace-package",
+						...(known ? { namespaceDir } : {}),
+					};
 				}
-				currentDir = joinPath(currentDir, component);
+				if (!known) return { outcome: "unresolved", target: null, reason: "namespace-package" };
+				currentDir = namespaceDir;
 				continue;
 			}
 			return { outcome: "unresolved", target: null, reason: "module-not-found" };
@@ -1164,9 +1181,18 @@ class ModuleResolver {
 				const init = joinPath(identity.root, ...base.slice(0, length), "__init__.py");
 				if (this.index.has(init)) anchor = init;
 			}
-			if (modulePart === "" || anchor === null || this.data.get(anchor)?.pathManipulated !== false) {
-				return { outcome: "unresolved", target: null, reason: "namespace-package" };
+			const known = anchor !== null && this.data.get(anchor)?.pathManipulated === false;
+			// `from . import x` binds from the namespace package itself, which has no
+			// attributes, so x is the submodule (DEC-303 (a27) Q1).
+			if (modulePart === "") {
+				return {
+					outcome: "unresolved",
+					target: null,
+					reason: "namespace-package",
+					...(known ? { namespaceDir: baseDir } : {}),
+				};
 			}
+			if (!known) return { outcome: "unresolved", target: null, reason: "namespace-package" };
 		}
 		if (modulePart === "") {
 			const target = joinPath(baseDir, "__init__.py");
@@ -1246,7 +1272,11 @@ class ModuleResolver {
 				} else if (resolution.outcome === "external") {
 					results.push({ outcome: "external", target: null, reason: null });
 				} else if (resolution.outcome === "unresolved" || resolution.target === null) {
-					results.push({ outcome: "unresolved", target: null, reason: resolution.reason ?? "unresolved" });
+					const member =
+						resolution.namespaceDir !== null && raw.name !== null
+							? this.namespaceMember(resolution.namespaceDir, raw.name)
+							: null;
+					results.push(member ?? { outcome: "unresolved", target: null, reason: resolution.reason ?? "unresolved" });
 				} else if (raw.name !== null) {
 					results.push(
 						...clearStarOnly(this.resolveAttribute(resolution.target, raw.name, visited, resolution, depth + 1)),
@@ -1260,6 +1290,15 @@ class ModuleResolver {
 		} finally {
 			visited.delete(key);
 		}
+	}
+
+	/** A submodule file or package below a single-portion namespace directory, or null. */
+	private namespaceMember(dir: string, name: string): NameResolution | null {
+		const packageInit = joinPath(dir, name, "__init__.py");
+		if (this.index.has(packageInit)) return { outcome: "resolved", target: packageInit, reason: null };
+		const moduleFile = joinPath(dir, `${name}.py`);
+		if (this.index.has(moduleFile)) return { outcome: "resolved", target: moduleFile, reason: null };
+		return null;
 	}
 
 	/** Resolve `name` against a module: its own bindings, a re-export, or a submodule. */
@@ -1393,6 +1432,13 @@ class ModuleResolver {
 			return { ...base, target: null, outcome: "external", reason: null, alternatives: [], starNames: [] };
 		}
 		if (resolution.outcome === "unresolved" || resolution.target === null) {
+			const member =
+				resolution.namespaceDir !== null && raw.name !== null
+					? this.namespaceMember(resolution.namespaceDir, raw.name)
+					: null;
+			if (member !== null) {
+				return { ...base, target: member.target, outcome: "resolved", reason: null, alternatives: [], starNames: [] };
+			}
 			return {
 				...base,
 				target: null,
@@ -1438,6 +1484,7 @@ class ModuleResolver {
 			target: resolution.target,
 			reason: resolution.reason,
 			exit7: null,
+			namespaceDir: resolution.namespaceDir ?? null,
 			id: -1,
 		});
 	}
