@@ -1041,6 +1041,8 @@ describe("DEC-303 (a26) — resolving through a namespace directory", () => {
 		["an aliased declare_namespace import", "from pkg_resources import declare_namespace as dn\ndn(__name__)\n"],
 		["an aliased extend_path import", "from pkgutil import extend_path as ep\nep(['x'], 'pkg')\n"],
 		["a star import from pkgutil", "from pkgutil import *\n"],
+		["a star import from pkg_resources", "from pkg_resources import *\n"],
+		["__path__.append", "__path__.append('/elsewhere')\n"],
 		[
 			"an unparseable region (a parse error hides the text)",
 			"import pkgutil\nclass (:\n    pkgutil.extend_path(['x'], 'pkg')\n",
@@ -1103,9 +1105,35 @@ describe("DEC-303 (a26) — resolving through a namespace directory", () => {
 		]);
 		expect(bindingIn(graph, "src/use.py", "mod").target).toBe("src/pkg/ns/mod.py");
 		expect(bindingIn(graph, "src/use.py", "inner").target).toBe("src/pkg/ns/inner/__init__.py");
-		// the bound name is itself a namespace package (a26 2(b)), and a missing name is unchanged
+		// the bound name is itself a namespace package (a26 2(b)); a missing name is a first-party miss
 		expect(bindingIn(graph, "src/use.py", "deep").reason).toBe("namespace-package");
-		expect(bindingIn(graph, "src/use.py", "gone").reason).toBe("namespace-package");
+		expect(bindingIn(graph, "src/use.py", "gone").reason).toBe("attribute-not-found");
+		expect(graph.unresolved.find((entry) => entry.name === "gone")?.firstParty).toBe(true);
+		expect(graph.unresolved.find((entry) => entry.name === "deep")?.firstParty).toBe(false);
+	});
+
+	test("from . import gone inside a namespace directory is a first-party miss, not namespace-package", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/a.py", "from . import gone\nfrom . import sub\n"),
+			py("src/pkg/ns/sub/leaf.py", ""),
+		]);
+		expect(bindingIn(graph, "src/pkg/ns/a.py", "gone").reason).toBe("attribute-not-found");
+		expect(graph.unresolved.find((entry) => entry.name === "gone")?.firstParty).toBe(true);
+		// a name that is itself a namespace directory stays namespace-package (a26 2(b))
+		expect(bindingIn(graph, "src/pkg/ns/a.py", "sub").reason).toBe("namespace-package");
+	});
+
+	test("Q1 and Q2 positives with a realistic non-empty anchor __init__.py", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", 'from .app import Flask\n\n__all__ = ["Flask"]\n__version__ = "1"\n'),
+			py("src/pkg/app.py", "class Flask:\n    pass\n"),
+			py("src/pkg/ns/mod.py", "X = 1\n"),
+			py("src/pkg/ns/a.py", "from . import mod\n"),
+			py("src/use.py", "from pkg.ns import mod\n"),
+		]);
+		expect(bindingIn(graph, "src/use.py", "mod").target).toBe("src/pkg/ns/mod.py");
+		expect(bindingIn(graph, "src/pkg/ns/a.py", "mod").target).toBe("src/pkg/ns/mod.py");
 	});
 
 	test("from .. import b where .. is a namespace directory resolves (DEC-303 (a27) Q1)", async () => {

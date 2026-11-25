@@ -1272,11 +1272,11 @@ class ModuleResolver {
 				} else if (resolution.outcome === "external") {
 					results.push({ outcome: "external", target: null, reason: null });
 				} else if (resolution.outcome === "unresolved" || resolution.target === null) {
-					const member =
+					results.push(
 						resolution.namespaceDir !== null && raw.name !== null
 							? this.namespaceMember(resolution.namespaceDir, raw.name)
-							: null;
-					results.push(member ?? { outcome: "unresolved", target: null, reason: resolution.reason ?? "unresolved" });
+							: { outcome: "unresolved", target: null, reason: resolution.reason ?? "unresolved" },
+					);
 				} else if (raw.name !== null) {
 					results.push(
 						...clearStarOnly(this.resolveAttribute(resolution.target, raw.name, visited, resolution, depth + 1)),
@@ -1308,12 +1308,16 @@ class ModuleResolver {
 	}
 
 	/** A submodule file or package below a single-portion namespace directory, or null. */
-	private namespaceMember(dir: string, name: string): NameResolution | null {
+	private namespaceMember(dir: string, name: string): NameResolution {
 		const packageInit = joinPath(dir, name, "__init__.py");
 		if (this.index.has(packageInit)) return { outcome: "resolved", target: packageInit, reason: null };
 		const moduleFile = joinPath(dir, `${name}.py`);
 		if (this.index.has(moduleFile)) return { outcome: "resolved", target: moduleFile, reason: null };
-		return null;
+		// The bound name is itself a namespace package (DEC-303 (a26) 2(b)); anything else
+		// is a first-party miss, as for a regular package (resolveAttribute).
+		if (this.index.hasDir(joinPath(dir, name)))
+			return { outcome: "unresolved", target: null, reason: "namespace-package" };
+		return { outcome: "unresolved", target: null, reason: "attribute-not-found" };
 	}
 
 	/** Resolve `name` against a module: its own bindings, a re-export, or a submodule. */
@@ -1447,12 +1451,16 @@ class ModuleResolver {
 			return { ...base, target: null, outcome: "external", reason: null, alternatives: [], starNames: [] };
 		}
 		if (resolution.outcome === "unresolved" || resolution.target === null) {
-			const member =
-				resolution.namespaceDir !== null && raw.name !== null
-					? this.namespaceMember(resolution.namespaceDir, raw.name)
-					: null;
-			if (member !== null) {
-				return { ...base, target: member.target, outcome: "resolved", reason: null, alternatives: [], starNames: [] };
+			if (resolution.namespaceDir !== null && raw.name !== null) {
+				const member = this.namespaceMember(resolution.namespaceDir, raw.name);
+				return {
+					...base,
+					target: member.target,
+					outcome: member.outcome,
+					reason: member.reason,
+					alternatives: [],
+					starNames: [],
+				};
 			}
 			return {
 				...base,

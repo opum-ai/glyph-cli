@@ -1764,11 +1764,26 @@ describe("DEC-303 (a26) — a base reached through a namespace directory", () =>
 			py("src/use.py", "import pkg\n\npkg.ns.mod.helper()\n"),
 		]);
 		expect(linesTo(bare, symbolId(bare, "helper", "src/pkg/ns/mod.py"))).toEqual([]);
+	});
+
+	test("Q2: a bare import pkg then pkg.ns.mod.helper() resolves under a non-empty anchor (positive)", async () => {
 		const bareOk = await analyze([
-			py("src/pkg/__init__.py", ""),
+			py("src/pkg/__init__.py", 'from .app import Flask\n\n__all__ = ["Flask"]\n__version__ = "1"\n'),
+			py("src/pkg/app.py", "class Flask:\n    pass\n"),
 			py("src/pkg/ns/mod.py", mod),
 			py("src/use.py", "import pkg\n\npkg.ns.mod.helper()\n"),
 		]);
 		expect(linesTo(bareOk, symbolId(bareOk, "helper", "src/pkg/ns/mod.py"))).toEqual([3]);
+	});
+
+	test("Q1 at the call level: from pkg.ns import mod then mod.helper(), and from . import mod inside the directory", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", 'from .app import Flask\n\n__version__ = "1"\n'),
+			py("src/pkg/app.py", "class Flask:\n    pass\n"),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/pkg/ns/sib.py", "from . import mod\n\nmod.helper()\n"),
+			py("src/use.py", "from pkg.ns import mod\n\nmod.helper()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "src/pkg/ns/mod.py"))).toEqual([3, 3]);
 	});
 });
