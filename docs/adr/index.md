@@ -7,6 +7,6 @@
 - [Widen the index with import and inheritance edges](0004-widen-the-index-with-import-and-inheritance-edges.md)
 - [Bound the code map by a wall-time budget](0005-bound-the-code-map-by-a-wall-time-budget.md)
 - [Stream the long answers as NDJSON](0006-stream-the-long-answers-as-ndjson.md)
-- [Ship one Node bundle with TypeScript and Commander external](0007-ship-a-node-bundle-with-typescript-and-commander-external.md)
+- [Ship one Node bundle with TypeScript, Commander and the tree-sitter wasm external](0007-ship-a-node-bundle-with-typescript-and-commander-external.md)
 - [Add Python through a native in-process indexer](0008-add-python-through-a-native-in-process-indexer.md)
 <!-- lore:index:end -->
