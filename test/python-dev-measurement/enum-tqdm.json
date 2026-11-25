@@ -1,0 +1,4000 @@
+[
+ {
+  "file": "tqdm/contrib/concurrent.py",
+  "line": 107,
+  "kind": "def",
+  "name": "_executor_map",
+  "qual": "_executor_map",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 191,
+    "form": "call",
+    "src": "return _executor_map(ThreadPoolExecutor, fn, *iterables, **tqdm_kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 214,
+    "form": "call",
+    "src": "return _executor_map("
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 259,
+    "form": "call",
+    "src": "return _executor_map(ProcessPoolExecutor, fn, *iterables, lock_name=lock_name, **tqdm_kwargs)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 1403,
+  "kind": "def",
+  "name": "set_description_str",
+  "qual": "tqdm.set_description_str",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/tk.py",
+    "line": 144,
+    "form": "call",
+    "src": "self.set_description_str(desc, refresh)"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 146,
+    "form": "call",
+    "src": "def set_description_str(self, desc=None, refresh=True):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 209,
+  "kind": "class",
+  "name": "CallbackIOWrapper",
+  "qual": "CallbackIOWrapper",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 21,
+    "form": "ref",
+    "src": "CallbackIOWrapper, Comparable, DisableOnWriteError, FormatReplace, SimpleTextIOWrapper,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1527,
+    "form": "call",
+    "src": "yield CallbackIOWrapper(t.update, stream, method)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/slack.py",
+  "line": 106,
+  "kind": "def",
+  "name": "clear",
+  "qual": "tqdm_slack.clear",
+  "encl": "tqdm_slack",
+  "sites": [
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 135,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 136,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 107,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 132,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 133,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/gui.py",
+    "line": 107,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 286,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 126,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 714,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 751,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1316,
+    "form": "call",
+    "src": "def clear(self, nolock=False):"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 127,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/discord.py",
+  "line": 83,
+  "kind": "def",
+  "name": "delete",
+  "qual": "DiscordIO.delete",
+  "encl": "DiscordIO",
+  "sites": [
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 87,
+    "form": "ref",
+    "src": "self.session.delete,"
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 145,
+    "form": "call",
+    "src": "self.dio.delete()"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 79,
+    "form": "call",
+    "src": "def delete(self):"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 142,
+    "form": "call",
+    "src": "self.tgio.delete()"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/notebook.py",
+  "line": 92,
+  "kind": "class",
+  "name": "tqdm_notebook",
+  "qual": "tqdm_notebook",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/__init__.py",
+    "line": 12,
+    "form": "ref",
+    "src": "'tqdm_notebook', 'tnrange', 'main', 'TMonitor',"
+   },
+   {
+    "file": "tqdm/__init__.py",
+    "line": 20,
+    "form": "call",
+    "src": "def tqdm_notebook(*args, **kwargs):  # pragma: no cover"
+   },
+   {
+    "file": "tqdm/__init__.py",
+    "line": 26,
+    "form": "ref",
+    "src": "\"Please use `tqdm.notebook.tqdm` instead of `tqdm.tqdm_notebook`\","
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 65,
+    "form": "ref",
+    "src": "__all__ = ['tqdm_notebook', 'tnrange', 'tqdm', 'trange']"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 312,
+    "form": "call",
+    "src": "return tqdm_notebook(range(*args), **kwargs)"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 316,
+    "form": "ref",
+    "src": "tqdm = tqdm_notebook"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/logging.py",
+  "line": 40,
+  "kind": "def",
+  "name": "_get_first_found_console_logging_handler",
+  "qual": "_get_first_found_console_logging_handler",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/logging.py",
+    "line": 86,
+    "form": "call",
+    "src": "orig_handler = _get_first_found_console_logging_handler(logger.handlers)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/_monitor.py",
+  "line": 16,
+  "kind": "class",
+  "name": "TMonitor",
+  "qual": "TMonitor",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/__init__.py",
+    "line": 12,
+    "form": "ref",
+    "src": "'tqdm_notebook', 'tnrange', 'main', 'TMonitor',"
+   },
+   {
+    "file": "tqdm/_monitor.py",
+    "line": 6,
+    "form": "ref",
+    "src": "__all__ = [\"TMonitor\", \"TqdmSynchronisationWarning\"]"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 672,
+    "form": "call",
+    "src": "cls.monitor = TMonitor(cls, cls.monitor_interval)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/notebook.py",
+  "line": 289,
+  "kind": "def",
+  "name": "reset",
+  "qual": "tqdm_notebook.reset",
+  "encl": "tqdm_notebook",
+  "sites": [
+   {
+    "file": "tqdm/keras.py",
+    "line": 72,
+    "form": "call",
+    "src": "self.epoch_bar.reset(total=auto_total)"
+   },
+   {
+    "file": "tqdm/keras.py",
+    "line": 93,
+    "form": "call",
+    "src": "self.batch_bar.reset(total=total)"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 300,
+    "form": "call",
+    "src": "return super().reset(total=total)"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 307,
+    "form": "call",
+    "src": "return super().reset(total=total)"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 134,
+    "form": "call",
+    "src": "def reset(self, total=None):"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 143,
+    "form": "call",
+    "src": "self._prog.reset(total=total)"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 144,
+    "form": "call",
+    "src": "super().reset(total=total)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1367,
+    "form": "call",
+    "src": "def reset(self, total=None):"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 162,
+    "form": "call",
+    "src": "def reset(self, total=None):"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 175,
+    "form": "call",
+    "src": "super().reset(total=total)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/slack.py",
+  "line": 26,
+  "kind": "class",
+  "name": "SlackIO",
+  "qual": "SlackIO",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 23,
+    "form": "ref",
+    "src": "__all__ = ['SlackIO', 'tqdm_slack', 'tsrange', 'tqdm', 'trange']"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 88,
+    "form": "call",
+    "src": "self.sio = SlackIO(token, channel)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 303,
+  "kind": "def",
+  "name": "_text_width",
+  "qual": "_text_width",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/utils.py",
+    "line": 312,
+    "form": "call",
+    "src": "return _text_width(RE_ANSI.sub('', data))"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 767,
+  "kind": "def",
+  "name": "get_lock",
+  "qual": "tqdm.get_lock",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/_monitor.py",
+    "line": 75,
+    "form": "call",
+    "src": "with self.tqdm_cls.get_lock():"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 76,
+    "form": "call",
+    "src": "lock = old_lock or tqdm_class.get_lock()  # maybe create a new lock"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 188,
+    "form": "call",
+    "src": "Member of `tqdm_class.get_lock()` to use [default: '']."
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 242,
+    "form": "call",
+    "src": "Member of `tqdm_class.get_lock()` to use [default: mp_lock]."
+   },
+   {
+    "file": "tqdm/gui.py",
+    "line": 94,
+    "form": "call",
+    "src": "with self.get_lock():"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 666,
+    "form": "call",
+    "src": "with cls.get_lock():  # also constructs lock if non-existent"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 742,
+    "form": "call",
+    "src": "cls.get_lock().acquire()"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 107,
+    "form": "call",
+    "src": "with self.get_lock():"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/tk.py",
+  "line": 143,
+  "kind": "def",
+  "name": "set_description",
+  "qual": "tqdm_tk.set_description",
+  "encl": "tqdm_tk",
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 1389,
+    "form": "call",
+    "src": "def set_description(self, desc=None, refresh=True):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/__init__.py",
+  "line": 69,
+  "kind": "def",
+  "name": "tzip",
+  "qual": "tzip",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/__init__.py",
+    "line": 13,
+    "form": "ref",
+    "src": "__all__ = ['tenumerate', 'tzip', 'tmap']"
+   },
+   {
+    "file": "tqdm/contrib/__init__.py",
+    "line": 90,
+    "form": "call",
+    "src": "for i in tzip(*sequences, **tqdm_kwargs):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/keras.py",
+  "line": 17,
+  "kind": "class",
+  "name": "TqdmCallback",
+  "qual": "TqdmCallback",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/dask.py",
+    "line": 8,
+    "form": "ref",
+    "src": "__all__ = ['TqdmCallback']"
+   },
+   {
+    "file": "tqdm/dask.py",
+    "line": 11,
+    "form": "call",
+    "src": "class TqdmCallback(Callback):"
+   },
+   {
+    "file": "tqdm/keras.py",
+    "line": 14,
+    "form": "ref",
+    "src": "__all__ = ['TqdmCallback']"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/concurrent.py",
+  "line": 54,
+  "kind": "def",
+  "name": "release",
+  "qual": "_InterpreterLock.release",
+  "encl": "_InterpreterLock",
+  "sites": [
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 48,
+    "form": "call",
+    "src": "self._lock.release()"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 56,
+    "form": "ref",
+    "src": "raise RuntimeError(\"cannot release un-acquired lock\")"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 61,
+    "form": "call",
+    "src": "self._lock.release()"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 68,
+    "form": "call",
+    "src": "self.release()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 57,
+    "form": "ref",
+    "src": "\"\"\"may be removed in a future release\"\"\""
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 98,
+    "form": "call",
+    "src": "root_lock.release()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 104,
+    "form": "call",
+    "src": "def release(self):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 106,
+    "form": "call",
+    "src": "lock.release()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 112,
+    "form": "call",
+    "src": "self.release()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 759,
+    "form": "call",
+    "src": "cls._lock.release()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1330,
+    "form": "call",
+    "src": "self._lock.release()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1356,
+    "form": "call",
+    "src": "self._lock.release()"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/telegram.py",
+  "line": 91,
+  "kind": "class",
+  "name": "tqdm_telegram",
+  "qual": "tqdm_telegram",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 21,
+    "form": "ref",
+    "src": "__all__ = ['TelegramIO', 'tqdm_telegram', 'ttgrange', 'tqdm', 'trange']"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 147,
+    "form": "call",
+    "src": "return tqdm_telegram(range(*args), **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 151,
+    "form": "ref",
+    "src": "tqdm = tqdm_telegram"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/itertools.py",
+  "line": 36,
+  "kind": "def",
+  "name": "permutations",
+  "qual": "permutations",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 11,
+    "form": "ref",
+    "src": "'chain', 'product', 'permutations', 'combinations', 'combinations_with_replacement', 'batched']"
+   },
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 37,
+    "form": "ref",
+    "src": "\"\"\"Equivalent of `itertools.permutations`.\"\"\""
+   },
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 49,
+    "form": "call",
+    "src": "return tqdm_class(itertools.permutations(iterable, r), total=total, **kwargs)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 166,
+  "kind": "class",
+  "name": "DisableOnWriteError",
+  "qual": "DisableOnWriteError",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 21,
+    "form": "ref",
+    "src": "CallbackIOWrapper, Comparable, DisableOnWriteError, FormatReplace, SimpleTextIOWrapper,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 977,
+    "form": "call",
+    "src": "file = DisableOnWriteError(file, tqdm_instance=self)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/rich.py",
+  "line": 57,
+  "kind": "def",
+  "name": "render",
+  "qual": "RateColumn.render",
+  "encl": "RateColumn",
+  "sites": [
+   {
+    "file": "tqdm/rich.py",
+    "line": 28,
+    "form": "call",
+    "src": "def render(self, task):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/_monitor.py",
+  "line": 50,
+  "kind": "def",
+  "name": "exit",
+  "qual": "TMonitor.exit",
+  "encl": "TMonitor",
+  "sites": [
+   {
+    "file": "tqdm/_monitor.py",
+    "line": 45,
+    "form": "ref",
+    "src": "Avoids deadlocks at interpreter exit from other threads, dead forks, etc."
+   },
+   {
+    "file": "tqdm/cli.py",
+    "line": 204,
+    "form": "ref",
+    "src": "-h, --help     Print this help and exit."
+   },
+   {
+    "file": "tqdm/cli.py",
+    "line": 205,
+    "form": "ref",
+    "src": "-v, --version  Print version and exit."
+   },
+   {
+    "file": "tqdm/cli.py",
+    "line": 211,
+    "form": "call",
+    "src": "sys.exit(0)"
+   },
+   {
+    "file": "tqdm/cli.py",
+    "line": 214,
+    "form": "call",
+    "src": "sys.exit(0)"
+   },
+   {
+    "file": "tqdm/cli.py",
+    "line": 276,
+    "form": "call",
+    "src": "sys.exit(0)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 1448,
+  "kind": "def",
+  "name": "moveto",
+  "qual": "tqdm.moveto",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 1325,
+    "form": "call",
+    "src": "self.moveto(pos)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1328,
+    "form": "call",
+    "src": "self.moveto(-pos)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1481,
+    "form": "ref",
+    "src": "pos  : int, optional. Position to `moveto`"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1501,
+    "form": "call",
+    "src": "self.moveto(pos)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1504,
+    "form": "call",
+    "src": "self.moveto(-pos)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/__init__.py",
+  "line": 31,
+  "kind": "def",
+  "name": "tnrange",
+  "qual": "tnrange",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/__init__.py",
+    "line": 12,
+    "form": "ref",
+    "src": "'tqdm_notebook', 'tnrange', 'main', 'TMonitor',"
+   },
+   {
+    "file": "tqdm/__init__.py",
+    "line": 36,
+    "form": "ref",
+    "src": "warn(\"Please use `tqdm.notebook.trange` instead of `tqdm.tnrange`\","
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 65,
+    "form": "ref",
+    "src": "__all__ = ['tqdm_notebook', 'tnrange', 'tqdm', 'trange']"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 310,
+    "form": "call",
+    "src": "def tnrange(*args, **kwargs):"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 317,
+    "form": "ref",
+    "src": "trange = tnrange"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/_monitor.py",
+  "line": 103,
+  "kind": "def",
+  "name": "report",
+  "qual": "TMonitor.report",
+  "encl": "TMonitor",
+  "sites": [
+   {
+    "file": "tqdm/_monitor.py",
+    "line": 54,
+    "form": "call",
+    "src": "return self.report()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 670,
+    "form": "call",
+    "src": "or not cls.monitor.report()):"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 212,
+    "form": "ref",
+    "src": "Wrap a given `file`-like object's `read()` or `write()` to report"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/_monitor.py",
+  "line": 56,
+  "kind": "def",
+  "name": "get_instances",
+  "qual": "TMonitor.get_instances",
+  "encl": "TMonitor",
+  "sites": [
+   {
+    "file": "tqdm/_monitor.py",
+    "line": 78,
+    "form": "call",
+    "src": "instances = self.get_instances()"
+   },
+   {
+    "file": "tqdm/_monitor.py",
+    "line": 96,
+    "form": "call",
+    "src": "if instances != self.get_instances():  # pragma: nocover"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 115,
+  "kind": "def",
+  "name": "create_mp_lock",
+  "qual": "TqdmDefaultWriteLock.create_mp_lock",
+  "encl": "TqdmDefaultWriteLock",
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 95,
+    "form": "call",
+    "src": "cls.create_mp_lock()"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 85,
+  "kind": "class",
+  "name": "FormatReplace",
+  "qual": "FormatReplace",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/_utils.py",
+    "line": 5,
+    "form": "ref",
+    "src": "CUR_OS, IS_NIX, IS_WIN, RE_ANSI, Comparable, FormatReplace, SimpleTextIOWrapper,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 21,
+    "form": "ref",
+    "src": "CallbackIOWrapper, Comparable, DisableOnWriteError, FormatReplace, SimpleTextIOWrapper,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 630,
+    "form": "call",
+    "src": "full_bar = FormatReplace()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 649,
+    "form": "call",
+    "src": "full_bar = FormatReplace()"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 87,
+    "form": "call",
+    "src": ">>> a = FormatReplace('something')"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/itertools.py",
+  "line": 14,
+  "kind": "def",
+  "name": "chain",
+  "qual": "chain",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 11,
+    "form": "ref",
+    "src": "'chain', 'product', 'permutations', 'combinations', 'combinations_with_replacement', 'batched']"
+   },
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 15,
+    "form": "ref",
+    "src": "\"\"\"Equivalent of `itertools.chain`.\"\"\""
+   },
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 21,
+    "form": "call",
+    "src": "return tqdm_class(itertools.chain(*iterables), total=total, **kwargs)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/rich.py",
+  "line": 21,
+  "kind": "class",
+  "name": "FractionColumn",
+  "qual": "FractionColumn",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/rich.py",
+    "line": 108,
+    "form": "call",
+    "src": "FractionColumn("
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 681,
+  "kind": "def",
+  "name": "_get_free_pos",
+  "qual": "tqdm._get_free_pos",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 994,
+    "form": "call",
+    "src": "self.pos = self._get_free_pos(self)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1004,
+    "form": "call",
+    "src": "self.pos = self._get_free_pos(self)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1097,
+    "form": "call",
+    "src": "self.pos = self._get_free_pos(self) if position is None else -position"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 36,
+  "kind": "class",
+  "name": "TqdmKeyError",
+  "qual": "TqdmKeyError",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/__init__.py",
+    "line": 7,
+    "form": "ref",
+    "src": "TqdmDeprecationWarning, TqdmExperimentalWarning, TqdmKeyError, TqdmMonitorWarning,"
+   },
+   {
+    "file": "tqdm/__init__.py",
+    "line": 13,
+    "form": "ref",
+    "src": "'TqdmTypeError', 'TqdmKeyError',"
+   },
+   {
+    "file": "tqdm/cli.py",
+    "line": 231,
+    "form": "call",
+    "src": "raise TqdmKeyError(str(e))"
+   },
+   {
+    "file": "tqdm/cli.py",
+    "line": 238,
+    "form": "call",
+    "src": "raise TqdmKeyError(\"Can only have one of --bytes --update --update_to\")"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 27,
+    "form": "ref",
+    "src": "'TqdmTypeError', 'TqdmKeyError', 'TqdmWarning',"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1012,
+    "form": "call",
+    "src": "TqdmKeyError(\"Unknown argument(s): \" + str(kwargs)))"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 307,
+  "kind": "def",
+  "name": "disp_len",
+  "qual": "disp_len",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 22,
+    "form": "ref",
+    "src": "_is_ascii, _screen_shape_wrapper, _supports_unicode, _term_move_up, disp_len, disp_trim,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 456,
+    "form": "call",
+    "src": "len_s = disp_len(s)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 637,
+    "form": "call",
+    "src": "max(1, ncols - disp_len(nobar)) if ncols else 10,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 654,
+    "form": "call",
+    "src": "max(1, ncols - disp_len(nobar)) if ncols else 10,"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 319,
+    "form": "call",
+    "src": "if len(data) == disp_len(data):"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 323,
+    "form": "call",
+    "src": "while disp_len(data) > length:  # carefully delete one char at a time"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/keras.py",
+  "line": 20,
+  "kind": "def",
+  "name": "bar2callback",
+  "qual": "TqdmCallback.bar2callback",
+  "encl": "TqdmCallback",
+  "sites": [
+   {
+    "file": "tqdm/keras.py",
+    "line": 56,
+    "form": "call",
+    "src": "self.on_epoch_end = self.bar2callback(self.epoch_bar)"
+   },
+   {
+    "file": "tqdm/keras.py",
+    "line": 64,
+    "form": "call",
+    "src": "self.on_batch_end = self.bar2callback("
+   },
+   {
+    "file": "tqdm/keras.py",
+    "line": 88,
+    "form": "call",
+    "src": "self.on_batch_end = self.bar2callback("
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/logging.py",
+  "line": 47,
+  "kind": "def",
+  "name": "logging_redirect_tqdm",
+  "qual": "logging_redirect_tqdm",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/logging.py",
+    "line": 73,
+    "form": "call",
+    "src": "with logging_redirect_tqdm():"
+   },
+   {
+    "file": "tqdm/contrib/logging.py",
+    "line": 113,
+    "form": "call",
+    "src": "with logging_redirect_tqdm(loggers=loggers, tqdm_class=tqdm_class):"
+   },
+   {
+    "file": "tqdm/contrib/logging.py",
+    "line": 127,
+    "form": "call",
+    "src": "with logging_redirect_tqdm(loggers=loggers, tqdm_class=tqdm_class):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/discord.py",
+  "line": 26,
+  "kind": "class",
+  "name": "DiscordIO",
+  "qual": "DiscordIO",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 23,
+    "form": "ref",
+    "src": "__all__ = ['DiscordIO', 'tqdm_discord', 'tdrange', 'tqdm', 'trange']"
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 124,
+    "form": "call",
+    "src": "self.dio = DiscordIO(token, channel_id)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/gui.py",
+  "line": 24,
+  "kind": "class",
+  "name": "tqdm_gui",
+  "qual": "tqdm_gui",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/__init__.py",
+    "line": 4,
+    "form": "ref",
+    "src": "from .gui import tqdm as tqdm_gui  # TODO: remove in v5.0.0"
+   },
+   {
+    "file": "tqdm/__init__.py",
+    "line": 11,
+    "form": "ref",
+    "src": "__all__ = ['tqdm', 'tqdm_gui', 'trange', 'tgrange', 'tqdm_pandas',"
+   },
+   {
+    "file": "tqdm/gui.py",
+    "line": 21,
+    "form": "ref",
+    "src": "__all__ = ['tqdm_gui', 'tgrange', 'tqdm', 'trange']"
+   },
+   {
+    "file": "tqdm/gui.py",
+    "line": 174,
+    "form": "call",
+    "src": "return tqdm_gui(range(*args), **kwargs)"
+   },
+   {
+    "file": "tqdm/gui.py",
+    "line": 178,
+    "form": "ref",
+    "src": "tqdm = tqdm_gui"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 796,
+    "form": "ref",
+    "src": ">>> from tqdm.gui import tqdm as tqdm_gui"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/asyncio.py",
+  "line": 80,
+  "kind": "def",
+  "name": "wrap_awaitable",
+  "qual": "tqdm_asyncio.gather.wrap_awaitable",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/asyncio.py",
+    "line": 88,
+    "form": "call",
+    "src": "ifs = [wrap_awaitable(i, f) for i, f in enumerate(fs)]"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/tk.py",
+  "line": 146,
+  "kind": "def",
+  "name": "set_description_str",
+  "qual": "tqdm_tk.set_description_str",
+  "encl": "tqdm_tk",
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 1403,
+    "form": "call",
+    "src": "def set_description_str(self, desc=None, refresh=True):"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 144,
+    "form": "call",
+    "src": "self.set_description_str(desc, refresh)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/asyncio.py",
+  "line": 58,
+  "kind": "def",
+  "name": "send",
+  "qual": "tqdm_asyncio.send",
+  "encl": "tqdm_asyncio",
+  "sites": [
+   {
+    "file": "tqdm/asyncio.py",
+    "line": 59,
+    "form": "call",
+    "src": "return self.iterable.send(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 102,
+    "form": "ref",
+    "src": "grant, only send message permissions) & invite it to a channel:"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 98,
+    "form": "ref",
+    "src": "- add the bot to a chat and send it a message such as `/start`"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 235,
+  "kind": "def",
+  "name": "_is_utf",
+  "qual": "_is_utf",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/_utils.py",
+    "line": 6,
+    "form": "ref",
+    "src": "_environ_cols_wrapper, _is_ascii, _is_utf, _screen_shape_linux, _screen_shape_tput,"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 251,
+    "form": "call",
+    "src": "return _is_utf(fp.encoding)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 129,
+  "kind": "class",
+  "name": "Bar",
+  "qual": "Bar",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 350,
+    "form": "ref",
+    "src": "Bar colour (e.g. 'green', '#00ff00')."
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 525,
+    "form": "ref",
+    "src": "Bar colour (e.g. 'green', '#00ff00')."
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 636,
+    "form": "call",
+    "src": "full_bar = Bar(frac,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 638,
+    "form": "ref",
+    "src": "charset=Bar.ASCII if ascii is True else ascii or Bar.UTF,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 653,
+    "form": "call",
+    "src": "full_bar = Bar(0,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 655,
+    "form": "ref",
+    "src": "charset=Bar.BLANK, colour=colour)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 1389,
+  "kind": "def",
+  "name": "set_description",
+  "qual": "tqdm.set_description",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/tk.py",
+    "line": 143,
+    "form": "call",
+    "src": "def set_description(self, desc=None, refresh=True):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/tk.py",
+  "line": 127,
+  "kind": "def",
+  "name": "clear",
+  "qual": "tqdm_tk.clear",
+  "encl": "tqdm_tk",
+  "sites": [
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 135,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 136,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 106,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 107,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 132,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 133,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/gui.py",
+    "line": 107,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 286,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 126,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 714,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 751,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1316,
+    "form": "call",
+    "src": "def clear(self, nolock=False):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/logging.py",
+  "line": 35,
+  "kind": "def",
+  "name": "_is_console_logging_handler",
+  "qual": "_is_console_logging_handler",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/logging.py",
+    "line": 42,
+    "form": "call",
+    "src": "if _is_console_logging_handler(handler):"
+   },
+   {
+    "file": "tqdm/contrib/logging.py",
+    "line": 94,
+    "form": "call",
+    "src": "if not _is_console_logging_handler(handler)] + [tqdm_handler]"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/tk.py",
+  "line": 153,
+  "kind": "def",
+  "name": "cancel",
+  "qual": "tqdm_tk.cancel",
+  "encl": "tqdm_tk",
+  "sites": [
+   {
+    "file": "tqdm/contrib/utils_worker.py",
+    "line": 30,
+    "form": "call",
+    "src": "waiting.cancel()"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 45,
+    "form": "ref",
+    "src": "Create a cancel button and set `cancel_callback` to be called"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 46,
+    "form": "ref",
+    "src": "when the cancel or window close button is clicked."
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 77,
+    "form": "ref",
+    "src": "self._tk_window.protocol(\"WM_DELETE_WINDOW\", self.cancel)"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 96,
+    "form": "ref",
+    "src": "_tk_button = ttk.Button(pbar_frame, text=\"Cancel\", command=self.cancel)"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 156,
+    "form": "ref",
+    "src": "when close/cancel buttons clicked."
+   }
+  ]
+ },
+ {
+  "file": "tqdm/gui.py",
+  "line": 107,
+  "kind": "def",
+  "name": "clear",
+  "qual": "tqdm_gui.clear",
+  "encl": "tqdm_gui",
+  "sites": [
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 135,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 136,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 106,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 107,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 132,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 133,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 286,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 126,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 714,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 751,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1316,
+    "form": "call",
+    "src": "def clear(self, nolock=False):"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 127,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 270,
+  "kind": "def",
+  "name": "inner",
+  "qual": "_screen_shape_wrapper.inner",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 856,
+    "form": "call",
+    "src": "def inner(df, func, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 927,
+    "form": "ref",
+    "src": "return inner"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 177,
+    "form": "call",
+    "src": "def inner(*args, **kwargs):"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 194,
+    "form": "ref",
+    "src": "return inner"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 278,
+    "form": "ref",
+    "src": "return inner"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 293,
+    "form": "call",
+    "src": "def inner(fp):"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 296,
+    "form": "ref",
+    "src": "return inner"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 688,
+  "kind": "def",
+  "name": "_decr_instances",
+  "qual": "tqdm._decr_instances",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 1280,
+    "form": "call",
+    "src": "self._decr_instances(self)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/cli.py",
+  "line": 17,
+  "kind": "def",
+  "name": "cast",
+  "qual": "cast",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/cli.py",
+    "line": 22,
+    "form": "call",
+    "src": "return cast(val, t)"
+   },
+   {
+    "file": "tqdm/cli.py",
+    "line": 229,
+    "form": "call",
+    "src": "tqdm_args[o] = cast(v, opt_types[o])"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/discord.py",
+  "line": 96,
+  "kind": "class",
+  "name": "tqdm_discord",
+  "qual": "tqdm_discord",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 23,
+    "form": "ref",
+    "src": "__all__ = ['DiscordIO', 'tqdm_discord', 'tdrange', 'tqdm', 'trange']"
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 150,
+    "form": "call",
+    "src": "return tqdm_discord(range(*args), **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 154,
+    "form": "ref",
+    "src": "tqdm = tqdm_discord"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 1409,
+  "kind": "def",
+  "name": "set_postfix",
+  "qual": "tqdm.set_postfix",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/keras.py",
+    "line": 28,
+    "form": "call",
+    "src": "bar.set_postfix(logs, refresh=False)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 337,
+    "form": "call",
+    "src": "Calls `set_postfix(**postfix)` if possible (dict)."
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1085,
+    "form": "call",
+    "src": "self.set_postfix(refresh=False, **postfix)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 730,
+  "kind": "def",
+  "name": "external_write_mode",
+  "qual": "tqdm.external_write_mode",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/cli.py",
+    "line": 284,
+    "form": "call",
+    "src": "with tqdm.external_write_mode(file=fp):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 723,
+    "form": "call",
+    "src": "with cls.external_write_mode(file=file, nolock=nolock):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 774,
+  "kind": "def",
+  "name": "pandas",
+  "qual": "tqdm.pandas",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/_tqdm_pandas.py",
+    "line": 10,
+    "form": "ref",
+    "src": "`pandas.core.groupby.DataFrameGroupBy.progress_apply`."
+   },
+   {
+    "file": "tqdm/_tqdm_pandas.py",
+    "line": 17,
+    "form": "call",
+    "src": "\"Please use `tqdm.pandas(...)` instead of `tqdm_pandas(tqdm, ...)`.\","
+   },
+   {
+    "file": "tqdm/_tqdm_pandas.py",
+    "line": 19,
+    "form": "call",
+    "src": "tclass.pandas(**tqdm_kwargs)"
+   },
+   {
+    "file": "tqdm/_tqdm_pandas.py",
+    "line": 22,
+    "form": "call",
+    "src": "\"Please use `tqdm.pandas(...)` instead of `tqdm_pandas(tqdm(...))`.\","
+   },
+   {
+    "file": "tqdm/_tqdm_pandas.py",
+    "line": 24,
+    "form": "call",
+    "src": "type(tclass).pandas(deprecated_t=tclass)"
+   },
+   {
+    "file": "tqdm/contrib/bells.py",
+    "line": 5,
+    "form": "ref",
+    "src": "- `tqdm.tqdm.pandas`"
+   },
+   {
+    "file": "tqdm/contrib/bells.py",
+    "line": 28,
+    "form": "call",
+    "src": "tqdm.pandas()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 777,
+    "form": "ref",
+    "src": "pandas.core."
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 793,
+    "form": "ref",
+    "src": ">>> import pandas as pd"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 799,
+    "form": "call",
+    "src": ">>> tqdm.pandas(ncols=50)  # can use tqdm_gui, optional kwargs, etc"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 806,
+    "form": "ref",
+    "src": "progress-indicator-during-pandas-operations-python>"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 226,
+  "kind": "def",
+  "name": "read",
+  "qual": "CallbackIOWrapper.__init__.read",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/cli.py",
+    "line": 60,
+    "form": "call",
+    "src": "fin  : binary file with `read(buf_size : int)` method"
+   },
+   {
+    "file": "tqdm/cli.py",
+    "line": 70,
+    "form": "call",
+    "src": "tmp = fin.read(buf_size)"
+   },
+   {
+    "file": "tqdm/cli.py",
+    "line": 85,
+    "form": "call",
+    "src": "tmp = fin.read(buf_size)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1455,
+    "form": "ref",
+    "src": "\"\"\"Public API for read-only member access.\"\"\""
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1513,
+    "form": "call",
+    "src": "method  : str, \"read\" or \"write\". The result of `read()` and"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1516,
+    "form": "ref",
+    "src": ">>> with tqdm.wrapattr(file_obj, \"read\", total=file_obj.size) as fobj:"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1518,
+    "form": "call",
+    "src": "...         chunk = fobj.read(chunk_size)"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 210,
+    "form": "ref",
+    "src": "def __init__(self, callback, stream, method=\"read\"):"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 212,
+    "form": "call",
+    "src": "Wrap a given `file`-like object's `read()` or `write()` to report"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 224,
+    "form": "ref",
+    "src": "elif method == \"read\":"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 230,
+    "form": "ref",
+    "src": "self.wrapper_setattr('read', read)"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 232,
+    "form": "ref",
+    "src": "raise KeyError(\"Can only wrap read/write methods\")"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/notebook.py",
+  "line": 71,
+  "kind": "class",
+  "name": "TqdmHBox",
+  "qual": "TqdmHBox",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/notebook.py",
+    "line": 124,
+    "form": "call",
+    "src": "container = TqdmHBox(children=[ltext, pbar, rtext])"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/tk.py",
+  "line": 162,
+  "kind": "def",
+  "name": "reset",
+  "qual": "tqdm_tk.reset",
+  "encl": "tqdm_tk",
+  "sites": [
+   {
+    "file": "tqdm/keras.py",
+    "line": 72,
+    "form": "call",
+    "src": "self.epoch_bar.reset(total=auto_total)"
+   },
+   {
+    "file": "tqdm/keras.py",
+    "line": 93,
+    "form": "call",
+    "src": "self.batch_bar.reset(total=total)"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 289,
+    "form": "call",
+    "src": "def reset(self, total=None):"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 300,
+    "form": "call",
+    "src": "return super().reset(total=total)"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 307,
+    "form": "call",
+    "src": "return super().reset(total=total)"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 134,
+    "form": "call",
+    "src": "def reset(self, total=None):"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 143,
+    "form": "call",
+    "src": "self._prog.reset(total=total)"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 144,
+    "form": "call",
+    "src": "super().reset(total=total)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1367,
+    "form": "call",
+    "src": "def reset(self, total=None):"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 175,
+    "form": "call",
+    "src": "super().reset(total=total)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/rich.py",
+  "line": 28,
+  "kind": "def",
+  "name": "render",
+  "qual": "FractionColumn.render",
+  "encl": "FractionColumn",
+  "sites": [
+   {
+    "file": "tqdm/rich.py",
+    "line": 57,
+    "form": "call",
+    "src": "def render(self, task):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 368,
+  "kind": "def",
+  "name": "format_sizeof",
+  "qual": "tqdm.format_sizeof",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 553,
+    "form": "ref",
+    "src": "format_sizeof = tqdm.format_sizeof"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 554,
+    "form": "call",
+    "src": "rate_noinv_fmt = ((format_sizeof(rate) if unit_scale else f'{rate:5.2f}')"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 557,
+    "form": "call",
+    "src": "(format_sizeof(inv_rate) if unit_scale else f'{inv_rate:5.2f}')"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 562,
+    "form": "call",
+    "src": "n_fmt = format_sizeof(n, divisor=unit_divisor)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 563,
+    "form": "call",
+    "src": "total_fmt = format_sizeof(total, divisor=unit_divisor) if total is not None else '?'"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/tk.py",
+  "line": 110,
+  "kind": "def",
+  "name": "_close",
+  "qual": "tqdm_tk.close._close",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/tk.py",
+    "line": 115,
+    "form": "ref",
+    "src": "self._tk_window.protocol(\"WM_DELETE_WINDOW\", _close)"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 120,
+    "form": "call",
+    "src": "_close()"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 125,
+    "form": "call",
+    "src": "_close()"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 418,
+  "kind": "def",
+  "name": "format_num",
+  "qual": "tqdm.format_num",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 1429,
+    "form": "call",
+    "src": "postfix[key] = self.format_num(postfix[key])"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 1316,
+  "kind": "def",
+  "name": "clear",
+  "qual": "tqdm.clear",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 135,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 136,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 106,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 107,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 132,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 133,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/gui.py",
+    "line": 107,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 286,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 126,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 714,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 751,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 127,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/dask.py",
+  "line": 11,
+  "kind": "class",
+  "name": "TqdmCallback",
+  "qual": "TqdmCallback",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/dask.py",
+    "line": 8,
+    "form": "ref",
+    "src": "__all__ = ['TqdmCallback']"
+   },
+   {
+    "file": "tqdm/keras.py",
+    "line": 14,
+    "form": "ref",
+    "src": "__all__ = ['TqdmCallback']"
+   },
+   {
+    "file": "tqdm/keras.py",
+    "line": 17,
+    "form": "call",
+    "src": "class TqdmCallback(keras.callbacks.Callback):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/asyncio.py",
+  "line": 19,
+  "kind": "class",
+  "name": "tqdm_asyncio",
+  "qual": "tqdm_asyncio",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/asyncio.py",
+    "line": 16,
+    "form": "ref",
+    "src": "__all__ = ['tqdm_asyncio', 'tarange', 'tqdm', 'trange']"
+   },
+   {
+    "file": "tqdm/asyncio.py",
+    "line": 98,
+    "form": "call",
+    "src": "return tqdm_asyncio(range(*args), **kwargs)"
+   },
+   {
+    "file": "tqdm/asyncio.py",
+    "line": 102,
+    "form": "ref",
+    "src": "tqdm = tqdm_asyncio"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/utils_worker.py",
+  "line": 22,
+  "kind": "def",
+  "name": "submit",
+  "qual": "MonoWorker.submit",
+  "encl": "MonoWorker",
+  "sites": [
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 156,
+    "form": "ref",
+    "src": "orisubmit = ex.submit"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 162,
+    "form": "ref",
+    "src": "ex.submit = patchsubmit"
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 73,
+    "form": "call",
+    "src": "future = self.submit("
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 86,
+    "form": "call",
+    "src": "future = self.submit("
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 51,
+    "form": "call",
+    "src": "future = self.submit(self.client.chat_update, channel=message['channel'],"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 70,
+    "form": "call",
+    "src": "future = self.submit("
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 82,
+    "form": "call",
+    "src": "future = self.submit("
+   },
+   {
+    "file": "tqdm/contrib/utils_worker.py",
+    "line": 33,
+    "form": "call",
+    "src": "waiting = self.pool.submit(func, *args, **kwargs)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/concurrent.py",
+  "line": 86,
+  "kind": "def",
+  "name": "_get_interpreter_init",
+  "qual": "_get_interpreter_init",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 213,
+    "form": "call",
+    "src": "initializer, initargs = _get_interpreter_init(tqdm_class, lock_queue.id)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 104,
+  "kind": "def",
+  "name": "release",
+  "qual": "TqdmDefaultWriteLock.release",
+  "encl": "TqdmDefaultWriteLock",
+  "sites": [
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 48,
+    "form": "call",
+    "src": "self._lock.release()"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 54,
+    "form": "call",
+    "src": "def release(self):"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 56,
+    "form": "ref",
+    "src": "raise RuntimeError(\"cannot release un-acquired lock\")"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 61,
+    "form": "call",
+    "src": "self._lock.release()"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 68,
+    "form": "call",
+    "src": "self.release()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 57,
+    "form": "ref",
+    "src": "\"\"\"may be removed in a future release\"\"\""
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 98,
+    "form": "call",
+    "src": "root_lock.release()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 106,
+    "form": "call",
+    "src": "lock.release()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 112,
+    "form": "call",
+    "src": "self.release()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 759,
+    "form": "call",
+    "src": "cls._lock.release()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1330,
+    "form": "call",
+    "src": "self._lock.release()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1356,
+    "form": "call",
+    "src": "self._lock.release()"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 265,
+  "kind": "def",
+  "name": "_screen_shape_wrapper",
+  "qual": "_screen_shape_wrapper",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/_utils.py",
+    "line": 7,
+    "form": "ref",
+    "src": "_screen_shape_windows, _screen_shape_wrapper, _supports_unicode, _term_move_up, colorama)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 22,
+    "form": "ref",
+    "src": "_is_ascii, _screen_shape_wrapper, _supports_unicode, _term_move_up, disp_len, disp_trim,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1019,
+    "form": "call",
+    "src": "dynamic_ncols = _screen_shape_wrapper()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1023,
+    "form": "call",
+    "src": "_dynamic_ncols = _screen_shape_wrapper()"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 286,
+    "form": "call",
+    "src": "warn(\"Use `_screen_shape_wrapper()(file)[0]` instead of\""
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 288,
+    "form": "call",
+    "src": "shape = _screen_shape_wrapper()"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 398,
+  "kind": "def",
+  "name": "format_interval",
+  "qual": "tqdm.format_interval",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 546,
+    "form": "call",
+    "src": "elapsed_str = tqdm.format_interval(elapsed)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 574,
+    "form": "call",
+    "src": "remaining_str = tqdm.format_interval(remaining) if rate else '?'"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/notebook.py",
+  "line": 286,
+  "kind": "def",
+  "name": "clear",
+  "qual": "tqdm_notebook.clear",
+  "encl": "tqdm_notebook",
+  "sites": [
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 135,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 136,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 106,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 107,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 132,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 133,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/gui.py",
+    "line": 107,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 126,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 714,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 751,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1316,
+    "form": "call",
+    "src": "def clear(self, nolock=False):"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 127,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 293,
+  "kind": "def",
+  "name": "inner",
+  "qual": "_environ_cols_wrapper.inner",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 856,
+    "form": "call",
+    "src": "def inner(df, func, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 927,
+    "form": "ref",
+    "src": "return inner"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 177,
+    "form": "call",
+    "src": "def inner(*args, **kwargs):"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 194,
+    "form": "ref",
+    "src": "return inner"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 270,
+    "form": "call",
+    "src": "def inner(fp):"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 278,
+    "form": "ref",
+    "src": "return inner"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 296,
+    "form": "ref",
+    "src": "return inner"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/itertools.py",
+  "line": 83,
+  "kind": "def",
+  "name": "batched",
+  "qual": "batched",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 11,
+    "form": "ref",
+    "src": "'chain', 'product', 'permutations', 'combinations', 'combinations_with_replacement', 'batched']"
+   },
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 84,
+    "form": "ref",
+    "src": "\"\"\"Equivalent of `itertools.batched`.\"\"\""
+   },
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 90,
+    "form": "call",
+    "src": "return tqdm_class(itertools.batched(iterable, n), unit_scale=n,"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/rich.py",
+  "line": 134,
+  "kind": "def",
+  "name": "reset",
+  "qual": "tqdm_rich.reset",
+  "encl": "tqdm_rich",
+  "sites": [
+   {
+    "file": "tqdm/keras.py",
+    "line": 72,
+    "form": "call",
+    "src": "self.epoch_bar.reset(total=auto_total)"
+   },
+   {
+    "file": "tqdm/keras.py",
+    "line": 93,
+    "form": "call",
+    "src": "self.batch_bar.reset(total=total)"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 289,
+    "form": "call",
+    "src": "def reset(self, total=None):"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 300,
+    "form": "call",
+    "src": "return super().reset(total=total)"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 307,
+    "form": "call",
+    "src": "return super().reset(total=total)"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 143,
+    "form": "call",
+    "src": "self._prog.reset(total=total)"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 144,
+    "form": "call",
+    "src": "super().reset(total=total)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1367,
+    "form": "call",
+    "src": "def reset(self, total=None):"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 162,
+    "form": "call",
+    "src": "def reset(self, total=None):"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 175,
+    "form": "call",
+    "src": "super().reset(total=total)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/asyncio.py",
+  "line": 62,
+  "kind": "def",
+  "name": "as_completed",
+  "qual": "tqdm_asyncio.as_completed",
+  "encl": "tqdm_asyncio",
+  "sites": [
+   {
+    "file": "tqdm/asyncio.py",
+    "line": 64,
+    "form": "ref",
+    "src": "Wrapper for `asyncio.as_completed`."
+   },
+   {
+    "file": "tqdm/asyncio.py",
+    "line": 71,
+    "form": "call",
+    "src": "yield from cls(asyncio.as_completed(fs, timeout=timeout, **kwargs),"
+   },
+   {
+    "file": "tqdm/asyncio.py",
+    "line": 89,
+    "form": "call",
+    "src": "res = [await f for f in cls.as_completed(ifs, loop=loop, timeout=timeout,"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 128,
+  "kind": "def",
+  "name": "wrapper_getattr",
+  "qual": "ObjectWrapper.wrapper_getattr",
+  "encl": "ObjectWrapper",
+  "sites": [
+   {
+    "file": "tqdm/utils.py",
+    "line": 160,
+    "form": "call",
+    "src": "return self._wrapped.write(s.encode(self.wrapper_getattr('encoding')))"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 171,
+  "kind": "def",
+  "name": "disable_on_exception",
+  "qual": "DisableOnWriteError.disable_on_exception",
+  "encl": "DisableOnWriteError",
+  "sites": [
+   {
+    "file": "tqdm/utils.py",
+    "line": 200,
+    "form": "call",
+    "src": "'write', self.disable_on_exception(tqdm_instance, wrapped.write))"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 203,
+    "form": "call",
+    "src": "'flush', self.disable_on_exception(tqdm_instance, wrapped.flush))"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/concurrent.py",
+  "line": 102,
+  "kind": "def",
+  "name": "_min_map_len",
+  "qual": "_min_map_len",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 127,
+    "form": "call",
+    "src": "kwargs['total'] = _min_map_len(iterables)"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 252,
+    "form": "call",
+    "src": "shortest_iterable_len = _min_map_len(iterables)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 74,
+  "kind": "class",
+  "name": "TqdmDefaultWriteLock",
+  "qual": "TqdmDefaultWriteLock",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 78,
+    "form": "ref",
+    "src": "You must initialise a `tqdm` or `TqdmDefaultWriteLock` instance"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 770,
+    "form": "call",
+    "src": "cls._lock = TqdmDefaultWriteLock()"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/notebook.py",
+  "line": 310,
+  "kind": "def",
+  "name": "tnrange",
+  "qual": "tnrange",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/__init__.py",
+    "line": 12,
+    "form": "ref",
+    "src": "'tqdm_notebook', 'tnrange', 'main', 'TMonitor',"
+   },
+   {
+    "file": "tqdm/__init__.py",
+    "line": 31,
+    "form": "call",
+    "src": "def tnrange(*args, **kwargs):  # pragma: no cover"
+   },
+   {
+    "file": "tqdm/__init__.py",
+    "line": 36,
+    "form": "ref",
+    "src": "warn(\"Please use `tqdm.notebook.trange` instead of `tqdm.tnrange`\","
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 65,
+    "form": "ref",
+    "src": "__all__ = ['tqdm_notebook', 'tnrange', 'tqdm', 'trange']"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 317,
+    "form": "ref",
+    "src": "trange = tnrange"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/_tqdm_pandas.py",
+  "line": 7,
+  "kind": "def",
+  "name": "tqdm_pandas",
+  "qual": "tqdm_pandas",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/__init__.py",
+    "line": 11,
+    "form": "ref",
+    "src": "__all__ = ['tqdm', 'tqdm_gui', 'trange', 'tgrange', 'tqdm_pandas',"
+   },
+   {
+    "file": "tqdm/_tqdm_pandas.py",
+    "line": 4,
+    "form": "ref",
+    "src": "__all__ = ['tqdm_pandas']"
+   },
+   {
+    "file": "tqdm/_tqdm_pandas.py",
+    "line": 17,
+    "form": "call",
+    "src": "\"Please use `tqdm.pandas(...)` instead of `tqdm_pandas(tqdm, ...)`.\","
+   },
+   {
+    "file": "tqdm/_tqdm_pandas.py",
+    "line": 22,
+    "form": "call",
+    "src": "\"Please use `tqdm.pandas(...)` instead of `tqdm_pandas(tqdm(...))`.\","
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 1509,
+  "kind": "def",
+  "name": "wrapattr",
+  "qual": "tqdm.wrapattr",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 1516,
+    "form": "call",
+    "src": ">>> with tqdm.wrapattr(file_obj, \"read\", total=file_obj.size) as fobj:"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 437,
+  "kind": "def",
+  "name": "status_printer",
+  "qual": "tqdm.status_printer",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/notebook.py",
+    "line": 97,
+    "form": "call",
+    "src": "def status_printer(_, total=None, desc=None, ncols=None):"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 236,
+    "form": "call",
+    "src": "self.container = self.status_printer(self.fp, total, self.desc, self.ncols)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1101,
+    "form": "call",
+    "src": "self.sp = self.status_printer(self.fp)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/itertools.py",
+  "line": 67,
+  "kind": "def",
+  "name": "combinations_with_replacement",
+  "qual": "combinations_with_replacement",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 11,
+    "form": "ref",
+    "src": "'chain', 'product', 'permutations', 'combinations', 'combinations_with_replacement', 'batched']"
+   },
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 68,
+    "form": "ref",
+    "src": "\"\"\"Equivalent of `itertools.combinations_with_replacement`.\"\"\""
+   },
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 80,
+    "form": "call",
+    "src": "return tqdm_class(itertools.combinations_with_replacement(iterable, r), total=total, **kwargs)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/telegram.py",
+  "line": 24,
+  "kind": "class",
+  "name": "TelegramIO",
+  "qual": "TelegramIO",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 21,
+    "form": "ref",
+    "src": "__all__ = ['TelegramIO', 'tqdm_telegram', 'ttgrange', 'tqdm', 'trange']"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 121,
+    "form": "call",
+    "src": "self.tgio = TelegramIO(token, chat_id)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 249,
+  "kind": "def",
+  "name": "_supports_unicode",
+  "qual": "_supports_unicode",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/_utils.py",
+    "line": 7,
+    "form": "ref",
+    "src": "_screen_shape_windows, _screen_shape_wrapper, _supports_unicode, _term_move_up, colorama)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 22,
+    "form": "ref",
+    "src": "_is_ascii, _screen_shape_wrapper, _supports_unicode, _term_move_up, disp_len, disp_trim,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1044,
+    "form": "call",
+    "src": "ascii = not _supports_unicode(file)"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 262,
+    "form": "call",
+    "src": "return _supports_unicode(s)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/itertools.py",
+  "line": 52,
+  "kind": "def",
+  "name": "combinations",
+  "qual": "combinations",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 11,
+    "form": "ref",
+    "src": "'chain', 'product', 'permutations', 'combinations', 'combinations_with_replacement', 'batched']"
+   },
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 53,
+    "form": "ref",
+    "src": "\"\"\"Equivalent of `itertools.combinations`.\"\"\""
+   },
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 64,
+    "form": "call",
+    "src": "return tqdm_class(itertools.combinations(iterable, r), total=total, **kwargs)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/itertools.py",
+  "line": 24,
+  "kind": "def",
+  "name": "product",
+  "qual": "product",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 11,
+    "form": "ref",
+    "src": "'chain', 'product', 'permutations', 'combinations', 'combinations_with_replacement', 'batched']"
+   },
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 25,
+    "form": "ref",
+    "src": "\"\"\"Equivalent of `itertools.product`.\"\"\""
+   },
+   {
+    "file": "tqdm/contrib/itertools.py",
+    "line": 33,
+    "form": "call",
+    "src": "yield from tqdm_class(itertools.product(*iterables, repeat=repeat), total=total, **kwargs)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 463,
+  "kind": "def",
+  "name": "format_meter",
+  "qual": "tqdm.format_meter",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 133,
+    "form": "call",
+    "src": "self.dio.write(self.format_meter(**fmt))"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 104,
+    "form": "call",
+    "src": "self.sio.write(self.format_meter(**fmt))"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 130,
+    "form": "call",
+    "src": "self.tgio.write(self.format_meter(**fmt))"
+   },
+   {
+    "file": "tqdm/gui.py",
+    "line": 165,
+    "form": "call",
+    "src": "msg = self.format_meter(**d)"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 86,
+    "form": "call",
+    "src": "return pbar.format_meter(**self._json_(pretty))"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 156,
+    "form": "call",
+    "src": "msg = self.format_meter(**d)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1157,
+    "form": "call",
+    "src": "return self.format_meter(**self.format_dict)"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 136,
+    "form": "call",
+    "src": "msg = self.format_meter(**d)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 100,
+  "kind": "def",
+  "name": "acquire",
+  "qual": "TqdmDefaultWriteLock.acquire",
+  "encl": "TqdmDefaultWriteLock",
+  "sites": [
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 27,
+    "form": "call",
+    "src": "def acquire(self, blocking=True, timeout=-1):"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 31,
+    "form": "call",
+    "src": "acquired = self._lock.acquire(blocking)"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 33,
+    "form": "call",
+    "src": "acquired = self._lock.acquire(blocking, timeout)"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 64,
+    "form": "call",
+    "src": "self.acquire()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 94,
+    "form": "call",
+    "src": "root_lock.acquire()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 102,
+    "form": "call",
+    "src": "lock.acquire(*a, **k)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 109,
+    "form": "call",
+    "src": "self.acquire()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 742,
+    "form": "call",
+    "src": "cls.get_lock().acquire()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1322,
+    "form": "call",
+    "src": "self._lock.acquire()"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1340,
+    "form": "call",
+    "src": "If [default: `False`]: calls `acquire()` on internal lock."
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1342,
+    "form": "call",
+    "src": "Passed to internal lock's `acquire()`."
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1343,
+    "form": "call",
+    "src": "If specified, will only `display()` if `acquire()` returns `True`."
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1350,
+    "form": "call",
+    "src": "if not self._lock.acquire(*lock_args):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1353,
+    "form": "call",
+    "src": "self._lock.acquire()"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/concurrent.py",
+  "line": 15,
+  "kind": "class",
+  "name": "_InterpreterLock",
+  "qual": "_InterpreterLock",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 93,
+    "form": "ref",
+    "src": "\"from tqdm.contrib.concurrent import _InterpreterLock\\n\""
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 98,
+    "form": "call",
+    "src": "f\"tqdm_class.set_lock(_InterpreterLock(interpreters.Queue({lock_queue_id!r})))\")"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 215,
+    "form": "call",
+    "src": "InterpreterPoolExecutor, fn, *iterables, _lock=_InterpreterLock(lock_queue),"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/tk.py",
+  "line": 178,
+  "kind": "def",
+  "name": "_tk_dispatching_helper",
+  "qual": "tqdm_tk._tk_dispatching_helper",
+  "encl": "tqdm_tk",
+  "sites": [
+   {
+    "file": "tqdm/tk.py",
+    "line": 75,
+    "form": "call",
+    "src": "self._tk_dispatching = self._tk_dispatching_helper()"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/tk.py",
+  "line": 22,
+  "kind": "class",
+  "name": "tqdm_tk",
+  "qual": "tqdm_tk",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/tk.py",
+    "line": 19,
+    "form": "ref",
+    "src": "__all__ = ['tqdm_tk', 'ttkrange', 'tqdm', 'trange']"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 26,
+    "form": "ref",
+    "src": "Note: Window interactivity suffers if `tqdm_tk` is not running within"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 28,
+    "form": "ref",
+    "src": "consider calling `tqdm_tk.refresh()` frequently in the Tk thread."
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 191,
+    "form": "call",
+    "src": "return tqdm_tk(range(*args), **kwargs)"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 195,
+    "form": "ref",
+    "src": "tqdm = tqdm_tk"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/cli.py",
+  "line": 55,
+  "kind": "def",
+  "name": "posix_pipe",
+  "qual": "posix_pipe",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/cli.py",
+    "line": 293,
+    "form": "call",
+    "src": "posix_pipe(stdin, stdout, '', buf_size, t.update)"
+   },
+   {
+    "file": "tqdm/cli.py",
+    "line": 324,
+    "form": "call",
+    "src": "posix_pipe(stdin, stdout, delim, buf_size, callback, callback_len)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/concurrent.py",
+  "line": 72,
+  "kind": "def",
+  "name": "ensure_lock",
+  "qual": "ensure_lock",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 146,
+    "form": "call",
+    "src": "with ensure_lock(tqdm_class, lock_name=lock_name, lock=_lock) as lk:"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/rich.py",
+  "line": 75,
+  "kind": "class",
+  "name": "tqdm_rich",
+  "qual": "tqdm_rich",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/rich.py",
+    "line": 18,
+    "form": "ref",
+    "src": "__all__ = ['tqdm_rich', 'trrange', 'tqdm', 'trange']"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 149,
+    "form": "call",
+    "src": "return tqdm_rich(range(*args), **kwargs)"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 153,
+    "form": "ref",
+    "src": "tqdm = tqdm_rich"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/discord.py",
+  "line": 135,
+  "kind": "def",
+  "name": "clear",
+  "qual": "tqdm_discord.clear",
+  "encl": "tqdm_discord",
+  "sites": [
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 136,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 106,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 107,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 132,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 133,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/gui.py",
+    "line": 107,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 286,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 126,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 714,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 751,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1316,
+    "form": "call",
+    "src": "def clear(self, nolock=False):"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 127,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/cli.py",
+  "line": 156,
+  "kind": "def",
+  "name": "main",
+  "qual": "main",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/__init__.py",
+    "line": 12,
+    "form": "ref",
+    "src": "'tqdm_notebook', 'tnrange', 'main', 'TMonitor',"
+   },
+   {
+    "file": "tqdm/__main__.py",
+    "line": 3,
+    "form": "call",
+    "src": "main()"
+   },
+   {
+    "file": "tqdm/cli.py",
+    "line": 13,
+    "form": "ref",
+    "src": "__all__ = [\"main\"]"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 135,
+  "kind": "def",
+  "name": "wrapper_setattr",
+  "qual": "ObjectWrapper.wrapper_setattr",
+  "encl": "ObjectWrapper",
+  "sites": [
+   {
+    "file": "tqdm/utils.py",
+    "line": 143,
+    "form": "call",
+    "src": "self.wrapper_setattr('_wrapped', wrapped)"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 154,
+    "form": "call",
+    "src": "self.wrapper_setattr('encoding', encoding)"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 199,
+    "form": "call",
+    "src": "self.wrapper_setattr("
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 202,
+    "form": "call",
+    "src": "self.wrapper_setattr("
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 223,
+    "form": "call",
+    "src": "self.wrapper_setattr('write', write)"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 230,
+    "form": "call",
+    "src": "self.wrapper_setattr('read', read)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 281,
+  "kind": "def",
+  "name": "_environ_cols_wrapper",
+  "qual": "_environ_cols_wrapper",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/_utils.py",
+    "line": 6,
+    "form": "ref",
+    "src": "_environ_cols_wrapper, _is_ascii, _is_utf, _screen_shape_linux, _screen_shape_tput,"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 287,
+    "form": "call",
+    "src": "\" `_environ_cols_wrapper()(file)`\", DeprecationWarning, stacklevel=2)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 177,
+  "kind": "def",
+  "name": "inner",
+  "qual": "DisableOnWriteError.disable_on_exception.inner",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 856,
+    "form": "call",
+    "src": "def inner(df, func, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 927,
+    "form": "ref",
+    "src": "return inner"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 194,
+    "form": "ref",
+    "src": "return inner"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 270,
+    "form": "call",
+    "src": "def inner(fp):"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 278,
+    "form": "ref",
+    "src": "return inner"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 293,
+    "form": "call",
+    "src": "def inner(fp):"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 296,
+    "form": "ref",
+    "src": "return inner"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/slack.py",
+  "line": 59,
+  "kind": "class",
+  "name": "tqdm_slack",
+  "qual": "tqdm_slack",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 23,
+    "form": "ref",
+    "src": "__all__ = ['SlackIO', 'tqdm_slack', 'tsrange', 'tqdm', 'trange']"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 114,
+    "form": "call",
+    "src": "return tqdm_slack(range(*args), **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 118,
+    "form": "ref",
+    "src": "tqdm = tqdm_slack"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 65,
+  "kind": "def",
+  "name": "TRLock",
+  "qual": "TRLock",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 86,
+    "form": "call",
+    "src": "th_lock = TRLock()"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 299,
+  "kind": "def",
+  "name": "_term_move_up",
+  "qual": "_term_move_up",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/_utils.py",
+    "line": 7,
+    "form": "ref",
+    "src": "_screen_shape_windows, _screen_shape_wrapper, _supports_unicode, _term_move_up, colorama)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 22,
+    "form": "ref",
+    "src": "_is_ascii, _screen_shape_wrapper, _supports_unicode, _term_move_up, disp_len, disp_trim,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1450,
+    "form": "call",
+    "src": "self.fp.write('\\n' * n + _term_move_up() * -n)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/logging.py",
+  "line": 16,
+  "kind": "class",
+  "name": "_TqdmLoggingHandler",
+  "qual": "_TqdmLoggingHandler",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/contrib/logging.py",
+    "line": 85,
+    "form": "call",
+    "src": "tqdm_handler = _TqdmLoggingHandler(tqdm_class)"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/utils.py",
+  "line": 146,
+  "kind": "class",
+  "name": "SimpleTextIOWrapper",
+  "qual": "SimpleTextIOWrapper",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/_utils.py",
+    "line": 5,
+    "form": "ref",
+    "src": "CUR_OS, IS_NIX, IS_WIN, RE_ANSI, Comparable, FormatReplace, SimpleTextIOWrapper,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 21,
+    "form": "ref",
+    "src": "CallbackIOWrapper, Comparable, DisableOnWriteError, FormatReplace, SimpleTextIOWrapper,"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 974,
+    "form": "call",
+    "src": "file = SimpleTextIOWrapper("
+   }
+  ]
+ },
+ {
+  "file": "tqdm/rich.py",
+  "line": 126,
+  "kind": "def",
+  "name": "clear",
+  "qual": "tqdm_rich.clear",
+  "encl": "tqdm_rich",
+  "sites": [
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 135,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 136,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 106,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 107,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 132,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 133,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/gui.py",
+    "line": 107,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 286,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 714,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 751,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1316,
+    "form": "call",
+    "src": "def clear(self, nolock=False):"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 127,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 856,
+  "kind": "def",
+  "name": "inner",
+  "qual": "tqdm.pandas.inner_generator.inner",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/std.py",
+    "line": 927,
+    "form": "ref",
+    "src": "return inner"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 177,
+    "form": "call",
+    "src": "def inner(*args, **kwargs):"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 194,
+    "form": "ref",
+    "src": "return inner"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 270,
+    "form": "call",
+    "src": "def inner(fp):"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 278,
+    "form": "ref",
+    "src": "return inner"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 293,
+    "form": "call",
+    "src": "def inner(fp):"
+   },
+   {
+    "file": "tqdm/utils.py",
+    "line": 296,
+    "form": "ref",
+    "src": "return inner"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/contrib/telegram.py",
+  "line": 132,
+  "kind": "def",
+  "name": "clear",
+  "qual": "tqdm_telegram.clear",
+  "encl": "tqdm_telegram",
+  "sites": [
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 135,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/discord.py",
+    "line": 136,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 106,
+    "form": "call",
+    "src": "def clear(self, *args, **kwargs):"
+   },
+   {
+    "file": "tqdm/contrib/slack.py",
+    "line": 107,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/contrib/telegram.py",
+    "line": 133,
+    "form": "call",
+    "src": "super().clear(*args, **kwargs)"
+   },
+   {
+    "file": "tqdm/gui.py",
+    "line": 107,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/notebook.py",
+    "line": 286,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/rich.py",
+    "line": 126,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 714,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 751,
+    "form": "call",
+    "src": "inst.clear(nolock=True)"
+   },
+   {
+    "file": "tqdm/std.py",
+    "line": 1316,
+    "form": "call",
+    "src": "def clear(self, nolock=False):"
+   },
+   {
+    "file": "tqdm/tk.py",
+    "line": 127,
+    "form": "call",
+    "src": "def clear(self, *_, **__):"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/notebook.py",
+  "line": 73,
+  "kind": "def",
+  "name": "_json_",
+  "qual": "TqdmHBox._json_",
+  "encl": "TqdmHBox",
+  "sites": [
+   {
+    "file": "tqdm/notebook.py",
+    "line": 86,
+    "form": "call",
+    "src": "return pbar.format_meter(**self._json_(pretty))"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/cli.py",
+  "line": 267,
+  "kind": "def",
+  "name": "cp",
+  "qual": "main.cp",
+  "encl": null,
+  "sites": [
+   {
+    "file": "tqdm/cli.py",
+    "line": 273,
+    "form": "call",
+    "src": "cp('tqdm.1', Path(manpath) / 'tqdm.1')"
+   },
+   {
+    "file": "tqdm/cli.py",
+    "line": 275,
+    "form": "call",
+    "src": "cp('completion.sh', Path(comppath) / 'tqdm_completion.sh')"
+   }
+  ]
+ },
+ {
+  "file": "tqdm/std.py",
+  "line": 762,
+  "kind": "def",
+  "name": "set_lock",
+  "qual": "tqdm.set_lock",
+  "encl": "tqdm",
+  "sites": [
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 78,
+    "form": "call",
+    "src": "tqdm_class.set_lock(lock)"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 83,
+    "form": "call",
+    "src": "tqdm_class.set_lock(old_lock)"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 98,
+    "form": "call",
+    "src": "f\"tqdm_class.set_lock(_InterpreterLock(interpreters.Queue({lock_queue_id!r})))\")"
+   },
+   {
+    "file": "tqdm/contrib/concurrent.py",
+    "line": 149,
+    "form": "ref",
+    "src": "_initializer = tqdm_class.set_lock"
+   }
+  ]
+ }
+]
