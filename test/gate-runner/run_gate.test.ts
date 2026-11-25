@@ -369,9 +369,10 @@ describe("3b: glyph failed, or the index is missing, unparsable or empty", () =>
 describe("3c: the index read zero sites", () => {
 	test("an index that read zero sites fails rather than passes", () => {
 		const world = makeWorld();
-		const spawn = makeSpawn(world, {
-			index: { files: ["src/click/core.py"], symbols: [{}], sites: [] },
-		});
+		// Otherwise valid: files and symbols are the default; only `sites` is empty,
+		// so 3c is the one check that can reject this fixture.
+		const base = buildDefaultIndex(world.checkouts.click) as Record<string, unknown>;
+		const spawn = makeSpawn(world, { index: { ...base, sites: [] } });
 		const result = runGate(makeConfig(world), makeDeps(world, spawn));
 		// A run that read nothing must fail: the positive control above proves a
 		// non-empty site list is what makes the same fixture pass.
