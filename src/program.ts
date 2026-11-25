@@ -19,7 +19,7 @@ import { exitCodeFor, GlyphError, notFoundError, usageError } from "./errors.ts"
 import { parseDiff, repoRootFor, resolveCommit, resolveDiffRefs } from "./git.ts";
 import type { ImpactCaller, ImpactResult } from "./impact.ts";
 import { impactOf } from "./impact.ts";
-import { produceCodeMap } from "./codemap.ts";
+import { produceCodeMapWithPrebuild } from "./codemap.ts";
 import {
 	cacheScopeOf,
 	fileCountLabel,
@@ -179,32 +179,35 @@ function infoOf(index: GlyphIndex, cache: "hit" | "miss", selection?: LanguageSe
 }
 
 /**
- * code-map's tier-3 index, prebuilt through the seam when the source ref's
- * selected language needs an asynchronous build (Python; the Python grammar
- * loads through wasm). TypeScript returns undefined, so its deterministic
- * synchronous path is byte-for-byte unchanged. A ref that does not resolve, or
- * one with no indexable source, returns undefined: tiers 1, 2 and 4 still
- * answer, and `produceCodeMap` reports an unresolvable ref itself.
+ * The selected language's index at `commit`, prebuilt through the seam when it
+ * needs an asynchronous build (Python; the grammar loads through wasm).
+ * TypeScript returns undefined so code-map's synchronous, ref-keyed cached
+ * loader is used and its deterministic path is byte-for-byte unchanged. A ref
+ * that does not resolve, or one with no indexable source, returns undefined:
+ * tiers 1, 2 and 4 still answer, and the producer reports an unresolvable ref
+ * itself.
+ *
+ * This is called from inside code-map's budgeted and caught region (DEC-303
+ * (a15) 21): its git reads are capped by the same budget, and a throw here is a
+ * missing tier, never a failed run.
  */
 async function codeMapRefIndex(
-	context: Context,
+	repositoryPath: string,
+	commit: string,
 	sourceRef: string,
-): Promise<{ commit: string; index: GlyphIndex } | undefined> {
-	const sha = resolveCommit(context.repoRoot, sourceRef);
-	if (sha === null) return undefined;
+): Promise<GlyphIndex | undefined> {
 	let selection: LanguageSelection;
 	try {
-		selection = selectFromPresence(languageFilesAtRef(context.repoRoot, sha), undefined, {
-			where: `at ${sourceRef} (${shortSha(sha)}) in ${context.repoRoot}`,
-			emptyMessage: `no TypeScript or JavaScript sources at ${sourceRef} (${shortSha(sha)}) in ${context.repoRoot}`,
+		selection = selectFromPresence(languageFilesAtRef(repositoryPath, commit), undefined, {
+			where: `at ${sourceRef} (${shortSha(commit)}) in ${repositoryPath}`,
+			emptyMessage: `no TypeScript or JavaScript sources at ${sourceRef} (${shortSha(commit)}) in ${repositoryPath}`,
 		});
 	} catch (error) {
 		if (error instanceof GlyphError && error.code === 3) return undefined;
 		throw error;
 	}
 	if (cacheScopeOf(selection.id) === undefined) return undefined;
-	const index = await indexRefWith(selection.id, context.repoRoot, sha, selection.files);
-	return { commit: sha, index };
+	return await indexRefWith(selection.id, repositoryPath, commit, selection.files);
 }
 
 function emit(json: boolean, kind: string, data: unknown, renderHuman: () => string): void {
@@ -235,7 +238,9 @@ function callerRow(site: CallerSite): {
 /**
  * The Python-only index counts, carried beside `unresolvedByKind` when the
  * index has them and ABSENT otherwise, so a TypeScript answer keeps its exact
- * bytes (DEC-303 (a14) 3).
+ * bytes (DEC-303 (a14) 3, (a15) 19). `parseErrorFiles` rides with them so a
+ * run that dropped calls inside ERROR regions names the files it dropped them
+ * in; `exact` itself stays internal (DEC-303 (a15) 20).
  */
 function pythonCounts(index: GlyphIndex): Record<string, unknown> {
 	const counts: Record<string, unknown> = {};
@@ -244,6 +249,9 @@ function pythonCounts(index: GlyphIndex): Record<string, unknown> {
 		counts.unresolvedFirstPartyImports = index.unresolvedFirstPartyImports;
 	}
 	if (index.constructorNotes !== undefined) counts.constructorNotes = index.constructorNotes;
+	if (index.parseErrorFiles !== undefined && index.parseErrorFiles.length > 0) {
+		counts.parseErrorFiles = index.parseErrorFiles;
+	}
 	return counts;
 }
 
@@ -680,31 +688,34 @@ export function buildProgram(scanned: ScannedArgs): Command {
 			if (options.sourceRef === undefined || options.sourceRef === "") {
 				throw usageError("code-map needs --source-ref <ref>");
 			}
-			// Task text on stdin. The bound is enforced by produceCodeMap, which refuses
+			const sourceRef = options.sourceRef;
+			// Task text on stdin. The bound is enforced by the producer, which refuses
 			// text over the limit rather than truncating it.
 			const taskText = readFileSync(0, "utf8");
-			// A Python ref's index is built here, through the seam; TypeScript keeps the
-			// synchronous loader produceCodeMap has always used (S7 rule 8).
-			const prebuilt = await codeMapRefIndex(context, options.sourceRef);
-			const refIndex = prebuilt === undefined ? {} : { refIndex: prebuilt };
+			// The selected language's index is built inside code-map's budget and
+			// caught region (DEC-303 (a15) 21): a slow Python build is a "symbol
+			// index" budget stop, and a failing one is a missing tier, never a failed
+			// run. TypeScript keeps the synchronous, cached loader (S7 rule 8).
+			const buildRefIndex = (repositoryPath: string, commit: string) =>
+				codeMapRefIndex(repositoryPath, commit, sourceRef);
 			if (context.stream) {
 				const writer = createStreamWriter();
-				const streamed = produceCodeMap({
-					repositoryPath: context.repoRoot,
-					sourceRef: options.sourceRef,
-					taskText,
-					...refIndex,
-					onPointer: (pointer) => writer.item(itemKindOf("code-map"), pointer),
-				});
+				const streamed = await produceCodeMapWithPrebuild(
+					{
+						repositoryPath: context.repoRoot,
+						sourceRef,
+						taskText,
+						onPointer: (pointer) => writer.item(itemKindOf("code-map"), pointer),
+					},
+					buildRefIndex,
+				);
 				writer.result(kindOf("code-map"), codeMapStreamResultData(streamed));
 				return;
 			}
-			const output = produceCodeMap({
-				repositoryPath: context.repoRoot,
-				sourceRef: options.sourceRef,
-				taskText,
-				...refIndex,
-			});
+			const output = await produceCodeMapWithPrebuild(
+				{ repositoryPath: context.repoRoot, sourceRef, taskText },
+				buildRefIndex,
+			);
 			emit(context.json, kindOf("code-map"), output, () => {
 				const lines = [`code map for ${options.sourceRef} — ${output.pointers.length} pointer(s)`];
 				for (const pointer of output.pointers) {

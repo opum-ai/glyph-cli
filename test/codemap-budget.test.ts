@@ -6,6 +6,7 @@ import { produceCodeMap } from "../src/codemap.ts";
 import { GlyphError } from "../src/errors.ts";
 import { CODE_MAP_TIME_BUDGET_MS, TIME_BUDGET_SOURCE } from "../src/codemap-text.ts";
 import { loadRefIndex } from "../src/codemap-tier3.ts";
+import { produceCodeMapWithPrebuild } from "../src/codemap.ts";
 import { makeFixtureRepo } from "./parity/fixtures.ts";
 
 /**
@@ -118,6 +119,36 @@ describe("the time budget", () => {
 		expect(paths).toEqual(["src/a.ts", "src/barrel.ts", "src/c.ts"]);
 		expect(paths).not.toContain("src/0-note.ts");
 		expect(rows[0]?.reason).toContain("3 without line ranges");
+	});
+
+	test("P3: a slow Python prebuild is a symbol-index budget stop (DEC-303 (a15) 21)", async () => {
+		const root = repoWith(FILES);
+		let clock = 0;
+		const output = await produceCodeMapWithPrebuild(
+			{ repositoryPath: root, sourceRef: "base", taskText: TEXT, timeBudgetMs: 1_000, now: () => clock },
+			async (path, commit) => {
+				const index = loadRefIndex(path, commit);
+				clock += 5_000; // the prebuild took five budgets and could not be interrupted
+				return index ?? undefined;
+			},
+		);
+		const rows = budgetRows(output);
+		expect(rows).toHaveLength(1);
+		expect(rows[0]?.reason).toContain("symbol index");
+		expect(rows[0]?.reason).toContain("5000 ms elapsed");
+	});
+
+	test("P4: a throwing prebuild is a missing tier, never a failed run", async () => {
+		const root = repoWith(FILES);
+		const output = await produceCodeMapWithPrebuild(
+			{ repositoryPath: root, sourceRef: "base", taskText: TEXT, timeBudgetMs: 1_000, now: () => 0 },
+			async () => {
+				throw new Error("python: a first-party package root did not resolve");
+			},
+		);
+		// Tier 1 answers from the named path; the failed tier 3 adds nothing and does not stop the run.
+		expect(output.pointers.map((pointer) => pointer.path)).toContain("src/a.ts");
+		expect(budgetRows(output)).toHaveLength(0);
 	});
 
 	test("a budget already spent returns no pointers but never nothing silently", () => {

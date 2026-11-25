@@ -128,6 +128,22 @@ export interface GlyphIndex {
 	unresolvedFirstPartyImports?: number;
 	/** Python only (DEC-303 (a14) 3): the number of S5 constructor notes. */
 	constructorNotes?: number;
+	/**
+	 * Python only (DEC-303 (a15) 19): one entry per file whose parse holds an
+	 * ERROR node, ordered by path, carrying the call expressions dropped inside
+	 * its ERROR regions. ABSENT for TypeScript and for a Python run with no parse
+	 * errors — never null and never `[]`, so no existing golden changes bytes.
+	 * `exact` is not published beside it (rule 20).
+	 */
+	parseErrorFiles?: ParseErrorFile[];
+}
+
+/** One file whose Python parse holds an ERROR node (DEC-303 (a15) 19). */
+export interface ParseErrorFile {
+	/** Repository-relative POSIX path. */
+	path: string;
+	/** Call expressions dropped inside this file's ERROR regions. */
+	droppedCalls: number;
 }
 
 /** Summary of the index source, carried in every query result. */

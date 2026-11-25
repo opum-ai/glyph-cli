@@ -767,6 +767,7 @@ describe("rule 18 — out of scope (unwired)", () => {
 				"exact",
 				"exit7",
 				"multiplyBoundCount",
+				"parseErrorFiles",
 				"polymorphicCount",
 				"sites",
 				"symbols",

@@ -505,15 +505,30 @@ export function produceCodeMap(input: CodeMapInput): CodeMapOutput {
  * can force a read to come back empty. The shipped path always goes through
  * `produceCodeMap`, which passes the real `spawnResult`; the CLI never names this.
  */
-export function produceCodeMapWithSpawn(input: CodeMapInput, spawn: GitSpawn): CodeMapOutput {
+/** The clock a code-map run shares with its tier-3 build; installed as the git budget. */
+interface CodeMapClock {
+	budgetMs: number;
+	elapsedMs: () => number;
+}
+
+/**
+ * Start a code-map run's clock and install it as the git budget, before any git
+ * read — the source ref's, the tiers', and (for Python) the tier-3 prebuild's.
+ * One deadline then caps them all (DEC-303 (a15) 21).
+ */
+function startCodeMapClock(input: CodeMapInput): CodeMapClock {
 	const now = input.now ?? (() => performance.now());
 	const budgetMs = input.timeBudgetMs ?? testTimeBudgetMs ?? CODE_MAP_TIME_BUDGET_MS;
 	const startedAt = now();
 	const deadline = startedAt + budgetMs;
-	assertTaskTextWithinBound(input.taskText);
 	// The budget covers every git read from the first one, the source ref's included.
 	setGitBudget({ expired: () => now() >= deadline, remaining: () => deadline - now() });
-	const elapsedMs = (): number => Math.round(now() - startedAt);
+	return { budgetMs, elapsedMs: () => Math.round(now() - startedAt) };
+}
+
+export function produceCodeMapWithSpawn(input: CodeMapInput, spawn: GitSpawn): CodeMapOutput {
+	assertTaskTextWithinBound(input.taskText);
+	const clock = startCodeMapClock(input);
 	try {
 		let commit: string;
 		try {
@@ -521,9 +536,59 @@ export function produceCodeMapWithSpawn(input: CodeMapInput, spawn: GitSpawn): C
 		} catch (error) {
 			if (!(error instanceof BudgetExpired)) throw error;
 			// Nothing can be gathered without the commit: no pointers, and the row says why.
-			return { pointers: [], omissions: [timeBudgetRow(budgetMs, "source ref", elapsedMs(), 0)] };
+			return { pointers: [], omissions: [timeBudgetRow(clock.budgetMs, "source ref", clock.elapsedMs(), 0)] };
 		}
-		return buildCodeMap(input, commit, budgetMs, elapsedMs, spawn);
+		return buildCodeMap(input, commit, clock.budgetMs, clock.elapsedMs, spawn);
+	} finally {
+		setGitBudget(null);
+	}
+}
+
+/**
+ * The code map with an asynchronous tier-3 prebuild (Python; its grammar loads
+ * through wasm), used by the CLI. The clock and the git budget start BEFORE the
+ * prebuild, so a slow build is a "symbol index" budget stop, and the prebuild is
+ * awaited here, inside this budgeted and caught region: a failing index — a
+ * non-empty exit7 list, a grammar init failure, a git read failure — is a
+ * missing tier, never a failed run (DEC-303 (a15) 21). `buildRefIndex` returns
+ * undefined to mean "no asynchronous index; use the synchronous, ref-keyed
+ * loader" (TypeScript, or a ref with no indexable source).
+ *
+ * A prebuild that overran the deadline cannot be interrupted, so the run is
+ * pre-stopped at the symbol stage: the time-budget row names it, and the same
+ * row the synchronous loader would produce is what the caller sees.
+ */
+export async function produceCodeMapWithPrebuild(
+	input: CodeMapInput,
+	buildRefIndex: (repositoryPath: string, commit: string) => Promise<GlyphIndex | undefined>,
+	spawn: GitSpawn = spawnResult,
+): Promise<CodeMapOutput> {
+	assertTaskTextWithinBound(input.taskText);
+	const clock = startCodeMapClock(input);
+	try {
+		let commit: string;
+		try {
+			commit = resolveSourceRef(input.repositoryPath, input.sourceRef, spawn);
+		} catch (error) {
+			if (!(error instanceof BudgetExpired)) throw error;
+			return { pointers: [], omissions: [timeBudgetRow(clock.budgetMs, "source ref", clock.elapsedMs(), 0)] };
+		}
+		// Tier 3's index is built here, still inside the budget: its git reads are
+		// capped by the same deadline and the clock already covers it. Any failure is
+		// a missing tier; only a budget cut stops the run, at the symbol stage.
+		let refIndexOverride: { commit: string; index: GlyphIndex | null } | undefined;
+		let prebuildOverran = false;
+		if (input.symbols !== false) {
+			try {
+				const prebuilt = await buildRefIndex(input.repositoryPath, commit);
+				refIndexOverride = prebuilt === undefined ? undefined : { commit, index: prebuilt };
+			} catch {
+				refIndexOverride = { commit, index: null };
+			}
+			prebuildOverran = currentGitBudget()?.expired() === true;
+		}
+		const prestopped = prebuildOverran ? { stage: "symbol index", elapsedMs: clock.elapsedMs() } : undefined;
+		return buildCodeMap(input, commit, clock.budgetMs, clock.elapsedMs, spawn, refIndexOverride, prestopped);
 	} finally {
 		setGitBudget(null);
 	}
@@ -551,11 +616,15 @@ function buildCodeMap(
 	budgetMs: number,
 	elapsedMs: () => number,
 	spawn: GitSpawn,
+	refIndexOverride?: { commit: string; index: GlyphIndex | null },
+	prestopped?: { stage: string; elapsedMs: number },
 ): CodeMapOutput {
 	const text = input.taskText;
 	const omissions: CodeMapOmission[] = [];
-	let stoppedAt: string | undefined;
-	let stoppedElapsedMs = 0;
+	// A prebuild that overran could not be interrupted: the run is already stopped at
+	// that stage, so no later unit runs and the budget row names where the time went.
+	let stoppedAt: string | undefined = prestopped?.stage;
+	let stoppedElapsedMs = prestopped?.elapsedMs ?? 0;
 	let rangesNotRead = 0;
 	// The elapsed time is read when the run stops, so the row says when it stopped.
 	const stop = (stage: string): void => {
@@ -661,7 +730,7 @@ function buildCodeMap(
 		let index: GlyphIndex | null = null;
 		try {
 			const loader = input.loadIndex;
-			const prebuilt = input.refIndex;
+			const prebuilt = refIndexOverride ?? input.refIndex;
 			index =
 				loader !== undefined
 					? loader(input.repositoryPath, commit)

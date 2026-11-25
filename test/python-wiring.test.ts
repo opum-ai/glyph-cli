@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cacheDir, computeKey, computeRefKey, readCachedIndex } from "../src/cache.ts";
@@ -683,8 +683,147 @@ describe("rule 18 — declaration", () => {
 		const language = manifest.data.globalFlags.find((flag) => flag.name === "language");
 		expect(language?.summary).toContain("registered: python, typescript");
 		const flagNames = manifest.data.commands.flatMap((command) => command.flags.map((flag) => flag.name));
-		for (const outputField of ["callBins", "unresolvedFirstPartyImports", "constructorNotes"]) {
+		for (const outputField of ["callBins", "unresolvedFirstPartyImports", "constructorNotes", "parseErrorFiles"]) {
 			expect(flagNames).not.toContain(outputField);
 		}
+	});
+});
+
+// --- rule 19 --------------------------------------------------------------
+
+// `def f(): x = g() ]` leaves an ERROR region that drops the call `g()`.
+const BROKEN = "def f():\n    x = g() ]\n";
+
+describe("rule 19 — parseErrorFiles", () => {
+	test("rule 19: a clean Python run carries no parseErrorFiles, in batch and stream", () => {
+		const repo = pythonRepo();
+		for (const args of [
+			["--json", "callers", "helper"],
+			["--json", "impact", "helper"],
+		]) {
+			const data = jsonOf(runCli(repo.root, args as string[])).data;
+			expect(Object.hasOwn(data, "parseErrorFiles")).toBe(false);
+		}
+		const streamed = streamEnvelopes(runCli(repo.root, ["impact", "helper", "--stream"]).stdout);
+		const result = streamed.find((line) => line.kind === "impact.result")?.data;
+		expect(result !== undefined && Object.hasOwn(result, "parseErrorFiles")).toBe(false);
+	});
+
+	test("rule 19: a file whose parse holds an ERROR node is named with its dropped-call count, ordered by path", () => {
+		const repo = makeScratchRepo({
+			...PY_FILES,
+			"pkg/b_broken.py": BROKEN,
+			"pkg/a_broken.py": "def f():\n    return helper(1) +\n",
+		});
+		repo.commit("errors");
+		const callers = jsonOf(runCli(repo.root, ["--json", "callers", "helper"])).data;
+		const expected = [
+			{ path: "pkg/a_broken.py", droppedCalls: 1 },
+			{ path: "pkg/b_broken.py", droppedCalls: 1 },
+		];
+		expect(callers.parseErrorFiles).toEqual(expected);
+		const impact = jsonOf(runCli(repo.root, ["--json", "impact", "helper"])).data;
+		expect(impact.parseErrorFiles).toEqual(expected);
+		const streamed = streamEnvelopes(runCli(repo.root, ["impact", "helper", "--stream"]).stdout);
+		const result = streamed.find((line) => line.kind === "impact.result")?.data;
+		expect(result?.parseErrorFiles).toEqual(expected);
+	});
+
+	test("rule 19: a TypeScript answer carries no parseErrorFiles", () => {
+		const repo = tsRepo();
+		const data = jsonOf(runCli(repo.root, ["--json", "callers", "helper"])).data;
+		expect(Object.hasOwn(data, "parseErrorFiles")).toBe(false);
+		// The byte-level proof is `test/language-golden.test.ts`, which stays green.
+	});
+});
+
+// --- rule 20 --------------------------------------------------------------
+
+describe("rule 20 — exact stays internal", () => {
+	test("rule 20: `exact` is in no envelope even when a parse error lowered it", () => {
+		const repo = makeScratchRepo({ ...PY_FILES, "pkg/broken.py": BROKEN });
+		repo.commit("errors");
+		const outputs = [
+			runCli(repo.root, ["--json", "callers", "helper"]).stdout,
+			runCli(repo.root, ["--json", "impact", "helper"]).stdout,
+			runCli(repo.root, ["impact", "helper", "--stream"]).stdout,
+		];
+		for (const output of outputs) {
+			const keys = new Set<string>();
+			for (const value of envelopeValues(output)) collectKeys(value, keys);
+			expect(keys.has("exact")).toBe(false);
+		}
+	});
+});
+
+// --- rule 21 --------------------------------------------------------------
+
+/** Run `run` with a `git` first on PATH that exits 1 for a named subcommand. */
+function withFailingGitSubcommand<T>(subcommand: string, run: () => T): T {
+	const realGit = Bun.which("git");
+	if (realGit === null) throw new Error("no git on PATH");
+	const shim = mkdtempSync(join(tmpdir(), "glyph-git-shim-"));
+	writeFileSync(
+		join(shim, "git"),
+		`#!/bin/sh\ncase " $* " in *" ${subcommand} "*) echo "shim: ${subcommand} failed" >&2; exit 1;; esac\nexec "${realGit}" "$@"\n`,
+	);
+	chmodSync(join(shim, "git"), 0o755);
+	const saved = process.env.PATH;
+	process.env.PATH = `${shim}:${saved}`;
+	try {
+		return run();
+	} finally {
+		process.env.PATH = saved;
+	}
+}
+
+describe("rule 21 — code-map budget and fallback", () => {
+	test("rule 21: a failing Python index is tier 3 missing; code-map answers tiers 1, 2 and 4 with exit 0", () => {
+		// The rule-4 exit7 fixture: `tools` resolves to no single source root.
+		const repo = makeScratchRepo({
+			"app/main.py": "import tools.helpers\ntools.helpers.h()\n",
+			"backend/tools/__init__.py": "",
+			"backend/tools/helpers.py": "def h():\n    return 1\n",
+		});
+		const base = repo.commit("base");
+		repo.write("backend/tools/helpers.py", "def h():\n    return 2\n");
+		repo.commit("change");
+		const result = runCli(
+			repo.root,
+			["--json", "code-map", "--source-ref", base],
+			undefined,
+			"fix backend/tools/helpers.py and `helpers`\n",
+		);
+		expect(result.code).toBe(0);
+		const data = jsonOf(result).data;
+		const reasons = (data.pointers as { reason: string }[]).map((pointer) => pointer.reason).join("|");
+		expect(reasons).toContain("path named in the task text"); // tier 1
+		expect(reasons).toContain("changed on this branch"); // tier 2
+		expect(reasons).toContain("matches identifier"); // tier 4
+		expect(reasons).not.toContain("symbol `"); // tier 3 was dropped, not answered partially
+		const omissions = data.omissions as { reason: string }[];
+		expect(omissions.some((row) => row.reason.includes("time-budget"))).toBe(false);
+	});
+
+	test("rule 21: a TypeScript ls-tree failure drops tier 3 only", () => {
+		const repo = makeScratchRepo({
+			"src/util.ts": "export function helper(n: number): number {\n  return n + 1;\n}\n",
+			"src/note.ts": "// helper is mentioned here\nexport const note = 1;\n",
+		});
+		const base = repo.commit("base");
+		repo.write("src/note.ts", "// helper is mentioned again\nexport const note = 2;\n");
+		repo.commit("change");
+		const result = withFailingGitSubcommand("ls-tree", () =>
+			runCli(repo.root, ["--json", "code-map", "--source-ref", base], undefined, "fix src/note.ts and `helper`\n"),
+		);
+		expect(result.code).toBe(0);
+		const data = jsonOf(result).data;
+		const reasons = (data.pointers as { reason: string }[]).map((pointer) => pointer.reason).join("|");
+		expect(reasons).toContain("path named in the task text"); // tier 1
+		expect(reasons).toContain("changed on this branch"); // tier 2
+		expect(reasons).toContain("matches identifier"); // tier 4
+		expect(reasons).not.toContain("symbol `"); // tier 3 dropped by the failed listing
+		const omissions = data.omissions as { reason: string }[];
+		expect(omissions.some((row) => row.reason.includes("time-budget"))).toBe(false);
 	});
 });

@@ -23,7 +23,7 @@
  */
 
 import type { Node } from "@vscode/tree-sitter-wasm";
-import type { UnresolvedByKind } from "../types.ts";
+import type { ParseErrorFile, UnresolvedByKind } from "../types.ts";
 import {
 	buildModuleGraph,
 	type DynamicImport,
@@ -117,6 +117,12 @@ export interface PythonCallsResult {
 	constructorNotes: ConstructorNote[];
 	/** Files whose parse holds at least one ERROR node (rule 1). */
 	errorFiles: string[];
+	/**
+	 * One entry per file in `errorFiles`, ordered by path, with the call
+	 * expressions dropped inside its own ERROR regions (DEC-303 (a15) 19). An
+	 * empty list for a run whose parses hold no ERROR node.
+	 */
+	parseErrorFiles: ParseErrorFile[];
 	/** Call expressions dropped inside ERROR regions (rule 1). */
 	droppedCalls: number;
 	/** S3's indeterminate triggers, carried (rule 15). */
@@ -2520,6 +2526,8 @@ export async function analyzePythonCalls(
 	const allDecoratorSites: RawDecoratorSite[] = [];
 	const allScopes: Scope[] = [];
 	const errorFiles: string[] = [];
+	/** Per-file dropped call expressions, for `parseErrorFiles` (DEC-303 (a15) 19). */
+	const droppedByPath = new Map<string, number>();
 	let droppedCalls = 0;
 
 	const paths = [...graph.modules.map((module) => module.path)].sort(compareText);
@@ -2548,6 +2556,7 @@ export async function analyzePythonCalls(
 			allClasses.push(...result.classes);
 			allScopes.push(...result.scopes);
 			droppedCalls += result.droppedCalls;
+			if (parse.errorCount > 0) droppedByPath.set(path, result.droppedCalls);
 		} finally {
 			parse.tree.delete();
 		}
@@ -2630,6 +2639,13 @@ export async function analyzePythonCalls(
 	sites.sort(compareSites);
 	const symbols = [...allSymbols].sort(compareSymbols);
 	const uniqErrorFiles = sortedUnique(errorFiles);
+	// One entry per file whose parse holds an ERROR node, ordered by path, with its
+	// own dropped-call count (DEC-303 (a15) 19). A file with an ERROR but no dropped
+	// call is still listed, with 0.
+	const parseErrorFiles: ParseErrorFile[] = uniqErrorFiles.map((path) => ({
+		path,
+		droppedCalls: droppedByPath.get(path) ?? 0,
+	}));
 	const callExpressionCount = allCalls.length;
 	const unresolvedByKind: UnresolvedByKind = {
 		call: binaries.receiverNeedsInference + binaries.nameNotBound,
@@ -2652,6 +2668,7 @@ export async function analyzePythonCalls(
 		multiplyBoundCount,
 		constructorNotes: notes,
 		errorFiles: uniqErrorFiles,
+		parseErrorFiles,
 		droppedCalls,
 		exit7: graph.exit7,
 		dynamic: graph.dynamic,

@@ -87,7 +87,7 @@ async function buildIndex(
 		result.unresolvedByKind.extends +
 		result.unresolvedByKind.implements +
 		result.unresolvedByKind.dynamic;
-	return {
+	const index: GlyphIndex = {
 		schemaVersion: INDEX_FORMAT,
 		repo: repoRoot,
 		createdAt: new Date().toISOString(),
@@ -101,6 +101,10 @@ async function buildIndex(
 		unresolvedFirstPartyImports: result.unresolvedFirstPartyImports,
 		constructorNotes: result.constructorNotes.length,
 	};
+	// DEC-303 (a15) 19: present only when non-empty; absent, never null or `[]`,
+	// for a clean Python run so no existing golden changes bytes.
+	if (result.parseErrorFiles.length > 0) index.parseErrorFiles = result.parseErrorFiles;
+	return index;
 }
 
 /** The working-tree source of one Python repository, read as bytes (rule 2). */
