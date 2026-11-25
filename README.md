@@ -57,6 +57,33 @@ GCLI-76 implementation notes):
   the gate scorer's target mapping, not a run of `gate_score.py`; the real
   end-to-end gate run is S8.
 
+### Python call resolution (S5, not yet wired)
+
+Call resolution builds on the module graph (S3) and the symbol table (S4) in
+`src/python/calls.ts` and is not yet wired to the CLI. Every call expression
+outside a parse-error region lands in exactly one of four bins — resolved in the
+repository (an edge), resolved external, unresolved because the receiver needs
+inference, and unresolved because the name is not statically bound. Stated
+limits:
+
+- **No inference of builtin types.** `"x".join(...)`, `items.append(...)` and
+  `x.m()` on an unannotated parameter are unresolved-receiver, which keeps them
+  out of unknown in-repository calls; only `self`, `cls`, a class name, and a
+  single constructor/import/annotation binding are attributed.
+- **`self.x.m()` is unresolved-receiver and counted**, and return annotations are
+  not followed — only parameter and variable annotations are.
+- **A method found only in an external base is resolved external**; an opaque
+  base before a match is flagged `externalBaseBefore`.
+- **Polymorphic dispatch is reported, never guessed.** A site whose in-repository
+  subclass overrides the method is flagged and counted; the edge goes to the
+  declared class's resolution only.
+- **Parse errors drop calls and are named.** A call inside an ERROR region is
+  dropped and the file listed with the dropped count; that run does not claim the
+  count exact, and S3's exit-7 list is carried (raising it is S7's).
+- **`test/python-gate/check_call_sites.ts` reports the bins** over click and
+  requests; scoring a `GlyphIndex` through `gate_score.py` there is NOT the gate
+  run (S8 owns the gate).
+
 ## Run it
 
 Glyph needs [Node.js](https://nodejs.org) 24 or newer. Install it from npm and
