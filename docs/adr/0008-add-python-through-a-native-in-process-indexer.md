@@ -66,6 +66,7 @@ Python is indexed by glyph's own analyzer, in process, producing the same `Glyph
   was present); a per-answer note where a constructor call is recorded against a class. TypeScript leaves them absent or constant.
 - **The source roots** are those opum-doc listed, plus the repository root itself (an `app/` directory at the top level).
   Adding the root is this draft's proposal.
+- **Nested project roots (S8a).** A directory below the repository root holding `pyproject.toml`, `setup.py` or `setup.cfg` is a nested project root; a first-party absolute import in a file beneath it resolves first against that root's own `""`, `src` and `lib` roots and then against the repository's, with the nearest enclosing marker winning, so an unreachable example project no longer makes the whole run indeterminate (DEC-303 (a18)).
 - **Inheritance** uses the method resolution order over in-repository bases; a method found only in a base outside the repository
   is not attributed to a repository symbol and its bin is the one rule decision 7 requires for the case.
 - **The cache key** gains the language, the analyzer version and the grammar version beside the commit. `--ref` reads the tree

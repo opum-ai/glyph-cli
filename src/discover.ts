@@ -106,6 +106,88 @@ export function discoverFiles(repoRoot: string, accept: (path: string) => boolea
 	return [...found].sort();
 }
 
+/** Basenames that mark a nested Python project root (S8a, DEC-303 (a18)). */
+export const PYTHON_PROJECT_MARKERS: ReadonlySet<string> = new Set(["pyproject.toml", "setup.py", "setup.cfg"]);
+
+/** True when the path's basename is a Python project marker. */
+export function isPythonProjectMarker(path: string): boolean {
+	const index = path.lastIndexOf("/");
+	return PYTHON_PROJECT_MARKERS.has(index < 0 ? path : path.slice(index + 1));
+}
+
+/** The repository-relative directory of a marker path; "" for a marker at the root. */
+function markerDirOf(path: string): string {
+	const index = path.lastIndexOf("/");
+	return index < 0 ? "" : path.slice(0, index);
+}
+
+/**
+ * Repository-relative directories below the root that hold a Python project
+ * marker (S8a, DEC-303 (a18)), from the same listing {@link discoverFiles}
+ * reads: Git's tracked plus unignored-untracked set inside a repository, a walk
+ * outside one. A marker at the repository root is not a nested root, so "" is
+ * dropped here. Markers under an excluded path are returned; the module graph
+ * filters them by the same exclusion rule it applies to files (rule 6), so this
+ * listing stays a plain answer about what the tree contains.
+ */
+export function markerDirsFor(repoRoot: string): string[] {
+	const inside = gitRun(repoRoot, ["rev-parse", "--is-inside-work-tree"]);
+	if (inside.code !== 0) {
+		if (/not a git repository/i.test(inside.stderr)) return walkMarkerDirs(repoRoot);
+		throw indeterminateError(`git could not read ${repoRoot}: ${firstLine(inside.stderr)}`);
+	}
+	const listed = gitRun(repoRoot, ["ls-files", "-z", "--cached", "--others", "--exclude-standard"]);
+	if (listed.code !== 0) {
+		throw indeterminateError(`git ls-files failed in ${repoRoot}: ${firstLine(listed.stderr)}`);
+	}
+	const dirs = new Set<string>();
+	for (const path of listed.stdout.split("\0")) {
+		if (path === "" || !isPythonProjectMarker(path)) continue;
+		try {
+			// Listed in the index but absent from this worktree: not a marker now.
+			if (!statSync(join(repoRoot, path)).isFile()) continue;
+		} catch {
+			continue;
+		}
+		const dir = toPosix(markerDirOf(path));
+		if (dir !== "") dirs.add(dir);
+	}
+	return [...dirs].sort();
+}
+
+/** The non-Git walk for marker directories, using the same excluded-directory list as source discovery. */
+function walkMarkerDirs(repoRoot: string): string[] {
+	const dirs = new Set<string>();
+
+	const walk = (dir: string): void => {
+		let entries: string[];
+		try {
+			entries = readdirSync(dir);
+		} catch {
+			return;
+		}
+		for (const entry of entries) {
+			const absolute = join(dir, entry);
+			let isDirectory = false;
+			try {
+				isDirectory = statSync(absolute).isDirectory();
+			} catch {
+				continue;
+			}
+			if (isDirectory) {
+				if (!EXCLUDED_DIRS.has(entry)) walk(absolute);
+			} else if (PYTHON_PROJECT_MARKERS.has(entry)) {
+				const relativePath = toPosix(relative(repoRoot, absolute));
+				const markerDir = markerDirOf(relativePath);
+				if (markerDir !== "") dirs.add(markerDir);
+			}
+		}
+	};
+
+	walk(repoRoot);
+	return [...dirs].sort();
+}
+
 function walkFiles(repoRoot: string, accept: (path: string) => boolean): string[] {
 	const found: string[] = [];
 

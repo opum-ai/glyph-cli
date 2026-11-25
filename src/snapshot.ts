@@ -1,6 +1,6 @@
 import { dirname, join, relative, resolve } from "node:path";
 import ts from "typescript";
-import { type ConfigReadHost, loadCompilerOptions, SOURCE_EXTENSIONS } from "./discover.ts";
+import { type ConfigReadHost, isPythonProjectMarker, loadCompilerOptions, SOURCE_EXTENSIONS } from "./discover.ts";
 import { listTree, readBlobs, readBlobsBytes } from "./git.ts";
 import { indexProgram } from "./indexer.ts";
 import { groupByLanguage, type LanguagePresence } from "./language.ts";
@@ -131,6 +131,26 @@ export function languageFilesAtRef(repoRoot: string, sha: string): LanguagePrese
 		.map((entry) => posix(entry.path))
 		.sort();
 	return groupByLanguage(paths);
+}
+
+/**
+ * Repository-relative directories below the root holding a Python project
+ * marker in `sha`'s tree (S8a, DEC-303 (a18)), from the same `git ls-tree`
+ * listing the ref's source selection reads. A marker at the repository root is
+ * not a nested root, so "" is dropped; markers in excluded paths are returned
+ * and filtered by the module graph (rule 6). This is the `--ref` twin of
+ * `markerDirsFor`, so the working tree and a commit's tree agree on the roots.
+ */
+export function markerDirsAtRef(repoRoot: string, sha: string): string[] {
+	const dirs = new Set<string>();
+	for (const entry of listTree(repoRoot, sha)) {
+		if (entry.type !== "blob" || (entry.mode !== "100644" && entry.mode !== "100755")) continue;
+		const path = posix(entry.path);
+		if (!isPythonProjectMarker(path)) continue;
+		const slash = path.lastIndexOf("/");
+		if (slash > 0) dirs.add(path.slice(0, slash));
+	}
+	return [...dirs].sort();
 }
 
 /** One source file read from a commit's tree, as bytes (the Python analyzer's input). */
