@@ -1051,6 +1051,16 @@ describe("DEC-303 (a26) — resolving through a namespace directory", () => {
 		});
 	}
 
+	test("a module inside a namespace directory resolves a sibling relative import; `from . import x` stays namespace-package", async () => {
+		const graph = await buildModuleGraph([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/a.py", "from .b import Y\nfrom . import b\n"),
+			py("src/pkg/ns/b.py", "Y = 1\n"),
+		]);
+		expect(bindingIn(graph, "src/pkg/ns/a.py", "Y").target).toBe("src/pkg/ns/b.py");
+		expect(bindingIn(graph, "src/pkg/ns/a.py", "b").reason).toBe("namespace-package");
+	});
+
 	test("a __path__ manipulation in an unrelated package does not block the chain", async () => {
 		const graph = await buildModuleGraph([
 			py("src/other/__init__.py", "__path__ = []\n"),

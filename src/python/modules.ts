@@ -463,7 +463,15 @@ interface ModuleData {
 	imports: RawImport[];
 	localImports: LocalImport[];
 	dynamic: DynamicImport[];
+	/**
+	 * DEC-303 (a26): the file names `__path__`, `extend_path` or `declare_namespace`
+	 * anywhere, so a package it is the `__init__.py` of may gain portions the text
+	 * does not show. Deliberately conservative: a mere read of `__path__` counts.
+	 */
+	pathManipulated: boolean;
 }
+
+const PATH_MANIPULATION_NAMES = new Set(["__path__", "extend_path", "declare_namespace"]);
 
 const DYNAMIC_CALLEES = new Set(["importlib.import_module", "__import__", "getattr"]);
 
@@ -758,6 +766,7 @@ function extractModuleData(tree: Tree, path: string, dropped: DroppedImport[]): 
 		imports: [],
 		localImports: [],
 		dynamic: [],
+		pathManipulated: false,
 	};
 	const stack: WalkFrame[] = [{ node: tree.rootNode, condition: null, scope: "module" }];
 	while (stack.length > 0) {
@@ -767,6 +776,7 @@ function extractModuleData(tree: Tree, path: string, dropped: DroppedImport[]): 
 			collectDroppedImports(node, path, dropped);
 			continue;
 		}
+		if (node.type === "identifier" && PATH_MANIPULATION_NAMES.has(node.text)) data.pathManipulated = true;
 		if (
 			node.type === "import_statement" ||
 			node.type === "import_from_statement" ||
@@ -1056,8 +1066,16 @@ class ModuleResolver {
 		return { kind: "external" };
 	}
 
-	private walkFrom(startDir: string, parts: readonly string[]): Resolution {
+	private walkFrom(startDir: string, parts: readonly string[], inheritedAnchor: string | null = null): Resolution {
 		let currentDir = startDir;
+		// DEC-303 (a26): the __init__.py of the nearest regular package on the path so
+		// far. A namespace directory below it has exactly one portion, so the walk
+		// continues through it; with no regular ancestor (a top-level namespace) or
+		// with an ancestor that manipulates its __path__, the portions are not known
+		// from the text and the import stays namespace-package.
+		let anchor: string | null = this.index.has(joinPath(startDir, "__init__.py"))
+			? joinPath(startDir, "__init__.py")
+			: inheritedAnchor;
 		for (let index = 0; index < parts.length; index++) {
 			const component = parts[index] as string;
 			const packageInit = joinPath(currentDir, component, "__init__.py");
@@ -1065,6 +1083,7 @@ class ModuleResolver {
 			if (this.index.has(packageInit)) {
 				if (index === parts.length - 1) return { outcome: "resolved", target: packageInit, reason: null };
 				currentDir = joinPath(currentDir, component);
+				anchor = packageInit;
 				continue;
 			}
 			if (this.index.has(moduleFile)) {
@@ -1072,7 +1091,12 @@ class ModuleResolver {
 				return { outcome: "unresolved", target: null, reason: "module-not-a-package" };
 			}
 			if (this.index.hasDir(joinPath(currentDir, component))) {
-				return { outcome: "unresolved", target: null, reason: "namespace-package" };
+				// A namespace directory as the last component is the namespace package itself.
+				if (index === parts.length - 1 || anchor === null || this.data.get(anchor)?.pathManipulated !== false) {
+					return { outcome: "unresolved", target: null, reason: "namespace-package" };
+				}
+				currentDir = joinPath(currentDir, component);
+				continue;
 			}
 			return { outcome: "unresolved", target: null, reason: "module-not-found" };
 		}
@@ -1125,8 +1149,19 @@ class ModuleResolver {
 		const keep = packageParts.length - (dots - 1);
 		const base = packageParts.slice(0, keep);
 		const baseDir = joinPath(identity.root, ...base);
+		let anchor: string | null = null;
 		if (base.length > 0 && !this.index.has(joinPath(baseDir, "__init__.py"))) {
-			return { outcome: "unresolved", target: null, reason: "namespace-package" };
+			// DEC-303 (a26): the importing file sits in a namespace directory. A module
+			// part below it still resolves when a regular package above it fixes the
+			// directory's single portion; `from . import x` binds from the namespace
+			// package itself and stays namespace-package.
+			for (let length = base.length - 1; length >= 1 && anchor === null; length--) {
+				const init = joinPath(identity.root, ...base.slice(0, length), "__init__.py");
+				if (this.index.has(init)) anchor = init;
+			}
+			if (modulePart === "" || anchor === null || this.data.get(anchor)?.pathManipulated !== false) {
+				return { outcome: "unresolved", target: null, reason: "namespace-package" };
+			}
 		}
 		if (modulePart === "") {
 			const target = joinPath(baseDir, "__init__.py");
@@ -1134,7 +1169,7 @@ class ModuleResolver {
 				? { outcome: "resolved", target, reason: null }
 				: { outcome: "unresolved", target: null, reason: "namespace-package" };
 		}
-		return this.walkFrom(baseDir, moduleComponents(modulePart));
+		return this.walkFrom(baseDir, moduleComponents(modulePart), anchor);
 	}
 
 	private moduleBindingResolution(resolution: RawResolution): NameResolution {

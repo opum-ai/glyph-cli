@@ -1694,14 +1694,14 @@ describe("DEC-303 (a26) — a base reached through a namespace directory", () =>
 		expect(linesTo(result, symbolId(result, "Scaffold.helper", "pkg/sansio/scaffold.py"))).toEqual([6]);
 	});
 
-	test("the absolute import form resolves the same way", async () => {
+	test("the absolute from-import form resolves the same way", async () => {
 		const files = [
 			py("src/pkg/__init__.py", ""),
 			py("src/pkg/sansio/scaffold.py", scaffold),
 			py("src/pkg/sansio/app.py", base),
 			py(
 				"src/pkg/app.py",
-				"import pkg.sansio.app\n\nclass Flask(pkg.sansio.app.App):\n    def go(self):\n        self.m()\n",
+				"from pkg.sansio.app import App\n\nclass Flask(App):\n    def go(self):\n        self.m()\n",
 			),
 		];
 		const result = await analyze(files);
