@@ -73,6 +73,16 @@ export interface ModuleGraphOptions {
 	 * declared name is excluded at any depth.
 	 */
 	excludedDirs?: readonly string[];
+	/**
+	 * Repository-relative directories (POSIX, below the repository root) that hold
+	 * a Python project marker (`pyproject.toml`, `setup.py` or `setup.cfg`),
+	 * supplied by the caller's listing (S8a, DEC-303 (a18)). Each is a nested
+	 * project root; the nearest enclosing one is consulted first for a file
+	 * beneath it. Absent or empty means no nested roots and today's behaviour. A
+	 * marker in an excluded path is ignored (rule 6), so the caller may pass the
+	 * listing unfiltered.
+	 */
+	markerDirs?: readonly string[];
 }
 
 export type ImportKind = "import" | "from" | "relative" | "future" | "star";
@@ -313,20 +323,27 @@ function exclusionRules(declared: readonly string[] | undefined): ExclusionRules
 }
 
 /**
- * A path is excluded when a directory segment names an any-depth exclusion, or
- * when its repo-root-level segment names a build-output directory that is not
- * itself a package (DEC-303 (a7), NB11). `packageDirs` is every input directory
- * holding `__init__.py`.
+ * A directory is excluded when a segment names an any-depth exclusion, or when
+ * its repo-root-level segment names a build-output directory that is not itself a
+ * package (DEC-303 (a7), NB11). Shared with {@link isExcludedPath}, and by S8a's
+ * marker filter (rule 6), so a marker under an excluded path is excluded by the
+ * same rule as a file under it.
  */
-function isExcludedPath(path: string, rules: ExclusionRules, packageDirs: ReadonlySet<string>): boolean {
-	const directories = path.split("/").slice(0, -1);
-	for (let index = 0; index < directories.length; index++) {
-		const segment = directories[index] as string;
+function isExcludedDir(dir: string, rules: ExclusionRules, packageDirs: ReadonlySet<string>): boolean {
+	if (dir === "") return false;
+	const segments = dir.split("/");
+	for (let index = 0; index < segments.length; index++) {
+		const segment = segments[index] as string;
 		if (segment.endsWith(".egg-info")) return true;
 		if (rules.anyDepth.has(segment)) return true;
 		if (index === 0 && rules.rootBuildOutput.has(segment) && !packageDirs.has(segment)) return true;
 	}
 	return false;
+}
+
+/** A path is excluded when its directory is excluded. `packageDirs` holds every input directory with `__init__.py`. */
+function isExcludedPath(path: string, rules: ExclusionRules, packageDirs: ReadonlySet<string>): boolean {
+	return isExcludedDir(dirOf(path), rules, packageDirs);
 }
 
 /** True when any segment of `dir` is a test-named directory (DEC-303 (a7), (a8); case-insensitive). */
@@ -359,6 +376,44 @@ function selectRoot(path: string, roots: readonly string[]): number {
 		}
 	}
 	return best;
+}
+
+/**
+ * The nested project roots the graph will honour (S8a, rules 1 and 6): supplied
+ * marker directories below the repository root, normalised, deduped, sorted, and
+ * with any marker under an excluded path dropped. A marker at the repository root
+ * is the repository's own root, never a nested root, so "" is dropped.
+ */
+function nestedProjectRoots(
+	markers: readonly string[] | undefined,
+	rules: ExclusionRules,
+	packageDirs: ReadonlySet<string>,
+): string[] {
+	if (markers === undefined) return [];
+	const roots = new Set<string>();
+	for (const marker of markers) {
+		const dir = normalizeRoot(marker);
+		if (dir === "") continue;
+		if (isExcludedDir(dir, rules, packageDirs)) continue;
+		roots.add(dir);
+	}
+	return [...roots].sort();
+}
+
+/**
+ * A file's nested source roots, in resolution order (rules 2, 5 and 7): the
+ * nearest enclosing marker's own "", `src` and `lib`, relative to it. Empty when
+ * the file is beneath no nested root, so resolution and module naming fall back
+ * to the repository roots exactly as today.
+ */
+function nestedSourceRoots(path: string, nestedRoots: readonly string[]): string[] {
+	let nearest: string | null = null;
+	for (const root of nestedRoots) {
+		if (!isUnder(path, root)) continue;
+		if (nearest === null || rootDepth(root) > rootDepth(nearest)) nearest = root;
+	}
+	if (nearest === null) return [];
+	return [nearest, joinPath(nearest, "src"), joinPath(nearest, "lib")];
 }
 
 function moduleNameFor(path: string, root: string): string {
@@ -913,6 +968,12 @@ class ModuleResolver {
 		private readonly packageRootsByBase: Map<string, string[]>,
 		private readonly identities: Map<string, FileIdentity>,
 		private readonly data: Map<string, ModuleData>,
+		/**
+		 * Per-file nested project source roots, in resolution order (S8a, rule 2).
+		 * Empty or absent for a file not beneath a nested root, and for every file
+		 * of a repository with no marker, so resolution is exactly today's.
+		 */
+		private readonly nestedRootsByPath: ReadonlyMap<string, readonly string[]>,
 	) {}
 
 	resolveAll(): { bindings: ImportBinding[]; exit7: Exit7Trigger[] } {
@@ -967,12 +1028,22 @@ class ModuleResolver {
 		if (raw.kind === "relative" || (raw.kind === "star" && raw.dots > 0)) {
 			return this.resolveRelative(path, raw.dots, raw.module);
 		}
-		return this.resolveAbsolute(raw.module);
+		return this.resolveAbsolute(path, raw.module);
 	}
 
-	private findTop(top: string): TopProvider {
+	/**
+	 * The roots an absolute import resolves over, in order (S8a, rule 2): the
+	 * importing file's nested project roots first, then the repository roots. A
+	 * file not beneath a nested root has none, so the list is exactly `this.roots`.
+	 */
+	private rootsFor(path: string): readonly string[] {
+		const nested = this.nestedRootsByPath.get(path);
+		return nested === undefined || nested.length === 0 ? this.roots : [...nested, ...this.roots];
+	}
+
+	private findTop(top: string, roots: readonly string[]): TopProvider {
 		let sawNamespace = false;
-		for (const root of this.roots) {
+		for (const root of roots) {
 			const packageInit = joinPath(root, top, "__init__.py");
 			if (this.index.has(packageInit)) return { kind: "package", root };
 			const moduleFile = joinPath(root, `${top}.py`);
@@ -1011,11 +1082,11 @@ class ModuleResolver {
 			: { outcome: "unresolved", target: null, reason: "namespace-package" };
 	}
 
-	private resolveAbsolute(module: string): Resolution {
+	private resolveAbsolute(file: string, module: string): Resolution {
 		const parts = moduleComponents(module);
 		if (parts.length === 0) return { outcome: "unresolved", target: null, reason: "empty-module" };
 		const top = parts[0] as string;
-		const provided = this.findTop(top);
+		const provided = this.findTop(top, this.rootsFor(file));
 		switch (provided.kind) {
 			case "external":
 				return { outcome: "external", target: null, reason: null };
@@ -1076,7 +1147,7 @@ class ModuleResolver {
 			if (parts.length > 1) {
 				if (resolution.outcome === "external") return { outcome: "external", target: null, reason: null };
 				if (resolution.outcome === "resolved" && resolution.target !== null) {
-					return plainResolution(this.resolveAbsolute(parts[0] as string));
+					return plainResolution(this.resolveAbsolute(raw.path, parts[0] as string));
 				}
 			}
 		}
@@ -1355,13 +1426,15 @@ export function resolveLocalImportNode(graph: ModuleGraph, path: string, node: N
 interface IndexedFile {
 	path: string;
 	bytes: Uint8Array;
-	/** Path-math root: "" for an outside-root file, its declared root otherwise. */
+	/** Path-math root: "" for an outside-root file, the nested project source root, or its declared root. */
 	root: string;
 	rootIndex: number;
 	module: string;
 	isPackage: boolean;
 	/** True when no declared root covers the file (its record root is OUTSIDE_ROOTS_ROOT). */
 	outsideRoots: boolean;
+	/** True when the file's root is a nested project root (S8a); it never competes in collisions. */
+	nested: boolean;
 }
 
 interface Provider {
@@ -1434,12 +1507,42 @@ export async function buildModuleGraph(
 	// collisions (finding 3).
 	const outsideRootIndex = roots.length;
 	const rootLabels = [...roots, OUTSIDE_ROOTS_ROOT];
+	// S8a (DEC-303 (a18)): nested project roots, supplied by the caller's listing.
+	// A file beneath the nearest one resolves over that root's own "", src and lib
+	// first, then over the repository roots; a file beneath none is unchanged.
+	const nestedRoots = nestedProjectRoots(options.markerDirs, rules, allPackageDirs);
+	const nestedRootsByPath = new Map<string, readonly string[]>();
 	const indexed: IndexedFile[] = [];
 	for (const candidate of candidates) {
-		const found = selectRoot(candidate.path, roots);
-		const outsideRoots = found < 0;
-		const rootIndex = outsideRoots ? outsideRootIndex : found;
-		const root = outsideRoots ? "" : (roots[found] as string);
+		const fileNestedRoots = nestedSourceRoots(candidate.path, nestedRoots);
+		let root: string;
+		let rootIndex: number;
+		let outsideRoots: boolean;
+		let nested = false;
+		if (fileNestedRoots.length > 0) {
+			const found = selectRoot(candidate.path, fileNestedRoots);
+			if (found < 0) {
+				// Rule 7: beneath a nested root but under none of its own source roots
+				// keeps the outside-every-root rules. Unreachable while "" is a nested
+				// source root; kept so the reading is explicit rather than implied.
+				outsideRoots = true;
+				rootIndex = outsideRootIndex;
+				root = "";
+			} else {
+				outsideRoots = false;
+				nested = true;
+				// Nested files' roots are local to their subtree, so they never compete
+				// in the global collision/shadow computation and need no root label.
+				rootIndex = roots.length;
+				root = fileNestedRoots[found] as string;
+				nestedRootsByPath.set(candidate.path, fileNestedRoots);
+			}
+		} else {
+			const found = selectRoot(candidate.path, roots);
+			outsideRoots = found < 0;
+			rootIndex = outsideRoots ? outsideRootIndex : found;
+			root = outsideRoots ? "" : (roots[found] as string);
+		}
 		indexed.push({
 			...candidate,
 			root,
@@ -1447,6 +1550,7 @@ export async function buildModuleGraph(
 			module: moduleNameFor(candidate.path, root),
 			isPackage: baseName(candidate.path) === "__init__.py",
 			outsideRoots,
+			nested,
 		});
 	}
 	indexed.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
@@ -1465,10 +1569,11 @@ export async function buildModuleGraph(
 
 	// Rules 1 and 15: the first root providing a top-level name wins; every
 	// later provider of that name is shadowed, counted and named. Outside-root
-	// files have no root and never compete (finding 3): excluding them keeps
-	// counts.collisions/counts.shadowed honest.
+	// files have no root and never compete (finding 3), and a nested project
+	// root's files are local to their subtree (S8a rule 3), so neither competes:
+	// excluding them keeps counts.collisions/counts.shadowed honest.
 	const providers: Provider[] = indexed
-		.filter((file) => !file.outsideRoots)
+		.filter((file) => !file.outsideRoots && !file.nested)
 		.map((file) => ({
 			path: file.path,
 			module: file.module,
@@ -1579,6 +1684,7 @@ export async function buildModuleGraph(
 		packageRootsByBase,
 		identities,
 		data,
+		nestedRootsByPath,
 	);
 	const { bindings, exit7 } = resolver.resolveAll();
 	bindings.sort((a, b) => byPathThenLine(a, b) || (a.original < b.original ? -1 : a.original > b.original ? 1 : 0));

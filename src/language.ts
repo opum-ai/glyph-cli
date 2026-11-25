@@ -81,8 +81,18 @@ export function fileCountLabel(count: number): string {
  */
 export interface LanguageIndexer {
 	readonly id: string;
-	index(repoRoot: string, files: string[]): GlyphIndex | Promise<GlyphIndex>;
-	indexRef(repoRoot: string, sha: string, files: string[]): GlyphIndex | Promise<GlyphIndex>;
+	/**
+	 * `markerDirs` are the Python project-root marker directories from the same
+	 * listing the caller selected `files` from (S8a, DEC-303 (a18)); a language
+	 * with no use for them ignores the argument, so TypeScript output is unchanged.
+	 */
+	index(repoRoot: string, files: string[], markerDirs?: readonly string[]): GlyphIndex | Promise<GlyphIndex>;
+	indexRef(
+		repoRoot: string,
+		sha: string,
+		files: string[],
+		markerDirs?: readonly string[],
+	): GlyphIndex | Promise<GlyphIndex>;
 	/**
 	 * The version constants a cache key adds beyond the language id and the file
 	 * list (S7 rule 6). Absent for TypeScript, whose key is unchanged.
@@ -103,14 +113,19 @@ export function registeredLanguages(): string[] {
 }
 
 /** Build the index for `languageId` through its registered indexer. Callers await it. */
-export async function indexWith(languageId: string, repoRoot: string, files: string[]): Promise<GlyphIndex> {
+export async function indexWith(
+	languageId: string,
+	repoRoot: string,
+	files: string[],
+	markerDirs?: readonly string[],
+): Promise<GlyphIndex> {
 	const indexer = REGISTRY.get(languageId);
 	if (indexer === undefined) {
 		// Unreachable through the CLI: selection only ever names a registered
 		// language. An internal error (exit 1), never a second exit-7 cause.
 		throw new Error(`internal: no indexer is registered for language '${languageId}'`);
 	}
-	return await indexer.index(repoRoot, files);
+	return await indexer.index(repoRoot, files, markerDirs);
 }
 
 /** Build the index for one commit's tree through its registered indexer. */
@@ -119,29 +134,39 @@ export async function indexRefWith(
 	repoRoot: string,
 	sha: string,
 	files: string[],
+	markerDirs?: readonly string[],
 ): Promise<GlyphIndex> {
 	const indexer = REGISTRY.get(languageId);
 	if (indexer === undefined) {
 		throw new Error(`internal: no indexer is registered for language '${languageId}'`);
 	}
-	return await indexer.indexRef(repoRoot, sha, files);
+	return await indexer.indexRef(repoRoot, sha, files, markerDirs);
 }
 
 /**
  * The cache-key scope for a language, or undefined when its key needs none.
- * Python adds its id, an analyzer version and the grammar version; TypeScript
+ * Python adds its id, an analyzer version and the grammar version, plus the
+ * nested project-root marker directories when there are any (S8a: a changed
+ * marker set changes resolution without changing the file list); TypeScript
  * returns undefined so its key is unchanged (S7 rule 6).
  */
 export interface LanguageCacheScope {
 	language: string;
 	analyzerVersion: string;
 	grammarVersion: string;
+	/** Python only: the marker directories that change resolution, sorted, when non-empty. */
+	markerDirs?: readonly string[];
 }
 
-export function cacheScopeOf(languageId: string): LanguageCacheScope | undefined {
+export function cacheScopeOf(languageId: string, markerDirs?: readonly string[]): LanguageCacheScope | undefined {
 	const indexer = REGISTRY.get(languageId);
 	if (indexer?.cacheKey === undefined) return undefined;
-	return { language: languageId, ...indexer.cacheKey };
+	const sorted = markerDirs === undefined || markerDirs.length === 0 ? undefined : [...markerDirs].sort();
+	return {
+		language: languageId,
+		...indexer.cacheKey,
+		...(sorted === undefined ? {} : { markerDirs: sorted }),
+	};
 }
 
 // TypeScript/JavaScript through the compiler API. Registering the existing

@@ -40,6 +40,11 @@ function updateScope(hash: ReturnType<typeof createHash>, scope: LanguageCacheSc
 	hash.update(`language:${scope.language}\n`);
 	hash.update(`analyzer:${scope.analyzerVersion}\n`);
 	hash.update(`grammar:${scope.grammarVersion}\n`);
+	// S8a: nested project-root markers change resolution without changing the
+	// file list, so a Python key must move when the marker set does. Absent (and
+	// so byte-identical to S7) for a repository with no marker, and for every
+	// TypeScript key.
+	for (const dir of scope.markerDirs ?? []) hash.update(`marker-dir:${dir}\n`);
 }
 
 /**

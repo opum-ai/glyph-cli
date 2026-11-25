@@ -15,6 +15,7 @@ import {
 	STREAMING_COMMANDS,
 	successEnvelope,
 } from "./contract.ts";
+import { markerDirsFor } from "./discover.ts";
 import { exitCodeFor, GlyphError, notFoundError, usageError } from "./errors.ts";
 import { parseDiff, repoRootFor, resolveCommit, resolveDiffRefs } from "./git.ts";
 import type { ImpactCaller, ImpactResult } from "./impact.ts";
@@ -41,7 +42,7 @@ import {
 	symbolRow,
 	touchedSymbols,
 } from "./queries.ts";
-import { languageFilesAtRef } from "./snapshot.ts";
+import { languageFilesAtRef, markerDirsAtRef } from "./snapshot.ts";
 import { codeMapStreamResultData, createStreamWriter, streamResultData } from "./stream.ts";
 import type { GlyphIndex, IndexInfo, SymbolEntry, UnresolvedByKind } from "./types.ts";
 
@@ -113,6 +114,16 @@ interface LoadedIndex {
 }
 
 /**
+ * The nested project-root marker directories for a Python run (S8a rule 8): the
+ * working tree's Git listing, or the commit's tree for `--ref`, so both sources
+ * agree. Other languages get none, so their output and cache key are unchanged.
+ */
+function markerDirsOf(languageId: string, repoRoot: string, sha?: string): string[] | undefined {
+	if (languageId !== "python") return undefined;
+	return sha === undefined ? markerDirsFor(repoRoot) : markerDirsAtRef(repoRoot, sha);
+}
+
+/**
  * The index a command answers from: the working tree by default, or the tree
  * of `--ref`'s commit, read without a checkout (DEC-216 Q4). The two sources
  * share the cache directory but never a key — the ref key is addressed by the
@@ -120,8 +131,9 @@ interface LoadedIndex {
  *
  * Asynchronous because the registered Python indexer loads its grammar through
  * wasm; every caller awaits it (S7 rule 1). A Python key adds the language
- * scope, so a change of language, analyzer version or grammar version misses
- * (rule 6); TypeScript passes no scope, so its key is unchanged.
+ * scope, so a change of language, analyzer version, grammar version or nested
+ * project-root marker set misses (rules 6 and S8a); TypeScript passes no scope,
+ * so its key is unchanged.
  */
 async function loadIndex(context: Context, ref?: string): Promise<LoadedIndex> {
 	// An explicit language is validated before either source, so a `--ref` run
@@ -145,19 +157,21 @@ async function loadIndex(context: Context, ref?: string): Promise<LoadedIndex> {
 			emptyMessage: `no TypeScript or JavaScript sources at ${ref} (${shortSha(sha)}) in ${context.repoRoot}`,
 		});
 		const files = selection.files;
-		const key = computeRefKey(sha, files, cacheScopeOf(selection.id));
+		const markerDirs = markerDirsOf(selection.id, context.repoRoot, sha);
+		const key = computeRefKey(sha, files, cacheScopeOf(selection.id, markerDirs));
 		const cached = readCachedIndex(context.repoRoot, key);
 		if (cached !== null) return { index: cached, info: infoOf(cached, "hit", selection), ref: { ref, sha } };
-		const index = await indexRefWith(selection.id, context.repoRoot, sha, files);
+		const index = await indexRefWith(selection.id, context.repoRoot, sha, files, markerDirs);
 		writeCachedIndex(context.repoRoot, key, index);
 		return { index, info: infoOf(index, "miss", selection), ref: { ref, sha } };
 	}
 	const selection = selectLanguage(context.repoRoot, context.language);
 	const files = selection.files;
-	const key = computeKey(context.repoRoot, files, cacheScopeOf(selection.id));
+	const markerDirs = markerDirsOf(selection.id, context.repoRoot);
+	const key = computeKey(context.repoRoot, files, cacheScopeOf(selection.id, markerDirs));
 	const cached = readCachedIndex(context.repoRoot, key);
 	if (cached !== null) return { index: cached, info: infoOf(cached, "hit", selection), ref: null };
-	const index = await indexWith(selection.id, context.repoRoot, files);
+	const index = await indexWith(selection.id, context.repoRoot, files, markerDirs);
 	writeCachedIndex(context.repoRoot, key, index);
 	return { index, info: infoOf(index, "miss", selection), ref: null };
 }
@@ -207,7 +221,13 @@ async function codeMapRefIndex(
 		throw error;
 	}
 	if (cacheScopeOf(selection.id) === undefined) return undefined;
-	return await indexRefWith(selection.id, repositoryPath, commit, selection.files);
+	return await indexRefWith(
+		selection.id,
+		repositoryPath,
+		commit,
+		selection.files,
+		markerDirsOf(selection.id, repositoryPath, commit),
+	);
 }
 
 function emit(json: boolean, kind: string, data: unknown, renderHuman: () => string): void {

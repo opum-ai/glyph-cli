@@ -21,9 +21,11 @@ import { grammarVersion } from "./parse.ts";
 /**
  * The analyzer's own version, part of every Python cache key (S7 rule 6). Bump
  * it when the Python analysis changes in a way the injected grammar version and
- * `INDEX_FORMAT` do not capture.
+ * `INDEX_FORMAT` do not capture. Bumped to 2 for S8a's nested project roots
+ * (DEC-303 (a18)): the marker directories also enter the key, but a marker-less
+ * repository still needs the new key rather than a stale pre-S8a answer.
  */
-export const PYTHON_ANALYZER_VERSION = "1";
+export const PYTHON_ANALYZER_VERSION = "2";
 
 /** The S5 per-site flags, carried in the cached index and never in an envelope (rule 17). */
 interface SiteFlags {
@@ -78,8 +80,9 @@ async function buildIndex(
 	repoRoot: string,
 	files: readonly string[],
 	inputs: readonly PythonModuleInput[],
+	markerDirs?: readonly string[],
 ): Promise<GlyphIndex> {
-	const result = await analyzePythonCalls(inputs);
+	const result = await analyzePythonCalls(inputs, markerDirs === undefined ? {} : { markerDirs });
 	throwIfIndeterminate(result.exit7);
 	const unresolvedSites =
 		result.unresolvedByKind.call +
@@ -127,17 +130,20 @@ function posixPath(file: string): string {
 /**
  * The registered Python indexer. `cacheKey` carries the two version constants a
  * Python cache key adds to the language id and the file list (rule 6); the
- * TypeScript indexer declares none, so its key is unchanged.
+ * TypeScript indexer declares none, so its key is unchanged. `markerDirs` are
+ * the nested project-root markers supplied by the adapter from the same listing
+ * the files came from (S8a rules 2 and 8): the working tree's Git listing or the
+ * commit's tree, so both sources agree.
  */
 export const pythonIndexer: LanguageIndexer = {
 	id: "python",
 	cacheKey: { analyzerVersion: PYTHON_ANALYZER_VERSION, grammarVersion: grammarVersion() },
-	index: (repoRoot: string, files: string[]): Promise<GlyphIndex> => {
+	index: (repoRoot: string, files: string[], markerDirs?: readonly string[]): Promise<GlyphIndex> => {
 		const paths = files.map((file) => repositoryPath(repoRoot, file));
-		return buildIndex(repoRoot, paths, readWorkingTreeInputs(repoRoot, paths));
+		return buildIndex(repoRoot, paths, readWorkingTreeInputs(repoRoot, paths), markerDirs);
 	},
-	indexRef: (repoRoot: string, sha: string, files: string[]): Promise<GlyphIndex> => {
+	indexRef: (repoRoot: string, sha: string, files: string[], markerDirs?: readonly string[]): Promise<GlyphIndex> => {
 		const paths = files.map(posixPath);
-		return buildIndex(repoRoot, paths, readRefInputs(repoRoot, sha, paths));
+		return buildIndex(repoRoot, paths, readRefInputs(repoRoot, sha, paths), markerDirs);
 	},
 };
