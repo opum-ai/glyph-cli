@@ -1733,15 +1733,19 @@ describe("DEC-303 (a26) — a base reached through a namespace directory", () =>
 		expect(linesTo(result, symbolId(result, "Base.m", "src/pkg/ns/mod.py"))).toEqual([5]);
 	});
 
-	test("Q2: a call pkg.ns.mod.helper() through the chain resolves, two namespace levels too", async () => {
-		const result = await analyze([
+	test("Q2: a call pkg.ns.mod.helper() through the chain resolves, and so does a two-level chain", async () => {
+		const one = await analyze([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/use.py", "import pkg.ns.mod\n\npkg.ns.mod.helper()\n"),
+		]);
+		expect(linesTo(one, symbolId(one, "helper", "src/pkg/ns/mod.py"))).toEqual([3]);
+		const two = await analyze([
 			py("src/pkg/__init__.py", ""),
 			py("src/pkg/a/b/mod.py", mod),
-			py("src/pkg/ns/mod.py", mod),
-			py("src/use.py", "import pkg.ns.mod\nimport pkg.a.b.mod\n\npkg.ns.mod.helper()\npkg.a.b.mod.helper()\n"),
+			py("src/use.py", "import pkg.a.b.mod\n\npkg.a.b.mod.helper()\n"),
 		]);
-		expect(linesTo(result, symbolId(result, "helper", "src/pkg/ns/mod.py"))).toEqual([4]);
-		expect(linesTo(result, symbolId(result, "helper", "src/pkg/a/b/mod.py"))).toEqual([5]);
+		expect(linesTo(two, symbolId(two, "helper", "src/pkg/a/b/mod.py"))).toEqual([3]);
 	});
 
 	test("Q2 negative controls: a top-level namespace chain and a manipulated ancestor stay unresolved", async () => {
@@ -1753,5 +1757,18 @@ describe("DEC-303 (a26) — a base reached through a namespace directory", () =>
 			py("src/use.py", "import pkg.ns.mod\n\npkg.ns.mod.helper()\n"),
 		]);
 		expect(linesTo(manipulated, symbolId(manipulated, "helper", "src/pkg/ns/mod.py"))).toEqual([]);
+		// the chain is walked from a bare `import pkg`, so the ancestor check must hold there too
+		const bare = await analyze([
+			py("src/pkg/__init__.py", "__path__ = []\n"),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/use.py", "import pkg\n\npkg.ns.mod.helper()\n"),
+		]);
+		expect(linesTo(bare, symbolId(bare, "helper", "src/pkg/ns/mod.py"))).toEqual([]);
+		const bareOk = await analyze([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/use.py", "import pkg\n\npkg.ns.mod.helper()\n"),
+		]);
+		expect(linesTo(bareOk, symbolId(bareOk, "helper", "src/pkg/ns/mod.py"))).toEqual([3]);
 	});
 });

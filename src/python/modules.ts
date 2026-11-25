@@ -1292,6 +1292,21 @@ class ModuleResolver {
 		}
 	}
 
+	/**
+	 * DEC-303 (a27) Q2: true when `dir` is a namespace directory (no `__init__.py`)
+	 * whose nearest regular-package ancestor leaves its portions known from the text.
+	 */
+	isSinglePortionNamespace(dir: string): boolean {
+		if (dir === "" || this.index.has(joinPath(dir, "__init__.py"))) return false;
+		let current = dir;
+		while (current !== "") {
+			current = dirOf(current);
+			const init = joinPath(current, "__init__.py");
+			if (current !== "" && this.index.has(init)) return this.data.get(init)?.pathManipulated === false;
+		}
+		return false;
+	}
+
 	/** A submodule file or package below a single-portion namespace directory, or null. */
 	private namespaceMember(dir: string, name: string): NameResolution | null {
 		const packageInit = joinPath(dir, name, "__init__.py");
@@ -1496,6 +1511,11 @@ class ModuleResolver {
  * `ModuleGraph` data shape.
  */
 const resolverByGraph = new WeakMap<ModuleGraph, ModuleResolver>();
+
+/** True when `dir` is a single-portion namespace directory of this graph (DEC-303 (a27) Q2). */
+export function isSinglePortionNamespace(graph: ModuleGraph, dir: string): boolean {
+	return resolverByGraph.get(graph)?.isSinglePortionNamespace(dir) ?? false;
+}
 
 /**
  * Parse and resolve the imports in one function- or class-body import statement
