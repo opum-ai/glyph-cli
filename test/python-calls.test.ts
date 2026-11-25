@@ -1719,4 +1719,39 @@ describe("DEC-303 (a26) — a base reached through a namespace directory", () =>
 		expect(linesTo(result, symbolId(result, "App.m", "pkg/sansio/app.py"))).toEqual([]);
 		expect(result.callBins.resolvedExternal).toBeGreaterThan(0);
 	});
+
+	// DEC-303 (a27) Q2: a dotted attribute chain through a single-portion namespace
+	// directory resolves by (a26) item 1, as it does when the directory has an __init__.py.
+	const mod = "class Base:\n    def m(self):\n        pass\n\ndef helper():\n    pass\n";
+
+	test("Q2: class C(pkg.ns.mod.Base) after import pkg.ns.mod resolves self.m()", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/use.py", "import pkg.ns.mod\n\nclass C(pkg.ns.mod.Base):\n    def go(self):\n        self.m()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "Base.m", "src/pkg/ns/mod.py"))).toEqual([5]);
+	});
+
+	test("Q2: a call pkg.ns.mod.helper() through the chain resolves, two namespace levels too", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/a/b/mod.py", mod),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/use.py", "import pkg.ns.mod\nimport pkg.a.b.mod\n\npkg.ns.mod.helper()\npkg.a.b.mod.helper()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "src/pkg/ns/mod.py"))).toEqual([4]);
+		expect(linesTo(result, symbolId(result, "helper", "src/pkg/a/b/mod.py"))).toEqual([5]);
+	});
+
+	test("Q2 negative controls: a top-level namespace chain and a manipulated ancestor stay unresolved", async () => {
+		const top = await analyze([py("src/ns/mod.py", mod), py("src/use.py", "import ns.mod\n\nns.mod.helper()\n")]);
+		expect(linesTo(top, symbolId(top, "helper", "src/ns/mod.py"))).toEqual([]);
+		const manipulated = await analyze([
+			py("src/pkg/__init__.py", "__path__ = []\n"),
+			py("src/pkg/ns/mod.py", mod),
+			py("src/use.py", "import pkg.ns.mod\n\npkg.ns.mod.helper()\n"),
+		]);
+		expect(linesTo(manipulated, symbolId(manipulated, "helper", "src/pkg/ns/mod.py"))).toEqual([]);
+	});
 });
