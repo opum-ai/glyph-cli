@@ -1282,3 +1282,27 @@ describe("GCLI-122 — an in-repo descendant that binds __class__ makes self.__c
 		}
 	});
 });
+
+describe("GCLI-122 item 3 — a nonlocal-moved write is always a second binding, so the alias refuses by count", () => {
+	const cls = "class C:\n    def m(self):\n        pass\n";
+	const shapes: Record<string, string> = {
+		"outer parameter, call in the outer function": `${cls}def g(f):\n    def h():\n        nonlocal f\n        f = C.m\n    h()\n    f()\n`,
+		"outer assign, call in the outer function": `${cls}def g():\n    f = None\n    def h():\n        nonlocal f\n        f = C.m\n    h()\n    f()\n`,
+		"outer assign, call in the inner function": `${cls}def g():\n    f = None\n    def h():\n        nonlocal f\n        f = C.m\n        f()\n    h()\n`,
+		"two levels of nesting": `${cls}def g():\n    f = None\n    def h():\n        def i():\n            nonlocal f\n            f = C.m\n        i()\n    h()\n    f()\n`,
+		"an outer for target": `${cls}def g():\n    for f in []:\n        pass\n    def h():\n        nonlocal f\n        f = C.m\n    h()\n    f()\n`,
+	};
+	for (const [label, source] of Object.entries(shapes)) {
+		test(`${label}: f() has no edge to C.m`, async () => {
+			const r = await analyze([py("app.py", source)]);
+			const callees = r.sites.map((site) => r.symbols.find((s) => s.id === site.calleeId)?.qualname ?? null);
+			expect(callees).not.toContain("C.m");
+			expect(r.callBins.nameNotBound).toBe(1);
+		});
+	}
+
+	test("control: a single unmoved binding still resolves", async () => {
+		const r = await analyze([py("app.py", `${cls}def g():\n    f = C.m\n    f()\n`)]);
+		expect(r.sites.map((site) => r.symbols.find((s) => s.id === site.calleeId)?.qualname)).toEqual(["C.m"]);
+	});
+});
