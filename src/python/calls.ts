@@ -2928,9 +2928,9 @@ class Resolver {
 		const found = this.lookupBindings(name, scope, site);
 		if (found === null) return null;
 		// A `from m import *` at module level is a binding statement in the module's own
-		// text that `importStatementNames` does not record: refuse when a complete star
-		// exports the name, and on any partial or unknown star (as rule 37 does).
-		if (found.scope.kind === "module" && this.starMayBind(name, found.scope.file)) return null;
+		// text that `importStatementNames` does not record, and its export set is not
+		// enumerable here: refuse on any star import of the module.
+		if (found.scope.kind === "module" && this.starMayBind(found.scope.file)) return null;
 		if (found.scope.kind !== "module") {
 			for (let current: Scope | null = scope; current !== null && current !== found.scope; current = current.parent) {
 				if (current.globalNames.has(name)) return null;
@@ -2939,16 +2939,16 @@ class Resolver {
 		return found.bindings;
 	}
 
-	/** A star import of the module at `file` that may bind `name`: a complete one that exports it, or any partial or unknown one. */
-	private starMayBind(name: string, file: string): boolean {
-		for (const star of this.starBindingsByPath.get(file) ?? []) {
-			if (star.outcome === "resolved" && star.target !== null && star.reason === null) {
-				if (star.starNames.includes(name)) return true;
-			} else {
-				return true;
-			}
-		}
-		return false;
+	/**
+	 * Any module-level star import in the module at `file` may bind `name`. The export set
+	 * of a complete star is not trusted: for a target without `__all__` it is built from
+	 * `collectModuleDeclaration`, which misses a `for` or with-as target, a walrus, a match
+	 * capture, a list or nested or starred target and a `global` write, so "complete" does
+	 * not mean every name the star can bind. Rules 37 and K1's builtin arm share that gap
+	 * (a follow-up); LIT does not rely on it.
+	 */
+	private starMayBind(file: string): boolean {
+		return (this.starBindingsByPath.get(file)?.length ?? 0) > 0;
 	}
 
 	/** K1: `name` is bound exactly once in its scope chain, by a `*args` or `**kwargs` parameter. */

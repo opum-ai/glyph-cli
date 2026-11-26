@@ -3444,10 +3444,13 @@ describe("LIT — a name whose every binding is a literal of one builtin type is
 				external: 0,
 				receiver: 1,
 			});
-			// positive twin: a complete star that does not export x leaves the literal alone
-			expect(await multi([notExporting, py("app.py", after)]), `twin: a complete star without x, ${label}`).toEqual({
-				external: 1,
-				receiver: 0,
+			// the export set of a complete star is not trusted: one that lists no x still refuses
+			expect(
+				await multi([notExporting, py("app.py", after)]),
+				`a complete star whose __all__ omits x, ${label}`,
+			).toEqual({
+				external: 0,
+				receiver: 1,
 			});
 			// positive twin: no star
 			expect(await multi([py("app.py", after.replace("from m import *\n", ""))]), `twin: no star, ${label}`).toEqual({
@@ -3455,6 +3458,57 @@ describe("LIT — a name whose every binding is a literal of one builtin type is
 				receiver: 0,
 			});
 		}
+	});
+
+	test("a star target module binds names its export set does not list (GCLI-109 review round 2)", async () => {
+		const multi = async (files: PythonModuleInput[]) => {
+			const result = await analyze(files);
+			return {
+				external: result.callBins.resolvedExternal,
+				receiver: result.callBins.receiverNeedsInference,
+				edges: result.sites.filter((site) => site.file === "app.py").length,
+			};
+		};
+		const app = py("app.py", "x = []\nfrom m import *\nx.m()\n");
+		const refusedShape = { external: 0, receiver: 1, edges: 0 };
+		// bindings collectModuleDeclaration does not record, so the star reads as complete without x
+		for (const [label, m] of Object.entries({
+			"a for target": "for x in zs:\n    pass\n",
+			"a with-as": "with ctx() as x:\n    pass\n",
+			"a walrus": "(x := 1)\n",
+			"a match capture": "match v:\n    case x:\n        pass\n",
+			"a list target": "[x, y] = make()\n",
+			"a starred target": "*x, y = make()\n",
+			"a nested tuple target": "a, (x, b) = make()\n",
+			"a global write in a function": "def g():\n    global x\n    x = 1\ng()\n",
+		})) {
+			expect(await multi([py("m.py", m), app]), label).toEqual(refusedShape);
+		}
+		// the in-repo variant: the star rebinds x to a C, so the call is C.append, never the builtin's
+		const inRepo = await multi([
+			py("m.py", "class C:\n    def append(self, v):\n        pass\nfor x in [C()]:\n    pass\n"),
+			py("app.py", "x = []\nfrom m import *\nx.append(1)\n"),
+		]);
+		expect(inRepo.external).toBe(0);
+		expect(inRepo.receiver).toBe(1);
+		// a star of a star
+		expect(
+			await multi([py("n.py", "for x in zs:\n    pass\n"), py("m.py", "from n import *\n"), app]),
+			"m star-imports n, n binds x by a for",
+		).toEqual(refusedShape);
+		// a package whose submodule is x
+		const pkg = await multi([
+			py("pkg/__init__.py", ""),
+			py("pkg/x.py", "def m():\n    pass\n"),
+			py("app.py", "x = []\nimport pkg.x\nfrom pkg import *\nx.m()\n"),
+		]);
+		expect(pkg.external).toBe(0);
+		// positive twin: no star at all
+		expect(await multi([py("app.py", "x = []\nx.m()\n")]), "twin: no star").toEqual({
+			external: 1,
+			receiver: 0,
+			edges: 0,
+		});
 	});
 
 	test("target shapes the walker must read as a second binding (GCLI-109 review)", async () => {
