@@ -1662,9 +1662,6 @@ class FileWalker {
 				case "expression_list":
 				case "tuple":
 				case "list":
-				case "tuple_pattern":
-				case "list_pattern":
-				case "pattern_list":
 				case "parenthesized_expression":
 					for (const child of target.namedChildren) walk(child);
 					return;
@@ -2330,8 +2327,8 @@ class Resolver {
 	 * assignment, `for`, `with` or `except ... as` target) is a later or earlier
 	 * rebinding the static rules cannot order, so the call stays unresolved
 	 * (rule 2). Known gaps, as for bare names: a def or import in the holder
-	 * wins over a star even where the star comes later, `del name` after the star
-	 * is not modelled, and a star import's `condition` (try/except) is ignored.
+	 * wins over a star even where the star comes later, a `del name` is a binding
+	 * of the name in the holder (GCLI-115) and so refuses, and a star import's `condition` (try/except) is ignored.
 	 * Conservative differences from bare names: a multiply-bound result is
 	 * unresolved `rebound` (no multiplyBound edges), and a cycle ends at the
 	 * selected star instead of continuing to earlier ones (rule 40).
@@ -3152,9 +3149,9 @@ class Resolver {
 		if (binding.annotation || binding.rhs?.kind !== "attr") return null;
 		const callee = binding.rhs.callee;
 		if (callee.kind !== "attr" || callee.base.kind !== "name" || callee.segments.length !== 1) return null;
-		// A binding moved here from a nested scope by `nonlocal` is refused. The walker records no `del`, and
-		// `del f` makes f local to its function, so a nonlocal write can land on the wrong function and the
-		// single recorded binding may not be the last one assigned (round 2 review of GCLI-113).
+		// A binding moved here from a nested scope by `nonlocal` is refused (kept under DEC-303 (a40) item 4).
+		// Since GCLI-115 a `del f` is a recorded binding, so it no longer alone makes this the single binding,
+		// but a moved write may still not be the last one assigned (round 2 review of GCLI-113).
 		if (binding.origin !== undefined) return null;
 		const holder = found.scope;
 		const baseName = callee.base.name;
