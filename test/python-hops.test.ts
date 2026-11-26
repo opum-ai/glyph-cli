@@ -1719,4 +1719,25 @@ describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", (
 			expect(helpers(r)).toEqual(["app.py:Outer.helper"]);
 		});
 	});
+
+	// DEC-303 (a72), round 3: a name the class body binds (here by a later import) is read from the class or the
+	// globals, never from an enclosing function, also from a generic's lazy alias value. Two bindings of `x` keep
+	// Rule 6d from resolving it first, so the call reaches R4 and its `enumerableBindings` class-body guard.
+	test("a lazy alias value in a class body that later imports its receiver name refuses", async () => {
+		const others = { "m.py": "class X:\n    pass\n" };
+		const app = (bindings: string) =>
+			`${cls}def outer():\n${bindings}    class Outer:\n        type A[T] = CALL\n        from m import X as x\n`;
+		const imported = await probe(app("    x = C()\n    x = C()\n"), "x.run()", others);
+		expect(imported.delta).toEqual(REFUSED);
+		expect(runs(imported)).not.toContain("app.py:C.run");
+	});
+
+	test("twin: the same alias value without the class-body import resolves through the enclosing function", async () => {
+		const twin = await probe(
+			`${cls}def outer():\n    x = C()\n    x = C()\n    class Outer:\n        type A[T] = CALL\n`,
+			"x.run()",
+		);
+		expect(twin.delta.inRepo).toBe(1);
+		expect(runs(twin)).toEqual(["app.py:C.run"]);
+	});
 });
