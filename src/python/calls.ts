@@ -201,6 +201,8 @@ interface RawBinding {
 	 * of the name (Q2's platform arms and try/except fallbacks), not an unconditional rebinding.
 	 */
 	conditional?: true;
+	/** GCLI-116: moved onto the module scope by a `global` in a function or class body, so not a module-level statement. */
+	viaGlobal?: true;
 }
 
 interface Scope {
@@ -1692,8 +1694,9 @@ class FileWalker {
 }
 
 /**
- * GCLI-116: a statement inside an `if`/`elif`/`else` arm or a `try`, `except` or `else` arm of a `try` (not
- * `finally`) up to its enclosing def, class or module. `with`, loop bodies and `finally` run unconditionally
+ * GCLI-116: a statement inside an `if`/`elif`/`else` arm, or the body, an `except` arm or the `else` of a `try`
+ * that has an `except` arm (not `finally`, and not a `try` with only `finally`), up to its enclosing def, class
+ * or module. A `for` or `while` else is unconditional. `with`, loop bodies and `finally` run unconditionally
  * for this purpose, which keeps the answer the conservative one (rebound).
  */
 function isConditionalStatement(node: Node): boolean {
@@ -1706,12 +1709,25 @@ function isConditionalStatement(node: Node): boolean {
 				return false;
 			case "if_statement":
 			case "elif_clause":
-			case "else_clause":
 			case "except_clause":
 			case "except_group_clause":
 				return true;
+			case "else_clause":
+				// the else of an if or a try is a branch; a for or while else runs unconditionally
+				if (current.parent?.type === "if_statement" || current.parent?.type === "try_statement") return true;
+				current = current.parent;
+				break;
 			case "try_statement":
-				return true;
+				// a try with no except arm (only finally) runs its body unconditionally
+				if (
+					current.namedChildren.some(
+						(child) => child?.type === "except_clause" || child?.type === "except_group_clause",
+					)
+				) {
+					return true;
+				}
+				current = current.parent;
+				break;
 			case "finally_clause":
 				return false;
 			default:
@@ -1765,6 +1781,8 @@ function applyScopeRedirects(scopes: readonly Scope[]): void {
 			const moved = scope.bindings.get(name);
 			if (moved === undefined) continue;
 			scope.bindings.delete(name);
+			// GCLI-116: a binding written by a `global` is not a module-level statement of m
+			for (const binding of moved) binding.viaGlobal = true;
 			const target = moduleScopeOf(scope);
 			const list = target.bindings.get(name);
 			if (list === undefined) target.bindings.set(name, moved);
@@ -2321,6 +2339,8 @@ class Resolver {
 			const symbols: PythonSymbol[] = [];
 			let external = false;
 			for (const binding of bindings) {
+				// a write through `global` (from a function or class body) is a rebinding the static rules cannot order
+				if (binding.viaGlobal === true) return rebound;
 				let outcome: NameOutcome;
 				if (binding.kind === "def" || binding.kind === "class") {
 					// an `@overload` stub has no symbol of its own (the group collapses into its implementation)

@@ -4580,9 +4580,28 @@ describe("GCLI-115 — a del target is a binding", () => {
 		name: number;
 		/** The qualnames of the callees of the sites the call adds, sorted; `|multi` marks a multiplyBound edge. */
 		targets: string[];
+		/** The unresolved reason the call adds (name or receiver), or "" when it adds none. */
+		reason?: string;
 	};
-	const REFUSED_RECEIVER: Delta = { edges: 0, inRepo: 0, external: 0, receiver: 1, name: 0, targets: [] };
-	const REFUSED_NAME: Delta = { edges: 0, inRepo: 0, external: 0, receiver: 0, name: 1, targets: [] };
+	const REFUSED_RECEIVER: Delta = {
+		edges: 0,
+		inRepo: 0,
+		external: 0,
+		receiver: 1,
+		name: 0,
+		targets: [],
+		reason: "needs-inference",
+	};
+	const REFUSED_NAME: Delta = {
+		edges: 0,
+		inRepo: 0,
+		external: 0,
+		receiver: 0,
+		name: 1,
+		targets: [],
+		reason: "rebound",
+	};
+	const REFUSED_REBOUND_BASE: Delta = { ...REFUSED_RECEIVER, reason: "rebound-base" };
 	const BUILTIN: Delta = { edges: 0, inRepo: 0, external: 1, receiver: 0, name: 0, targets: [] };
 	/** One edge to `target`, binned resolved in-repo: pinning the callee, not only the count. */
 	const resolved = (target: string): Delta => ({
@@ -4608,7 +4627,18 @@ describe("GCLI-115 — a del target is a binding", () => {
 		const before = new Set(without.sites.map(key));
 		const qualnames = new Map(withCall.symbols.map((symbol) => [symbol.id, symbol.qualname]));
 		const added = withCall.sites.filter((site) => !before.has(key(site)));
+		const reasons = (result: PythonCallsResult) => {
+			const counts = new Map<string, number>();
+			for (const entry of [...result.unresolvedNameReasons, ...result.unresolvedReceiverReasons]) {
+				counts.set(entry.reason, (counts.get(entry.reason) ?? 0) + entry.count);
+			}
+			return counts;
+		};
+		const afterReasons = reasons(withCall);
+		const beforeReasons = reasons(without);
+		const added1 = [...afterReasons].filter(([reason, count]) => count > (beforeReasons.get(reason) ?? 0));
 		return {
+			reason: added1.map(([reason]) => reason).join("+"),
 			targets: added
 				.map(
 					(site) =>
@@ -4630,7 +4660,10 @@ describe("GCLI-115 — a del target is a binding", () => {
 		label: string,
 		extra: PythonModuleInput[] = [],
 	): Promise<void> {
-		expect(await delta(body, call, extra), label).toEqual(expected);
+		const got = await delta(body, call, extra);
+		// a resolved or builtin expectation names no reason; a refusal names the one the call adds
+		if (expected.reason === undefined) got.reason = undefined;
+		expect(got, label).toEqual(expected);
 	}
 
 	// h() runs k, so at run time x is a D; h2 (a sibling of h) writes a C. The `del` is the only binding of x
@@ -4753,7 +4786,12 @@ describe("GCLI-115 — a del target is a binding", () => {
 		const src = (tail: string) =>
 			`def m():\n    pass\n\ndef e():\n    f = m\n    def g():\n        CALL\n${tail}    g()\n`;
 		await expectDelta(src(""), "f()", resolved("m"), "twin");
-		await expectDelta(src("").replace("        CALL\n", "        CALL\n        del f\n"), "f()", REFUSED_NAME, "del f");
+		await expectDelta(
+			src("").replace("        CALL\n", "        CALL\n        del f\n"),
+			"f()",
+			{ ...REFUSED_NAME, reason: "run-time-bound" },
+			"del f",
+		);
 	});
 
 	test("ALIAS: an alias that is deleted does not resolve", async () => {
@@ -4895,14 +4933,14 @@ describe("GCLI-115 — a del target is a binding", () => {
 			await expectDelta(
 				`from m import T\n${own}`,
 				"s.write()",
-				REFUSED_RECEIVER,
+				REFUSED_REBOUND_BASE,
 				"rebound base through a from-import",
 				[py("m.py", "class T:\n    pass\nT = make()\n")],
 			);
 			await expectDelta(
 				"import m\nclass S(m.T):\n    pass\ns = S()\nCALL\n",
 				"s.write()",
-				REFUSED_RECEIVER,
+				REFUSED_REBOUND_BASE,
 				"rebound base through a module attribute",
 				[py("m.py", "class T:\n    pass\nT = make()\n")],
 			);
@@ -4910,7 +4948,7 @@ describe("GCLI-115 — a del target is a binding", () => {
 			await expectDelta(
 				`class T:\n    pass\nT = make()\n${own}`,
 				"s.write()",
-				REFUSED_RECEIVER,
+				REFUSED_REBOUND_BASE,
 				"rebound base in the same module",
 			);
 			// control: a genuinely external base stays external (the method is found only in it)
@@ -4920,6 +4958,53 @@ describe("GCLI-115 — a del target is a binding", () => {
 				BUILTIN,
 				"external base",
 			);
+			// positive twin: a base that is NOT rebound and defines the method resolves to it
+			await expectDelta(
+				`from m import T\n${own}`,
+				"s.write()",
+				resolved("T.write"),
+				"a non-rebound cross-module base defining write",
+				[py("m.py", "class T:\n    def write(self):\n        pass\n")],
+			);
+		});
+
+		test("a conditional global write, or an alias written outside module level, is rebound (round 1 B1)", async () => {
+			const head = "def default():\n    pass\ndef f():\n    pass\n";
+			await both(
+				`${head}def configure(default=None):\n    global f\n    if default is not None:\n        f = default\n`,
+				REFUSED_NAME,
+				REFUSED_NAME,
+				"global write of a parameter in a function",
+			);
+			await both(
+				`${head}class K:\n    global f\n    if X:\n        f = default\n`,
+				REFUSED_NAME,
+				REFUSED_NAME,
+				"global write in a class body",
+			);
+			await both(
+				`${head}def configure():\n    global f\n    def f():\n        pass\n`,
+				REFUSED_NAME,
+				REFUSED_NAME,
+				"a def written through global",
+			);
+		});
+
+		test("which statements make an assignment conditional (round 1 B2)", async () => {
+			const head = "def g():\n    pass\ndef f():\n    pass\n";
+			const alt = { edges: 2, inRepo: 1, external: 0, receiver: 0, name: 0, targets: ["f|multi", "g|multi"] };
+			// a try body with an except arm, an except arm, an if arm and an else arm are branches
+			await both(`${head}try:\n    f = g\nexcept E:\n    pass\n`, alt, alt, "try body with except");
+			await both(`${head}try:\n    pass\nexcept E:\n    f = g\n`, alt, alt, "except arm");
+			await both(`${head}if X:\n    pass\nelse:\n    f = g\n`, alt, alt, "if else arm");
+			await both(`${head}try:\n    pass\nexcept E:\n    pass\nelse:\n    f = g\n`, alt, alt, "try else arm");
+			// a try with only finally, a finally, a with body and a loop body or loop else run unconditionally
+			await both(`${head}try:\n    f = g\nfinally:\n    pass\n`, REFUSED_NAME, REFUSED_NAME, "try with only finally");
+			await both(`${head}try:\n    pass\nfinally:\n    f = g\n`, REFUSED_NAME, REFUSED_NAME, "finally arm");
+			await both(`${head}with ctx():\n    f = g\n`, REFUSED_NAME, REFUSED_NAME, "with body");
+			await both(`${head}for _ in X:\n    f = g\n`, REFUSED_NAME, REFUSED_NAME, "for body");
+			await both(`${head}for _ in X:\n    pass\nelse:\n    f = g\n`, REFUSED_NAME, REFUSED_NAME, "for else");
+			await both(`${head}while X:\n    pass\nelse:\n    f = g\n`, REFUSED_NAME, REFUSED_NAME, "while else");
 		});
 
 		test("an @overload group is one def, not alternatives", async () => {
