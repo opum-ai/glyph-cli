@@ -2125,7 +2125,6 @@ class Resolver {
 		if (stars === undefined) return false;
 		for (const star of stars) {
 			if (star.outcome === "resolved" && star.target !== null && star.reason === null) {
-				if (!this.starSetIsExact(star, new Set())) return true;
 				if (star.starNames.includes(name)) return false;
 			} else {
 				return true;

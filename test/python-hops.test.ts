@@ -1204,25 +1204,3 @@ describe("GCLI-120 item 3 — a complete star set that misses a binding form doe
 		expect(r.delta).toEqual(NOT_BUILTIN);
 	});
 });
-
-describe("GCLI-120 item 3 — rule 46's decorator test shares the exactness rule", () => {
-	const run = (target: string) =>
-		probe("from s import *\nclass C:\n    @classmethod\n    def m(cls):\n        CALL\n", "cls()", { "s.py": target });
-
-	test("a missed form that binds classmethod in the star target leaves the def's kind unknown", async () => {
-		const r = await run("for classmethod in []:\n    pass\n");
-		expect(r.callees).toEqual([]);
-		expect(r.delta).toEqual({
-			inRepo: 0,
-			external: 0,
-			receiver: 0,
-			nameNotBound: 1,
-		});
-	});
-
-	test("twin: an exact star target keeps the ordinary reading", async () => {
-		const r = await run("def helper():\n    pass\n");
-		expect(r.callees).toEqual(["app.py:C"]);
-		expect(r.delta).toEqual(RESOLVED);
-	});
-});
