@@ -245,6 +245,11 @@ interface Scope {
 	 * rule a def, a class and an import follow); a star in a `finally` is walked through, one in a loop body is not.
 	 */
 	starMaySkipLines?: Set<number>;
+	/**
+	 * GCLI-112: a PEP 695 type-parameter scope, between a generic def or class and the scope it sits in. It binds
+	 * only the declared names, each as `rebound`, so a lookup of one refuses instead of reaching an enclosing binding.
+	 */
+	typeParams?: true;
 }
 
 interface BaseRef {
@@ -762,6 +767,37 @@ function annotationList(inner: Node): Node[] {
 	return out;
 }
 
+/** GCLI-112: the `type_parameter` child of a def, class or type alias, if any. */
+function typeParameterList(node: Node): Node | null {
+	for (const child of node.namedChildren) if (child !== null && child.type === "type_parameter") return child;
+	if (node.type !== "type_alias_statement") return null;
+	// A type alias keeps its list under the left side: `type > generic_type > type_parameter`.
+	const generic = node.childForFieldName("left")?.namedChild(0) ?? null;
+	return generic !== null && generic.type === "generic_type" ? typeParameterList(generic) : null;
+}
+
+/**
+ * GCLI-112: the names a PEP 695 type-parameter list declares. A list holding a parse error (the grammar rejects a
+ * PEP 696 default) cannot be told apart from its bounds, so every identifier in it counts: a superset only refuses more.
+ */
+function typeParameterNames(list: Node): string[] {
+	const names: string[] = [];
+	const all = (node: Node): void => {
+		if (node.type === "identifier") names.push(node.text);
+		for (const child of node.namedChildren) if (child !== null) all(child);
+	};
+	if (list.hasError) {
+		all(list);
+		return names;
+	}
+	for (const child of list.namedChildren) {
+		let current: Node | null = child;
+		while (current !== null && current.type !== "identifier") current = current.namedChild(0);
+		if (current !== null) names.push(current.text);
+	}
+	return names;
+}
+
 /**
  * GCLI-121 (DEC-303 (a70)): the text of a plain quoted annotation: one string node with no prefix, a single
  * pair of the same single or double quote, no triple quotes and no escape. Anything else is null.
@@ -1224,6 +1260,13 @@ class FileWalker {
 					while (name !== null && name.type !== "identifier") name = name.namedChild(0);
 					if (name !== null) this.addBinding(frame.scope, name.text, { kind: "rebound" });
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
+					// GCLI-112: the value sees the alias's own type parameters.
+					const typeScope = this.typeParameterScope(frame, node);
+					const value = node.namedChild(node.namedChildCount - 1);
+					if (typeScope !== null && value !== null) {
+						const pushed = stack.find((entry) => entry.node.id === value.id);
+						if (pushed !== undefined) pushed.scope = typeScope;
+					}
 					continue;
 				}
 				case "named_expression":
@@ -1542,9 +1585,11 @@ class FileWalker {
 				? (parameterName(firstParamNode)?.text ?? null)
 				: null;
 
+		const typeScope = this.typeParameterScope(frame, node);
+		const annotationFrame: WalkFrame = typeScope === null ? frame : { ...frame, scope: typeScope };
 		const fnScope = this.newScope(
 			"function",
-			frame.scope,
+			typeScope ?? frame.scope,
 			qualname,
 			symbolId,
 			firstParam,
@@ -1561,15 +1606,15 @@ class FileWalker {
 					kind: "param",
 					...(param.splat !== null ? { splat: param.splat } : {}),
 					annotation: param.annotation,
-					annotationScope: frame.scope,
+					annotationScope: typeScope ?? frame.scope,
 				});
 			}
-			// Defaults and annotations are evaluated in the enclosing scope (rule 2).
-			if (param.annotationNode !== null) this.pushOuter(stack, param.annotationNode, frame);
+			// Defaults are evaluated in the enclosing scope (rule 2); annotations see the type parameters (GCLI-112).
+			if (param.annotationNode !== null) this.pushOuter(stack, param.annotationNode, annotationFrame);
 			if (param.valueNode !== null) this.pushOuter(stack, param.valueNode, frame);
 		}
 		const returnType = node.childForFieldName("return_type");
-		if (returnType !== null) this.pushOuter(stack, returnType, frame);
+		if (returnType !== null) this.pushOuter(stack, returnType, annotationFrame);
 
 		const body = node.childForFieldName("body");
 		if (body !== null) {
@@ -1608,6 +1653,8 @@ class FileWalker {
 			});
 		}
 
+		const typeScope = this.typeParameterScope(frame, node);
+		const baseFrame: WalkFrame = typeScope === null ? frame : { ...frame, scope: typeScope };
 		const bases: BaseRef[] = [];
 		let metaclassValue: ClassInfo["metaclassValue"] = "none";
 		const superclasses = node.childForFieldName("superclasses");
@@ -1631,8 +1678,8 @@ class FileWalker {
 					continue;
 				}
 				bases.push({ callee: describeCallee(child), text: child.text });
-				// Base expressions (and any call inside them) belong to the enclosing scope.
-				this.pushOuter(stack, child, frame);
+				// Base expressions (and any call inside them) belong to the enclosing scope, or the type-parameter scope.
+				this.pushOuter(stack, child, baseFrame);
 			}
 		}
 
@@ -1644,7 +1691,7 @@ class FileWalker {
 						qualname,
 						file: this.file,
 						line: node.startPosition.row + 1,
-						parentScope: frame.scope,
+						parentScope: typeScope ?? frame.scope,
 						bases,
 						metaclassValue,
 						decorators,
@@ -1655,7 +1702,16 @@ class FileWalker {
 						classBodyBareUses: new Set<string>(),
 					}
 				: null;
-		const classScope = this.newScope("class", frame.scope, qualname, symbolId, null, decorators, classInfo, classInfo);
+		const classScope = this.newScope(
+			"class",
+			typeScope ?? frame.scope,
+			qualname,
+			symbolId,
+			null,
+			decorators,
+			classInfo,
+			classInfo,
+		);
 		classScope.line = node.startPosition.row + 1;
 		if (classInfo !== null) {
 			classInfo.scope = classScope;
@@ -1718,6 +1774,16 @@ class FileWalker {
 			});
 		}
 		this.pushDefinitionErrors(stack, node, frame);
+	}
+
+	/** GCLI-112: the type-parameter scope of a generic def, class or type alias, or null when it declares none. */
+	private typeParameterScope(frame: WalkFrame, node: Node): Scope | null {
+		const list = typeParameterList(node);
+		if (list === null) return null;
+		const scope = this.newScope("function", frame.scope, frame.scope.qualname, null, null, [], null, null);
+		scope.typeParams = true;
+		for (const name of typeParameterNames(list)) this.addBinding(scope, name, { kind: "rebound" });
+		return scope;
 	}
 
 	private pushOuter(stack: WalkFrame[], node: Node, frame: WalkFrame): void {
@@ -2037,7 +2103,7 @@ function applyScopeRedirects(scopes: readonly Scope[]): void {
 			let nearest: Scope | null = null;
 			let current = scope.parent;
 			while (current !== null) {
-				if (current.kind === "function" || current.kind === "lambda") {
+				if ((current.kind === "function" || current.kind === "lambda") && current.typeParams !== true) {
 					nearest ??= current;
 					if (current.bindings.get(name)?.some((binding) => binding.comprehension !== true) === true) {
 						target = current;
@@ -2303,7 +2369,8 @@ class Resolver {
 		const name = scope.firstParam;
 		if (name === null) return null;
 		if (this.isNoReceiverDef(classInfo, scope.functionName)) return null;
-		const decoratorScope = scope.parent;
+		let decoratorScope = scope.parent;
+		while (decoratorScope?.typeParams === true) decoratorScope = decoratorScope.parent;
 		const use = scope.line > 0 ? { line: scope.line, column: 1 } : undefined;
 		const hasStatic = scope.decorators.includes("staticmethod");
 		const hasClass = scope.decorators.includes("classmethod");

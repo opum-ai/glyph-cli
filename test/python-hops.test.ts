@@ -1552,3 +1552,90 @@ describe("GCLI-121 — a quoted annotation resolves as its unquoted twin", () =>
 		expect(q3.delta.receiver).toBe(1);
 	});
 });
+
+// GCLI-112: a PEP 695 type parameter binds its name in the generic's own scope, so a read of it never reaches an
+// enclosing binding of the same name.
+describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", () => {
+	const cls = "class C:\n    def run(self):\n        pass\nclass D:\n    def run(self):\n        pass\n";
+	/** The `.run` callees only: `x = C()` in the setup is itself an edge. */
+	const runs = (r: { callees: (string | null)[] }) => r.callees.filter((c) => c?.endsWith(".run"));
+	const lines = (body: string, indent: string) =>
+		body
+			.split("\n")
+			.map((line) => (line === "" ? line : indent + line))
+			.join("\n");
+	// `x = C()` is bound in the enclosing function; the generic declares its own `x`.
+	const inFunction = (generic: string, use = "CALL") =>
+		`${cls}def outer():\n    x = C()\n${lines(generic.replace("CALL", use), "    ")}\n`;
+
+	const shapes: Record<string, string> = {
+		function: "def h[x]():\n    CALL\n",
+		"function, bounded": "def h[x: C]():\n    CALL\n",
+		"function, constrained": "def h[x: (C, D)]():\n    CALL\n",
+		"function, TypeVarTuple": "def h[*x]():\n    CALL\n",
+		"function, ParamSpec": "def h[**x]():\n    CALL\n",
+		"function, second parameter": "def h[y, x]():\n    CALL\n",
+		"function, a default (PEP 696, a parse error)": "def h[x = int]():\n    CALL\n",
+		"a method of a generic class sees the class's parameter": "class K[x]:\n    def m(self):\n        CALL\n",
+		"a method that is itself generic": "class K:\n    def m[x](self):\n        CALL\n",
+		"a nested def inside a generic function": "def h[x]():\n    def inner():\n        CALL\n",
+		"type alias": "type A[x] = CALL\n",
+		"class body": "class K[x]:\n    CALL\n",
+	};
+	for (const [label, generic] of Object.entries(shapes)) {
+		test(`${label}: x.run() is not claimed as C.run`, async () => {
+			const r = await probe(inFunction(generic), "x.run()");
+			expect(runs(r)).not.toContain("app.py:C.run");
+			expect(r.delta.inRepo, label).toBe(0);
+		});
+	}
+
+	test("positive twins: a name no type parameter declares still resolves", async () => {
+		const twins: Record<string, string> = {
+			function: "def h[y]():\n    CALL\n",
+			"class body": "class K[y]:\n    CALL\n",
+			"type alias": "type A[y] = CALL\n",
+			"a method of a generic class": "class K[y]:\n    def m(self):\n        CALL\n",
+			"no type parameters": "def h():\n    CALL\n",
+		};
+		for (const [label, generic] of Object.entries(twins)) {
+			const r = await probe(inFunction(generic), "x.run()");
+			expect(r.delta.inRepo, label).toBe(1);
+			expect(runs(r), label).toEqual(["app.py:C.run"]);
+		}
+	});
+
+	test("a generic's name does not shadow outside it", async () => {
+		const r = await probe(`${cls}x = C()\ndef h[x]():\n    pass\nCALL\n`, "x.run()");
+		expect(r.delta.inRepo).toBe(1);
+		expect(runs(r)).toEqual(["app.py:C.run"]);
+	});
+
+	test("a default value and a decorator are read in the enclosing scope, not the type-parameter scope", async () => {
+		const r = await probe(`${cls}x = C()\ndef h[x](a=x.run()):\n    pass\nCALL\n`, "pass");
+		expect(runs(r)).toEqual(["app.py:C.run"]);
+	});
+
+	test("an annotation of a type parameter does not resolve to a module class of the same name", async () => {
+		const mod = (generic: string) => probe(`${cls}${generic}`, "p.run()");
+		const shadowed = await mod("def g[C](p: C):\n    CALL\n");
+		expect(runs(shadowed)).not.toContain("app.py:C.run");
+		expect(shadowed.delta.inRepo).toBe(0);
+		const twin = await mod("def g[T](p: C):\n    CALL\n");
+		expect(runs(twin)).toEqual(["app.py:C.run"]);
+	});
+
+	test("a base named like a type parameter is not the module class", async () => {
+		const generic = await probe(`${cls}class K[C](C):\n    def m(self):\n        CALL\n`, "self.run()");
+		expect(runs(generic)).not.toContain("app.py:C.run");
+		const twin = await probe(`${cls}class K[T](C):\n    def m(self):\n        CALL\n`, "self.run()");
+		expect(runs(twin)).toEqual(["app.py:C.run"]);
+	});
+
+	test("a list with a parse error refuses every identifier in it, bound names included", async () => {
+		const r = await probe(inFunction("def h[x: C = int]():\n    CALL\n"), "C().run()");
+		expect(runs(r)).not.toContain("app.py:C.run");
+		const twin = await probe(inFunction("def h[x: C]():\n    CALL\n"), "C().run()");
+		expect(runs(twin)).toEqual(["app.py:C.run"]);
+	});
+});
