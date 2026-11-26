@@ -1808,13 +1808,17 @@ function isConditionalStatement(node: Node): boolean {
 }
 
 /**
- * GCLI-118: a def or class statement that may not run, so it is an ALTERNATIVE of its name and never overrides an
- * earlier star import: any statement inside an `if`, `elif` or `else` arm, an `except` arm or the body of a `try`
- * that has one, a `case` clause, a `for` or `while` body or else, or a `finally` nested in any of these (the walk
- * passes through `finally`), up to its enclosing def, class or module. `with` bodies run. Wider than
- * `isConditionalStatement`, which GCLI-116's assignment rules keep as they were.
+ * GCLI-118 (DEC-303 (a62) items 3 and 4): a def or class statement that may not run, so it is an ALTERNATIVE of
+ * its name and never overrides an earlier star import. It is conditional when any enclosing statement can skip
+ * it: an `if`, `elif` or `else` arm, a `try` body whose `try` has an `except` arm, an `except` arm, a `try`'s
+ * `else`, a `case` clause, a `for` or `while` body or its `else`, a `with` body (a context manager can suppress an
+ * exception raised earlier in its body), and any compound statement kind not named here. The walk passes THROUGH
+ * a `finally` (which always runs) to the statement enclosing the `try`, through a `try` body whose `try` has only
+ * a `finally`, through a decorated-definition wrapper and through a block, up to its enclosing def, class or
+ * module. Wider than `isConditionalStatement`, which GCLI-116's assignment rules keep as they were.
  */
 function maySkipStatement(node: Node): boolean {
+	let previous: Node = node;
 	let current: Node | null = node.parent;
 	while (current !== null) {
 		switch (current.type) {
@@ -1822,28 +1826,27 @@ function maySkipStatement(node: Node): boolean {
 			case "class_definition":
 			case "module":
 				return false;
-			case "if_statement":
-			case "elif_clause":
-			case "else_clause":
-			case "except_clause":
-			case "except_group_clause":
-			case "case_clause":
-			case "for_statement":
-			case "while_statement":
-				return true;
+			case "block":
+			case "decorated_definition":
+			case "finally_clause":
+				break;
 			case "try_statement":
+				// a `finally` always runs; a body with an except arm may be skipped by it; a body with only a
+				// `finally` fails the whole import when it raises
 				if (
+					previous.type !== "finally_clause" &&
 					current.namedChildren.some(
 						(child) => child?.type === "except_clause" || child?.type === "except_group_clause",
 					)
 				) {
 					return true;
 				}
-				current = current.parent;
 				break;
 			default:
-				current = current.parent;
+				return true;
 		}
+		previous = current;
+		current = current.parent;
 	}
 	return false;
 }

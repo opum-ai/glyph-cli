@@ -446,9 +446,52 @@ describe("GCLI-118 round 1 — star after the last binding, alias hops, cycles",
 				).toBe(true);
 			}
 		}
-		// a with body runs, so its def overrides the star
+		// (a62) item 3: a with body is conditional (a context manager can suppress an exception raised earlier in
+		// its body, so the def after a failing import is skipped and the star's f stands)
 		const withBody = await both("from x import *\nwith v:\n    def f():\n        pass\n", { "x.py": x });
-		for (const one of [withBody.fromImport, withBody.attribute]) expect(one.callees).toEqual(["m.py:f"]);
+		for (const one of [withBody.fromImport, withBody.attribute]) {
+			expect(one.callees.sort()).toEqual(["m.py:f", "x.py:f"]);
+			expect(one.sites.every((s) => s.multiplyBound === true)).toBe(true);
+		}
+		const suppress = await both(
+			"import contextlib\nfrom x import *\nwith contextlib.suppress(ImportError):\n    import failing\n    def f():\n        pass\n",
+			{ "x.py": x },
+		);
+		for (const one of [suppress.fromImport, suppress.attribute]) {
+			expect(one.callees.sort()).toEqual(["m.py:f", "x.py:f"]);
+			expect(one.sites.every((s) => s.multiplyBound === true)).toBe(true);
+		}
+		// a try's else arm is conditional; a decorated def inside an if is conditional
+		const tryElse = await both(
+			"from x import *\ntry:\n    pass\nexcept E:\n    pass\nelse:\n    def f():\n        pass\n",
+			{
+				"x.py": x,
+			},
+		);
+		for (const one of [tryElse.fromImport, tryElse.attribute]) expect(one.callees.sort()).toEqual(["m.py:f", "x.py:f"]);
+		const decoratedInIf = await both("from x import *\nif C:\n    @dec\n    def f():\n        pass\n", { "x.py": x });
+		for (const one of [decoratedInIf.fromImport, decoratedInIf.attribute]) {
+			expect(one.callees.sort()).toEqual(["m.py:f", "x.py:f"]);
+		}
+		// twins that RUN: a def in a finally (always runs), in a try body whose try has only a finally, and a
+		// decorated module-level def each override the star
+		const alwaysRuns: Record<string, string> = {
+			finally: "from x import *\ntry:\n    pass\nfinally:\n    def f():\n        pass\n",
+			"finally of a try that has an except arm":
+				"from x import *\ntry:\n    pass\nexcept E:\n    pass\nfinally:\n    def f():\n        pass\n",
+			"try body with only a finally": "from x import *\ntry:\n    def f():\n        pass\nfinally:\n    pass\n",
+			"decorated def": "from x import *\n@dec\ndef f():\n    pass\n",
+		};
+		for (const [label, holder] of Object.entries(alwaysRuns)) {
+			const r = await both(holder, { "x.py": x });
+			for (const one of [r.fromImport, r.attribute]) expect(one.callees, label).toEqual(["m.py:f"]);
+		}
+		// an @overload group with the star BETWEEN the stubs and the implementation: the implementation overrides it
+		const between = await both(
+			"from typing import overload\n@overload\ndef f(a: int): ...\n@overload\ndef f(a: str): ...\nfrom x import *\ndef f(a):\n    pass\n",
+			{ "x.py": x },
+		);
+		for (const one of [between.fromImport, between.attribute]) expect(one.callees).toEqual(["m.py:f"]);
 		// an @overload group is one binding: its collapsed stubs do not count as unpositioned bindings
 		const overload =
 			"from x import *\nfrom typing import overload\n@overload\ndef f(a: int): ...\n@overload\ndef f(a: str): ...\ndef f(a):\n    pass\n";
