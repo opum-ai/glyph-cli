@@ -2397,6 +2397,8 @@ class Resolver {
 				polymorphic: this.descendantsOf(receiver.classInfo).length > 0,
 			});
 		}
+		const instanceCall = this.resolveInstanceCall(name, scope, site);
+		if (instanceCall !== null) return instanceCall;
 		const outcome = this.resolveBareName(name, scope, 0, site);
 		switch (outcome.kind) {
 			case "symbol": {
@@ -2519,12 +2521,47 @@ class Resolver {
 		if (segments.length !== 1) return unresolved;
 		const symbol = this.resolveCalleeToSymbol(callee, scope, 0, site);
 		if (symbol === null || symbol.kind !== "class") return unresolved;
-		const classInfo = this.classById.get(symbol.id);
-		if (classInfo === undefined) return unresolved;
-		const mro = this.computeMro(classInfo);
-		if (!mro.ok) return unresolved;
-		if (this.firstMethodEntry(mro, "__new__") !== null || this.effectiveMetaclass(classInfo)) return unresolved;
+		const classInfo = this.instanceClassOf(symbol);
+		if (classInfo === null) return unresolved;
 		return this.methodLookup(classInfo, segments[0] as string, false, true);
+	}
+
+	/**
+	 * The class whose instance `Cls(...)` is, when the construction is known to
+	 * return one: an ok MRO, no `__new__` in it and no non-default metaclass.
+	 * Shared by E1 (`Cls(...).m()`) and N3 (`x = Cls(); x()`).
+	 */
+	private instanceClassOf(symbol: PythonSymbol | null): ClassInfo | null {
+		if (symbol === null || symbol.kind !== "class") return null;
+		const classInfo = this.classById.get(symbol.id);
+		if (classInfo === undefined) return null;
+		const mro = this.computeMro(classInfo);
+		if (!mro.ok) return null;
+		if (this.firstMethodEntry(mro, "__new__") !== null || this.effectiveMetaclass(classInfo)) return null;
+		return classInfo;
+	}
+
+	/**
+	 * N3 (DEC-303 (a22) item 3): `x = Cls(); x()` calls `type(x).__call__`,
+	 * found on the MRO of `Cls`. The name must have exactly one binding anywhere
+	 * it is visible (the enumeration a bare call uses, so a rebinding of any kind,
+	 * a global or nonlocal write included, leaves it unresolved) and that binding
+	 * is an assignment whose right-hand side is a construction. A class with no
+	 * `__call__` of its own or inherited (or an opaque base) is not resolved here.
+	 */
+	private resolveInstanceCall(
+		name: string,
+		scope: Scope,
+		site: { file: string; line: number; column: number },
+	): CallResolution | null {
+		const found = this.lookupBindings(name, scope, site);
+		if (found === null || found.bindings.length !== 1) return null;
+		const binding = found.bindings[0] as RawBinding;
+		if (binding.kind !== "assign" || binding.rhs === undefined || binding.rhs.kind !== "call") return null;
+		const classInfo = this.instanceClassOf(this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0));
+		if (classInfo === null) return null;
+		const resolved = this.methodLookup(classInfo, "__call__", false, true);
+		return resolved.bin === "inRepo" ? resolved : null;
 	}
 
 	private moduleCall(
