@@ -4951,6 +4951,21 @@ describe("GCLI-115 — a del target is a binding", () => {
 				REFUSED_REBOUND_BASE,
 				"rebound base in the same module",
 			);
+			// B3 (a49): a cross-module base with two in-repo alternatives is not an external base either
+			await expectDelta(
+				`from m import T\n${own}`,
+				"s.write()",
+				REFUSED_REBOUND_BASE,
+				"multiply base through a from-import",
+				[py("m.py", "if X:\n    class T:\n        pass\nelse:\n    class T:\n        pass\n")],
+			);
+			await expectDelta(
+				`import m\nclass S(m.T):\n    pass\ns = S()\nCALL\n`,
+				"s.write()",
+				REFUSED_REBOUND_BASE,
+				"multiply base through a module attribute",
+				[py("m.py", "if X:\n    class T:\n        pass\nelse:\n    class T:\n        pass\n")],
+			);
 			// control: a genuinely external base stays external (the method is found only in it)
 			await expectDelta(
 				"import ext\nclass S(ext.Base):\n    pass\ns = S()\nCALL\n",
@@ -5005,6 +5020,62 @@ describe("GCLI-115 — a del target is a binding", () => {
 			await both(`${head}for _ in X:\n    f = g\n`, REFUSED_NAME, REFUSED_NAME, "for body");
 			await both(`${head}for _ in X:\n    pass\nelse:\n    f = g\n`, REFUSED_NAME, REFUSED_NAME, "for else");
 			await both(`${head}while X:\n    pass\nelse:\n    f = g\n`, REFUSED_NAME, REFUSED_NAME, "while else");
+		});
+
+		test("N1 and N4: a comprehension target and a module-level bare annotation bind no name for the gate", async () => {
+			// N1: a comprehension's iteration target is in the comprehension's own scope
+			await both(`${DEF}_ = [0 for f in X]\n`, resolved("f"), resolved("f"), "comprehension target");
+			// a walrus target inside a comprehension binds the enclosing scope (PEP 572)
+			await both(
+				`def g():\n    pass\n${DEF}_ = [(f := g) for _ in X]\n`,
+				REFUSED_NAME,
+				REFUSED_NAME,
+				"walrus in a comprehension",
+			);
+			// N4: `f: T` binds nothing at module scope; with a value it is an assignment
+			await both(`${DEF}f: int\n`, resolved("f"), resolved("f"), "bare annotation");
+			await both(`${DEF}f: int = 1\n`, REFUSED_NAME, REFUSED_NAME, "annotation with a value");
+			// in a function an annotated name is local even when never assigned (PEP 526): still a scope binding
+			await expectDelta(
+				`${cls}def g():\n    x = C()\n    x: int\n    CALL\n`,
+				"x.run()",
+				REFUSED_RECEIVER,
+				"function-level bare annotation stays a binding",
+			);
+		});
+
+		test("a multiply or rebound cross-module base (a49 item 1 (a), (b))", async () => {
+			const alts =
+				"if X:\n    class T:\n        def write(self):\n            pass\n        def run(self):\n            self.write()\nelse:\n    class T:\n        def write(self):\n            pass\n";
+			// (a) S still counts as a subclass of EVERY alternative: self.write() in an alternative is polymorphic
+			const sub = await analyze([
+				py("m.py", alts),
+				py("app.py", "from m import T\nclass S(T):\n    def write(self):\n        pass\n"),
+			]);
+			const writes = new Set(sub.symbols.filter((symbol) => symbol.qualname === "T.write").map((symbol) => symbol.id));
+			const selfCalls = sub.sites.filter(
+				(site) => site.file === "m.py" && site.calleeId !== null && writes.has(site.calleeId),
+			);
+			expect(selfCalls.length).toBeGreaterThan(0);
+			expect(selfCalls.every((site) => site.polymorphic === true)).toBe(true);
+			// (b) class S(T, U): U defines write, T is a multiply or rebound base ahead of it: the edge to U.write
+			// is kept and flagged externalBaseBefore
+			for (const [label, tsource] of [
+				["multiply", "if X:\n    class T:\n        pass\nelse:\n    class T:\n        pass\n"],
+				["rebound", "class T:\n    pass\nT = make()\n"],
+			] as const) {
+				const result = await analyze([
+					py("m.py", tsource),
+					py(
+						"app.py",
+						"from m import T\nclass U:\n    def write(self):\n        pass\nclass S(T, U):\n    pass\ns = S()\ns.write()\n",
+					),
+				]);
+				const uWrite = symbolId(result, "U.write");
+				const edges = sitesTo(result, uWrite);
+				expect(edges.length, label).toBe(1);
+				expect(edges[0]?.externalBaseBefore, label).toBe(true);
+			}
 		});
 
 		test("an @overload group is one def, not alternatives", async () => {

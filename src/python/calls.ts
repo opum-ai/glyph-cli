@@ -203,6 +203,8 @@ interface RawBinding {
 	conditional?: true;
 	/** GCLI-116: moved onto the module scope by a `global` in a function or class body, so not a module-level statement. */
 	viaGlobal?: true;
+	/** GCLI-116 (N4): a bare annotation `f: T` with no value, which binds no name at module scope (PEP 526). */
+	bare?: true;
 }
 
 interface Scope {
@@ -1626,6 +1628,7 @@ class FileWalker {
 				annotation,
 				annotationScope: annotation !== null ? frame.scope : null,
 				...(isConditionalStatement(node) ? { conditional: true as const } : {}),
+				...(right === null ? { bare: true as const } : {}),
 			});
 		} else if (left !== null) {
 			// A tuple target binds run-time values; a subscript/attribute binds no name.
@@ -2341,6 +2344,9 @@ class Resolver {
 			for (const binding of bindings) {
 				// a write through `global` (from a function or class body) is a rebinding the static rules cannot order
 				if (binding.viaGlobal === true) return rebound;
+				// N4: a bare annotation at module scope binds no name. N1: a comprehension's iteration target
+				// lives in the comprehension's own scope, not in the module.
+				if (binding.bare === true || binding.comprehension === true) continue;
 				let outcome: NameOutcome;
 				if (binding.kind === "def" || binding.kind === "class") {
 					// an `@overload` stub has no symbol of its own (the group collapses into its implementation)
@@ -2702,15 +2708,45 @@ class Resolver {
 		if (callee === null) return false;
 		if (callee.kind === "name") {
 			const outcome = this.resolveBareName(callee.name, classInfo.parentScope, 0);
-			return outcome.kind === "unresolved" && outcome.reason === "rebound";
+			return outcome.kind === "multiply" || (outcome.kind === "unresolved" && outcome.reason === "rebound");
 		}
 		if (callee.kind === "attr" && callee.base.kind === "name") {
 			const head = this.resolveBareName(callee.base.name, classInfo.parentScope, 0);
 			if (head.kind !== "module" || head.path === null) return false;
 			const outcome = this.resolveModuleChain(head.path, callee.segments, 0);
-			return outcome.kind === "unresolved" && outcome.reason === "rebound";
+			return outcome.kind === "multiply" || (outcome.kind === "unresolved" && outcome.reason === "rebound");
 		}
 		return false;
+	}
+
+	/**
+	 * GCLI-116 (DEC-303 (a49) item 1 (a)): the in-repo classes a base may be. One resolved class is the
+	 * ordinary case; a multiply-bound base (Q2 alternatives) is every alternative, so a subclass still counts
+	 * as a subclass of each one and the polymorphic flag does not drop because the base became multiply.
+	 */
+	private baseAlternatives(classInfo: ClassInfo, base: BaseRef): ClassInfo[] {
+		const single = this.resolveBaseClass(classInfo, base);
+		if (single !== null) return [single];
+		const callee = base.callee;
+		if (callee === null) return [];
+		let symbols: readonly PythonSymbol[] = [];
+		if (callee.kind === "name") {
+			const outcome = this.resolveBareName(callee.name, classInfo.parentScope, 0);
+			if (outcome.kind === "multiply") symbols = outcome.symbols;
+		} else if (callee.kind === "attr" && callee.base.kind === "name") {
+			const head = this.resolveBareName(callee.base.name, classInfo.parentScope, 0);
+			if (head.kind === "module" && head.path !== null) {
+				const outcome = this.resolveModuleChain(head.path, callee.segments, 0);
+				if (outcome.kind === "multiply") symbols = outcome.symbols;
+			}
+		}
+		const classes: ClassInfo[] = [];
+		for (const symbol of symbols) {
+			if (symbol.kind !== "class") continue;
+			const info = this.classById.get(symbol.id);
+			if (info !== undefined) classes.push(info);
+		}
+		return classes;
 	}
 
 	private computeMro(classInfo: ClassInfo): MroResult {
@@ -2799,11 +2835,11 @@ class Resolver {
 		const map = new Map<string, ClassInfo[]>();
 		for (const classInfo of this.classById.values()) {
 			for (const base of classInfo.bases) {
-				const baseClass = this.resolveBaseClass(classInfo, base);
-				if (baseClass === null) continue;
-				const list = map.get(baseClass.id);
-				if (list === undefined) map.set(baseClass.id, [classInfo]);
-				else list.push(classInfo);
+				for (const baseClass of this.baseAlternatives(classInfo, base)) {
+					const list = map.get(baseClass.id);
+					if (list === undefined) map.set(baseClass.id, [classInfo]);
+					else if (!list.includes(classInfo)) list.push(classInfo);
+				}
 			}
 		}
 		this.childrenMap = map;
