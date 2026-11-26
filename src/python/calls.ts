@@ -214,6 +214,12 @@ interface RawBinding {
 	viaGlobal?: true;
 	/** GCLI-116 (N4): a bare annotation `f: T` with no value, which binds no name at module scope (PEP 526). */
 	bare?: true;
+	/**
+	 * GCLI-136 (DEC-303 (a67)): a plain assignment in a statement that may be skipped (`maySkipStatement`: an
+	 * `if`, loop, `with`, `case` or `try`-with-`except` arm). Read only by `starSetIsExact`, so the assignment
+	 * rules that read `conditional` (`isConditionalStatement`) are unchanged.
+	 */
+	maySkip?: true;
 }
 
 interface Scope {
@@ -1715,6 +1721,10 @@ class FileWalker {
 				annotation,
 				annotationScope: annotation !== null ? frame.scope : null,
 				...(isConditionalStatement(node) ? { conditional: true as const } : {}),
+				// ask about the statement itself: an assignment's parent is an expression_statement (which
+				// maySkipStatement would read as an unknown compound statement), and in a chained `x = __all__ = v`
+				// the inner assignment is the right side of the outer one
+				...(maySkipStatement(simpleStatementOf(node)) ? { maySkip: true as const } : {}),
 				...(right === null ? { bare: true as const } : {}),
 			});
 		} else if (left !== null) {
@@ -1781,6 +1791,13 @@ class FileWalker {
 		}
 		this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 	}
+}
+
+/** GCLI-136: the simple statement holding an assignment, climbing out of a chained `a = b = v` to its `expression_statement`. */
+function simpleStatementOf(node: Node): Node {
+	let statement = node;
+	while (statement.parent?.type === "assignment") statement = statement.parent;
+	return statement.parent?.type === "expression_statement" ? statement.parent : statement;
 }
 
 /**
@@ -2152,12 +2169,14 @@ class Resolver {
 		const all = target.bindings.get("__all__");
 		if (all !== undefined) {
 			const only = all[0] as RawBinding;
-			// a conditional `__all__` may not run, and a bare annotation `__all__: T` binds nothing
+			// an `__all__` in a statement that may be skipped (maySkipStatement: an if arm, a loop, with or case
+			// body, an except arm) may stay unbound, and a bare annotation `__all__: T` binds nothing
 			return (
 				all.length === 1 &&
 				only.kind === "assign" &&
 				only.viaGlobal !== true &&
 				only.conditional !== true &&
+				only.maySkip !== true &&
 				only.bare !== true
 			);
 		}

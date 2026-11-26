@@ -1401,3 +1401,47 @@ describe("GCLI-122 round 1, DEC-303 (a68) — a descendant's unreadable or non-c
 		expect(r.delta).toEqual(RESOLVED);
 	});
 });
+
+describe("GCLI-136 — an __all__ in a statement that may be skipped does not make the star's export set exact", () => {
+	const tail = "def helper():\n    pass\nfor len in [1]:\n    pass\n";
+	const all = "    __all__ = ['helper']\n";
+	const run = (target: string) => probe("from s import *\ndef g(x):\n    CALL\n", "len(x)", { "s.py": target });
+	const NOT_BUILTIN: Delta = { inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 };
+	const BUILTIN: Delta = { inRepo: 0, external: 1, receiver: 0, nameNotBound: 0 };
+
+	{
+		const bodies: Record<string, string> = {
+			for: `for _ in []:\n${all}`,
+			while: `while C:\n${all}`,
+			with: `with C:\n${all}`,
+			"for else": `for _ in []:\n    pass\nelse:\n${all}`,
+			"while else": `while C:\n    pass\nelse:\n${all}`,
+			case: `match C:\n    case 1:\n    ${all}`,
+			if: `if C:\n${all}`,
+			"if else": `if C:\n    pass\nelse:\n${all}`,
+			"try body with an except": `try:\n${all}except E:\n    pass\n`,
+			"except arm": `try:\n    pass\nexcept E:\n${all}`,
+			"chained inside a for body": "for _ in []:\n    x = __all__ = ['helper']\n",
+		};
+		for (const [label, head] of Object.entries(bodies)) {
+			test(`${label}: the star is partial, so len(x) is not claimed as the builtin`, async () => {
+				const r = await run(head + tail);
+				expect(r.delta, label).toEqual(NOT_BUILTIN);
+			});
+		}
+	}
+
+	test("twins: an __all__ that always runs keeps the exact set, so len(x) is still the builtin", async () => {
+		const always: Record<string, string> = {
+			"module level": "__all__ = ['helper']\n",
+			"try body with only a finally": `try:\n${all}finally:\n    pass\n`,
+			"finally body": `try:\n    pass\nfinally:\n${all}`,
+			"chained, __all__ inner": "x = __all__ = ['helper']\n",
+			"chained, three targets": "a = b = __all__ = ['helper']\n",
+		};
+		for (const [label, head] of Object.entries(always)) {
+			const r = await run(head + tail);
+			expect(r.delta, label).toEqual(BUILTIN);
+		}
+	});
+});
