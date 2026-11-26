@@ -172,6 +172,8 @@ type AnnotationDesc =
 
 interface RawBinding {
 	kind: "def" | "class" | "import" | "localimport" | "param" | "assign" | "rebound";
+	/** K1: a `*args` parameter is a tuple and a `**kwargs` parameter a dict. */
+	splat?: "tuple" | "dict";
 	symbolId?: string;
 	importBinding?: ImportBinding | null;
 	rhs?: BindingRhs;
@@ -330,6 +332,34 @@ const BUILTIN_INSTANCE_CLASSES: ReadonlySet<string> = new Set([
 	"map",
 	"filter",
 ]);
+
+/** A builtin CLASS whose constructor returns an instance of the subclass being constructed (BUILTIN_INSTANCE_CLASSES or a builtin exception class). */
+function isBuiltinInstanceClassName(name: string): boolean {
+	return (
+		BUILTIN_INSTANCE_CLASSES.has(name) ||
+		(BUILTINS.has(name) &&
+			/(Error|Exception|Warning)$|^(StopIteration|StopAsyncIteration|GeneratorExit|KeyboardInterrupt|SystemExit)$/.test(
+				name,
+			))
+	);
+}
+
+/**
+ * K1: every builtin class that may be a receiver. The final classes and `reversed`
+ * are builtin too, and a method named on one is the builtin's whichever way it is
+ * constructed; `type` stays out ((a30) item 2), and so does every builtins name that is not a class.
+ */
+const BUILTIN_RECEIVER_ONLY_CLASSES: ReadonlySet<string> = new Set([
+	"bool",
+	"range",
+	"slice",
+	"memoryview",
+	"reversed",
+]);
+
+function isBuiltinClassName(name: string): boolean {
+	return isBuiltinInstanceClassName(name) || BUILTIN_RECEIVER_ONLY_CLASSES.has(name);
+}
 
 /**
  * Names a builtin CLASS in BUILTIN_INSTANCE_CLASSES itself defines that a lookup
@@ -751,6 +781,8 @@ interface WalkFrame {
 /** One parameter: its bound name, annotation descriptor and default/value node. */
 interface ParamInfo {
 	name: string | null;
+	/** K1: `tuple` for `*args`, `dict` for `**kwargs`, else null. */
+	splat: "tuple" | "dict" | null;
 	annotation: AnnotationDesc | null;
 	annotationNode: Node | null;
 	valueNode: Node | null;
@@ -765,9 +797,13 @@ function parameterName(node: Node): Node | null {
 		case "default_parameter": {
 			const named = node.childForFieldName("name");
 			if (named !== null) return named;
-			// `typed_parameter` (no default) carries its name as a bare child.
+			// `typed_parameter` (no default) carries its name as a bare child, or, for
+			// `*args: T` and `**kwargs: T`, inside a splat pattern child (GCLI-108).
 			for (const child of node.namedChildren) {
 				if (child !== null && child.type === "identifier") return child;
+				if (child !== null && (child.type === "list_splat_pattern" || child.type === "dictionary_splat_pattern")) {
+					return parameterName(child);
+				}
 			}
 			return null;
 		}
@@ -790,13 +826,30 @@ function parameterName(node: Node): Node | null {
 function isPlainParameter(node: Node): boolean {
 	switch (node.type) {
 		case "identifier":
-		case "typed_parameter":
 		case "typed_default_parameter":
 		case "default_parameter":
 			return true;
+		// `*args: T` and `**kwargs: T` are typed parameters over a splat: not a receiver.
+		case "typed_parameter":
+			return splatKind(node) === null;
 		default:
 			return false;
 	}
+}
+
+/** K1: the splat kind of a parameter node, looking through a `typed_parameter`. */
+function splatKind(node: Node): "tuple" | "dict" | null {
+	if (node.type === "list_splat_pattern") return "tuple";
+	if (node.type === "dictionary_splat_pattern") return "dict";
+	if (node.type === "typed_parameter") {
+		for (const child of node.namedChildren) {
+			if (child !== null && child.type !== "identifier") {
+				const inner = splatKind(child);
+				if (inner !== null) return inner;
+			}
+		}
+	}
+	return null;
 }
 
 function parameterInfo(node: Node): ParamInfo {
@@ -811,6 +864,7 @@ function parameterInfo(node: Node): ParamInfo {
 	}
 	return {
 		name: nameNode?.text ?? null,
+		splat: splatKind(node),
 		annotation: annotationNode !== null ? describeAnnotation(annotationNode) : null,
 		annotationNode,
 		valueNode,
@@ -1261,6 +1315,7 @@ class FileWalker {
 			if (param.name !== null) {
 				this.addBinding(fnScope, param.name, {
 					kind: "param",
+					...(param.splat !== null ? { splat: param.splat } : {}),
 					annotation: param.annotation,
 					annotationScope: frame.scope,
 				});
@@ -1396,6 +1451,7 @@ class FileWalker {
 			if (param.name !== null) {
 				this.addBinding(lambdaScope, param.name, {
 					kind: "param",
+					...(param.splat !== null ? { splat: param.splat } : {}),
 					annotation: param.annotation,
 					annotationScope: frame.scope,
 				});
@@ -2762,6 +2818,13 @@ class Resolver {
 			if (segments.length > 1) return { bin: "receiver", reason: "needs-inference" };
 			return this.methodLookup(known, lastName, false, true);
 		}
+		// K1 (DEC-303 (a22) item 3): `*args` is a tuple and `**kwargs` a dict, so a method
+		// called on one is the builtin's. The name must have exactly one binding in
+		// its scope chain (a rebind, or a nonlocal write from a nested scope, is a
+		// second binding and leaves the site unresolved).
+		if (segments.length === 1 && this.isSplatParameter(base.name, scope, site)) {
+			return { bin: "external", reason: "external" };
+		}
 		const outcome = this.resolveBareName(base.name, scope, 0, site);
 		switch (outcome.kind) {
 			case "module":
@@ -2775,11 +2838,24 @@ class Resolver {
 				return { bin: "receiver", reason: "needs-inference" };
 			}
 			case "external":
+				// K1: an unshadowed builtin class used as the receiver is the builtin
+				// (`int.from_bytes`, `dict.fromkeys`); `type` is not on the list, and a
+				// builtin function (`len`) is not a class.
+				if (segments.length === 1 && isBuiltinClassName(base.name)) return { bin: "external", reason: "external" };
+				return { bin: "receiver", reason: "needs-inference" };
 			case "runtime":
 			case "unresolved":
 			case "multiply":
 				return { bin: "receiver", reason: "needs-inference" };
 		}
+	}
+
+	/** K1: `name` is bound exactly once in its scope chain, by a `*args` or `**kwargs` parameter. */
+	private isSplatParameter(name: string, scope: Scope, site: { line: number; column: number }): boolean {
+		const found = this.lookupBindings(name, scope, site);
+		if (found === null || found.bindings.length !== 1) return false;
+		const binding = found.bindings[0] as RawBinding;
+		return binding.kind === "param" && binding.splat !== undefined;
 	}
 
 	/**
@@ -2857,13 +2933,7 @@ class Resolver {
 		const base = owner?.bases[index];
 		if (owner === undefined || base === undefined || base.callee === null || base.callee.kind !== "name") return null;
 		const name = base.callee.name;
-		const isClass =
-			BUILTIN_INSTANCE_CLASSES.has(name) ||
-			(BUILTINS.has(name) &&
-				/(Error|Exception|Warning)$|^(StopIteration|StopAsyncIteration|GeneratorExit|KeyboardInterrupt|SystemExit)$/.test(
-					name,
-				));
-		if (!isClass) return null;
+		if (!isBuiltinInstanceClassName(name)) return null;
 		return this.isUnshadowedBuiltin(name, owner.parentScope, { line: owner.line, column: 1 }) ? name : null;
 	}
 
