@@ -2810,8 +2810,6 @@ describe("D1 — a class-scope non-def binding hides a base's def", () => {
 			"except as": "try:\n    pass\nexcept Exception as NAME:\n    pass",
 			// a comprehension target lives in the comprehension's own scope in Python 3
 			"comprehension target": "_unused = [NAME for NAME in items]",
-			// a global declaration sends the assignment to the module
-			"global then assign": "global NAME\nNAME = None",
 			// `del NAME` is not tracked, so the earlier assignment still counts
 			"assign then del": "NAME = None\ndel NAME",
 		};
@@ -2820,6 +2818,14 @@ describe("D1 — a class-scope non-def binding hides a base's def", () => {
 				for (const [shape, { got }] of Object.entries(await shapes(body, name))) {
 					expect(got, `${kind} / ${name} / ${shape}`).toEqual([]);
 				}
+			}
+		}
+	});
+
+	test("a class-body global declaration sends the assignment to the module, so the class keeps no binding (GCLI-101)", async () => {
+		for (const name of ["m", "__call__"] as const) {
+			for (const [shape, { got, line }] of Object.entries(await shapes("global NAME\nNAME = None", name))) {
+				expect(got, `${name} / ${shape}`).toEqual([line]);
 			}
 		}
 	});
@@ -2863,5 +2869,115 @@ describe("D1 — a class-scope non-def binding hides a base's def", () => {
 			lineOf(source, "x()"),
 			lineOf(source, "y()"),
 		]);
+	});
+});
+
+// GCLI-101 (D2, DEC-303 (a31) item 3): three holes that made a name look singly bound.
+describe("D2 — nonlocal two levels down, global in a class body, match capture", () => {
+	const cls = "class C:\n    def __call__(self):\n        pass\n\n";
+
+	function lineOf(source: string, needle: string): number {
+		const index = source.split("\n").findIndex((line) => line.trim() === needle);
+		if (index < 0) throw new Error(`no line ${needle}`);
+		return index + 1;
+	}
+
+	/** The N3 call `x()` at the line `needle`; [] when the name is not provably one construction. */
+	async function n3(source: string, needle = "x()"): Promise<{ got: number[]; line: number }> {
+		const result = await analyze([py("app.py", source)]);
+		return { got: linesTo(result, symbolId(result, "C.__call__", "app.py")), line: lineOf(source, needle) };
+	}
+
+	async function resolves(source: string, label: string, needle?: string): Promise<void> {
+		const { got, line } = await n3(source, needle);
+		expect(got, label).toEqual([line]);
+	}
+
+	async function refused(source: string, label: string, needle?: string): Promise<void> {
+		const { got } = await n3(source, needle);
+		expect(got, label).toEqual([]);
+	}
+
+	test("(1) nonlocal two levels down is credited to the function that binds the name", async () => {
+		const nested = (innerBody: string, mid = "") =>
+			`${cls}def outer():\n    x = C()\n    def mid():\n${mid}        def inner():\n            nonlocal x\n${innerBody}\n        inner()\n    mid()\n    x()\n`;
+		await refused(nested("            x = make()"), "inner rebinds x two levels down");
+		await refused(nested("            x += 1"), "inner augments x two levels down");
+		await refused(nested("            for x in items:\n                pass"), "inner loops over x");
+		await resolves(nested("            pass"), "twin: inner never rebinds x");
+		await resolves(nested("            y = make()"), "twin: inner binds another name");
+		// the middle function declares nonlocal too: still credited to outer
+		await refused(nested("            x = make()", "        nonlocal x\n"), "mid declares nonlocal x as well");
+		// one level down keeps working
+		await refused(
+			`${cls}def outer():\n    x = C()\n    def inner():\n        nonlocal x\n        x = make()\n    inner()\n    x()\n`,
+			"one level down",
+		);
+		// the middle function binds its own x: that is the nonlocal target, outer's x stays single
+		await resolves(
+			`${cls}def outer():\n    x = C()\n    def mid():\n        x = make()\n        def inner():\n            nonlocal x\n            x = make()\n        inner()\n    mid()\n    x()\n`,
+			"mid binds its own x",
+		);
+	});
+
+	test("(2) a global or nonlocal in a class body redirects the binding out of the class", async () => {
+		const withGlobal = (body: string) => `${cls}x = C()\nclass K:\n${body}\nx()\n`;
+		await refused(withGlobal("    global x\n    x = make()"), "global then assign in a class body");
+		await refused(withGlobal("    global x\n    for x in items:\n        pass"), "global then for");
+		await resolves(withGlobal("    y = make()"), "twin: the class binds another name");
+		await resolves(withGlobal("    x = make()"), "twin: no global, the class binding stays in the class");
+		await refused(
+			`${cls}def f():\n    x = C()\n    class K:\n        nonlocal x\n        x = make()\n    x()\n`,
+			"nonlocal then assign in a class body",
+		);
+		await resolves(
+			`${cls}def f():\n    x = C()\n    class K:\n        x = make()\n    x()\n`,
+			"twin: no nonlocal in the class body",
+		);
+	});
+
+	test("(3) a match capture pattern binds the name", async () => {
+		const matching = (cases: string, where: "module" | "function" = "module") =>
+			where === "module"
+				? `${cls}x = C()\nmatch v:\n${cases}\nx()\n`
+				: `${cls}def f(v):\n    x = C()\n    match v:\n${cases
+						.split("\n")
+						.map((line) => `    ${line}`)
+						.join("\n")}\n    x()\n`;
+		const bodies: Record<string, string> = {
+			capture: "    case x:\n        pass",
+			"capture after a literal": "    case 1:\n        pass\n    case x:\n        pass",
+			"star in a sequence": "    case [a, *x]:\n        pass",
+			"element of a sequence": "    case [a, x]:\n        pass",
+			"tuple pattern": "    case (a, x):\n        pass",
+			"class keyword value": "    case P(k=x):\n        pass",
+			"class positional": "    case P(x):\n        pass",
+			"dict value": "    case {'k': x}:\n        pass",
+			"dict rest": "    case {'k': 1, **x}:\n        pass",
+			"as alias": "    case 1 | 2 as x:\n        pass",
+			"nested as alias": "    case [P() as x]:\n        pass",
+		};
+		for (const [name, cases] of Object.entries(bodies)) {
+			await refused(matching(cases), `${name} (module)`);
+			await refused(matching(cases, "function"), `${name} (function)`);
+		}
+		const twins: Record<string, string> = {
+			wildcard: "    case _:\n        pass",
+			"another name": "    case y:\n        pass",
+			"a value pattern is not a capture": "    case K.x:\n        pass",
+			"a value pattern rooted at the name is not a capture": "    case x.K:\n        pass",
+			"a class pattern names a class, not a binding": "    case x():\n        pass",
+			"a keyword name is not a binding": "    case P(x=1):\n        pass",
+			"a literal": "    case 1:\n        pass",
+			"a star wildcard": "    case [a, *_]:\n        pass",
+			"an unrelated alias": "    case 1 | 2 as y:\n        pass",
+		};
+		// `*_` and a bare `_` bind nothing: a prior `_ = C()` is still one construction
+		await resolves(`${cls}_ = C()\nmatch v:\n    case [a, *_]:\n        pass\n_()\n`, "twin: star wildcard", "_()");
+		await resolves(`${cls}_ = C()\nmatch v:\n    case _:\n        pass\n_()\n`, "twin: bare wildcard", "_()");
+		for (const [name, cases] of Object.entries(twins)) {
+			await resolves(matching(cases), `twin ${name} (module)`);
+			await resolves(matching(cases, "function"), `twin ${name} (function)`);
+		}
 	});
 });

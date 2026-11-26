@@ -935,6 +935,13 @@ class FileWalker {
 					this.addTargetBindings(frame.scope, node.namedChild(0));
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					continue;
+				case "case_clause":
+					// GCLI-101 (3): a capture pattern binds a name in the enclosing scope.
+					for (const child of node.namedChildren) {
+						if (child !== null && child.type === "case_pattern") this.addMatchCaptures(frame.scope, child);
+					}
+					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
+					continue;
 				case "global_statement":
 					for (const child of node.namedChildren) {
 						if (child !== null && child.type === "identifier") frame.scope.globalNames.add(child.text);
@@ -1029,6 +1036,58 @@ class FileWalker {
 			// rebound; the default arm below returns without recording one.
 			default:
 				return;
+		}
+	}
+
+	/**
+	 * The names a `case` pattern binds (tree-sitter-python shapes, probed for GCLI-101):
+	 * a `dotted_name` with ONE identifier is a capture (a dotted one is a value pattern),
+	 * `splat_pattern > identifier` is a star or `**` capture, an `as_pattern` carries its
+	 * alias as a direct identifier child, the first child of a `class_pattern` is the class
+	 * and the first child of a `keyword_pattern` is the keyword, neither a binding. `_` is
+	 * a wildcard and binds nothing: a bare `_` parses as an empty `case_pattern` and `*_` as
+	 * an empty `splat_pattern`, so neither reaches a binding here.
+	 */
+	private addMatchCaptures(scope: Scope, node: Node): void {
+		switch (node.type) {
+			case "dotted_name": {
+				const first = node.namedChild(0);
+				if (node.namedChildCount === 1 && first !== null) {
+					this.addBinding(scope, first.text, { kind: "rebound" });
+				}
+				return;
+			}
+			case "splat_pattern": {
+				const first = node.namedChild(0);
+				if (first !== null && first.type === "identifier") {
+					this.addBinding(scope, first.text, { kind: "rebound" });
+				}
+				return;
+			}
+			case "as_pattern": {
+				for (const child of node.namedChildren) {
+					if (child === null) continue;
+					if (child.type === "identifier") {
+						this.addBinding(scope, child.text, { kind: "rebound" });
+					} else {
+						this.addMatchCaptures(scope, child);
+					}
+				}
+				return;
+			}
+			case "class_pattern":
+			case "keyword_pattern": {
+				const children = node.namedChildren;
+				for (let index = 1; index < children.length; index++) {
+					const child = children[index];
+					if (child !== null && child !== undefined) this.addMatchCaptures(scope, child);
+				}
+				return;
+			}
+			default:
+				for (const child of node.namedChildren) {
+					if (child !== null) this.addMatchCaptures(scope, child);
+				}
 		}
 	}
 
@@ -1482,7 +1541,8 @@ function applyScopeRedirects(scopes: readonly Scope[]): void {
 		return count;
 	};
 	for (const scope of [...scopes].sort((a, b) => depth(b) - depth(a))) {
-		if (scope.kind !== "function" && scope.kind !== "lambda") continue;
+		// GCLI-101 (2): a `global` or `nonlocal` in a class body redirects too.
+		if (scope.kind === "module") continue;
 		for (const name of scope.globalNames) {
 			const moved = scope.bindings.get(name);
 			if (moved === undefined) continue;
@@ -1496,15 +1556,24 @@ function applyScopeRedirects(scopes: readonly Scope[]): void {
 			const moved = scope.bindings.get(name);
 			if (moved === undefined) continue;
 			scope.bindings.delete(name);
+			// GCLI-101 (1): the scope `nonlocal` names is the nearest enclosing function that
+			// binds the name, which may be more than one level up. A function that only
+			// declares it nonlocal too holds no binding until the deeper one is moved in, and
+			// its own redirect then carries it on. With none, fall back to the nearest enclosing function.
 			let target: Scope | null = null;
+			let nearest: Scope | null = null;
 			let current = scope.parent;
 			while (current !== null) {
 				if (current.kind === "function" || current.kind === "lambda") {
-					target = current;
-					break;
+					nearest ??= current;
+					if (current.bindings.has(name)) {
+						target = current;
+						break;
+					}
 				}
 				current = current.parent;
 			}
+			if (target === null) target = nearest;
 			if (target === null) target = moduleScopeOf(scope);
 			const list = target.bindings.get(name);
 			if (list === undefined) target.bindings.set(name, moved);
