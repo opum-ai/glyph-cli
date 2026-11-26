@@ -5147,7 +5147,9 @@ describe("A2 — module.Class.method resolves as the bare-class lookup does", ()
 		for (const key of KEYS) {
 			expect(withCall.callBins[key] - without.callBins[key], `${label}: ${key}`).toBe(key === bin ? 1 : 0);
 		}
-		const reasons = [...withCall.unresolvedNameReasons, ...withCall.unresolvedReceiverReasons];
+		const reasons = [...withCall.unresolvedNameReasons, ...withCall.unresolvedReceiverReasons].filter((entry) =>
+			entry.firstSites.some((site) => site.file === "app.py"),
+		);
 		expect(
 			reasons.map((entry) => entry.reason),
 			label,
@@ -5230,6 +5232,22 @@ describe("A2 — module.Class.method resolves as the bare-class lookup does", ()
 			"attribute-not-found",
 			"submodule without y",
 		);
+	});
+
+	test("a namespace directory named like the class keeps the module walk (B2, confirmatory)", async () => {
+		const files = [
+			py("pkg/__init__.py", "class X:\n    def y(self):\n        pass\n"),
+			py("pkg/X/foo.py", "def z():\n    pass\n"),
+			py("app.py", "import pkg.X.foo\ndef run():\n    CALL\n"),
+		];
+		await refused(files, "pkg.X.y()", "nameNotBound", "attribute-not-found", "namespace directory X");
+	});
+
+	test("a class bound once in m but multiply bound in the module it is imported from is refused", async () => {
+		const arms =
+			"if X:\n    class C:\n        @staticmethod\n        def st():\n            pass\nelse:\n    class C:\n        @staticmethod\n        def st():\n            pass\n";
+		const files = [py("n.py", arms), py("m.py", "from n import C\n"), py("app.py", "import m\ndef run():\n    CALL\n")];
+		await refused(files, "m.C.st()", "nameNotBound", "attribute-not-found", "multiply bound at the hop");
 	});
 
 	test("shapes of m that leave the class name without one binding are refused", async () => {

@@ -3536,12 +3536,11 @@ class Resolver {
 		// the attribute's own binding gate would be reached, so the old resolution stands.
 		const holderName = this.pathToModule.get(holder.path);
 		const classSegment = segments[segments.length - 2] as string;
-		if (
-			holderName !== undefined &&
-			this.modulePathByName.has(holderName === "" ? classSegment : `${holderName}.${classSegment}`)
-		) {
-			return null;
-		}
+		// The module walk also steps through a single-portion namespace directory (`pkg/X/foo.py` with no
+		// `pkg/X/__init__.py`), which `modulePathByName` does not list; it takes the same precedence.
+		const sub =
+			holderName === undefined ? undefined : holderName === "" ? classSegment : `${holderName}.${classSegment}`;
+		if (sub !== undefined && (this.modulePathByName.has(sub) || this.namespaceDirByName.has(sub))) return null;
 		// INTERIM (DEC-303 (a52) item 1, retired by GCLI-118): `resolveModuleAttribute` takes the FIRST import
 		// binding of the class name and never reads the holder's other bindings, so a rebind (`C = None`,
 		// `del C`, a for, with or walrus target, a global write, a second import in a try/except, a star
