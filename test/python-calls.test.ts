@@ -5103,3 +5103,264 @@ describe("GCLI-115 — a del target is a binding", () => {
 		});
 	});
 });
+
+// GCLI-117 (A2, DEC-303 (a22) item 3, (a45) item 1): `m.C.meth(...)` resolves through the module
+// attribute to the class method, as the bare-class `C.meth(...)` lookup does.
+describe("A2 — module.Class.method resolves as the bare-class lookup does", () => {
+	const m = "class C:\n    def meth(self):\n        return 1\n    @staticmethod\n    def st():\n        return 2\n";
+	type Key = "resolvedInRepo" | "resolvedExternal" | "receiverNeedsInference" | "nameNotBound";
+	const KEYS: Key[] = ["resolvedInRepo", "resolvedExternal", "receiverNeedsInference", "nameNotBound"];
+
+	/** The app.py edges on `line` as `kind:qualname` plus the flags the edge carries, with the full bin counts. */
+	async function at(files: PythonModuleInput[], line: number) {
+		const result = await analyze(files);
+		const byId = new Map(result.symbols.map((symbol) => [symbol.id, symbol.qualname]));
+		const targets = result.sites
+			.filter((site) => site.file === "app.py" && site.line === line)
+			.map((site) => {
+				const flags = `${site.polymorphic ? "|poly" : ""}${site.multiplyBound ? "|multi" : ""}${site.externalBaseBefore ? "|extbase" : ""}`;
+				return `${site.kind}:${byId.get(site.calleeId as string)}${flags}`;
+			});
+		return { targets, bins: result.callBins, result };
+	}
+
+	/**
+	 * A refused call has no edge and sits in `bin` with the given reason: the source with the call
+	 * replaced by `pass` differs by exactly one site in that bin.
+	 */
+	async function refused(
+		files: PythonModuleInput[],
+		call: string,
+		bin: Key,
+		reason: string,
+		label: string,
+	): Promise<void> {
+		const app = files[files.length - 1] as PythonModuleInput;
+		const text = new TextDecoder().decode(app.bytes);
+		const rest = files.slice(0, -1);
+		const withCall = await analyze([...rest, py("app.py", text.replace("CALL", call))]);
+		const without = await analyze([...rest, py("app.py", text.replace("CALL", "pass"))]);
+		expect(
+			withCall.sites.filter((site) => site.file === "app.py"),
+			label,
+		).toEqual([]);
+		for (const key of KEYS) {
+			expect(withCall.callBins[key] - without.callBins[key], `${label}: ${key}`).toBe(key === bin ? 1 : 0);
+		}
+		const reasons = [...withCall.unresolvedNameReasons, ...withCall.unresolvedReceiverReasons].filter((entry) =>
+			entry.firstSites.some((site) => site.file === "app.py"),
+		);
+		expect(
+			reasons.map((entry) => entry.reason),
+			label,
+		).toContain(reason);
+	}
+
+	test("m.C.st() and m.C.meth(m.C()) resolve to the method; m.C().meth() is unchanged", async () => {
+		const app = "import m\n\ndef run():\n    m.C.st()\n    m.C().meth()\n    m.C.meth(m.C())\n";
+		const files = [py("m.py", m), py("app.py", app)];
+		expect((await at(files, 4)).targets).toEqual(["call:C.st"]);
+		expect((await at(files, 5)).targets.sort()).toEqual(["call:C.meth", "new:C"]);
+		expect((await at(files, 6)).targets.sort()).toEqual(["call:C.meth", "new:C"]);
+		expect((await at(files, 4)).bins).toMatchObject({ resolvedInRepo: 5, nameNotBound: 0, receiverNeedsInference: 0 });
+	});
+
+	test("an alias of the module, an inherited method and a package module resolve", async () => {
+		expect((await at([py("m.py", m), py("app.py", "import m as k\ndef run():\n    k.C.st()\n")], 3)).targets).toEqual([
+			"call:C.st",
+		]);
+		const inherited = "class B:\n    def meth(self):\n        pass\nclass C(B):\n    pass\n";
+		expect(
+			(await at([py("m.py", inherited), py("app.py", "import m\ndef run():\n    m.C.meth(1)\n")], 3)).targets,
+		).toEqual(["call:B.meth"]);
+		const pkg = [py("pkg/__init__.py", ""), py("pkg/m.py", m)];
+		expect((await at([...pkg, py("app.py", "import pkg.m\ndef run():\n    pkg.m.C.st()\n")], 3)).targets).toEqual([
+			"call:C.st",
+		]);
+		expect((await at([...pkg, py("app.py", "from pkg import m\ndef run():\n    m.C.st()\n")], 3)).targets).toEqual([
+			"call:C.st",
+		]);
+	});
+
+	test("the edge carries the flags the bare-class lookup gives it", async () => {
+		// a subclass override makes the lookup polymorphic, as `C.meth` does for a bare class
+		const poly = "class C:\n    def meth(self):\n        pass\nclass D(C):\n    def meth(self):\n        pass\n";
+		expect((await at([py("m.py", poly), py("app.py", "import m\ndef run():\n    m.C.meth(1)\n")], 3)).targets).toEqual([
+			"call:C.meth|poly",
+		]);
+		expect((await at([py("app.py", `${poly}def run():\n    C.meth(1)\n`)], 8)).targets).toEqual(["call:C.meth|poly"]);
+		// an opaque base before the in-repo def is recorded on the edge
+		const ext =
+			"from ext import Base\nclass D:\n    @staticmethod\n    def st():\n        pass\nclass C(Base, D):\n    pass\n";
+		const based = await at([py("m.py", ext), py("app.py", "import m\ndef run():\n    m.C.st()\n")], 3);
+		expect(based.targets).toEqual(["call:D.st|extbase"]);
+		// two defs of the method in the class: both edges, each multiply bound
+		const multi = "class C:\n    def st(self):\n        pass\n    def st(self, x):\n        pass\n";
+		const both = await at([py("m.py", multi), py("app.py", "import m\ndef run():\n    m.C.st(1)\n")], 3);
+		expect(both.targets).toEqual(["call:C.st|multi", "call:C.st|multi"]);
+	});
+
+	test("a class bound more than once in m, or a class that is not one class, is refused", async () => {
+		const call = "import m\ndef run():\n    CALL\n";
+		const arms =
+			"if X:\n    class C:\n        @staticmethod\n        def st():\n            pass\nelse:\n    class C:\n        @staticmethod\n        def st():\n            pass\n";
+		await refused(
+			[py("m.py", arms), py("app.py", call)],
+			"m.C.st()",
+			"nameNotBound",
+			"attribute-not-found",
+			"if/else classes",
+		);
+	});
+
+	test("a submodule named like the class keeps the module walk (B2)", async () => {
+		const pkg = (y: string) => [
+			py("pkg/__init__.py", "class X:\n    def y(self):\n        pass\n"),
+			py("pkg/X.py", y),
+			py("app.py", "import pkg.X\ndef run():\n    pkg.X.y()\n"),
+		];
+		// the submodule has y: the edge stays on the submodule's def, as before the rule
+		const withY = await at(pkg("def y():\n    pass\n"), 3);
+		expect(withY.targets).toEqual(["call:y"]);
+		expect(withY.result.sites.find((site) => site.file === "app.py")?.calleeId).toBe("pkg/X.py:1:5");
+		// the submodule lacks y: unresolved, as before; the class in __init__ is not taken either
+		const without = pkg("def z():\n    pass\n");
+		await refused(
+			[...without.slice(0, -1), py("app.py", "import pkg.X\ndef run():\n    CALL\n")],
+			"pkg.X.y()",
+			"nameNotBound",
+			"attribute-not-found",
+			"submodule without y",
+		);
+	});
+
+	test("a namespace directory named like the class keeps the module walk (B2, confirmatory)", async () => {
+		const files = [
+			py("pkg/__init__.py", "class X:\n    def y(self):\n        pass\n"),
+			py("pkg/X/foo.py", "def z():\n    pass\n"),
+			py("app.py", "import pkg.X.foo\ndef run():\n    CALL\n"),
+		];
+		await refused(files, "pkg.X.y()", "nameNotBound", "attribute-not-found", "namespace directory X");
+	});
+
+	test("a class bound once in m but multiply bound in the module it is imported from is refused", async () => {
+		const arms =
+			"if X:\n    class C:\n        @staticmethod\n        def st():\n            pass\nelse:\n    class C:\n        @staticmethod\n        def st():\n            pass\n";
+		const files = [py("n.py", arms), py("m.py", "from n import C\n"), py("app.py", "import m\ndef run():\n    CALL\n")];
+		await refused(files, "m.C.st()", "nameNotBound", "attribute-not-found", "multiply bound at the hop");
+	});
+
+	test("shapes of m that leave the class name without one binding are refused", async () => {
+		const call = "import m\ndef run():\n    CALL\n";
+		const shapes: Record<string, string> = {
+			del: `${m}del C\n`,
+			"rebind to None": `${m}C = None\n`,
+			"for target": `${m}for C in z:\n    pass\n`,
+			"walrus target": `${m}(C := 1)\n`,
+			"global write": `${m}def f():\n    global C\n    C = 1\n`,
+		};
+		for (const [label, source] of Object.entries(shapes)) {
+			await refused([py("m.py", source), py("app.py", call)], "m.C.st()", "nameNotBound", "attribute-not-found", label);
+		}
+		// a with target also binds a second name in app (the with itself is a bare call): only the edge is asserted
+		const withTarget = await at(
+			[py("m.py", `${m}with q() as C:\n    pass\n`), py("app.py", "import m\ndef run():\n    m.C.st()\n")],
+			3,
+		);
+		expect(withTarget.targets).toEqual([]);
+	});
+
+	test("B1: a class imported into m needs exactly one module-scope binding of its name in m", async () => {
+		const n = py("n.py", m);
+		const o = py("o.py", "class C:\n    pass\n");
+		const call = "import m\ndef run():\n    CALL\n";
+		const shapes: Record<string, string> = {
+			"import then None": "from n import C\nC = None\n",
+			"import then del": "from n import C\ndel C\n",
+			"import then for target": "from n import C\nfor C in z:\n    pass\n",
+			"import then walrus": "from n import C\n(C := 1)\n",
+			"import then global write": "from n import C\ndef f():\n    global C\n    C = 1\n",
+			"star import that may bind it": "from n import *\n",
+			"a star import after the import": "from n import C\nfrom o import *\n",
+		};
+		for (const [label, source] of Object.entries(shapes)) {
+			await refused(
+				[n, o, py("m.py", source), py("app.py", call)],
+				"m.C.st()",
+				"nameNotBound",
+				"attribute-not-found",
+				label,
+			);
+		}
+		// a second import in a try/except: an alternative, refused (no first pick)
+		const alt = [py("_a.py", m), py("_b.py", m)];
+		const tried = "try:\n    from _a import C\nexcept ImportError:\n    from _b import C\n";
+		await refused(
+			[...alt, py("m.py", tried), py("app.py", call)],
+			"m.C.st()",
+			"nameNotBound",
+			"attribute-not-found",
+			"try/except imports",
+		);
+		// the with target also binds a bare name in m: only the edge is asserted
+		const withT = await at(
+			[
+				n,
+				py("m.py", "from n import C\nwith q() as C:\n    pass\n"),
+				py("app.py", "import m\ndef run():\n    m.C.st()\n"),
+			],
+			3,
+		);
+		expect(withT.targets).toEqual([]);
+		// the single plain import keeps its edge, and so do the two shapes that bind no module name
+		const ok: Record<string, string> = {
+			"plain import": "from n import C\n",
+			"bare annotation ignored": "from n import C\nC: int\n",
+			"comprehension target ignored": "from n import C\nxs = [C for C in z]\n",
+		};
+		for (const [label, source] of Object.entries(ok)) {
+			const result = await at([n, py("m.py", source), py("app.py", "import m\ndef run():\n    m.C.st()\n")], 3);
+			expect(result.targets, label).toEqual(["call:C.st"]);
+		}
+		for (const source of [`${m}C: int\n`, `${m}xs = [C for C in z]\n`]) {
+			expect((await at([py("m.py", source), py("app.py", "import m\ndef run():\n    m.C.st()\n")], 3)).targets).toEqual(
+				["call:C.st"],
+			);
+		}
+	});
+
+	test("negative controls stay unresolved, each in the bin and with the reason it had before the rule", async () => {
+		const call = "import m\ndef run():\n    CALL\n";
+		await refused(
+			[py("m.py", m), py("app.py", call)],
+			"m.C.nope()",
+			"nameNotBound",
+			"attribute-not-found",
+			"unknown method",
+		);
+		await refused(
+			[py("m.py", m), py("app.py", call)],
+			"m.D.st()",
+			"nameNotBound",
+			"attribute-not-found",
+			"unknown class",
+		);
+		await refused(
+			[py("m.py", `${m}C = None\n`), py("app.py", call)],
+			"m.C.st()",
+			"nameNotBound",
+			"attribute-not-found",
+			"rebound class",
+		);
+		const prop = "class C:\n    @property\n    def p(self):\n        return 1\n";
+		await refused([py("m.py", prop), py("app.py", call)], "m.C.p()", "nameNotBound", "attribute-not-found", "property");
+		// a class imported from an external module reaches the new path and is not taken
+		await refused(
+			[py("m.py", "from ext import C\n"), py("app.py", call)],
+			"m.C.st()",
+			"nameNotBound",
+			"attribute-not-found",
+			"external import",
+		);
+	});
+});

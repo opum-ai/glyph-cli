@@ -3151,7 +3151,7 @@ class Resolver {
 		switch (outcome.kind) {
 			case "module":
 				if (outcome.path === null) return { bin: "external", reason: "external-module" };
-				return this.moduleCall(outcome.path, segments, site);
+				return this.moduleClassMemberCall(outcome.path, segments) ?? this.moduleCall(outcome.path, segments, site);
 			case "symbol": {
 				if (outcome.symbol.kind === "class" && segments.length === 1) {
 					const classInfo = this.classById.get(outcome.symbol.id);
@@ -3516,6 +3516,49 @@ class Resolver {
 		const classInfo = this.instanceClassOf(this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0));
 		if (classInfo === null) return null;
 		const resolved = this.methodLookup(classInfo, "__call__", false, true);
+		return resolved.bin === "inRepo" ? resolved : null;
+	}
+
+	/**
+	 * A2 (DEC-303 (a22) item 3, GCLI-117): `m.C.meth(...)` where every segment before the last resolves,
+	 * as a direct `m.C` does, to ONE in-repo class, resolves as the bare-class `C.meth(...)` lookup does
+	 * (`methodLookup`). Only an in-repo edge is taken: any other outcome (an unknown attribute, a rebound
+	 * class name, an opaque base, a property) returns null so the ordinary module-chain resolution and its
+	 * bin stand unchanged. A chain through a submodule (`m.sub.f`) is a module, not a class, and is not this path.
+	 */
+	private moduleClassMemberCall(path: string, segments: readonly string[]): CallResolution | null {
+		if (segments.length < 2) return null;
+		const holderChain = segments.slice(0, -2);
+		const holder =
+			holderChain.length === 0 ? { kind: "module" as const, path } : this.resolveModuleChain(path, holderChain, 0);
+		if (holder.kind !== "module" || holder.path === null) return null;
+		// A submodule named like the class: the module walk (`moduleCall`) takes the submodule before
+		// the attribute's own binding gate would be reached, so the old resolution stands.
+		const holderName = this.pathToModule.get(holder.path);
+		const classSegment = segments[segments.length - 2] as string;
+		// The module walk also steps through a single-portion namespace directory (`pkg/X/foo.py` with no
+		// `pkg/X/__init__.py`), which `modulePathByName` does not list; it takes the same precedence.
+		const sub =
+			holderName === undefined ? undefined : holderName === "" ? classSegment : `${holderName}.${classSegment}`;
+		if (sub !== undefined && (this.modulePathByName.has(sub) || this.namespaceDirByName.has(sub))) return null;
+		// INTERIM (DEC-303 (a52) item 1, retired by GCLI-118): `resolveModuleAttribute` takes the FIRST import
+		// binding of the class name and never reads the holder's other bindings, so a rebind (`C = None`,
+		// `del C`, a for, with or walrus target, a global write, a second import in a try/except, a star
+		// import that may bind it) would still draw an edge here. This path therefore needs exactly ONE
+		// module-scope binding of the class name, counted as item 2 counts it (`enumerableBindings`). Left to
+		// the general hop reading of GCLI-118, whose (a44) rules then apply to this path too.
+		const holderScope = this.moduleScopesByPath.get(holder.path);
+		if (holderScope === undefined) return null;
+		const own = this.enumerableBindings(classSegment, holderScope, { line: 0, column: 0 });
+		// A bare annotation (N4) and a comprehension iteration target (N1) bind no module name, so they are not counted.
+		if (own === null || own.filter((binding) => binding.bare !== true && binding.comprehension !== true).length !== 1) {
+			return null;
+		}
+		const prefix = this.resolveModuleChain(path, segments.slice(0, -1), 0);
+		if (prefix.kind !== "symbol" || prefix.symbol.kind !== "class") return null;
+		const classInfo = this.classById.get(prefix.symbol.id);
+		if (classInfo === undefined) return null;
+		const resolved = this.methodLookup(classInfo, segments[segments.length - 1] as string, false, true);
 		return resolved.bin === "inRepo" ? resolved : null;
 	}
 
