@@ -2875,6 +2875,11 @@ class Resolver {
 			if (segments.length > 1) return { bin: "receiver", reason: "needs-inference" };
 			return this.methodLookup(known, lastName, false, true);
 		}
+		// M1 (DEC-303 (a22) item 3): an imported module-level instance of one in-repo class.
+		if (segments.length === 1) {
+			const instance = this.importedInstanceClass(base.name, scope, site);
+			if (instance !== null) return this.methodLookup(instance, lastName, false, true);
+		}
 		// K1 (DEC-303 (a22) item 3): `*args` is a tuple and `**kwargs` a dict, so a method
 		// called on one is the builtin's. The name must have exactly one binding in
 		// its scope chain (a rebind, or a nonlocal write from a nested scope, is a
@@ -2949,6 +2954,82 @@ class Resolver {
 	 */
 	private starMayBind(file: string): boolean {
 		return (this.starBindingsByPath.get(file)?.length ?? 0) > 0;
+	}
+
+	/**
+	 * M1 (DEC-303 (a22) item 3): `name` is bound exactly once in its own scope, by
+	 * `from m import inst` (alias allowed) of a MODULE FILE `m` (a package `__init__`
+	 * stays unresolved, A4), and `inst` is bound exactly once in `m`'s module scope, by a
+	 * plain unannotated `inst = Cls(...)` whose callee resolves, from `m`, to one in-repo
+	 * class that passes `instanceClassOf` (an ok MRO, no `__new__` or metaclass, not
+	 * replaced by a decorator). Both enumerations are item 2's: a second binding in either
+	 * module, a `global` write from a function of `m`, or a module-level star import in
+	 * either module leaves the call unresolved. A write from outside `m` (`m.inst = ...`)
+	 * is the accepted blind spot, as is a `globals()[...]` or `setattr` write. The constructor
+	 * name is resolved by `moduleClassSymbol`, whose enumeration of `m`'s module scope refuses a
+	 * module-level star import there (so a star cannot rebind `inst` either). Only a direct import
+	 * (the import's source module is the defining file) and a bare-name constructor qualify. The
+	 * module-attribute form `m.inst.f()` is ruled OUT (DEC-303 (a37)).
+	 */
+	private importedInstanceClass(name: string, scope: Scope, site: { line: number; column: number }): ClassInfo | null {
+		const bindings = this.enumerableBindings(name, scope, site);
+		if (bindings === null || bindings.length !== 1) return null;
+		const direct = this.directFromImport(bindings[0] as RawBinding);
+		if (direct === null) return null;
+		const defining = this.moduleScopesByPath.get(direct.target);
+		if (defining === undefined) return null;
+		const defined = defining.bindings.get(direct.name);
+		if (defined === undefined || defined.length !== 1) return null;
+		const instance = defined[0] as RawBinding;
+		if (instance.kind !== "assign" || instance.annotation || instance.rhs?.kind !== "call") return null;
+		// F2, F3: a bare-name constructor only. A dotted callee (`Outer.Inner()`, `k.C()`) is
+		// looked up by qualname with no binding count, so it stays unresolved here.
+		if (instance.rhs.callee.kind !== "name") return null;
+		const symbol = this.moduleClassSymbol(instance.rhs.callee.name, defining);
+		return this.instanceClassOf(symbol);
+	}
+
+	/**
+	 * The one in-repo class symbol a module-scope name denotes (B2, review round 2): the name has
+	 * exactly ONE binding in `module` (item 2's enumeration, not S3's incomplete local-name set),
+	 * and that binding is either a `class` statement, or a direct from-import of a name that is
+	 * itself bound exactly once, by a `class` statement, in the file the import names. A
+	 * re-export hop, a conditional import and a package `__init__` are refused.
+	 */
+	private moduleClassSymbol(name: string, module: Scope): PythonSymbol | null {
+		const own = this.enumerableBindings(name, module, { line: 0, column: 0 });
+		if (own === null || own.length !== 1) return null;
+		const binding = own[0] as RawBinding;
+		if (binding.kind === "class") {
+			return binding.symbolId !== undefined ? (this.symbolsById.get(binding.symbolId) ?? null) : null;
+		}
+		const direct = this.directFromImport(binding);
+		if (direct === null) return null;
+		const sourceScope = this.moduleScopesByPath.get(direct.target);
+		if (sourceScope === undefined) return null;
+		const inner = this.enumerableBindings(direct.name, sourceScope, { line: 0, column: 0 });
+		if (inner === null || inner.length !== 1) return null;
+		const defined = inner[0] as RawBinding;
+		if (defined.symbolId === undefined) return null;
+		return this.symbolsById.get(defined.symbolId) ?? null;
+	}
+
+	/**
+	 * A binding that is an unconditional, resolved `from m import n` (relative allowed) where `m`
+	 * is the module FILE that holds `n` (no re-export hop: the hop module's own bindings are not
+	 * enumerated), not a package `__init__` (A4), and `n` is not a submodule.
+	 */
+	private directFromImport(binding: RawBinding): { target: string; name: string } | null {
+		const imported = binding.kind === "import" ? (binding.importBinding ?? null) : null;
+		if (imported === null) return null;
+		if (imported.outcome !== "resolved" || imported.target === null) return null;
+		if (imported.name === null || imported.name === "*" || imported.condition !== null) return null;
+		const target = imported.target;
+		if (target.endsWith("/__init__.py") || target === "__init__.py") return null;
+		// B1: when the import's source module is not the file that binds the name, S3 followed a
+		// re-export hop. Also refuses `from pkg import n` where pkg/__init__.py re-exports (F4).
+		if (this.sourceModuleFile(imported) !== target) return null;
+		return { target, name: imported.name };
 	}
 
 	/** K1: `name` is bound exactly once in its scope chain, by a `*args` or `**kwargs` parameter. */
