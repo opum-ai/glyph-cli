@@ -891,3 +891,63 @@ describe("GCLI-124 round 1 — the targets loop does not look up the old name af
 		expect(plain.callees).toEqual(["p.py:f"]);
 	});
 });
+
+// GCLI-127 (DEC-303 (a64) item 2): the attribute form `m.f()` where m has no binding of f and two stars could bind
+// it. A star that may be skipped does not decide alone when an earlier star could bind the name: a refusal (the
+// attribute lookup has no multiply outcome), where the bare form gives both alternatives, each multiplyBound.
+describe("GCLI-127 — a may-skip star with an earlier star that could bind the name is no single edge", () => {
+	const f = "def f():\n    pass\n";
+	const files = (holder: string): Record<string, string> => ({ "a.py": f, "b.py": f, "m.py": holder });
+	const bare = (holder: string) => probe("from m import f\nCALL\n", "f()", files(holder));
+	const attr = (holder: string) => probe("import m\nCALL\n", "m.f()", files(holder));
+
+	const skippable: Record<string, string> = {
+		"try / except ImportError": "try:\n    from a import *\nexcept ImportError:\n    from b import *\n",
+		"unconditional star then if": "from a import *\nif C:\n    from b import *\n",
+		"star then else arm": "from a import *\nif C:\n    pass\nelse:\n    from b import *\n",
+		"star then for body": "from a import *\nfor _ in ():\n    from b import *\n",
+		"star then case arm": "from a import *\nmatch C:\n    case 1:\n        from b import *\n",
+		"star then except* arm": "from a import *\ntry:\n    pass\nexcept* E:\n    from b import *\n",
+	};
+	test("the attribute form gives no edge, never b.f alone; the bare form gives both alternatives", async () => {
+		for (const [label, holder] of Object.entries(skippable)) {
+			const one = await attr(holder);
+			expect(
+				one.sites.map((s) => s.calleeId),
+				label,
+			).toEqual([]);
+			expect(one.delta.inRepo, label).toBe(0);
+			const both = await bare(holder);
+			expect(both.callees.sort(), label).toEqual(["a.py:f", "b.py:f"]);
+			expect(
+				both.sites.every((s) => s.multiplyBound === true),
+				label,
+			).toBe(true);
+		}
+	});
+
+	test("an earlier star that is incomplete (external or unresolved) before a may-skip star is a refusal too", async () => {
+		for (const first of ["from ext_missing import *\n", "from .nowhere import *\n"]) {
+			const one = await attr(`${first}if C:\n    from b import *\n`);
+			expect(
+				one.sites.map((s) => s.calleeId),
+				first,
+			).toEqual([]);
+		}
+	});
+
+	test("twins: an unconditional last star, a lone may-skip star, and a star in a finally keep deciding", async () => {
+		const twins: Record<string, [string, string]> = {
+			"two unconditional stars": ["from a import *\nfrom b import *\n", "b.py:f"],
+			"lone may-skip star": ["if C:\n    from b import *\n", "b.py:f"],
+			"earlier star that does not export f": ["from y import *\nif C:\n    from b import *\n", "b.py:f"],
+			"star in a finally": ["from a import *\ntry:\n    pass\nfinally:\n    from b import *\n", "b.py:f"],
+		};
+		for (const [label, [holder, expected]] of Object.entries(twins)) {
+			const others = { ...files(holder), "y.py": "def other():\n    pass\n" };
+			const one = await probe("import m\nCALL\n", "m.f()", others);
+			expect(one.callees, label).toEqual([expected]);
+			expect(one.delta, label).toEqual(RESOLVED);
+		}
+	});
+});
