@@ -1988,3 +1988,125 @@ describe("A4 — from m import m for a module file", () => {
 		expect(result.callBins.resolvedInRepo).toBe(0);
 	});
 });
+
+// DEC-303 (a22) item 3, group A1: `pkg.Name(...)` where pkg/__init__ gets Name from
+// `from m import *`. Fixtures are written from Python semantics, not from a repository.
+describe("A1 — star re-export read as a module attribute", () => {
+	const widget = "class Widget:\n    def __init__(self):\n        pass\n";
+	const helper = "def helper():\n    pass\n";
+
+	test("pkg.helper() reads the name a star import bound in pkg/__init__ (no __all__: public names)", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", "from .impl import *\n"),
+			py("src/pkg/impl.py", helper),
+			py("src/use.py", "import pkg\n\npkg.helper()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "src/pkg/impl.py"))).toEqual([3]);
+	});
+
+	test("a class gives its construction (class and __init__)", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", "from .impl import *\n"),
+			py("src/pkg/impl.py", widget),
+			py("src/use.py", "import pkg\n\npkg.Widget()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "Widget", "src/pkg/impl.py"))).toEqual([3]);
+	});
+
+	test("a literal __all__ governs: a listed name resolves, an unlisted public name does not", async () => {
+		const files = [
+			py("src/pkg/__init__.py", "from .impl import *\n"),
+			py("src/pkg/impl.py", `__all__ = ["helper"]\n\n${helper}\ndef other():\n    pass\n`),
+		];
+		const listed = await analyze([...files, py("src/use.py", "import pkg\n\npkg.helper()\n")]);
+		expect(linesTo(listed, symbolId(listed, "helper", "src/pkg/impl.py"))).toEqual([3]);
+		const unlisted = await analyze([...files, py("src/use.py", "import pkg\n\npkg.other()\n")]);
+		expect(linesTo(unlisted, symbolId(unlisted, "other", "src/pkg/impl.py"))).toEqual([]);
+		expect(unlisted.callBins.resolvedInRepo).toBe(0);
+	});
+
+	test("a private name is not exported without __all__", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", "from .impl import *\n"),
+			py("src/pkg/impl.py", "def _hidden():\n    pass\n"),
+			py("src/use.py", "import pkg\n\npkg._hidden()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "_hidden", "src/pkg/impl.py"))).toEqual([]);
+	});
+
+	test("a star chain through two packages resolves", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", "from .mid import *\n"),
+			py("src/pkg/mid.py", "from .impl import *\n"),
+			py("src/pkg/impl.py", helper),
+			py("src/use.py", "import pkg\n\npkg.helper()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "src/pkg/impl.py"))).toEqual([3]);
+	});
+
+	test("last binding in module order wins between two stars exporting the same name", async () => {
+		const files = (first: string, second: string) => [
+			py("src/pkg/__init__.py", `from .${first} import *\nfrom .${second} import *\n`),
+			py("src/pkg/a.py", helper),
+			py("src/pkg/b.py", helper),
+			py("src/use.py", "import pkg\n\npkg.helper()\n"),
+		];
+		const ab = await analyze(files("a", "b"));
+		expect(linesTo(ab, symbolId(ab, "helper", "src/pkg/b.py"))).toEqual([3]);
+		expect(linesTo(ab, symbolId(ab, "helper", "src/pkg/a.py"))).toEqual([]);
+		const ba = await analyze(files("b", "a"));
+		expect(linesTo(ba, symbolId(ba, "helper", "src/pkg/a.py"))).toEqual([3]);
+		expect(linesTo(ba, symbolId(ba, "helper", "src/pkg/b.py"))).toEqual([]);
+	});
+
+	test("negative: an incomplete star after the complete one may override, so the call stays unresolved", async () => {
+		for (const unknown of ["from somelib import *\n", "from .dyn import *\n"]) {
+			const result = await analyze([
+				py("src/pkg/__init__.py", `from .impl import *\n${unknown}`),
+				py("src/pkg/impl.py", helper),
+				py("src/pkg/dyn.py", "__all__ = make_names()\n"),
+				py("src/use.py", "import pkg\n\npkg.helper()\n"),
+			]);
+			expect(linesTo(result, symbolId(result, "helper", "src/pkg/impl.py"))).toEqual([]);
+			expect(result.callBins.resolvedInRepo).toBe(0);
+		}
+	});
+
+	test("an incomplete star before a complete one is overridden by it", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", "from somelib import *\nfrom .impl import *\n"),
+			py("src/pkg/impl.py", helper),
+			py("src/use.py", "import pkg\n\npkg.helper()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "src/pkg/impl.py"))).toEqual([3]);
+	});
+
+	test("negative: a source whose __all__ is not a literal leaves the attribute unresolved", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", "from .impl import *\n"),
+			py("src/pkg/impl.py", `__all__ = make_names()\n\n${helper}`),
+			py("src/use.py", "import pkg\n\npkg.helper()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "src/pkg/impl.py"))).toEqual([]);
+		expect(result.callBins.resolvedInRepo).toBe(0);
+	});
+
+	test("negative: a name no star exports stays attribute-not-found", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", "from .impl import *\n"),
+			py("src/pkg/impl.py", helper),
+			py("src/use.py", "import pkg\n\npkg.missing()\n"),
+		]);
+		expect(result.callBins.resolvedInRepo).toBe(0);
+	});
+
+	test("a star cycle terminates without resolving", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", "from .a import *\n"),
+			py("src/pkg/a.py", "from .b import *\n"),
+			py("src/pkg/b.py", "from .a import *\n"),
+			py("src/use.py", "import pkg\n\npkg.helper()\n"),
+		]);
+		expect(result.callBins.resolvedInRepo).toBe(0);
+	});
+});

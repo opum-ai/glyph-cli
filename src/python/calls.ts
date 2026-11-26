@@ -1932,8 +1932,37 @@ class Resolver {
 				}
 				return this.resolveModuleAttribute(binding.target, importedName, visited, depth + 1);
 			}
+			return this.resolveStarAttribute(bindings, name, visited, depth);
 		}
 		return { kind: "unresolved", reason: "attribute-not-found" };
+	}
+
+	/**
+	 * DEC-303 (a22) item 3, A1: `pkg.Name` where no binding or submodule of `pkg`
+	 * carries the name reads what `from m import *` bound. Star bindings are
+	 * walked in module order and the last one that can supply the name wins; a
+	 * star whose export set is incomplete (unresolved, external, a non-literal
+	 * `__all__`) may supply any name, so it leaves the answer unresolved unless
+	 * a later complete star exports the name.
+	 */
+	private resolveStarAttribute(
+		bindings: readonly ImportBinding[],
+		name: string,
+		visited: Set<string>,
+		depth: number,
+	): ModuleAttrOutcome {
+		let result: ModuleAttrOutcome = { kind: "unresolved", reason: "attribute-not-found" };
+		for (const binding of bindings) {
+			if (binding.kind !== "star") continue;
+			if (binding.outcome === "resolved" && binding.target !== null) {
+				if (binding.starNames.includes(name)) {
+					result = this.resolveModuleAttribute(binding.target, name, visited, depth + 1);
+				}
+			} else {
+				result = { kind: "unresolved", reason: binding.reason ?? "star-import" };
+			}
+		}
+		return result;
 	}
 
 	private resolveModuleChain(path: string, segments: readonly string[], fromIndex: number): ModuleAttrOutcome {
