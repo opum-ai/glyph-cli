@@ -5280,7 +5280,9 @@ describe("A2 — module.Class.method resolves as the bare-class lookup does", ()
 			"import then for target": "from n import C\nfor C in z:\n    pass\n",
 			"import then walrus": "from n import C\n(C := 1)\n",
 			"import then global write": "from n import C\ndef f():\n    global C\n    C = 1\n",
-			"star import that may bind it": "from n import *\n",
+			// GCLI-118 (DEC-303 (a52) item 1, (a53)): a COMPLETE star that exports the name now resolves (see
+			// test/python-hops.test.ts); a partial star may bind it and still refuses
+			"partial star import that may bind it": "from nowhere import *\n",
 			"a star import after the import": "from n import C\nfrom o import *\n",
 		};
 		for (const [label, source] of Object.entries(shapes)) {
