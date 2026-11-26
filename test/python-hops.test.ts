@@ -1421,6 +1421,7 @@ describe("GCLI-136 — an __all__ in a statement that may be skipped does not ma
 			"if else": `if C:\n    pass\nelse:\n${all}`,
 			"try body with an except": `try:\n${all}except E:\n    pass\n`,
 			"except arm": `try:\n    pass\nexcept E:\n${all}`,
+			"chained inside a for body": "for _ in []:\n    x = __all__ = ['helper']\n",
 		};
 		for (const [label, head] of Object.entries(bodies)) {
 			test(`${label}: the star is partial, so len(x) is not claimed as the builtin`, async () => {
@@ -1435,6 +1436,8 @@ describe("GCLI-136 — an __all__ in a statement that may be skipped does not ma
 			"module level": "__all__ = ['helper']\n",
 			"try body with only a finally": `try:\n${all}finally:\n    pass\n`,
 			"finally body": `try:\n    pass\nfinally:\n${all}`,
+			"chained, __all__ inner": "x = __all__ = ['helper']\n",
+			"chained, three targets": "a = b = __all__ = ['helper']\n",
 		};
 		for (const [label, head] of Object.entries(always)) {
 			const r = await run(head + tail);

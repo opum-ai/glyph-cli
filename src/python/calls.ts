@@ -1721,11 +1721,10 @@ class FileWalker {
 				annotation,
 				annotationScope: annotation !== null ? frame.scope : null,
 				...(isConditionalStatement(node) ? { conditional: true as const } : {}),
-				// the assignment's parent is an expression_statement, which maySkipStatement would read as an unknown
-				// compound statement; ask about the statement itself
-				...(maySkipStatement(node.parent?.type === "expression_statement" ? node.parent : node)
-					? { maySkip: true as const }
-					: {}),
+				// ask about the statement itself: an assignment's parent is an expression_statement (which
+				// maySkipStatement would read as an unknown compound statement), and in a chained `x = __all__ = v`
+				// the inner assignment is the right side of the outer one
+				...(maySkipStatement(simpleStatementOf(node)) ? { maySkip: true as const } : {}),
 				...(right === null ? { bare: true as const } : {}),
 			});
 		} else if (left !== null) {
@@ -1792,6 +1791,13 @@ class FileWalker {
 		}
 		this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 	}
+}
+
+/** GCLI-136: the simple statement holding an assignment, climbing out of a chained `a = b = v` to its `expression_statement`. */
+function simpleStatementOf(node: Node): Node {
+	let statement = node;
+	while (statement.parent?.type === "assignment") statement = statement.parent;
+	return statement.parent?.type === "expression_statement" ? statement.parent : statement;
 }
 
 /**
