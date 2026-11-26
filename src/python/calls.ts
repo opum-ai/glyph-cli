@@ -2811,8 +2811,8 @@ class Resolver {
 	 * rebinding the static rules cannot order, so the call stays unresolved
 	 * (rule 2). A def, class or import of the name in the holder is read by
 	 * `moduleBindingGate` before this runs, with the holder's stars ordered
-	 * against it (GCLI-118, `starOverride`). Known gap: a star import's
-	 * `condition` (try/except) is ignored.
+	 * against it (GCLI-118, `starOverride`). A deciding star that may be skipped with an earlier star that could bind
+	 * the name is a refusal (GCLI-127).
 	 * Conservative differences from bare names: a multiply-bound result is
 	 * unresolved `rebound` (no multiplyBound edges), and a cycle ends at the
 	 * selected star instead of continuing to earlier ones (rule 40).
@@ -2836,6 +2836,23 @@ class Resolver {
 			if (!star.starNames.includes(name)) continue;
 			const ctx: StarLookupContext = { visited: new Set<string>(), hops: 0, cycle: false };
 			const found = this.resolveStarBound(star.target, name, ctx).outcome;
+			// GCLI-127: a deciding star that may be skipped (`starMaySkipLines`, the `maySkipStatement` rule) does not
+			// decide alone when an earlier star could bind the name in its place (it is incomplete, or exports it as
+			// anything but the SAME single symbol): Python allows either, and this lookup has no multiply outcome, so
+			// it is a refusal. An earlier star that binds the very symbol the deciding star does leaves one binding.
+			if (holderScope?.starMaySkipLines?.has(star.line) === true) {
+				for (let before = index - 1; before >= 0; before--) {
+					const earlier = bindings[before] as ImportBinding;
+					if (earlier.kind !== "star") continue;
+					const earlierComplete = earlier.outcome === "resolved" && earlier.target !== null && earlier.reason === null;
+					if (!earlierComplete) return { kind: "unresolved", reason: "star-bound" };
+					if (!earlier.starNames.includes(name)) continue;
+					const earlierCtx: StarLookupContext = { visited: new Set<string>(), hops: 0, cycle: false };
+					const other = this.resolveStarBound(earlier.target as string, name, earlierCtx).outcome;
+					const same = other.kind === "symbol" && found.kind === "symbol" && other.symbol.id === found.symbol.id;
+					if (!same) return { kind: "unresolved", reason: "star-bound" };
+				}
+			}
 			switch (found.kind) {
 				case "symbol":
 					return { kind: "symbol", symbol: found.symbol };
