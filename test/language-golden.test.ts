@@ -110,5 +110,7 @@ describe("TypeScript-only byte identity", () => {
 			if (saved.nosystem === undefined) delete process.env.GIT_CONFIG_NOSYSTEM;
 			else process.env.GIT_CONFIG_NOSYSTEM = saved.nosystem;
 		}
-	});
+		// 30s: this test builds a git fixture and runs every golden invocation synchronously, which takes just over
+		// the 5s default on a GitHub-hosted ARM runner (GCLI-123).
+	}, 30_000);
 });
