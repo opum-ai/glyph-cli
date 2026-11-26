@@ -762,9 +762,94 @@ function annotationList(inner: Node): Node[] {
 	return out;
 }
 
+/**
+ * GCLI-121 (DEC-303 (a70)): the text of a plain quoted annotation: one string node with no prefix, a single
+ * pair of the same single or double quote, no triple quotes and no escape. Anything else is null.
+ */
+function plainQuotedText(node: Node): string | null {
+	if (node.type !== "string") return null;
+	const text = node.text;
+	const quote = text[0];
+	if (quote !== '"' && quote !== "'") return null;
+	if (text.length < 2 || text[text.length - 1] !== quote) return null;
+	const body = text.slice(1, -1);
+	if (body.includes(quote) || body.includes("\\") || body.includes("\n")) return null;
+	return body;
+}
+
+const QUOTED_NAME = /^[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*/;
+
+/**
+ * Reads the text of a quoted annotation into the descriptor its unquoted twin gives: a name or dotted name,
+ * `X | None`, `None | X`, `Optional[X]` and `Union[X, None]`. Anything else is `other`.
+ */
+function describeQuotedAnnotation(text: string): AnnotationDesc {
+	const OTHER: AnnotationDesc = { kind: "other" };
+	let pos = 0;
+	const skipSpace = () => {
+		while (pos < text.length && (text[pos] === " " || text[pos] === "\t")) pos++;
+	};
+	const reference = (): { desc: AnnotationDesc; last: string } | null => {
+		skipSpace();
+		const match = QUOTED_NAME.exec(text.slice(pos));
+		if (match === null) return null;
+		pos += match[0].length;
+		const segments = match[0].split(".").map((part) => part.trim());
+		if (segments.length === 1) {
+			const name = segments[0] as string;
+			return { desc: name === "None" ? { kind: "none" } : { kind: "name", name }, last: name };
+		}
+		return { desc: { kind: "dotted", segments }, last: segments[segments.length - 1] as string };
+	};
+	const expression = (): AnnotationDesc | null => {
+		const head = reference();
+		if (head === null) return null;
+		skipSpace();
+		if (text[pos] === "[" && (head.last === "Optional" || head.last === "Union")) {
+			pos++;
+			const args: AnnotationDesc[] = [];
+			for (;;) {
+				const arg = expression();
+				if (arg === null) return null;
+				args.push(arg);
+				skipSpace();
+				if (text[pos] === ",") {
+					pos++;
+					continue;
+				}
+				break;
+			}
+			if (text[pos] !== "]") return null;
+			pos++;
+			if (head.last === "Optional")
+				return args.length === 1 ? { kind: "optional", inner: args[0] as AnnotationDesc } : null;
+			return { kind: "union", members: args };
+		}
+		if (text[pos] === "[") return null;
+		const members: AnnotationDesc[] = [head.desc];
+		skipSpace();
+		while (text[pos] === "|") {
+			pos++;
+			const next = reference();
+			if (next === null) return null;
+			if (next.desc.kind === "name" && (next.last === "Optional" || next.last === "Union")) return null;
+			members.push(next.desc);
+			skipSpace();
+		}
+		return members.length === 1 ? (members[0] as AnnotationDesc) : { kind: "union", members };
+	};
+	const result = expression();
+	skipSpace();
+	return result === null || pos !== text.length ? OTHER : result;
+}
+
 function describeAnnotation(node: Node): AnnotationDesc {
 	const inner = annotationExpression(node);
 	switch (inner.type) {
+		case "string": {
+			const text = plainQuotedText(inner);
+			return text === null ? { kind: "other" } : describeQuotedAnnotation(text);
+		}
 		case "identifier":
 			return inner.text === "None" ? { kind: "none" } : { kind: "name", name: inner.text };
 		case "none":
