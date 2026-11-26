@@ -1890,6 +1890,60 @@ describe("A4 — from m import m for a module file", () => {
 			py("pkg/use.py", "from .helper import helper\n\nhelper()\n"),
 		]);
 		expect(result.callBins.resolvedInRepo).toBe(0);
+		// the gate's false branch leaves the name bound to the module (module-called)
+		const reasons = result.unresolvedNameReasons.map((entry) => entry.reason);
+		expect(reasons).toContain("module-called");
+		expect(reasons).not.toContain("run-time-bound");
+	});
+
+	test("negative: a re-export hop through a package binds the submodule, not the function", async () => {
+		for (const hop of ["from .sub import helper\n", "from pkg.sub import helper\n"]) {
+			for (const use of ["from .helper import helper\n\nhelper()\n", "from pkg.helper import helper\n\nhelper()\n"]) {
+				for (const init of ["", "x = 1\n"]) {
+					const result = await analyze([
+						py("pkg/__init__.py", ""),
+						py("pkg/sub/__init__.py", init),
+						py("pkg/sub/helper.py", helperDef),
+						py("pkg/helper.py", hop),
+						py("pkg/use.py", use),
+					]);
+					expect(linesTo(result, symbolId(result, "helper", "pkg/sub/helper.py"))).toEqual([]);
+					expect(result.callBins.nameNotBound).toBe(1);
+				}
+			}
+		}
+	});
+
+	test("a module file inside a single-portion namespace directory resolves (absolute and relative)", async () => {
+		for (const use of [
+			"from pkg.ns.helper import helper\n\nhelper()\n",
+			"from .ns.helper import helper\n\nhelper()\n",
+		]) {
+			const result = await analyze([
+				py("pkg/__init__.py", ""),
+				py("pkg/ns/helper.py", helperDef),
+				py("pkg/use.py", use),
+			]);
+			expect(linesTo(result, symbolId(result, "helper", "pkg/ns/helper.py"))).toEqual([3]);
+		}
+	});
+
+	test("negatives: an aliased import from a package source, and the relative namespace form, bind the submodule", async () => {
+		const aliased = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/helper/__init__.py", ""),
+			py("pkg/helper/helper.py", helperDef),
+			py("pkg/use.py", "from .helper import helper as h\n\nh()\n"),
+		]);
+		expect(linesTo(aliased, symbolId(aliased, "helper", "pkg/helper/helper.py"))).toEqual([]);
+		expect(aliased.callBins.nameNotBound).toBe(1);
+		const namespace = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/ns/ns.py", "def ns():\n    pass\n"),
+			py("pkg/use.py", "from .ns import ns\n\nns()\n"),
+		]);
+		expect(linesTo(namespace, symbolId(namespace, "ns", "pkg/ns/ns.py"))).toEqual([]);
+		expect(namespace.callBins.nameNotBound).toBe(1);
 	});
 
 	test("negative: a package named helper stays unresolved (an __init__ is not admitted)", async () => {
@@ -1912,7 +1966,7 @@ describe("A4 — from m import m for a module file", () => {
 		expect(result.callBins.nameNotBound).toBe(1);
 	});
 
-	test("negative: a module file that does not define the name leaves the call unresolved", async () => {
+	test("negative: a module file that does not define the name leaves the call unresolved (never reaches the A4 gate)", async () => {
 		const result = await analyze([
 			py("pkg/__init__.py", ""),
 			py("pkg/helper.py", "def other():\n    pass\n"),
