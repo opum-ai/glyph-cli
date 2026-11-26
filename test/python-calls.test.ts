@@ -3491,6 +3491,7 @@ describe("LIT — a name whose every binding is a literal of one builtin type is
 		]);
 		expect(inRepo.external).toBe(0);
 		expect(inRepo.receiver).toBe(1);
+		expect(inRepo.edges).toBe(0);
 		// a star of a star
 		expect(
 			await multi([py("n.py", "for x in zs:\n    pass\n"), py("m.py", "from n import *\n"), app]),
@@ -3502,13 +3503,34 @@ describe("LIT — a name whose every binding is a literal of one builtin type is
 			py("pkg/x.py", "def m():\n    pass\n"),
 			py("app.py", "x = []\nimport pkg.x\nfrom pkg import *\nx.m()\n"),
 		]);
-		expect(pkg.external).toBe(0);
+		expect(pkg, "a package whose submodule is x").toEqual(refusedShape);
 		// positive twin: no star at all
 		expect(await multi([py("app.py", "x = []\nx.m()\n")]), "twin: no star").toEqual({
 			external: 1,
 			receiver: 0,
 			edges: 0,
 		});
+	});
+
+	test("a star import refuses only the module-level names of its own file (GCLI-109 review round 2)", async () => {
+		const multi = async (files: PythonModuleInput[]) => {
+			const result = await analyze(files);
+			return { external: result.callBins.resolvedExternal, receiver: result.callBins.receiverNeedsInference };
+		};
+		const external = { external: 1, receiver: 0 };
+		// a name bound in a function is not a module binding a star can rebind
+		expect(
+			await multi([py("app.py", "from os import *\ndef f():\n    x = []\n    x.m()\n")]),
+			"LIT in a function",
+		).toEqual(external);
+		expect(await multi([py("app.py", "from os import *\ndef f(*args):\n    args.m()\n")]), "K1 in a function").toEqual(
+			external,
+		);
+		// the star is keyed to its own file: another module's star does not touch this one
+		expect(
+			await multi([py("n.py", "from os import *\n"), py("app.py", "x = []\nx.m()\n")]),
+			"a star in another module",
+		).toEqual(external);
 	});
 
 	test("target shapes the walker must read as a second binding (GCLI-109 review)", async () => {
