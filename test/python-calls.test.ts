@@ -3578,8 +3578,39 @@ describe("M1 — an imported module-level instance of one in-repo class resolves
 		expect(await runEdges([py(path, defining), py("app.py", app)]), label).toBe(1);
 	}
 
-	async function refusedM1(defining: string, app: string, label: string, path = "m.py"): Promise<void> {
-		expect(await runEdges([py(path, defining), py("app.py", app)]), label).toBe(0);
+	/**
+	 * The importing file's call is refused: no edge leaves app.py at all, and the call lands in
+	 * receiver-needs-inference (the bin sums with app.py emptied differ by exactly one receiver).
+	 */
+	async function refusedFiles(files: PythonModuleInput[], label: string, receiverBin = true): Promise<void> {
+		const withApp = await analyze(files);
+		expect(
+			withApp.sites.filter((site) => site.file === "app.py"),
+			label,
+		).toEqual([]);
+		if (!receiverBin) return;
+		const app = files.find((file) => file.path === "app.py") as PythonModuleInput;
+		const without = await analyze(files.map((file) => (file === app ? py("app.py", "") : file)));
+		const delta = (key: "resolvedInRepo" | "resolvedExternal" | "receiverNeedsInference") =>
+			withApp.callBins[key] - without.callBins[key];
+		expect(
+			{
+				inRepo: delta("resolvedInRepo"),
+				external: delta("resolvedExternal"),
+				receiver: delta("receiverNeedsInference"),
+			},
+			label,
+		).toMatchObject({ inRepo: 0, external: 0, receiver: 1 });
+	}
+
+	async function refusedM1(
+		defining: string,
+		app: string,
+		label: string,
+		path = "m.py",
+		receiverBin = true,
+	): Promise<void> {
+		await refusedFiles([py(path, defining), py("app.py", app)], label, receiverBin);
 	}
 
 	test("from m import inst, with an alias, a relative import, and at module level", async () => {
@@ -3622,7 +3653,7 @@ describe("M1 — an imported module-level instance of one in-repo class resolves
 		for (const [label, defining] of Object.entries(bad)) {
 			await refusedM1(defining, use, label);
 		}
-		// twins: a subclass whose own run is the target, and a plain base chain
+		// twin: a subclass that inherits run; the edge goes to the base def B.run
 		const sub = "class B:\n    def run(self):\n        pass\nclass C(B):\n    pass\ninst = C()\n";
 		const result = await analyze([py("m.py", sub), py("app.py", use)]);
 		expect(sitesTo(result, symbolId(result, "B.run", "m.py")).length).toBe(1);
@@ -3727,27 +3758,89 @@ describe("M1 — an imported module-level instance of one in-repo class resolves
 		];
 		const result = await analyze(pkg);
 		expect(sitesTo(result, symbolId(result, "C.run", "pkg/__init__.py")).length).toBe(0);
-		await refusedM1(defining, "import m\ndef f():\n    m.inst.run()\n", "m.inst is not M1");
+		await refusedM1(defining, "import m\ndef f():\n    m.inst.run()\n", "m.inst is not M1", "m.py", false);
 		await refusedM1(defining, "from m import inst\ndef f():\n    inst.a.run()\n", "two segments");
-		await refusedM1(defining, "from m import inst\ndef f():\n    inst()\n", "a call of the instance");
+		await refusedM1(defining, "from m import inst\ndef f():\n    inst()\n", "a call of the instance", "m.py", false);
 		await refusedM1(
 			defining,
 			"from m import *\ndef f():\n    inst.run()\n",
 			"a star import is not a from-import of the name",
 		);
-		// a re-export hop is whatever S3 already resolves (the import's target is m.py); a rebind in
-		// the re-exporting module or an aliased re-export is not resolved by S3, so M1 does not carry it
-		const hop = async (r: string): Promise<number> => {
-			const reexport = await analyze([
-				py("m.py", defining),
-				py("r.py", r),
-				py("app.py", "from r import inst\ndef f():\n    inst.run()\n"),
-			]);
-			return sitesTo(reexport, symbolId(reexport, "C.run", "m.py")).length;
+		// B1: a re-export hop is refused, whatever the re-exporting module does, because that module's
+		// own bindings are not enumerated; a direct import still resolves
+		const hop = async (r: string): Promise<void> => {
+			await refusedFiles(
+				[py("m.py", defining), py("r.py", r), py("app.py", "from r import inst\ndef f():\n    inst.run()\n")],
+				`re-export through: ${JSON.stringify(r)}`,
+			);
 		};
-		expect(await hop("from m import inst\n"), "re-export").toBe(1);
-		expect(await hop("from m import inst\ninst = None\n"), "re-export then rebind").toBe(0);
-		expect(await hop("from m import inst as other\n"), "aliased re-export").toBe(0);
+		await hop("from m import inst\n");
+		await hop("from m import inst\ninst = None\n");
+		await hop("from m import inst as other\n");
+		await hop("from m import inst\nfor inst in range(2):\n    pass\n");
+		await hop("from m import inst\nwith open(p) as inst:\n    pass\n");
+		await hop("from m import inst\ntry:\n    pass\nexcept E as inst:\n    pass\n");
+		await hop("from m import inst\n(inst := 0)\n");
+		await hop("from m import inst\ndef g():\n    global inst\n    inst = 0\n");
+		await hop("from m import inst\nclass K:\n    global inst\n    inst = 0\n");
+		await hop("from m import inst\nmatch z:\n    case inst:\n        pass\n");
+		await hop("from m import inst\ntype inst = int\n");
+		await hop("from m import inst\n*inst, n = make()\n");
+		await hop("from m import inst\n[inst, n] = make()\n");
+		await resolves(defining, "from m import inst\ndef f():\n    inst.run()\n", "twin: the direct import resolves");
+		// F4: a package that re-exports a submodule's name; the package file itself is A4
+		await refusedFiles(
+			[
+				py("pkg/__init__.py", "from .m import inst\n"),
+				py("pkg/m.py", defining),
+				py("app.py", "from pkg import inst\ndef f():\n    inst.run()\n"),
+			],
+			"package re-export",
+		);
+		const direct = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/m.py", defining),
+			py("app.py", "from pkg.m import inst\ndef f():\n    inst.run()\n"),
+		]);
+		expect(sitesTo(direct, symbolId(direct, "C.run", "pkg/m.py")).length, "twin: from pkg.m import inst").toBe(1);
+	});
+
+	test("a constructor written as a dotted name is refused (F2, F3)", async () => {
+		const nested =
+			"class Other:\n    def run(self):\n        pass\nclass Outer:\n    class Inner:\n        def run(self):\n            pass\n    Inner = Other\ninst = Outer.Inner()\n";
+		await refusedM1(nested, use, "Outer.Inner rebound in the class body");
+		const twoDefs =
+			"class Outer:\n    if z:\n        class Inner:\n            def run(self):\n                pass\n    else:\n        class Inner:\n            def run(self):\n                pass\ninst = Outer.Inner()\n";
+		await refusedM1(twoDefs, use, "Outer.Inner defined twice");
+		await refusedM1(
+			"class Outer:\n    class Inner:\n        def run(self):\n            pass\ninst = Outer.Inner()\n",
+			use,
+			"Outer.Inner, a plain nested class",
+		);
+		const files = [py("k.py", `${cls}C = D\n`), py("m.py", "import k\ninst = k.C()\n"), py("app.py", use)];
+		await refusedFiles(files, "k.C() where k rebinds C");
+		const direct = [py("k.py", cls), py("m.py", "import k\ninst = k.C()\n"), py("app.py", use)];
+		await refusedFiles(direct, "k.C() even without a rebind");
+		await resolves(`${cls}inst = C()\n`, use, "twin: a bare-name constructor");
+	});
+
+	test("a use in a class body that binds the name, and a TYPE_CHECKING import, are refused", async () => {
+		const defining = `${cls}inst = C()\n`;
+		await refusedM1(
+			defining,
+			"from m import inst\nclass K:\n    inst = None\n    inst.run()\n",
+			"class body binds the name",
+		);
+		await refusedM1(
+			defining,
+			"from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    from m import inst\ndef f():\n    inst.run()\n",
+			"import under TYPE_CHECKING",
+		);
+		await resolves(
+			defining,
+			"from m import inst\nclass K:\n    def g(self):\n        inst.run()\n",
+			"twin: a method reads the module name",
+		);
 	});
 
 	test("a from-import of a submodule is the module, not the instance inside it", async () => {

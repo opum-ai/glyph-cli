@@ -2965,7 +2965,7 @@ class Resolver {
 	 * replaced by a decorator). Both enumerations are item 2's: a second binding in either
 	 * module, a `global` write from a function of `m`, or a module-level star import in
 	 * either module leaves the call unresolved. A write from outside `m` (`m.inst = ...`)
-	 * is the accepted blind spot. The module-attribute form `m.inst.f()` is not covered.
+	 * is the accepted blind spot. Only a direct import (the import's source module is the defining file) and a bare-name constructor qualify. The module-attribute form `m.inst.f()` is ruled OUT (DEC-303 (a37)).
 	 */
 	private importedInstanceClass(name: string, scope: Scope, site: { line: number; column: number }): ClassInfo | null {
 		const bindings = this.enumerableBindings(name, scope, site);
@@ -2973,17 +2973,25 @@ class Resolver {
 		const binding = bindings[0] as RawBinding;
 		const imported = binding.kind === "import" ? (binding.importBinding ?? null) : null;
 		if (imported === null || (imported.kind !== "from" && imported.kind !== "relative")) return null;
-		if (imported.outcome !== "resolved" || imported.target === null || imported.reason !== null) return null;
+		if (imported.outcome !== "resolved" || imported.target === null) return null;
 		if (imported.name === null || imported.name === "*" || imported.condition !== null) return null;
 		const target = imported.target;
 		if (target.endsWith("/__init__.py") || target === "__init__.py") return null;
-		if (this.isModuleFileForName(target, imported.name)) return null;
+		// B1 (review round 1): only a DIRECT import. When the import's source module is not the file
+		// that binds the name, S3 followed a re-export hop, and the re-exporting module's own bindings
+		// are not enumerated (S3's local-name set misses for, with-as, walrus, match, global writes).
+		// This also refuses `from pkg import inst` where pkg/__init__.py re-exports (F4).
+		if (this.sourceModuleFile(imported) !== target) return null;
 		const defining = this.moduleScopesByPath.get(target);
 		if (defining === undefined || this.starMayBind(target)) return null;
 		const defined = defining.bindings.get(imported.name);
 		if (defined === undefined || defined.length !== 1) return null;
 		const instance = defined[0] as RawBinding;
 		if (instance.kind !== "assign" || instance.annotation || instance.rhs?.kind !== "call") return null;
+		// F2, F3: a bare-name constructor only, enumerated in the defining module by the same
+		// resolution as a bare call. A dotted callee (`Outer.Inner()`, `k.C()`) is looked up by
+		// qualname with no binding count, so it stays unresolved here.
+		if (instance.rhs.callee.kind !== "name") return null;
 		const symbol = this.resolveCalleeToSymbol(instance.rhs.callee, defining, 0);
 		return this.instanceClassOf(symbol);
 	}
