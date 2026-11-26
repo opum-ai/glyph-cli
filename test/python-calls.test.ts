@@ -2433,3 +2433,109 @@ describe("E1 — Cls(...).m() on a constructed instance", () => {
 		expect(result.polymorphicCount).toBe(1);
 	});
 });
+
+// GCLI-97 (N3, DEC-303 (a22) item 3): x = Cls(); x() dispatches to type(x).__call__.
+describe("N3 — x = Cls(); x() calls type(x).__call__", () => {
+	const classC = "class C:\n    def __call__(self):\n        pass\n";
+
+	/** The class, then the body; the call under test is the last line unless the body says otherwise. */
+	function module(body: string): PythonModuleInput[] {
+		return [py("app.py", `${classC}\n${body}\n`)];
+	}
+
+	function callLines(result: PythonCallsResult): number[] {
+		return linesTo(result, symbolId(result, "C.__call__", "app.py"));
+	}
+
+	test("positive: module-level, function-local, inherited and imported dispatch to __call__", async () => {
+		expect(callLines(await analyze(module("x = C()\nx()")))).toEqual([6]);
+		expect(callLines(await analyze(module("def f():\n    x = C()\n    return x()")))).toEqual([7]);
+		const inherited = await analyze([
+			py("app.py", "class B:\n    def __call__(self):\n        pass\n\nclass C(B):\n    pass\n\nx = C()\nx()\n"),
+		]);
+		expect(linesTo(inherited, symbolId(inherited, "B.__call__", "app.py"))).toEqual([9]);
+		const imported = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/mod.py", classC),
+			py("use.py", "from pkg.mod import C\n\nx = C()\nx()\n"),
+		]);
+		expect(linesTo(imported, symbolId(imported, "C.__call__", "pkg/mod.py"))).toEqual([4]);
+	});
+
+	test("negative: every kind of second binding of x leaves the call unresolved", async () => {
+		const rebinds: Record<string, string> = {
+			def: "def x():\n    pass\n",
+			class: "class x:\n    pass\n",
+			assign: "x = make()\n",
+			annotated: "x: object = make()\n",
+			augassign: "x += 1\n",
+			walrus: "(x := make())\n",
+			for: "for x in items:\n    pass\n",
+			with: "with ctx() as x:\n    pass\n",
+			except: "try:\n    pass\nexcept Exception as x:\n    pass\n",
+			import: "from other import x\n",
+			conditional: "if flag:\n    x = make()\n",
+			"global in a nested function": "def rebind():\n    global x\n    x = make()\n",
+		};
+		for (const [kind, extra] of Object.entries(rebinds)) {
+			const result = await analyze(module(`x = C()\n${extra}\nx()`));
+			expect(callLines(result), kind).toEqual([]);
+		}
+	});
+
+	test("negative: a rebinding of the class name, __new__ and a metaclass leave the call unresolved", async () => {
+		expect(callLines(await analyze(module("C = make()\nx = C()\nx()")))).toEqual([]);
+		const newer = await analyze([
+			py(
+				"app.py",
+				"class C:\n    def __new__(cls):\n        return object()\n\n    def __call__(self):\n        pass\n\nx = C()\nx()\n",
+			),
+		]);
+		expect(linesTo(newer, symbolId(newer, "C.__call__", "app.py"))).toEqual([]);
+		const meta = await analyze([
+			py("app.py", "class C(metaclass=Meta):\n    def __call__(self):\n        pass\n\nx = C()\nx()\n"),
+		]);
+		expect(linesTo(meta, symbolId(meta, "C.__call__", "app.py"))).toEqual([]);
+	});
+
+	test("negative: a class with no __call__ (own, inherited or behind an opaque base) gets no edge", async () => {
+		const none = await analyze([py("app.py", "class C:\n    pass\n\nx = C()\nx()\n")]);
+		expect(none.callBins.resolvedInRepo).toBe(1); // only the construction C()
+		const opaque = await analyze([py("app.py", "class C(Ext):\n    pass\n\nx = C()\nx()\n")]);
+		expect(opaque.sites.filter((site) => site.line === 5)).toEqual([]);
+	});
+
+	test("(a29)/(a30) opaque bases fail closed; builtin classes do not; type and reversed do", async () => {
+		const call = "    def __call__(self):\n        pass\n\nx = C()\nx()\n";
+		const opaque = await analyze([py("app.py", `class C(Ext):\n${call}`)]);
+		expect(linesTo(opaque, symbolId(opaque, "C.__call__", "app.py"))).toEqual([]);
+		// (a31) Q1: a refused site stays in the bin it had before N3 (name, run-time-bound):
+		// the construction C() is the one in-repo call, x() is the one name-bin call.
+		expect(opaque.callBins).toEqual({
+			resolvedInRepo: 1,
+			resolvedExternal: 0,
+			receiverNeedsInference: 0,
+			nameNotBound: 1,
+		});
+		expect(opaque.unresolvedNameReasons.map((entry) => entry.reason)).toEqual(["run-time-bound"]);
+		const typed = await analyze([py("app.py", `class C(type):\n${call}`)]);
+		expect(linesTo(typed, symbolId(typed, "C.__call__", "app.py"))).toEqual([]);
+		expect(typed.callBins.nameNotBound).toBe(1);
+		expect(typed.callBins.receiverNeedsInference).toBe(0);
+		const reversed = await analyze([py("app.py", `class C(reversed):\n${call}`)]);
+		expect(linesTo(reversed, symbolId(reversed, "C.__call__", "app.py"))).toEqual([]);
+		expect(reversed.callBins.nameNotBound).toBe(1);
+		expect(reversed.callBins.receiverNeedsInference).toBe(0);
+		// a builtin base with no __call__ anywhere: no edge and not resolved-external either
+		const noCall = await analyze([py("app.py", "class C(Exception):\n    pass\n\nx = C()\nx()\n")]);
+		expect(noCall.callBins.resolvedExternal).toBe(0);
+		expect(noCall.sites.filter((site) => site.line === 5)).toEqual([]);
+		const builtin = await analyze([py("app.py", `class C(Exception):\n${call}`)]);
+		expect(linesTo(builtin, symbolId(builtin, "C.__call__", "app.py"))).toEqual([6]);
+	});
+
+	test("the class's own __call__ is not the call of the class: C() still constructs", async () => {
+		const result = await analyze(module("C()"));
+		expect(callLines(result)).toEqual([]);
+	});
+});
