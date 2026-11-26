@@ -3952,3 +3952,297 @@ describe("M1 — an imported module-level instance of one in-repo class resolves
 		);
 	});
 });
+
+// GCLI-111 (R4, DEC-303 (a22) item 3): a local whose EVERY binding is `Cls(...)` of one class, with
+// the nonlocal proviso. A single binding is rule 6d's, so the rule needs two or more.
+describe("R4 — a local whose every binding is Cls(...) of one class resolves", () => {
+	const cls = "class C:\n    def run(self):\n        pass\n\n";
+	const other = "class D:\n    def run(self):\n        pass\n\n";
+
+	/** Edges to `C.run` from the analysed files. */
+	async function edges(source: string, extra: PythonModuleInput[] = []): Promise<number> {
+		const result = await analyze([py("app.py", source), ...extra]);
+		return sitesTo(result, symbolId(result, "C.run")).length;
+	}
+
+	/**
+	 * `body` holds the placeholder CALL, which becomes `x.run()` or `pass`. A refused call leaves no edge to
+	 * `C.run` or `D.run` anywhere, and is exactly one more receiver-needs-inference site than the same source
+	 * with the call replaced.
+	 */
+	async function refused(body: string, label: string, extra: PythonModuleInput[] = []): Promise<void> {
+		const withCall = await analyze([py("app.py", body.replace("CALL", "x.run()")), ...extra]);
+		const without = await analyze([py("app.py", body.replace("CALL", "pass")), ...extra]);
+		// every `run` method in the fixture, by symbol id (a site's calleeId is a symbol id)
+		const runIds = new Set(
+			withCall.symbols.filter((symbol) => symbol.qualname.endsWith(".run")).map((symbol) => symbol.id),
+		);
+		expect(
+			withCall.sites.filter((site) => site.calleeId !== null && runIds.has(site.calleeId)),
+			label,
+		).toEqual([]);
+		const delta = (key: "resolvedInRepo" | "resolvedExternal" | "receiverNeedsInference") =>
+			withCall.callBins[key] - without.callBins[key];
+		expect(
+			{
+				inRepo: delta("resolvedInRepo"),
+				external: delta("resolvedExternal"),
+				receiver: delta("receiverNeedsInference"),
+			},
+			label,
+		).toMatchObject({ inRepo: 0, external: 0, receiver: 1 });
+	}
+
+	test("bindings that are all C(...) resolve (two or more here; one is rule 6d); a closure reads them too", async () => {
+		expect(await edges(`${cls}def f(z):\n    x = C()\n    if z:\n        x = C()\n    x.run()\n`)).toBe(1);
+		expect(await edges(`${cls}def f(z):\n    x = C()\n    x = C()\n    x = C()\n    x.run()\n`)).toBe(1);
+		// read from a nested function (a closure over the local)
+		expect(await edges(`${cls}def f(z):\n    x = C()\n    x = C()\n    def g():\n        x.run()\n    g()\n`)).toBe(1);
+		// nonlocal writes from nested scopes count as bindings, each C(...) of the same class
+		expect(
+			await edges(
+				`${cls}def f():\n    x = C()\n    def g():\n        nonlocal x\n        x = C()\n    g()\n    x.run()\n`,
+			),
+		).toBe(1);
+		expect(
+			await edges(
+				`${cls}def f():\n    x = C()\n    def g():\n        def h():\n            nonlocal x\n            x = C()\n        h()\n    g()\n    x.run()\n`,
+			),
+		).toBe(1);
+		// two reads of the same local, two edges
+		expect(await edges(`${cls}def f():\n    x = C()\n    x = C()\n    x.run()\n    x.run()\n`)).toBe(2);
+		// a subclass that inherits run: the edge goes to the base
+		const sub =
+			"class B:\n    def run(self):\n        pass\nclass C(B):\n    pass\ndef f(z):\n    x = C()\n    x = C()\n    x.run()\n";
+		const result = await analyze([py("app.py", sub)]);
+		expect(sitesTo(result, symbolId(result, "B.run")).length).toBe(1);
+		// a constructor imported by a direct from-import of a module file whose name has one class binding
+		expect(await edges("from m import C\ndef f(z):\n    x = C()\n    x = C()\n    x.run()\n", [py("m.py", cls)])).toBe(
+			1,
+		);
+	});
+
+	test("a read from a comprehension or a class body inside the function sees the local and resolves (AC1, F5)", async () => {
+		expect(await edges(`${cls}def f(z):\n    x = C()\n    x = C()\n    return [x.run() for _ in z]\n`)).toBe(1);
+		expect(await edges(`${cls}def f(z):\n    x = C()\n    x = C()\n    class K:\n        x.run()\n`)).toBe(1);
+		// a class body that BINDS the name reads its own binding, not the local
+		await refused(
+			`${cls}def f(z):\n    x = C()\n    x = C()\n    class K:\n        x = 1\n        CALL\n`,
+			"class-body binding",
+		);
+	});
+
+	test("every way a local gets a binding that is not C(...) refuses the call", async () => {
+		const seconds: Record<string, string> = {
+			"a different class": "x = D()",
+			"a parameter-like rebind to None": "x = None",
+			"a literal": "x = []",
+			"a factory": "x = make()",
+			"an alias": "x = y",
+			"an augmented assignment": "x += 1",
+			"a for target": "for x in z:\n        pass",
+			"a with-as": "with open(z) as x:\n        pass",
+			"an except-as": "try:\n        pass\n    except Exception as x:\n        pass",
+			"a walrus": "(x := 1)",
+			"a comprehension target": "w = [1 for x in z]",
+			"a match capture": "match z:\n        case x:\n            pass",
+			"a tuple target": "x, w = z",
+			"a starred target": "w, *x = z",
+			"a list target": "[x, w] = z",
+			"a local import": "import x",
+			"a local from-import": "from os import path as x",
+			"a nested def": "def x():\n        pass",
+			"a nested class": "class x:\n        pass",
+			"an annotated binding": "x: C = C()",
+			"an annotated bare binding": "x: C",
+			"a type alias": "type x = int",
+			"a dotted constructor": "x = k.C()",
+			"a constructor call with the callee called": "x = C()()",
+		};
+		for (const [label, second] of Object.entries(seconds)) {
+			await refused(
+				`${cls}${other}def make():\n    pass\nimport k\ndef f(z, y):\n    x = C()\n    ${second}\n    CALL\n`,
+				label,
+			);
+		}
+		// twin of the same shape with only C() bindings resolves
+		expect(await edges(`${cls}${other}def f(z, y):\n    x = C()\n    x = C()\n    x.run()\n`)).toBe(1);
+	});
+
+	test("a parameter, a default and a splat are not constructor bindings", async () => {
+		await refused(`${cls}def f(x):\n    x = C()\n    CALL\n`, "a parameter then C()");
+		await refused(
+			`${cls}def f(x=None):\n    x = C()\n    x = C()\n    CALL\n`,
+			"a parameter with a default, then C() twice",
+		);
+		await refused(`${cls}def f(*x):\n    x = C()\n    x = C()\n    CALL\n`, "a splat parameter then C() twice");
+	});
+
+	test("a nonlocal write that is not C(...) of the same class, or a shadowed constructor, refuses", async () => {
+		const nested = (inner: string): string =>
+			`${cls}${other}def f():\n    x = C()\n    x = C()\n    def g():\n        nonlocal x\n        ${inner}\n    g()\n    CALL\n`;
+		await refused(nested("x = D()"), "nonlocal write of another class");
+		await refused(nested("x = 1"), "nonlocal write of a literal");
+		await refused(nested("x += 1"), "nonlocal augmented write");
+		await refused(nested("for x in range(2):\n            pass"), "nonlocal for target");
+		await refused(nested("import x"), "nonlocal import");
+		// the nonlocal body reads its constructor in its OWN scope: a local C there is a different name
+		await refused(nested("C = D\n        x = C()"), "nonlocal write whose constructor is rebound in the nested scope");
+		await refused(
+			nested("def C():\n            pass\n        x = C()"),
+			"nonlocal write whose constructor is a local def",
+		);
+		// B1 (review round 1): a comprehension target is the comprehension's own variable, so it is not a
+		// binding `nonlocal x` can name; the write lands in f, whatever the comprehension forms between them
+		const compBetween = (comp: string, extraDef = ""): string =>
+			`${cls}${other}def f(z):\n    x = C()\n    x = C()\n    def g():\n        ${comp}\n        def h(${extraDef}):\n            nonlocal x\n            x = D()\n        h()\n    g()\n    CALL\n`;
+		for (const comp of [
+			"[0 for x in z]",
+			"(0 for x in z)",
+			"{0 for x in z}",
+			"{0: 0 for x in z}",
+			"[0 for a, x in z]",
+		]) {
+			await refused(compBetween(comp), `a comprehension target between the nonlocal write and the local: ${comp}`);
+		}
+		await refused(compBetween("pass", "a=[0 for x in z]"), "a comprehension in a default argument");
+		// the same for a constructor NAME: f binds class C, h writes C through nonlocal behind a comprehension over C
+		await refused(
+			`${cls}${other}def f(z):\n    class C:\n        def run(self):\n            pass\n    x = C()\n    x = C()\n    def g():\n        [0 for C in z]\n        def h():\n            nonlocal C\n            C = D\n        h()\n    g()\n    CALL\n`,
+			"a comprehension over the constructor name between a nonlocal rebind of it and its class",
+		);
+		// twin: a comprehension over another name changes nothing
+		expect(
+			await edges(
+				`${cls}${other}def f(z):\n    x = C()\n    x = C()\n    def g():\n        [0 for a in z]\n        def h():\n            nonlocal x\n            x = C()\n        h()\n    g()\n    x.run()\n`,
+			),
+		).toBe(1);
+		// N2: rule 6d (a single binding) and LIT read the same redirect, so the same comprehension must not capture the write
+		const sixD = (comp: string): string =>
+			`${cls}${other}def f(z):\n    x = C()\n    def g():\n        ${comp}\n        def h():\n            nonlocal x\n            x = D()\n        h()\n    g()\n    CALL\n`;
+		await refused(
+			sixD("[0 for x in z]"),
+			"6d: a comprehension target between the nonlocal write and the single binding",
+		);
+		await refused(
+			`${cls}def f(z):\n    x = []\n    def g():\n        [0 for x in z]\n        def h():\n            nonlocal x\n            x = C()\n        h()\n    g()\n    CALL\n`,
+			"LIT: a comprehension target between the nonlocal write and the literal binding",
+		);
+		// N4: other comprehension target shapes, and the walrus twin (a walrus in a comprehension binds in the function)
+		await refused(
+			`${cls}${other}def f(z):\n    x = C()\n    x = C()\n    async def g():\n        [0 async for x in z]\n        def h():\n            nonlocal x\n            x = D()\n        h()\n    g()\n    CALL\n`,
+			"an async comprehension target",
+		);
+		await refused(compBetween("[0 for (x) in z]"), "a parenthesized comprehension target");
+		await refused(compBetween("[0 for (a, (x)) in z]"), "a nested comprehension target");
+		expect(
+			await edges(
+				`${cls}${other}def f(z):\n    x = C()\n    x = C()\n    def g():\n        [(x := 1) for _ in z]\n        def h():\n            nonlocal x\n            x = D()\n        h()\n    g()\n    x.run()\n`,
+			),
+			"a walrus in a comprehension binds in g, where the nonlocal write lands, so f's local is untouched",
+		).toBe(1);
+		// F1: each nonlocal write is read in the scope that holds it (origin is the FIRST scope, not the last)
+		await refused(
+			`${cls}${other}def f():\n    x = C()\n    x = C()\n    def g():\n        nonlocal x\n        x = C()\n        def h():\n            nonlocal x\n            C = D\n            x = C()\n        h()\n    g()\n    CALL\n`,
+			"a two-level nonlocal write whose constructor is rebound in the innermost scope",
+		);
+		// F4: `global x` FIRST (valid Python): the name is the module's, so the bindings are not a local's
+		await refused(
+			`${cls}def f():\n    global x\n    x = C()\n    x = C()\n    CALL\n`,
+			"a global declaration before the assignments",
+		);
+		// a `global x` in a nested function makes the name read there the module's, not the local
+		await refused(
+			`${cls}def f():\n    x = C()\n    x = C()\n    def g():\n        global x\n        CALL\n    g()\n`,
+			"a global declaration between the use and the local",
+		);
+		// twin: the nested write's constructor is the same module-level class
+		expect(
+			await edges(
+				`${cls}def f():\n    x = C()\n    def g():\n        nonlocal x\n        x = C()\n    g()\n    x.run()\n`,
+			),
+		).toBe(1);
+	});
+
+	test("the constructor name must itself have exactly one class binding, in every module it is read through", async () => {
+		const call = "def f(z):\n    x = C()\n    x = C()\n    CALL\n";
+		// defined by two classes, a rebind, a def, a conditional class
+		await refused(`${cls}class C:\n    def run(self):\n        pass\n${call}`, "C defined twice");
+		await refused(`${cls}C = None\n${call}`, "C rebound at module level");
+		await refused(`${cls}def make():\n    pass\nC = make()\n${call}`, "C rebound to a call");
+		await refused(`${cls}for C in []:\n    pass\n${call}`, "C a module-level for target");
+		await refused(`${cls}with open('f') as C:\n    pass\n${call}`, "C a module-level with-as");
+		await refused(`${cls}(C := 1)\n${call}`, "C a module-level walrus");
+		await refused(`${cls}def g():\n    global C\n    C = 1\n${call}`, "C a global write from a function");
+		await refused(`${cls}class K:\n    global C\n    C = 1\n${call}`, "C a global write from a class body");
+		await refused(`from other import *\n${cls}${call}`, "a module-level star in the using module");
+		await refused(
+			`${cls}import other\ndef f(z):\n    C = other.C\n    x = C()\n    x = C()\n    CALL\n`,
+			"C a local alias",
+		);
+		// a constructor imported from a module whose own binding of it is counted
+		const src = (extra: string): PythonModuleInput => py("m.py", `${cls}${extra}`);
+		const imp = `from m import C\n${call}`;
+		await refused(imp, "C rebound in its source module", [src("C = 1\n")]);
+		await refused(imp, "C defined twice in its source module", [src("class C:\n    pass\n")]);
+		await refused(imp, "C bound by a for in its source module", [src("for C in []:\n    pass\n")]);
+		await refused(imp, "C bound by a walrus in its source module", [src("(C := 1)\n")]);
+		await refused(imp, "C bound by a with-as in its source module", [src("with open('f') as C:\n    pass\n")]);
+		await refused(imp, "C bound by a global write in its source module", [src("def g():\n    global C\n    C = 1\n")]);
+		await refused(imp, "a module-level star in its source module", [src("from other import *\n")]);
+		// a re-export hop and a package __init__
+		await refused(imp, "a re-export hop", [py("m.py", "from n import C\n"), py("n.py", cls)]);
+		await refused(imp, "a package __init__", [py("m/__init__.py", cls)]);
+		await refused(imp, "a hop whose re-exporting module rebinds the name", [
+			py("m.py", "from n import C\nC = 1\n"),
+			py("n.py", cls),
+		]);
+		await refused(imp, "a hop whose re-exporting module has a for target", [
+			py("m.py", "from n import C\nfor C in []:\n    pass\n"),
+			py("n.py", cls),
+		]);
+		await refused(`if z:\n    from m import C\n${call}`, "a conditional import in the using module", [py("m.py", cls)]);
+		await refused(`from m import C\nfrom n import C\n${call}`, "two imports of C in the using module", [
+			py("m.py", cls),
+			py("n.py", cls),
+		]);
+		await refused(`import m\n${call.replace("C()", "m.C()").replace("C()", "m.C()")}`, "a dotted module constructor", [
+			py("m.py", cls),
+		]);
+		// twin: the direct import of a module file whose one binding is the class resolves
+		expect(await edges(imp.replace("CALL", "x.run()"), [py("m.py", cls)])).toBe(1);
+		// an aliased import resolves too
+		expect(
+			await edges("from m import C as K\ndef f(z):\n    x = K()\n    x = K()\n    x.run()\n", [py("m.py", cls)]),
+		).toBe(1);
+	});
+
+	test("class checks: __new__, a metaclass, an opaque base, a replacing decorator and a factory refuse", async () => {
+		const call = "def f(z):\n    x = C()\n    x = C()\n    CALL\n";
+		await refused(
+			`class C:\n    def __new__(cls):\n        return object.__new__(cls)\n    def run(self):\n        pass\n${call}`,
+			"__new__",
+		);
+		await refused(
+			`class Meta(type):\n    pass\nclass C(metaclass=Meta):\n    def run(self):\n        pass\n${call}`,
+			"a metaclass",
+		);
+		await refused(`import other\nclass C(other.Base):\n    def run(self):\n        pass\n${call}`, "an opaque base");
+		await refused(
+			`import other\n@other.deco\nclass C:\n    def run(self):\n        pass\n${call}`,
+			"a replacing decorator",
+		);
+		await refused(`import other\nC = other.C\n${call}`, "an external class");
+		await refused(`def C():\n    pass\n${call}`, "a def named like a class");
+	});
+
+	test("the rule is for locals: a module-level name with two C() bindings, and a class-body name, stay refused", async () => {
+		await refused(`${cls}x = C()\nx = C()\nCALL\n`, "module-level name");
+		await refused(`${cls}class K:\n    x = C()\n    x = C()\n    CALL\n`, "class-body name");
+	});
+
+	test("a multi-segment attribute, a call of the local and a different method name are not widened", async () => {
+		expect(await edges(`${cls}def f():\n    x = C()\n    x = C()\n    x.a.run()\n`)).toBe(0);
+		expect(await edges(`${cls}def f():\n    x = C()\n    x = C()\n    x()\n`)).toBe(0);
+	});
+});
