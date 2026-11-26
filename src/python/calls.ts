@@ -931,6 +931,15 @@ class FileWalker {
 					this.addAsPatternBinding(frame.scope, node);
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					continue;
+				case "type_alias_statement": {
+					// GCLI-107: PEP 695 `type m = ...` binds `m` (the left is `type > identifier`,
+					// or `type > generic_type > identifier` when it takes type parameters).
+					let name: Node | null = node.childForFieldName("left");
+					while (name !== null && name.type !== "identifier") name = name.namedChild(0);
+					if (name !== null) this.addBinding(frame.scope, name.text, { kind: "rebound" });
+					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
+					continue;
+				}
 				case "named_expression":
 					this.addTargetBindings(frame.scope, node.namedChild(0));
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
@@ -1023,7 +1032,11 @@ class FileWalker {
 			case "list_pattern":
 			case "tuple":
 			case "list":
-			case "list_splat_pattern": {
+			case "list_splat_pattern":
+			// GCLI-107: a `with ... as (a, *m)` target spells the star `list_splat`.
+			case "list_splat":
+			// GCLI-107: `with ctx() as (m):` and `as (a, (m))` parenthesise a single name.
+			case "parenthesized_expression": {
 				for (const child of target.namedChildren) this.addTargetBindings(scope, child);
 				return;
 			}
@@ -1096,9 +1109,8 @@ class FileWalker {
 		for (const child of node.namedChildren) {
 			if (child === null) continue;
 			if (child.type === "as_pattern_target") {
-				for (const inner of child.namedChildren) {
-					if (inner !== null && inner.type === "identifier") this.addBinding(scope, inner.text, { kind: "rebound" });
-				}
+				// GCLI-107: the target may be a tuple, a list, nested or starred, not only a name.
+				for (const inner of child.namedChildren) this.addTargetBindings(scope, inner);
 			}
 		}
 	}
