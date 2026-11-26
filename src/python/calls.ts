@@ -154,7 +154,12 @@ type BaseDesc =
 	| { kind: "literal" }
 	| { kind: "dynamic" };
 
-type BindingRhs = { kind: "alias"; name: string } | { kind: "call"; callee: CalleeDesc } | { kind: "other" };
+type BindingRhs =
+	| { kind: "alias"; name: string }
+	| { kind: "call"; callee: CalleeDesc }
+	/** LIT: the right-hand side is a literal or comprehension of one builtin type. */
+	| { kind: "literal"; type: string }
+	| { kind: "other" };
 
 /** A source position (one-based) for rule 38's order-aware class-body imports. */
 interface UsePosition {
@@ -871,6 +876,57 @@ function parameterInfo(node: Node): ParamInfo {
 	};
 }
 
+/**
+ * LIT (DEC-303 (a22) item 3): the builtin type of a literal or comprehension, from its
+ * syntax alone. Only the forms the task lists qualify: list, dict, set and tuple displays and
+ * their comprehensions, str and bytes strings (an f-string does not, nor does a template
+ * string), and integer and float numbers (an imaginary number does not). `None`, `True`,
+ * `False`, a negated number, a generator expression and a conditional expression are not
+ * literals here. A concatenation of strings is one str (or one bytes) when every part is.
+ */
+function literalType(node: Node): string | null {
+	switch (node.type) {
+		case "list":
+		case "list_comprehension":
+			return "list";
+		case "dictionary":
+		case "dictionary_comprehension":
+			return "dict";
+		case "set":
+		case "set_comprehension":
+			return "set";
+		case "tuple":
+			return "tuple";
+		case "integer":
+			return /[jJ]$/.test(node.text) ? null : "int";
+		case "float":
+			return /[jJ]$/.test(node.text) ? null : "float";
+		case "string": {
+			const start = node.firstChild;
+			const prefix = start === null ? "" : (/^[A-Za-z]*/.exec(start.text)?.[0] ?? "").toLowerCase();
+			if (prefix.includes("f") || prefix.includes("t")) return null;
+			return prefix.includes("b") ? "bytes" : "str";
+		}
+		case "concatenated_string": {
+			let type: string | null = null;
+			for (const part of node.namedChildren) {
+				if (part === null) continue;
+				const partType = literalType(part);
+				if (partType === null || (type !== null && partType !== type)) return null;
+				type = partType;
+			}
+			return type;
+		}
+		default:
+			return null;
+	}
+}
+
+function literalRhs(node: Node): BindingRhs {
+	const type = literalType(node);
+	return type === null ? { kind: "other" } : { kind: "literal", type };
+}
+
 class FileWalker {
 	private uid = 0;
 	private readonly classes: ClassInfo[] = [];
@@ -1528,7 +1584,7 @@ class FileWalker {
 					? { kind: "alias", name: right.text }
 					: right.type === "call"
 						? { kind: "call", callee: describeCallee(right.childForFieldName("function") ?? right) }
-						: { kind: "other" };
+						: literalRhs(right);
 
 		if (left !== null && left.type === "identifier") {
 			this.addBinding(frame.scope, left.text, {
@@ -2826,6 +2882,10 @@ class Resolver {
 		if (segments.length === 1 && this.isSplatParameter(base.name, scope, site)) {
 			return { bin: "external", reason: "external" };
 		}
+		// LIT (DEC-303 (a22) item 3): every binding is a literal or comprehension of one builtin type.
+		if (segments.length === 1 && this.isLiteralBound(base.name, scope, site)) {
+			return { bin: "external", reason: "external" };
+		}
 		const outcome = this.resolveBareName(base.name, scope, 0, site);
 		switch (outcome.kind) {
 			case "module":
@@ -2853,20 +2913,70 @@ class Resolver {
 		}
 	}
 
+	/**
+	 * The bindings every use of `name` at `site` can see, when the whole set is enumerable
+	 * from the text (DEC-303 (a22) item 2); null when it is not. A name bound anywhere in
+	 * the starting class body is read from the class or the globals, never from an enclosing
+	 * function (rule 38 would fall through past a later import). A `global name` in a scope
+	 * between the use and the scope holding the bindings makes the read a module-level one,
+	 * which `lookupBindings` does not consult, unless the bindings ARE the module's. Writes
+	 * through `global` and `nonlocal` from other scopes were moved onto the target scope by
+	 * `applyScopeRedirects`, so they are in the list.
+	 */
+	private enumerableBindings(name: string, scope: Scope, site: { line: number; column: number }): RawBinding[] | null {
+		if (scope.kind === "class" && scope.bindings.has(name)) return null;
+		const found = this.lookupBindings(name, scope, site);
+		if (found === null) return null;
+		// A `from m import *` at module level is a binding statement in the module's own
+		// text that `importStatementNames` does not record, and its export set is not
+		// enumerable here: refuse on any star import of the module.
+		if (found.scope.kind === "module" && this.starMayBind(found.scope.file)) return null;
+		if (found.scope.kind !== "module") {
+			for (let current: Scope | null = scope; current !== null && current !== found.scope; current = current.parent) {
+				if (current.globalNames.has(name)) return null;
+			}
+		}
+		return found.bindings;
+	}
+
+	/**
+	 * Any module-level star import in the module at `file` may bind `name`. The export set
+	 * of a complete star is not trusted: for a target without `__all__` it is built from
+	 * `collectModuleDeclaration`, which misses a `for` or with-as target, a walrus, a match
+	 * capture, a list or nested or starred target and a `global` write, so "complete" does
+	 * not mean every name the star can bind. Rules 37 and K1's builtin arm share that gap
+	 * (a follow-up); LIT does not rely on it.
+	 */
+	private starMayBind(file: string): boolean {
+		return (this.starBindingsByPath.get(file)?.length ?? 0) > 0;
+	}
+
 	/** K1: `name` is bound exactly once in its scope chain, by a `*args` or `**kwargs` parameter. */
 	private isSplatParameter(name: string, scope: Scope, site: { line: number; column: number }): boolean {
-		// A name bound anywhere in the starting class body is read from the class or the
-		// globals, never from an enclosing function (rule 38 would fall through past a later import).
-		if (scope.kind === "class" && scope.bindings.has(name)) return false;
-		const found = this.lookupBindings(name, scope, site);
-		if (found === null || found.bindings.length !== 1) return false;
-		// A `global name` in any scope between the use and the parameter's function makes
-		// the read a module-level one, which `lookupBindings` does not consult.
-		for (let current: Scope | null = scope; current !== null && current !== found.scope; current = current.parent) {
-			if (current.globalNames.has(name)) return false;
-		}
-		const binding = found.bindings[0] as RawBinding;
+		const bindings = this.enumerableBindings(name, scope, site);
+		if (bindings === null || bindings.length !== 1) return false;
+		const binding = bindings[0] as RawBinding;
 		return binding.kind === "param" && binding.splat !== undefined;
+	}
+
+	/**
+	 * LIT (DEC-303 (a22) item 3): every binding of `name` is a literal or comprehension of
+	 * ONE builtin type, so a method called on it is the builtin's. An annotated binding is
+	 * refused (an annotation can name an in-repo class), and so is any binding that is not a
+	 * plain assignment of a literal: a rebind, an augmented assignment, a parameter, an
+	 * import, a def or a class.
+	 */
+	private isLiteralBound(name: string, scope: Scope, site: { line: number; column: number }): boolean {
+		const bindings = this.enumerableBindings(name, scope, site);
+		if (bindings === null || bindings.length === 0) return false;
+		let type: string | null = null;
+		for (const binding of bindings) {
+			// only a plain assignment carries a literal right-hand side; a rebind, parameter, import, def or class has none
+			if (binding.annotation || binding.rhs === undefined || binding.rhs.kind !== "literal") return false;
+			if (type !== null && binding.rhs.type !== type) return false;
+			type = binding.rhs.type;
+		}
+		return true;
 	}
 
 	/**

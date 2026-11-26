@@ -1360,8 +1360,14 @@ describe("rule 29c — literal receivers", () => {
 		expect(result.callBins.resolvedExternal).toBe(5);
 	});
 
-	test("rule 29c: a name bound to a literal stays unresolved-receiver", async () => {
+	test("rule 29c: a name whose every binding is one literal type is the builtin (GCLI-109, LIT)", async () => {
 		const result = await one("items = []\ndef f():\n    items.append(1)\n");
+		expect(result.callBins.resolvedExternal).toBe(1);
+		expect(result.callBins.receiverNeedsInference).toBe(0);
+	});
+
+	test("rule 29c: a name bound to a non-literal stays unresolved-receiver", async () => {
+		const result = await one("items = make()\ndef f():\n    items.append(1)\n");
 		expect(result.callBins.receiverNeedsInference).toBe(1);
 	});
 });
@@ -3226,5 +3232,334 @@ describe("K1 — *args, **kwargs and an unshadowed builtin class receiver are bu
 		// positive twin: a class on an unshadowed builtin class base is not opaque
 		const ok = await analyze([py("app.py", "class D(dict):\n    def m(self):\n        pass\n\nD().m()\n")]);
 		expect(linesTo(ok, symbolId(ok, "D.m", "app.py"))).toEqual([5]);
+	});
+});
+
+// GCLI-109 (LIT, DEC-303 (a22) item 3): every binding of the name is a literal or comprehension
+// of ONE builtin type, so a method called on it is the builtin's: resolved-external. Every other
+// way a name can get a second binding, and every form the rule does not list, stays unresolved.
+describe("LIT — a name whose every binding is a literal of one builtin type is builtin", () => {
+	const cls = "class C:\n    def append(self, x):\n        pass\n\n    def get(self, x):\n        pass\n\n";
+
+	async function bins(source: string) {
+		const result = await analyze([py("app.py", source)]);
+		return {
+			external: result.callBins.resolvedExternal,
+			receiver: result.callBins.receiverNeedsInference,
+			inRepo: result.callBins.resolvedInRepo,
+			edges: result.sites.length,
+		};
+	}
+
+	/** The one attribute call in `source` is resolved-external and makes no in-repo edge. */
+	async function builtin(source: string, label: string): Promise<void> {
+		expect(await bins(source), label).toMatchObject({ external: 1, receiver: 0, inRepo: 0, edges: 0 });
+	}
+
+	/** The one attribute call is receiver-needs-inference: not external, and no in-repo edge. */
+	async function refused(source: string, label: string): Promise<void> {
+		expect(await bins(source), label).toMatchObject({ external: 0, receiver: 1, inRepo: 0, edges: 0 });
+	}
+
+	test("a literal or comprehension of a listed builtin type, in a function or at module level", async () => {
+		const values: Record<string, string> = {
+			list: "[]",
+			"list with a star": "[*z]",
+			dict: "{}",
+			"dict with a pair": "{'a': 1}",
+			set: "{1, 2}",
+			tuple: "(1, 2)",
+			"empty tuple": "()",
+			str: "'a'",
+			"implicit concatenation": "'a' 'b'",
+			"raw string": "r'a'",
+			bytes: "b'a'",
+			int: "1",
+			float: "1.5",
+			"list comprehension": "[i for i in z]",
+			"dict comprehension": "{i: 1 for i in z}",
+			"set comprehension": "{i for i in z}",
+		};
+		for (const [label, value] of Object.entries(values)) {
+			await builtin(`def f(z):\n    x = ${value}\n    x.m()\n`, `${label} (function)`);
+			await builtin(`z = 1\nx = ${value}\nx.m()\n`, `${label} (module)`);
+			await builtin(`z = 1\nx = ${value}\ndef f():\n    x.m()\n`, `${label} (module name read in a function)`);
+		}
+	});
+
+	test("every binding the same type: several bindings are fine, a different type is not", async () => {
+		await builtin("def f():\n    x = []\n    x = [1]\n    x.m()\n", "two lists");
+		await builtin("def f():\n    x = 'a'\n    x = 'b' 'c'\n    x.m()\n", "two strs, one concatenated");
+		await refused("def f():\n    x = []\n    x = {}\n    x.m()\n", "a list and a dict");
+		await refused("def f():\n    x = 1\n    x = 1.5\n    x.m()\n", "an int and a float stay two types");
+		await refused("def f():\n    x = 'a'\n    x = b'a'\n    x.m()\n", "a str and a bytes");
+		await refused("def f():\n    x = []\n    x = make()\n    x.m()\n", "a list and a call");
+	});
+
+	test("forms the rule does not list stay unresolved", async () => {
+		for (const [label, value] of Object.entries({
+			None: "None",
+			True: "True",
+			False: "False",
+			"f-string": "f'{z}'",
+			"f-string without a field": "f'a'",
+			"negated number": "-1",
+			"imaginary number": "1j",
+			"imaginary float": "1.5j",
+			"a str and a bytes concatenated": "'a' b'b'",
+			"generator expression": "(i for i in z)",
+			"a name": "z",
+			"a binary expression": "[] + z",
+			"a conditional expression": "[] if z else {}",
+			"a subscript": "z[0]",
+			"a call": "make()",
+			"a parenthesised list": "([])",
+			"an f-string in a concatenation": "'a' f'{z}'",
+		})) {
+			await refused(`def f(z):\n    x = ${value}\n    x.m()\n`, label);
+		}
+	});
+
+	test("every other way a name gets a second binding leaves the call unresolved", async () => {
+		const seconds: Record<string, string> = {
+			"augmented assignment": "x += [1]",
+			"for target": "for x in z:\n        pass",
+			"with-as": "with ctx() as x:\n        pass",
+			"with-as tuple": "with ctx() as (x, n):\n        pass",
+			"except-as": "try:\n        pass\n    except E as x:\n        pass",
+			walrus: "(x := make())",
+			"comprehension target": "q = [1 for x in z]",
+			"match capture": "match z:\n        case x:\n            pass",
+			import: "import x",
+			"from import": "from m import x",
+			def: "def x():\n        pass",
+			class: "class x:\n        pass",
+			"tuple target": "x, n = make()",
+			"star target": "*x, n = make()",
+			"annotated, no value": "x: int",
+			"annotated, value": "x: list = []",
+			"annotated, in-repo class": "x: C = []",
+			"type alias": "type x = int",
+			"conditional rebind": "if z:\n        x = make()",
+		};
+		for (const [label, second] of Object.entries(seconds)) {
+			await refused(`${cls}def f(z):\n    x = []\n    ${second}\n    x.append(1)\n`, label);
+		}
+		// the same shapes with another name leave the literal alone
+		await builtin("def f(z):\n    x = []\n    y = make()\n    x.m()\n", "twin: another name");
+		await builtin("def f(z):\n    x = []\n    for y in z:\n        pass\n    x.m()\n", "twin: another for target");
+	});
+
+	test("a del is no binding", async () => {
+		// after `del x` the name is unbound, so the call raises; the claim is vacuous either way
+		await builtin("def f():\n    x = []\n    del x\n    x.m()\n", "del leaves the type claim as it was");
+	});
+
+	test("a parameter or a default is not a literal binding", async () => {
+		await refused("def f(x=[]):\n    x.m()\n", "a parameter with a literal default");
+		await refused("def f(x):\n    x = []\n    x.m()\n", "a parameter that is also assigned a list");
+		await refused("g = lambda x=[]: x.m()\n", "a lambda parameter");
+	});
+
+	test("a global or nonlocal write from another scope is a binding", async () => {
+		await refused(
+			"x = []\ndef g():\n    global x\n    x = make()\ndef f():\n    x.m()\n",
+			"a global write of a call, read in another function",
+		);
+		await refused(
+			"x = []\ndef g():\n    global x\n    x = {}\nx.m()\n",
+			"a global write of another type, read at module level",
+		);
+		await builtin("x = []\ndef g():\n    global x\n    x = [1]\nx.m()\n", "twin: a global write of the same type");
+		await builtin("x = []\ndef g():\n    global x\n    x.m()\n", "twin: a read-only global declaration");
+		await refused(
+			"def f():\n    x = []\n    def g():\n        nonlocal x\n        x = make()\n    x.m()\n",
+			"a nonlocal write of a call",
+		);
+		await refused(
+			"def f():\n    x = []\n    def g():\n        nonlocal x\n        x = {}\n    x.m()\n",
+			"a nonlocal write of another type",
+		);
+		await builtin(
+			"def f():\n    x = []\n    def g():\n        nonlocal x\n        x = [1]\n    x.m()\n",
+			"twin: a nonlocal write of the same type",
+		);
+		await builtin(
+			"def f():\n    x = []\n    def g():\n        nonlocal x\n        x.m()\n",
+			"twin: a read-only nonlocal",
+		);
+		// a global declaration between the use and the enclosing function's binding reads the module
+		await refused(
+			"x = make()\ndef f():\n    x = []\n    def g():\n        global x\n        x.m()\n",
+			"global in a nested function reads the module's x, not f's list",
+		);
+		await refused("def f():\n    x = []\n    class K:\n        global x\n        x.m()\n", "global in a class body");
+	});
+
+	test("a class body that binds the name, or a use inside one, does not qualify", async () => {
+		await refused("class K:\n    x = []\n    x.m()\n", "the class binds the name and uses it");
+		await refused(
+			"x = make()\nclass K:\n    x.m()\n    x = []\n",
+			"the class binds it after the use: the global is read",
+		);
+		// a method does not see the class body's name: it reads the module's
+		await builtin(
+			"x = []\nclass K:\n    x = make()\n    def m(self):\n        x.m()\n",
+			"a method reads the module, not the class",
+		);
+		await builtin("x = []\nclass K:\n    def m(self):\n        x.m()\n", "twin: the class does not bind it");
+		await builtin(
+			"def f():\n    x = []\n    class K:\n        x.m()\n",
+			"twin: a class body reading an enclosing literal",
+		);
+	});
+
+	test("a module-level star import is a binding statement (GCLI-109 review)", async () => {
+		const multi = async (files: PythonModuleInput[]) => {
+			const result = await analyze(files);
+			return { external: result.callBins.resolvedExternal, receiver: result.callBins.receiverNeedsInference };
+		};
+		const exporting = py("m.py", "class C:\n    pass\nx = other\n");
+		const notExporting = py("m.py", "__all__ = ['y']\ny = 1\nx = other\n");
+		for (const [label, use] of [
+			["at module level", "x.m()\n"],
+			["in a function", "def f():\n    x.m()\n"],
+		] as const) {
+			const after = `x = []\nfrom m import *\n${use}`;
+			expect(await multi([exporting, py("app.py", after)]), `a complete star exporting x, ${label}`).toEqual({
+				external: 0,
+				receiver: 1,
+			});
+			expect(
+				await multi([exporting, py("app.py", `from m import *\nx = []\n${use}`)]),
+				`a star before the literal, ${label}`,
+			).toEqual({
+				external: 0,
+				receiver: 1,
+			});
+			expect(
+				await multi([py("app.py", `x = []\nfrom nowhere import *\n${use}`)]),
+				`an unresolved star, ${label}`,
+			).toEqual({
+				external: 0,
+				receiver: 1,
+			});
+			// the export set of a complete star is not trusted: one that lists no x still refuses
+			expect(
+				await multi([notExporting, py("app.py", after)]),
+				`a complete star whose __all__ omits x, ${label}`,
+			).toEqual({
+				external: 0,
+				receiver: 1,
+			});
+			// positive twin: no star
+			expect(await multi([py("app.py", after.replace("from m import *\n", ""))]), `twin: no star, ${label}`).toEqual({
+				external: 1,
+				receiver: 0,
+			});
+		}
+	});
+
+	test("a star target module binds names its export set does not list (GCLI-109 review round 2)", async () => {
+		const multi = async (files: PythonModuleInput[]) => {
+			const result = await analyze(files);
+			return {
+				external: result.callBins.resolvedExternal,
+				receiver: result.callBins.receiverNeedsInference,
+				edges: result.sites.filter((site) => site.file === "app.py").length,
+			};
+		};
+		const app = py("app.py", "x = []\nfrom m import *\nx.m()\n");
+		const refusedShape = { external: 0, receiver: 1, edges: 0 };
+		// bindings collectModuleDeclaration does not record, so the star reads as complete without x
+		for (const [label, m] of Object.entries({
+			"a for target": "for x in zs:\n    pass\n",
+			"a with-as": "with ctx() as x:\n    pass\n",
+			"a walrus": "(x := 1)\n",
+			"a match capture": "match v:\n    case x:\n        pass\n",
+			"a list target": "[x, y] = make()\n",
+			"a starred target": "*x, y = make()\n",
+			"a nested tuple target": "a, (x, b) = make()\n",
+			"a global write in a function": "def g():\n    global x\n    x = 1\ng()\n",
+		})) {
+			expect(await multi([py("m.py", m), app]), label).toEqual(refusedShape);
+		}
+		// the in-repo variant: the star rebinds x to a C, so the call is C.append, never the builtin's
+		const inRepo = await multi([
+			py("m.py", "class C:\n    def append(self, v):\n        pass\nfor x in [C()]:\n    pass\n"),
+			py("app.py", "x = []\nfrom m import *\nx.append(1)\n"),
+		]);
+		expect(inRepo.external).toBe(0);
+		expect(inRepo.receiver).toBe(1);
+		expect(inRepo.edges).toBe(0);
+		// a star of a star
+		expect(
+			await multi([py("n.py", "for x in zs:\n    pass\n"), py("m.py", "from n import *\n"), app]),
+			"m star-imports n, n binds x by a for",
+		).toEqual(refusedShape);
+		// a package whose submodule is x
+		const pkg = await multi([
+			py("pkg/__init__.py", ""),
+			py("pkg/x.py", "def m():\n    pass\n"),
+			py("app.py", "x = []\nimport pkg.x\nfrom pkg import *\nx.m()\n"),
+		]);
+		expect(pkg, "a package whose submodule is x").toEqual(refusedShape);
+		// positive twin: no star at all
+		expect(await multi([py("app.py", "x = []\nx.m()\n")]), "twin: no star").toEqual({
+			external: 1,
+			receiver: 0,
+			edges: 0,
+		});
+	});
+
+	test("a star import refuses only the module-level names of its own file (GCLI-109 review round 2)", async () => {
+		const multi = async (files: PythonModuleInput[]) => {
+			const result = await analyze(files);
+			return { external: result.callBins.resolvedExternal, receiver: result.callBins.receiverNeedsInference };
+		};
+		const external = { external: 1, receiver: 0 };
+		// a name bound in a function is not a module binding a star can rebind
+		expect(
+			await multi([py("app.py", "from os import *\ndef f():\n    x = []\n    x.m()\n")]),
+			"LIT in a function",
+		).toEqual(external);
+		expect(await multi([py("app.py", "from os import *\ndef f(*args):\n    args.m()\n")]), "K1 in a function").toEqual(
+			external,
+		);
+		// the star is keyed to its own file: another module's star does not touch this one
+		expect(
+			await multi([py("n.py", "from os import *\n"), py("app.py", "x = []\nx.m()\n")]),
+			"a star in another module",
+		).toEqual(external);
+	});
+
+	test("target shapes the walker must read as a second binding (GCLI-109 review)", async () => {
+		await refused("def f():\n    x = []\n    (x) = make()\n    x.m()\n", "a parenthesised target");
+		await refused("def f():\n    x = []\n    ((x)) = make()\n    x.m()\n", "a doubly parenthesised target");
+		await refused("def f():\n    x = []\n    [x] = make()\n    x.m()\n", "a list target");
+		await refused("def f():\n    x = []\n    (x, n) = make()\n    x.m()\n", "a parenthesised tuple target");
+		await refused("def f():\n    x = []\n    a = x = make()\n    x.m()\n", "a chained assignment");
+		await refused(
+			"def f():\n    x = []\n    try:\n        pass\n    except* E as x:\n        pass\n    x.m()\n",
+			"except* as",
+		);
+		await refused("def f():\n    x = []\n    async with ctx() as x:\n        pass\n    x.m()\n", "async with-as");
+		await refused("def f():\n    x = []\n    async for x in z:\n        pass\n    x.m()\n", "async for");
+		await builtin("def f():\n    match = []\n    match.append(1)\n", "match is an identifier here");
+		await builtin("def f():\n    type = []\n    type.append(1)\n", "type is an identifier here");
+	});
+
+	test("a literal never reaches an in-repo method of the same name", async () => {
+		await builtin(`${cls}def f():\n    x = []\n    x.append(1)\n`, "C.append is not reached");
+		await builtin(`${cls}def f():\n    x = {}\n    x.get(1)\n`, "C.get is not reached");
+		// positive twin: a constructed C still resolves to its method
+		const result = await analyze([py("app.py", `${cls}def f():\n    x = C()\n    x.append(1)\n`)]);
+		expect(linesTo(result, symbolId(result, "C.append", "app.py"))).toEqual([10]);
+	});
+
+	test("more than one segment, or a call on the name itself, is not the rule", async () => {
+		await refused("def f():\n    x = []\n    x.a.m()\n", "two segments");
+		const result = await analyze([py("app.py", "def f():\n    x = []\n    x()\n")]);
+		expect(result.callBins.resolvedExternal).toBe(0);
 	});
 });
