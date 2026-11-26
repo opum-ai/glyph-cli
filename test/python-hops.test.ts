@@ -1552,3 +1552,192 @@ describe("GCLI-121 — a quoted annotation resolves as its unquoted twin", () =>
 		expect(q3.delta.receiver).toBe(1);
 	});
 });
+
+// GCLI-112: a PEP 695 type parameter binds its name in the generic's own scope, so a read of it never reaches an
+// enclosing binding of the same name.
+describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", () => {
+	const cls = "class C:\n    def run(self):\n        pass\nclass D:\n    def run(self):\n        pass\n";
+	const REFUSED: Delta = { inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 };
+	/** The `.run` and `.save` callees only: `x = C()` in the setup is itself an edge. */
+	const runs = (r: { callees: (string | null)[] }) =>
+		r.callees.filter((c) => c?.endsWith(".run") || c?.endsWith(".save"));
+	const lines = (body: string, indent: string) =>
+		body
+			.split("\n")
+			.map((line) => (line === "" ? line : indent + line))
+			.join("\n");
+	// `x = C()` is bound in the enclosing function; the generic declares its own `x`.
+	const inFunction = (generic: string, use = "CALL") =>
+		`${cls}def outer():\n    x = C()\n${lines(generic.replace("CALL", use), "    ")}\n`;
+
+	const shapes: Record<string, string> = {
+		function: "def h[x]():\n    CALL\n",
+		"function, bounded": "def h[x: C]():\n    CALL\n",
+		"function, constrained": "def h[x: (C, D)]():\n    CALL\n",
+		"function, TypeVarTuple": "def h[*x]():\n    CALL\n",
+		"function, ParamSpec": "def h[**x]():\n    CALL\n",
+		"function, second parameter": "def h[y, x]():\n    CALL\n",
+		"function, a default (PEP 696, a parse error)": "def h[x = int]():\n    CALL\n",
+		"a method of a generic class sees the class's parameter": "class K[x]:\n    def m(self):\n        CALL\n",
+		"a method that is itself generic": "class K:\n    def m[x](self):\n        CALL\n",
+		"a nested def inside a generic function": "def h[x]():\n    def inner():\n        CALL\n",
+		"type alias": "type A[x] = CALL\n",
+		"class body": "class K[x]:\n    CALL\n",
+	};
+	for (const [label, generic] of Object.entries(shapes)) {
+		test(`${label}: x.run() is not claimed as C.run`, async () => {
+			const r = await probe(inFunction(generic), "x.run()");
+			expect(runs(r)).not.toContain("app.py:C.run");
+			expect(r.delta, label).toEqual(REFUSED);
+		});
+	}
+
+	test("positive twins: a name no type parameter declares still resolves", async () => {
+		const twins: Record<string, string> = {
+			function: "def h[y]():\n    CALL\n",
+			"class body": "class K[y]:\n    CALL\n",
+			"type alias": "type A[y] = CALL\n",
+			"a method of a generic class": "class K[y]:\n    def m(self):\n        CALL\n",
+			"no type parameters": "def h():\n    CALL\n",
+		};
+		for (const [label, generic] of Object.entries(twins)) {
+			const r = await probe(inFunction(generic), "x.run()");
+			expect(r.delta.inRepo, label).toBe(1);
+			expect(runs(r), label).toEqual(["app.py:C.run"]);
+		}
+	});
+
+	test("a generic's name does not shadow outside it", async () => {
+		const r = await probe(`${cls}x = C()\ndef h[x]():\n    pass\nCALL\n`, "x.run()");
+		expect(r.delta.inRepo).toBe(1);
+		expect(runs(r)).toEqual(["app.py:C.run"]);
+	});
+
+	test("a default value is read in the enclosing scope, not the type-parameter scope", async () => {
+		const r = await probe(`${cls}x = C()\ndef h[x](a=x.run()):\n    pass\nCALL\n`, "pass");
+		expect(runs(r)).toEqual(["app.py:C.run"]);
+	});
+
+	test("an annotation of a type parameter does not resolve to a module class of the same name", async () => {
+		const mod = (generic: string) => probe(`${cls}${generic}`, "p.run()");
+		const shadowed = await mod("def g[C](p: C):\n    CALL\n");
+		expect(runs(shadowed)).not.toContain("app.py:C.run");
+		expect(shadowed.delta).toEqual(REFUSED);
+		const twin = await mod("def g[T](p: C):\n    CALL\n");
+		expect(runs(twin)).toEqual(["app.py:C.run"]);
+	});
+
+	test("a base named like a type parameter is not the module class", async () => {
+		const generic = await probe(`${cls}class K[C](C):\n    def m(self):\n        CALL\n`, "self.run()");
+		expect(runs(generic)).not.toContain("app.py:C.run");
+		// The base is the type parameter, a name no class symbol stands behind: an external base, as for any single
+		// `rebound` base, so the call is binned external rather than receiver (not an in-repo edge).
+		expect(generic.delta).toEqual({ inRepo: 0, external: 1, receiver: 0, nameNotBound: 0 });
+		const twin = await probe(`${cls}class K[T](C):\n    def m(self):\n        CALL\n`, "self.run()");
+		expect(runs(twin)).toEqual(["app.py:C.run"]);
+	});
+
+	test("a list with a parse error refuses every identifier in it, bound names included", async () => {
+		const r = await probe(inFunction("def h[x: C = int]():\n    CALL\n"), "C().run()");
+		expect(runs(r)).not.toContain("app.py:C.run");
+		const twin = await probe(inFunction("def h[x: C]():\n    CALL\n"), "C().run()");
+		expect(runs(twin)).toEqual(["app.py:C.run"]);
+	});
+
+	// Opus round 1, B1: an annotation scope directly inside a class body still reads the class's names.
+	test("a generic declared in a class body reads the class body's names, as before", async () => {
+		const item = "class Item:\n    def save(self):\n        pass\n";
+		const annotation = await probe(
+			`${item}class Outer:\n    class Item:\n        def save(self):\n            pass\n    def get[T](self, item: Item):\n        CALL\n`,
+			"item.save()",
+		);
+		expect(runs(annotation)).toEqual(["app.py:Outer.Item.save"]);
+		const base = await probe(
+			"class B:\n    def run(self):\n        pass\nclass Outer:\n    class B:\n        def run(self):\n            pass\n    class K[T](B):\n        def m(self):\n            CALL\n",
+			"self.run()",
+		);
+		expect(runs(base)).toEqual(["app.py:Outer.B.run"]);
+		const alias = await probe(
+			`${item}class Outer:\n    class Item:\n        def save(self):\n            pass\n    type A[T] = CALL\n`,
+			"Item().save()",
+		);
+		expect(runs(alias)).toEqual(["app.py:Outer.Item.save"]);
+	});
+
+	test("the body of a generic method still skips the class body", async () => {
+		const r = await probe(
+			"class Item:\n    def save(self):\n        pass\nclass Outer:\n    class Item:\n        def save(self):\n            pass\n    def get[T](self):\n        CALL\n",
+			"Item().save()",
+		);
+		expect(runs(r)).toEqual(["app.py:Item.save"]);
+	});
+
+	test("a class's own type parameter is still seen through the class body by a generic method's annotation", async () => {
+		const r = await probe(
+			"class C:\n    def run(self):\n        pass\nclass K[C]:\n    def m[U](self, p: C):\n        CALL\n",
+			"p.run()",
+		);
+		expect(runs(r)).toEqual([]);
+	});
+
+	// DEC-303 (a71), round 2: Rule 36(ii) -- a bare name called in its own class body runs as a plain function, so the
+	// def of that name yields no receiver. A call in a generic's annotation, return type, base, keyword argument or
+	// alias value is in the class body for that rule even though it walks in the type-parameter scope.
+	describe("a bare call in a generic's expression inside a class body is a class-body use (Rule 36(ii))", () => {
+		const helpers = (r: { callees: (string | null)[] }) => r.callees.filter((c) => c?.endsWith(".helper"));
+		const bare = (member: string) =>
+			probe(
+				`class Outer:\n    def helper(self):\n        pass\n    def run(self):\n        CALL\n${member}`,
+				"self.helper()",
+			);
+		const forms: Record<string, string> = {
+			"alias value": "    type A[T] = run()\n",
+			"parameter annotation": "    def g[T](self, x: run()):\n        pass\n",
+			"return type": "    def g[T](self) -> run():\n        pass\n",
+			"class base": "    class K[T](run()):\n        pass\n",
+			"class keyword argument": "    class K[T](kw=run()):\n        pass\n",
+			"non-generic alias (the twin)": "    type A = run()\n",
+			"non-generic annotation (the twin)": "    def g(self, x: run()):\n        pass\n",
+			"a bare call in the body (the twin)": "    run()\n",
+		};
+		for (const [label, member] of Object.entries(forms)) {
+			test(`${label}: self.helper() inside run gets no receiver edge`, async () => {
+				const r = await bare(member);
+				expect(r.delta, label).toEqual(REFUSED);
+				expect(helpers(r), label).toEqual([]);
+			});
+		}
+
+		test("a generic whose expressions call nothing keeps the edge", async () => {
+			const r = await bare("    type A[T] = int\n    def g[T](self, x: int) -> int:\n        pass\n");
+			expect(r.delta.inRepo).toBe(1);
+			expect(helpers(r)).toEqual(["app.py:Outer.helper"]);
+		});
+
+		test("a bare call in a generic method's own body is not a class-body use", async () => {
+			const r = await bare("    def g[T](self):\n        run()\n");
+			expect(helpers(r)).toEqual(["app.py:Outer.helper"]);
+		});
+	});
+
+	// DEC-303 (a72), round 3: a name the class body binds (here by a later import) is read from the class or the
+	// globals, never from an enclosing function, also from a generic's lazy alias value. Two bindings of `x` keep
+	// Rule 6d from resolving it first, so the call reaches R4 and its `enumerableBindings` class-body guard.
+	test("a lazy alias value in a class body that later imports its receiver name refuses", async () => {
+		const others = { "m.py": "class X:\n    pass\n" };
+		const app = (bindings: string) =>
+			`${cls}def outer():\n${bindings}    class Outer:\n        type A[T] = CALL\n        from m import X as x\n`;
+		const imported = await probe(app("    x = C()\n    x = C()\n"), "x.run()", others);
+		expect(imported.delta).toEqual(REFUSED);
+		expect(runs(imported)).not.toContain("app.py:C.run");
+	});
+
+	test("twin: the same alias value without the class-body import resolves through the enclosing function", async () => {
+		const twin = await probe(
+			`${cls}def outer():\n    x = C()\n    x = C()\n    class Outer:\n        type A[T] = CALL\n`,
+			"x.run()",
+		);
+		expect(twin.delta.inRepo).toBe(1);
+		expect(runs(twin)).toEqual(["app.py:C.run"]);
+	});
+});
