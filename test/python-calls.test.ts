@@ -2268,8 +2268,9 @@ describe("E1 — Cls(...).m() on a constructed instance", () => {
 	});
 
 	test("a del of the class name introduces no new value, so it does not block resolution", async () => {
-		// A name that is deleted can only fail afterwards (NameError), never read
-		// a different object, so `del` is not a second binding of the name.
+		// del adds no value to the name: a later read fails, or falls back to an
+		// outer binding (a builtin at module scope, a global in a class body) that
+		// this analysis does not model, so del is not recorded as a second binding.
 		const result = await analyze([py("app.py", `${classC}\nC().m()\ndel C\n`)]);
 		expect(callLines(result)).toEqual([5]);
 	});
