@@ -210,6 +210,8 @@ type MroEntry = { kind: "class"; info: ClassInfo; key: string } | { kind: "opaqu
 
 type MroResult = { ok: true; entries: MroEntry[] } | { ok: false };
 
+type DecoratorSlots = "absent" | "false" | "other";
+
 interface ClassInfo {
 	id: string;
 	name: string;
@@ -230,6 +232,13 @@ interface ClassInfo {
 	decorators: string[];
 	/** The callee of each decorator (the function of `@d(...)`), in source order; parallel to `decorators`. */
 	decoratorCallees: CalleeDesc[];
+	/**
+	 * How each decorator spells `slots`, parallel to `decorators`: "absent" (a bare
+	 * decorator, or a call with no arguments), "false" (exactly `slots=False` and
+	 * nothing else that could carry it), or "other" (any other value, a positional
+	 * argument, or a `**` splat).
+	 */
+	decoratorSlots: DecoratorSlots[];
 	methods: Map<string, string[]>;
 	/** Rule 36(ii): bare names used in this class body as a decorator or call. */
 	classBodyBareUses: Set<string>;
@@ -584,6 +593,20 @@ function importStatementNames(node: Node): string[] {
 	return names;
 }
 
+/** How a decorator call spells `slots` (see ClassInfo.decoratorSlots). */
+function slotsSpelling(call: Node): DecoratorSlots {
+	let spelling: DecoratorSlots = "absent";
+	for (const arg of call.childForFieldName("arguments")?.namedChildren ?? []) {
+		if (arg === null || arg.type === "comment") continue;
+		const key = arg.type === "keyword_argument" ? arg.childForFieldName("name") : null;
+		if (key === null) return "other"; // a positional argument or a ** splat could carry it
+		if (key.text !== "slots") continue;
+		const value = arg.childForFieldName("value");
+		spelling = value !== null && value.type === "false" ? "false" : "other";
+	}
+	return spelling;
+}
+
 function describeCallee(node: Node): CalleeDesc {
 	if (node.type === "identifier") return { kind: "name", name: node.text };
 	if (node.type === "call") {
@@ -715,6 +738,7 @@ interface WalkFrame {
 	scopeNames: string[];
 	decorators?: string[];
 	decoratorCallees?: CalleeDesc[];
+	decoratorSlots?: DecoratorSlots[];
 	underError: boolean;
 }
 
@@ -847,7 +871,14 @@ class FileWalker {
 					this.handleFunction(stack, frame, node, frame.decorators ?? []);
 					continue;
 				case "class_definition":
-					this.handleClass(stack, frame, node, frame.decorators ?? [], frame.decoratorCallees ?? []);
+					this.handleClass(
+						stack,
+						frame,
+						node,
+						frame.decorators ?? [],
+						frame.decoratorCallees ?? [],
+						frame.decoratorSlots ?? [],
+					);
 					continue;
 				case "lambda":
 					this.handleLambda(stack, frame, node);
@@ -1010,12 +1041,14 @@ class FileWalker {
 		const definition = frame.node.childForFieldName("definition");
 		const decorators: string[] = [];
 		const decoratorCallees: CalleeDesc[] = [];
+		const decoratorSlots: DecoratorSlots[] = [];
 		for (const child of frame.node.namedChildren) {
 			if (child === null || child.type !== "decorator") continue;
 			const expression = child.namedChild(0);
 			if (expression === null) continue;
 			decorators.push(expression.text);
 			const decoratorFunction = expression.type === "call" ? expression.childForFieldName("function") : expression;
+			decoratorSlots.push(expression.type === "call" ? slotsSpelling(expression) : "absent");
 			decoratorCallees.push(decoratorFunction === null ? { kind: "dynamic" } : describeCallee(decoratorFunction));
 			if (expression.type === "call") {
 				// Rule 21: `@d(args)` is one call site at the decorator line, no decorator site.
@@ -1059,6 +1092,7 @@ class FileWalker {
 			scopeNames: frame.scopeNames,
 			decorators,
 			decoratorCallees,
+			decoratorSlots,
 			underError: frame.underError,
 		});
 	}
@@ -1169,6 +1203,7 @@ class FileWalker {
 		node: Node,
 		decorators: string[],
 		decoratorCallees: CalleeDesc[],
+		decoratorSlots: DecoratorSlots[],
 	): void {
 		const nameNode = node.childForFieldName("name");
 		const name = nameNode !== null && !nameNode.isMissing ? nameNode.text : null;
@@ -1222,6 +1257,7 @@ class FileWalker {
 						metaclassValue,
 						decorators,
 						decoratorCallees,
+						decoratorSlots,
 						methods: new Map(),
 						classBodyBareUses: new Set<string>(),
 					}
@@ -2180,7 +2216,7 @@ class Resolver {
 	 */
 	private hasReplacingDecorator(classInfo: ClassInfo): boolean {
 		const use = { line: classInfo.line, column: 1 };
-		for (const callee of classInfo.decoratorCallees) {
+		for (const [position, callee] of classInfo.decoratorCallees.entries()) {
 			let moduleName: string;
 			let decoratorName: string;
 			let bindingName: string;
@@ -2199,6 +2235,8 @@ class Resolver {
 			const binding = found.bindings[0] as RawBinding;
 			const imported = binding.kind === "import" ? binding.importBinding : null;
 			if (imported === null || imported === undefined || imported.kind !== wantKind) return true;
+			// A repo file named like the stdlib module resolves the import in-repo: not the stdlib decorator.
+			if (imported.outcome !== "external") return true;
 			if (wantKind === "from") {
 				moduleName = imported.module;
 				decoratorName = imported.name ?? "";
@@ -2207,6 +2245,10 @@ class Resolver {
 				decoratorName = (callee as { segments: string[] }).segments[0] as string;
 			}
 			if (NON_REPLACING_CLASS_DECORATORS.get(moduleName)?.has(decoratorName) !== true) return true;
+			// (a32) dataclass(slots=True) returns a NEW class: only a bare, slots-absent or
+			// slots=False dataclass keeps the original, so any other spelling refuses. No
+			// other listed decorator takes `slots`, so the test needs no name check.
+			if (classInfo.decoratorSlots[position] === "other") return true;
 		}
 		return false;
 	}
