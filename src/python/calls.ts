@@ -214,6 +214,12 @@ interface RawBinding {
 	viaGlobal?: true;
 	/** GCLI-116 (N4): a bare annotation `f: T` with no value, which binds no name at module scope (PEP 526). */
 	bare?: true;
+	/**
+	 * GCLI-136 (DEC-303 (a67)): a plain assignment in a statement that may be skipped (`maySkipStatement`: an
+	 * `if`, loop, `with`, `case` or `try`-with-`except` arm). Read only by `starSetIsExact`, so the assignment
+	 * rules that read `conditional` (`isConditionalStatement`) are unchanged.
+	 */
+	maySkip?: true;
 }
 
 interface Scope {
@@ -1715,6 +1721,11 @@ class FileWalker {
 				annotation,
 				annotationScope: annotation !== null ? frame.scope : null,
 				...(isConditionalStatement(node) ? { conditional: true as const } : {}),
+				// the assignment's parent is an expression_statement, which maySkipStatement would read as an unknown
+				// compound statement; ask about the statement itself
+				...(maySkipStatement(node.parent?.type === "expression_statement" ? node.parent : node)
+					? { maySkip: true as const }
+					: {}),
 				...(right === null ? { bare: true as const } : {}),
 			});
 		} else if (left !== null) {
@@ -2152,12 +2163,14 @@ class Resolver {
 		const all = target.bindings.get("__all__");
 		if (all !== undefined) {
 			const only = all[0] as RawBinding;
-			// a conditional `__all__` may not run, and a bare annotation `__all__: T` binds nothing
+			// an `__all__` in a statement that may be skipped (maySkipStatement: an if arm, a loop, with or case
+			// body, an except arm) may stay unbound, and a bare annotation `__all__: T` binds nothing
 			return (
 				all.length === 1 &&
 				only.kind === "assign" &&
 				only.viaGlobal !== true &&
 				only.conditional !== true &&
+				only.maySkip !== true &&
 				only.bare !== true
 			);
 		}
