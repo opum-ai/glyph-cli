@@ -4664,6 +4664,22 @@ describe("GCLI-115 — a del target is a binding", () => {
 		await expectDelta(src, "x.run()", RESOLVED, "k's nonlocal write is placed on h by the del");
 	});
 
+	test("placement invariant (a43 item 1): k's write lands on h iff h binds x by assignment or del", async () => {
+		// h binds x by assignment: k's `nonlocal x` binds h's local, so g keeps a single C and x.run() resolves.
+		const src = `${cls}def g():
+    x = C()
+    def h():
+        x = None
+        def k():
+            nonlocal x
+            x = D()
+        k()
+    h()
+    CALL
+`;
+		await expectDelta(src, "x.run()", RESOLVED, "an assignment in h places k's write on h");
+	});
+
 	test("R4 and 6d: a deleted local is a binding; the twin without the del resolves", async () => {
 		const base = `${cls}def g():\n    x = C()\n    CALL\n`;
 		await expectDelta(base, "x.run()", RESOLVED, "twin");
