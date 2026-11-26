@@ -3334,6 +3334,9 @@ class Resolver {
 			if (!mro.ok) return null;
 			for (const entry of mro.entries) {
 				if (entry.kind === "class" && entry.info.scope?.bindings.has("__class__") === true) return null;
+				// (a56) item 2, fail closed: an entry whose scope cannot be read (opaque, or external and not
+				// an unshadowed builtin class) may define `__class__` (unittest.mock's Mock does).
+				if (entry.kind === "opaque" && this.builtinClassBaseName(entry) === null) return null;
 			}
 		}
 		return receiver.classInfo;

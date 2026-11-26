@@ -258,6 +258,39 @@ describe("TS — a class that defines __class__ leaves self.__class__ unresolved
 		});
 	}
 
+	test("(a56) item 2: an external or opaque base refuses self.__class__ (fail closed); type(self) still resolves", async () => {
+		const run2 = (rhs: string): string => `    def meth(self):\n        pass\n${run(rhs)}`;
+		const heads: Record<string, string> = {
+			"an external import": "from unittest.mock import Mock\nclass C(Mock):\n",
+			"an unresolved import": "from nowhere import Base\nclass C(Base):\n",
+			"a call-expression base": "class C(make_base()):\n",
+			"a rebound in-repo name": "class B:\n    pass\nB = something\nclass C(B):\n",
+			"a shadowed builtin name": "dict = something\nclass C(dict):\n",
+		};
+		for (const [label, head] of Object.entries(heads)) {
+			const refused = await probe(`${head}${run2("self.__class__")}`);
+			expect(refused.sites, label).toEqual([]);
+			expect(refused.delta, label).toEqual(REFUSED);
+		}
+		// the type(self) twin of the external base resolves, callee pinned (the lookup already did before the rule)
+		const twin = await probe(`${heads["an external import"]}${run2("type(self)")}`);
+		expect(twin.delta).toEqual(RESOLVED);
+		expect(twin.sites.map((s) => s.calleeId)).toEqual([idOf(twin.result, "C.meth")]);
+	});
+
+	test("(a56) item 2: an unshadowed builtin base (object, dict, an exception) does not refuse self.__class__", async () => {
+		for (const base of ["object", "dict", "int", "Exception"]) {
+			const { delta, sites, result } = await probe(
+				`class C(${base}):\n${"    def meth(self):\n        pass\n"}${run("self.__class__")}`,
+			);
+			expect(delta, base).toEqual(RESOLVED);
+			expect(
+				sites.map((s) => s.calleeId),
+				base,
+			).toEqual([idOf(result, "C.meth")]);
+		}
+	});
+
 	test("a base off the MRO, or a __class__ read rather than defined, does not refuse (positive twins)", async () => {
 		const unrelated = await probe(
 			`class Z:\n    __class__ = int\nclass C:\n    def meth(self):\n        pass\n${run("self.__class__")}`,
