@@ -5108,15 +5108,50 @@ describe("GCLI-115 — a del target is a binding", () => {
 // attribute to the class method, as the bare-class `C.meth(...)` lookup does.
 describe("A2 — module.Class.method resolves as the bare-class lookup does", () => {
 	const m = "class C:\n    def meth(self):\n        return 1\n    @staticmethod\n    def st():\n        return 2\n";
+	type Key = "resolvedInRepo" | "resolvedExternal" | "receiverNeedsInference" | "nameNotBound";
+	const KEYS: Key[] = ["resolvedInRepo", "resolvedExternal", "receiverNeedsInference", "nameNotBound"];
 
-	/** Edge targets (qualname) of the app.py sites on `line`, with the full bin counts. */
+	/** The app.py edges on `line` as `kind:qualname` plus the flags the edge carries, with the full bin counts. */
 	async function at(files: PythonModuleInput[], line: number) {
 		const result = await analyze(files);
 		const byId = new Map(result.symbols.map((symbol) => [symbol.id, symbol.qualname]));
 		const targets = result.sites
 			.filter((site) => site.file === "app.py" && site.line === line)
-			.map((site) => `${site.kind}:${byId.get(site.calleeId as string)}`);
-		return { targets, bins: result.callBins };
+			.map((site) => {
+				const flags = `${site.polymorphic ? "|poly" : ""}${site.multiplyBound ? "|multi" : ""}${site.externalBaseBefore ? "|extbase" : ""}`;
+				return `${site.kind}:${byId.get(site.calleeId as string)}${flags}`;
+			});
+		return { targets, bins: result.callBins, result };
+	}
+
+	/**
+	 * A refused call has no edge and sits in `bin` with the given reason: the source with the call
+	 * replaced by `pass` differs by exactly one site in that bin.
+	 */
+	async function refused(
+		files: PythonModuleInput[],
+		call: string,
+		bin: Key,
+		reason: string,
+		label: string,
+	): Promise<void> {
+		const app = files[files.length - 1] as PythonModuleInput;
+		const text = new TextDecoder().decode(app.bytes);
+		const rest = files.slice(0, -1);
+		const withCall = await analyze([...rest, py("app.py", text.replace("CALL", call))]);
+		const without = await analyze([...rest, py("app.py", text.replace("CALL", "pass"))]);
+		expect(
+			withCall.sites.filter((site) => site.file === "app.py"),
+			label,
+		).toEqual([]);
+		for (const key of KEYS) {
+			expect(withCall.callBins[key] - without.callBins[key], `${label}: ${key}`).toBe(key === bin ? 1 : 0);
+		}
+		const reasons = [...withCall.unresolvedNameReasons, ...withCall.unresolvedReceiverReasons];
+		expect(
+			reasons.map((entry) => entry.reason),
+			label,
+		).toContain(reason);
 	}
 
 	test("m.C.st() and m.C.meth(m.C()) resolve to the method; m.C().meth() is unchanged", async () => {
@@ -5145,50 +5180,110 @@ describe("A2 — module.Class.method resolves as the bare-class lookup does", ()
 		]);
 	});
 
-	test("negative controls stay unresolved, each in the bin it had before the rule", async () => {
-		type Key = "resolvedInRepo" | "resolvedExternal" | "receiverNeedsInference" | "nameNotBound";
-		const cases: Record<string, { files: PythonModuleInput[]; bin: Key }> = {
-			"an unknown method": {
-				files: [py("m.py", m), py("app.py", "import m\ndef run():\n    CALL\n")],
-				bin: "nameNotBound",
-			},
-			"a rebound class name": {
-				files: [py("m.py", `${m}C = None\n`), py("app.py", "import m\ndef run():\n    CALL\n")],
-				bin: "nameNotBound",
-			},
-			"an external module": { files: [py("app.py", "import os\ndef run():\n    CALL\n")], bin: "resolvedExternal" },
-			"a property": {
-				files: [
-					py("m.py", "class C:\n    @property\n    def p(self):\n        return 1\n"),
-					py("app.py", "import m\ndef run():\n    CALL\n"),
-				],
-				bin: "nameNotBound",
-			},
+	test("the edge carries the flags the bare-class lookup gives it", async () => {
+		// a subclass override makes the lookup polymorphic, as `C.meth` does for a bare class
+		const poly = "class C:\n    def meth(self):\n        pass\nclass D(C):\n    def meth(self):\n        pass\n";
+		expect((await at([py("m.py", poly), py("app.py", "import m\ndef run():\n    m.C.meth(1)\n")], 3)).targets).toEqual([
+			"call:C.meth|poly",
+		]);
+		expect((await at([py("app.py", `${poly}def run():\n    C.meth(1)\n`)], 8)).targets).toEqual(["call:C.meth|poly"]);
+		// an opaque base before the in-repo def is recorded on the edge
+		const ext =
+			"from ext import Base\nclass D:\n    @staticmethod\n    def st():\n        pass\nclass C(Base, D):\n    pass\n";
+		const based = await at([py("m.py", ext), py("app.py", "import m\ndef run():\n    m.C.st()\n")], 3);
+		expect(based.targets).toEqual(["call:D.st|extbase"]);
+		// two defs of the method in the class: both edges, each multiply bound
+		const multi = "class C:\n    def st(self):\n        pass\n    def st(self, x):\n        pass\n";
+		const both = await at([py("m.py", multi), py("app.py", "import m\ndef run():\n    m.C.st(1)\n")], 3);
+		expect(both.targets).toEqual(["call:C.st|multi", "call:C.st|multi"]);
+	});
+
+	test("a class bound more than once in m, or a class that is not one class, is refused", async () => {
+		const call = "import m\ndef run():\n    CALL\n";
+		const arms =
+			"if X:\n    class C:\n        @staticmethod\n        def st():\n            pass\nelse:\n    class C:\n        @staticmethod\n        def st():\n            pass\n";
+		await refused(
+			[py("m.py", arms), py("app.py", call)],
+			"m.C.st()",
+			"nameNotBound",
+			"attribute-not-found",
+			"if/else classes",
+		);
+	});
+
+	test("a submodule named like the class keeps the module walk (B2)", async () => {
+		const pkg = (y: string) => [
+			py("pkg/__init__.py", "class X:\n    def y(self):\n        pass\n"),
+			py("pkg/X.py", y),
+			py("app.py", "import pkg.X\ndef run():\n    pkg.X.y()\n"),
+		];
+		// the submodule has y: the edge stays on the submodule's def, as before the rule
+		const withY = await at(pkg("def y():\n    pass\n"), 3);
+		expect(withY.targets).toEqual(["call:y"]);
+		expect(withY.result.sites.find((site) => site.file === "app.py")?.calleeId).toBe("pkg/X.py:1:5");
+		// the submodule lacks y: unresolved, as before; the class in __init__ is not taken either
+		const without = pkg("def z():\n    pass\n");
+		await refused(
+			[...without.slice(0, -1), py("app.py", "import pkg.X\ndef run():\n    CALL\n")],
+			"pkg.X.y()",
+			"nameNotBound",
+			"attribute-not-found",
+			"submodule without y",
+		);
+	});
+
+	test("shapes of m that leave the class name without one binding are refused", async () => {
+		const call = "import m\ndef run():\n    CALL\n";
+		const shapes: Record<string, string> = {
+			del: `${m}del C\n`,
+			"rebind to None": `${m}C = None\n`,
+			"for target": `${m}for C in z:\n    pass\n`,
+			"walrus target": `${m}(C := 1)\n`,
+			"global write": `${m}def f():\n    global C\n    C = 1\n`,
 		};
-		const calls: Record<string, string> = {
-			"an unknown method": "m.C.nope()",
-			"a rebound class name": "m.C.st()",
-			"an external module": "os.C.st()",
-			"a property": "m.C.p()",
-		};
-		for (const [label, { files, bin }] of Object.entries(cases)) {
-			const app = files[files.length - 1] as PythonModuleInput;
-			const text = new TextDecoder().decode(app.bytes);
-			const rest = files.slice(0, -1);
-			const withCall = await analyze([...rest, py("app.py", text.replace("CALL", calls[label] as string))]);
-			const without = await analyze([...rest, py("app.py", text.replace("CALL", "pass"))]);
-			expect(
-				withCall.sites.filter((site) => site.file === "app.py"),
-				label,
-			).toEqual([]);
-			const keys: Key[] = ["resolvedInRepo", "resolvedExternal", "receiverNeedsInference", "nameNotBound"];
-			for (const key of keys) {
-				expect(withCall.callBins[key] - without.callBins[key], `${label}: ${key}`).toBe(key === bin ? 1 : 0);
-			}
+		for (const [label, source] of Object.entries(shapes)) {
+			await refused([py("m.py", source), py("app.py", call)], "m.C.st()", "nameNotBound", "attribute-not-found", label);
 		}
-		// an unknown class: the attribute is not found in m, as before
-		const unknown = await analyze([py("m.py", m), py("app.py", "import m\ndef run():\n    m.D.st()\n")]);
-		expect(unknown.sites.filter((site) => site.file === "app.py")).toEqual([]);
-		expect(unknown.callBins.nameNotBound).toBe(1);
+		// a with target also binds a second name in app (the with itself is a bare call): only the edge is asserted
+		const withTarget = await at(
+			[py("m.py", `${m}with q() as C:\n    pass\n`), py("app.py", "import m\ndef run():\n    m.C.st()\n")],
+			3,
+		);
+		expect(withTarget.targets).toEqual([]);
+	});
+
+	test("negative controls stay unresolved, each in the bin and with the reason it had before the rule", async () => {
+		const call = "import m\ndef run():\n    CALL\n";
+		await refused(
+			[py("m.py", m), py("app.py", call)],
+			"m.C.nope()",
+			"nameNotBound",
+			"attribute-not-found",
+			"unknown method",
+		);
+		await refused(
+			[py("m.py", m), py("app.py", call)],
+			"m.D.st()",
+			"nameNotBound",
+			"attribute-not-found",
+			"unknown class",
+		);
+		await refused(
+			[py("m.py", `${m}C = None\n`), py("app.py", call)],
+			"m.C.st()",
+			"nameNotBound",
+			"attribute-not-found",
+			"rebound class",
+		);
+		const prop = "class C:\n    @property\n    def p(self):\n        return 1\n";
+		await refused([py("m.py", prop), py("app.py", call)], "m.C.p()", "nameNotBound", "attribute-not-found", "property");
+		// a class imported from an external module reaches the new path and is not taken
+		await refused(
+			[py("m.py", "from ext import C\n"), py("app.py", call)],
+			"m.C.st()",
+			"nameNotBound",
+			"attribute-not-found",
+			"external import",
+		);
 	});
 });

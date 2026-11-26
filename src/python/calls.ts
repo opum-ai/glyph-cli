@@ -3528,6 +3528,20 @@ class Resolver {
 	 */
 	private moduleClassMemberCall(path: string, segments: readonly string[]): CallResolution | null {
 		if (segments.length < 2) return null;
+		const holderChain = segments.slice(0, -2);
+		const holder =
+			holderChain.length === 0 ? { kind: "module" as const, path } : this.resolveModuleChain(path, holderChain, 0);
+		if (holder.kind !== "module" || holder.path === null) return null;
+		// A submodule named like the class: the module walk (`moduleCall`) takes the submodule before
+		// the attribute's own binding gate would be reached, so the old resolution stands.
+		const holderName = this.pathToModule.get(holder.path);
+		const classSegment = segments[segments.length - 2] as string;
+		if (
+			holderName !== undefined &&
+			this.modulePathByName.has(holderName === "" ? classSegment : `${holderName}.${classSegment}`)
+		) {
+			return null;
+		}
 		const prefix = this.resolveModuleChain(path, segments.slice(0, -1), 0);
 		if (prefix.kind !== "symbol" || prefix.symbol.kind !== "class") return null;
 		const classInfo = this.classById.get(prefix.symbol.id);
