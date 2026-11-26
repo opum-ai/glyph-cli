@@ -2846,6 +2846,10 @@ describe("D1 — a class-scope non-def binding hides a base's def", () => {
 			"with-as star in a tuple": "with ctx() as (a, *NAME):\n    pass",
 			"with-as star in a list": "with ctx() as [a, *NAME]:\n    pass",
 			"parenthesised with items": "with (ctx() as (NAME, n)):\n    pass",
+			"with-as parenthesised single name": "with ctx() as (NAME):\n    pass",
+			"with-as nested parenthesised name": "with ctx() as (a, (NAME)):\n    pass",
+			"with-as doubly parenthesised name": "with ctx() as ((NAME)):\n    pass",
+			"with-as parenthesised name in a list": "with ctx() as [a, (NAME)]:\n    pass",
 		};
 		for (const [label, body] of Object.entries(bodies)) {
 			for (const name of ["m", "__call__"] as const) {
@@ -2865,6 +2869,10 @@ describe("D1 — a class-scope non-def binding hides a base's def", () => {
 			"with ctx() as NAME.x:\n    pass",
 			"with ctx() as (a, NAME.x):\n    pass",
 			"with ctx() as a[NAME]:\n    pass",
+			// a type parameter binds in its own scope, never in the class
+			"type other[NAME] = list[NAME]",
+			"def zz[NAME](self):\n    pass",
+			"with ctx() as (a, (b)):\n    pass",
 		];
 		for (const body of bodies) {
 			for (const name of ["m", "__call__"] as const) {

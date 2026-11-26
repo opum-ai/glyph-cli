@@ -1034,7 +1034,9 @@ class FileWalker {
 			case "list":
 			case "list_splat_pattern":
 			// GCLI-107: a `with ... as (a, *m)` target spells the star `list_splat`.
-			case "list_splat": {
+			case "list_splat":
+			// GCLI-107: `with ctx() as (m):` and `as (a, (m))` parenthesise a single name.
+			case "parenthesized_expression": {
 				for (const child of target.namedChildren) this.addTargetBindings(scope, child);
 				return;
 			}
