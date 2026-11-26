@@ -2509,18 +2509,26 @@ class Resolver {
 		const stars = this.starBindingsByPath.get(path);
 		if (stars === undefined) return null;
 		let lastLine = 0;
+		let unpositioned = false;
 		for (const binding of bindings) {
 			let line: number | null = null;
 			if (binding.kind === "def" || binding.kind === "class") {
 				line = binding.symbolId !== undefined ? (this.symbolsById.get(binding.symbolId)?.line ?? null) : null;
 			} else if (binding.kind === "import") line = binding.importBinding?.line ?? null;
-			if (line !== null) lastLine = Math.max(lastLine, line);
+			if (line === null) unpositioned = true;
+			else lastLine = Math.max(lastLine, line);
 		}
 		let partial = false;
 		for (let index = stars.length - 1; index >= 0; index--) {
 			const star = stars[index] as ImportBinding;
-			if (star.line <= lastLine) break;
-			if (star.outcome === "resolved" && star.target !== null && star.reason === null) {
+			const complete = star.outcome === "resolved" && star.target !== null && star.reason === null;
+			const matters = !complete || star.starNames.includes(name);
+			// A star on the same line as the last binding cannot be ordered against it (an import has a line, no
+			// column), and a binding with no position (a conditional alias assignment) cannot be ordered against any
+			// star: either way a star that could bind the name leaves it unresolved rather than guessing.
+			if (matters && (star.line === lastLine || unpositioned)) return { kind: "unresolved", reason: "star-bound" };
+			if (star.line <= lastLine && !unpositioned) break;
+			if (complete && star.target !== null) {
 				if (!star.starNames.includes(name)) continue;
 				if (partial) return { kind: "unresolved", reason: "star-bound" };
 				const ctx: StarLookupContext = { visited: new Set<string>(), hops: 0, cycle: false };

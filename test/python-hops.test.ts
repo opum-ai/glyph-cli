@@ -311,9 +311,55 @@ describe("GCLI-118 round 1 — star after the last binding, alias hops, cycles",
 		}
 	});
 
-	test("a star on the same line as the import before it does not decide; the import stands", async () => {
-		const r = await both("from x import *; from o import f\n", { "x.py": x, "o.py": x });
-		for (const one of [r.fromImport, r.attribute]) expect(one.callees).toEqual(["o.py:f"]);
+	test("a star on the same line as the import cannot be ordered against it: either order is unresolved", async () => {
+		for (const holder of ["from x import *; from o import f\n", "from o import f; from x import *\n"]) {
+			const r = await both(holder, { "x.py": x, "o.py": x });
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(
+					one.sites.map((s) => s.calleeId),
+					holder,
+				).toEqual([]);
+				expect(one.delta.inRepo, holder).toBe(0);
+			}
+		}
+		// the twin on separate lines: the star after the import decides; the star before it is overridden
+		const after = await both("from o import f\nfrom x import *\n", { "x.py": x, "o.py": x });
+		for (const one of [after.fromImport, after.attribute]) expect(one.callees).toEqual(["x.py:f"]);
+		const before = await both("from x import *\nfrom o import f\n", { "x.py": x, "o.py": x });
+		for (const one of [before.fromImport, before.attribute]) expect(one.callees).toEqual(["o.py:f"]);
+	});
+
+	test("a conditional alias assignment has no position: a star that may bind the name leaves it unresolved", async () => {
+		const shapes: Record<string, string> = {
+			"def f, star, if-arm f = g": "def g():\n    pass\ndef f():\n    pass\nfrom x import *\nif C:\n    f = g\n",
+			"import f, star, if-arm f = g": "def g():\n    pass\nfrom y import f\nfrom x import *\nif C:\n    f = g\n",
+			"star, def f, except-arm f = g":
+				"def g():\n    pass\nfrom x import *\ndef f():\n    pass\ntry:\n    pass\nexcept E:\n    f = g\n",
+		};
+		for (const [label, holder] of Object.entries(shapes)) {
+			const r = await both(holder, { "x.py": x, "y.py": x });
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(one.callees, label).not.toContain("x.py:f");
+				expect(
+					one.sites.map((s) => s.calleeId),
+					label,
+				).toEqual([]);
+			}
+		}
+		// twin: no star, the conditional alias stays an alternative (Q2's multiply-bound edge)
+		const noStar = await both("def g():\n    pass\ndef f():\n    pass\nif C:\n    f = g\n", {});
+		for (const one of [noStar.fromImport, noStar.attribute]) {
+			expect(one.callees.sort()).toEqual(["m.py:f", "m.py:g"]);
+		}
+	});
+
+	test("the visit key is (module, name): a walk that returns to a module under another name continues", async () => {
+		const r = await probe("from m import f\nCALL\n", "f()", {
+			"m.py": "def h():\n    pass\nfrom o import g as f\n",
+			"o.py": "from m import h as g\n",
+		});
+		expect(r.delta).toEqual(RESOLVED);
+		expect(r.callees).toEqual(["m.py:h"]);
 	});
 
 	test("an aliased hop reads the next module by the imported name (from o import g as f)", async () => {
