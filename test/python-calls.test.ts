@@ -2368,17 +2368,44 @@ describe("E1 — Cls(...).m() on a constructed instance", () => {
 		const throughBase = await analyze([py("app.py", `class M(type):\n    pass\n\nclass C(M):\n${body}`)]);
 		expect(linesTo(throughBase, symbolId(throughBase, "C.m", "app.py"))).toEqual([]);
 		expect(throughBase.callBins.receiverNeedsInference).toBe(1);
+		// reversed.__new__ may return seq.__reversed__(), not the subclass
+		const reversed = await analyze([py("app.py", `class C(reversed):\n${body}`)]);
+		expect(linesTo(reversed, symbolId(reversed, "C.m", "app.py"))).toEqual([]);
+		expect(reversed.callBins.receiverNeedsInference).toBe(1);
+		// an exception-looking name that is not a builtin stays opaque
+		const notBuiltin = await analyze([py("app.py", `class C(MyError):\n${body}`)]);
+		expect(linesTo(notBuiltin, symbolId(notBuiltin, "C.m", "app.py"))).toEqual([]);
+		// the non-Error/Exception/Warning builtin exceptions resolve
+		for (const name of ["StopIteration", "SystemExit", "KeyboardInterrupt", "GeneratorExit", "StopAsyncIteration"]) {
+			const result = await analyze([py("app.py", `class C(${name}):\n${body}`)]);
+			expect(linesTo(result, symbolId(result, "C.m", "app.py")), name).toEqual([5]);
+		}
 		// a builtin function is not a class
 		const func = await analyze([py("app.py", `class C(print):\n${body}`)]);
 		expect(linesTo(func, symbolId(func, "C.m", "app.py"))).toEqual([]);
-		// a metaclass call that builds X, then .m(): resolved to nothing in-repo
+		// a metaclass call builds X, then .m(): at runtime that reaches Meta.m, so this empty
+		// expectation is a fail-closed miss the (a30) ruling accepts, not ground truth
 		const meta = await analyze([
 			py("app.py", "class Meta(type):\n    def m(self):\n        pass\n\nMeta('X', (object,), {}).m()\n"),
 		]);
 		expect(linesTo(meta, symbolId(meta, "Meta.m", "app.py"))).toEqual([]);
+		expect(meta.callBins.receiverNeedsInference).toBe(1);
 		// a positive twin proves the same shape resolves without `type`
 		const twin = await analyze([py("app.py", `class C(object):\n${body}`)]);
 		expect(linesTo(twin, symbolId(twin, "C.m", "app.py"))).toEqual([5]);
+	});
+
+	test("(a30) the builtin base is checked in the owner's scope, not the call site's", async () => {
+		const shadowedInOwner = await analyze([
+			py("base.py", "Exception = make()\n\nclass B(Exception):\n    def m(self):\n        pass\n"),
+			py("use.py", "from base import B\n\nclass C(B):\n    pass\n\nC().m()\n"),
+		]);
+		expect(linesTo(shadowedInOwner, symbolId(shadowedInOwner, "B.m", "base.py"))).toEqual([]);
+		const shadowedAtCallSite = await analyze([
+			py("base.py", "class B(Exception):\n    def m(self):\n        pass\n"),
+			py("use.py", "from base import B\n\nException = make()\n\nclass C(B):\n    pass\n\nC().m()\n"),
+		]);
+		expect(linesTo(shadowedAtCallSite, symbolId(shadowedAtCallSite, "B.m", "base.py"))).toEqual([8]);
 	});
 
 	test("(a29) Q3: a dotted callee must be rooted at a module; a nested class or an object attribute stays unresolved", async () => {

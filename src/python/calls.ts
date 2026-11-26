@@ -288,8 +288,11 @@ type ModuleAttrOutcome =
 	| { kind: "unresolved"; reason: string };
 
 /**
- * Builtin CLASSES whose construction returns an instance of the class written
- * (DEC-303 (a29) Q2, (a30)). `type` is deliberately absent: a class with `type`
+ * Builtin CLASSES whose constructor returns an instance of the subclass being
+ * constructed, for every subtype (DEC-303 (a29) Q2, (a30)). `reversed` is absent:
+ * its `__new__` returns `seq.__reversed__()` when the sequence defines it. Final
+ * classes (`bool`, `range`, `slice`, `memoryview`) cannot be subclassed and are
+ * not listed. `type` is deliberately absent: a class with `type`
  * in its MRO is a metaclass, and calling it creates a class. Builtin functions
  * (`print`, `len`) are not classes. Exception classes are matched by name below.
  */
@@ -298,18 +301,14 @@ const BUILTIN_INSTANCE_CLASSES: ReadonlySet<string> = new Set([
 	"int",
 	"float",
 	"complex",
-	"bool",
 	"str",
 	"bytes",
 	"bytearray",
-	"memoryview",
 	"list",
 	"tuple",
 	"dict",
 	"set",
 	"frozenset",
-	"range",
-	"slice",
 	"property",
 	"staticmethod",
 	"classmethod",
@@ -317,7 +316,6 @@ const BUILTIN_INSTANCE_CLASSES: ReadonlySet<string> = new Set([
 	"zip",
 	"map",
 	"filter",
-	"reversed",
 ]);
 
 /** Python 3 builtins: a name bound nowhere else in the scope chain (rule 4c). */
@@ -2572,8 +2570,10 @@ class Resolver {
 	 * opaque MRO entry. An opaque base can define `__new__` or carry a metaclass
 	 * whose `__call__` changes what the call returns, so those two checks cannot be
 	 * completed past it and the site fails closed (DEC-303 (a29) Q2). A base that
-	 * is an unshadowed builtin CLASS name that returns an instance of itself (not `type`,
-	 * not a builtin function) is not opaque for this purpose (DEC-303 (a30)).
+	 * is an unshadowed builtin CLASS name (BUILTIN_INSTANCE_CLASSES or a builtin
+	 * exception class) whose constructor returns an instance of the subclass being
+	 * constructed (not `type`, not `reversed`, not a builtin function) is not
+	 * opaque for this purpose (DEC-303 (a30)).
 	 */
 	private instanceClassOf(symbol: PythonSymbol | null): ClassInfo | null {
 		if (symbol === null || symbol.kind !== "class") return null;
@@ -2588,7 +2588,11 @@ class Resolver {
 		return classInfo;
 	}
 
-	/** An opaque MRO entry written as a plain name that is an unshadowed builtin. */
+	/**
+	 * An opaque MRO entry written as a plain name that is a builtin CLASS from
+	 * BUILTIN_INSTANCE_CLASSES or a builtin exception class, unshadowed at the
+	 * position of the class that writes it (the owner's scope, not the call site's).
+	 */
 	private isBuiltinClassBase(entry: MroEntry & { kind: "opaque" }): boolean {
 		const parts = entry.key.split(":");
 		const index = Number(parts[parts.length - 1]);
