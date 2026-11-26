@@ -2503,11 +2503,13 @@ class Resolver {
 	}
 
 	/**
-	 * E1 (DEC-303 (a22) item 3): `Cls(...).m()` calls `m` on a fresh instance of
-	 * `Cls` when the callee resolves, through the same binding enumeration as a
-	 * bare call, to exactly one in-repo class. A `__new__` anywhere in the MRO or a
-	 * non-default metaclass can return something that is not a `Cls`, so those
-	 * stay unresolved, as does a failed MRO and any longer chain (`Cls().a.m()`).
+	 * E1 (DEC-303 (a22) item 3, (a29) Q3): `Cls(...).m()` calls `m` on a fresh
+	 * instance of `Cls` when the callee is a plain name, or a dotted name rooted at
+	 * a MODULE (`mod.Cls(...)`), that resolves through the binding enumeration of
+	 * a bare call to exactly one in-repo class. A nested-class callee
+	 * (`Outer.Inner(...)`) stays unresolved, as `Outer.Inner()` alone does. The
+	 * class must pass `instanceClassOf`; one segment only (`Cls().a.m()` stays
+	 * unresolved).
 	 */
 	private resolveConstructedCall(
 		callee: CalleeDesc,
@@ -2517,14 +2519,50 @@ class Resolver {
 	): CallResolution {
 		const unresolved: CallResolution = { bin: "receiver", reason: "needs-inference" };
 		if (segments.length !== 1) return unresolved;
-		const symbol = this.resolveCalleeToSymbol(callee, scope, 0, site);
-		if (symbol === null || symbol.kind !== "class") return unresolved;
-		const classInfo = this.classById.get(symbol.id);
-		if (classInfo === undefined) return unresolved;
-		const mro = this.computeMro(classInfo);
-		if (!mro.ok) return unresolved;
-		if (this.firstMethodEntry(mro, "__new__") !== null || this.effectiveMetaclass(classInfo)) return unresolved;
+		let symbol: PythonSymbol | null = null;
+		if (callee.kind === "name") {
+			symbol = this.resolveCalleeToSymbol(callee, scope, 0, site);
+		} else if (callee.kind === "attr" && callee.base.kind === "name") {
+			const base = this.resolveBareName(callee.base.name, scope, 0, site);
+			if (base.kind !== "module" || base.path === null) return unresolved;
+			const outcome = this.resolveModuleChain(base.path, callee.segments, 0);
+			symbol = outcome.kind === "symbol" ? outcome.symbol : null;
+		}
+		const classInfo = this.instanceClassOf(symbol);
+		if (classInfo === null) return unresolved;
 		return this.methodLookup(classInfo, segments[0] as string, false, true);
+	}
+
+	/**
+	 * The class whose instance `Cls(...)` is, when the construction is known to
+	 * return one: an ok MRO, no `__new__` in it, no non-default metaclass, and no
+	 * opaque MRO entry. An opaque base can define `__new__` or carry a metaclass
+	 * whose `__call__` changes what the call returns, so those two checks cannot be
+	 * completed past it and the site fails closed (DEC-303 (a29) Q2). A base that
+	 * is an unshadowed builtin class name is not opaque for this purpose.
+	 */
+	private instanceClassOf(symbol: PythonSymbol | null): ClassInfo | null {
+		if (symbol === null || symbol.kind !== "class") return null;
+		const classInfo = this.classById.get(symbol.id);
+		if (classInfo === undefined) return null;
+		const mro = this.computeMro(classInfo);
+		if (!mro.ok) return null;
+		if (this.firstMethodEntry(mro, "__new__") !== null || this.effectiveMetaclass(classInfo)) return null;
+		for (const entry of mro.entries) {
+			if (entry.kind === "opaque" && !this.isBuiltinClassBase(entry)) return null;
+		}
+		return classInfo;
+	}
+
+	/** An opaque MRO entry written as a plain name that is an unshadowed builtin. */
+	private isBuiltinClassBase(entry: MroEntry & { kind: "opaque" }): boolean {
+		const parts = entry.key.split(":");
+		const index = Number(parts[parts.length - 1]);
+		const owner = this.classById.get(parts.slice(1, -1).join(":"));
+		const base = owner?.bases[index];
+		if (owner === undefined || base === undefined || base.callee === null || base.callee.kind !== "name") return false;
+		if (!BUILTINS.has(base.callee.name)) return false;
+		return this.isUnshadowedBuiltin(base.callee.name, owner.parentScope, { line: owner.line, column: 1 });
 	}
 
 	private moduleCall(

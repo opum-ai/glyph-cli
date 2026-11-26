@@ -2331,8 +2331,48 @@ describe("E1 — Cls(...).m() on a constructed instance", () => {
 		expect(unbound.callBins.resolvedInRepo).toBe(0);
 	});
 
-	test("a class whose method is absent and whose base is external lands external, not an edge", async () => {
-		const result = await analyze([py("app.py", "class C(Ext):\n    pass\n\nC().m()\n")]);
-		expect(result.callBins.resolvedExternal).toBe(1);
+	test("(a29) Q2: an opaque MRO entry fails closed to receiver-needs-inference, own or inherited", async () => {
+		const own = await analyze([py("app.py", "class C(Ext):\n    def m(self):\n        pass\n\nC().m()\n")]);
+		expect(linesTo(own, symbolId(own, "C.m", "app.py"))).toEqual([]);
+		expect(own.callBins.receiverNeedsInference).toBe(1);
+		const absent = await analyze([py("app.py", "class C(Ext):\n    pass\n\nC().m()\n")]);
+		expect(absent.callBins.receiverNeedsInference).toBe(1);
+		expect(absent.callBins.resolvedExternal).toBe(0);
+		const inherited = await analyze([
+			py("app.py", "class B(Ext):\n    pass\n\nclass C(B):\n    def m(self):\n        pass\n\nC().m()\n"),
+		]);
+		expect(linesTo(inherited, symbolId(inherited, "C.m", "app.py"))).toEqual([]);
+	});
+
+	test("(a29) Q2: an unshadowed builtin base is not opaque; a shadowed one is", async () => {
+		const body = "    def m(self):\n        pass\n\nC().m()\n";
+		for (const base of ["Exception", "object", "dict"]) {
+			const result = await analyze([py("app.py", `class C(${base}):\n${body}`)]);
+			expect(linesTo(result, symbolId(result, "C.m", "app.py")), base).toEqual([7 - 2]);
+		}
+		const shadowed = await analyze([py("app.py", `Exception = make()\n\nclass C(Exception):\n${body}`)]);
+		expect(linesTo(shadowed, symbolId(shadowed, "C.m", "app.py"))).toEqual([]);
+	});
+
+	test("(a29) Q3: a dotted callee must be rooted at a module; a nested class or an object attribute stays unresolved", async () => {
+		const nested = await analyze([
+			py("app.py", "class Outer:\n    class Inner:\n        def m(self):\n            pass\n\nOuter.Inner().m()\n"),
+		]);
+		expect(linesTo(nested, symbolId(nested, "Outer.Inner.m", "app.py"))).toEqual([]);
+		const object = await analyze([py("app.py", `${classC}\nobj = make()\nobj.C().m()\n`)]);
+		expect(callLines(object)).toEqual([]);
+	});
+
+	test("(a29) Q1: E1 keeps the polymorphic flag when a subclass overrides the method", async () => {
+		const result = await analyze([
+			py(
+				"app.py",
+				"class C:\n    def m(self):\n        pass\n\nclass D(C):\n    def m(self):\n        pass\n\nC().m()\n",
+			),
+		]);
+		const sites = sitesTo(result, symbolId(result, "C.m", "app.py"));
+		expect(sites.map((site) => site.line)).toEqual([9]);
+		expect(sites[0]?.polymorphic).toBe(true);
+		expect(result.polymorphicCount).toBe(1);
 	});
 });
