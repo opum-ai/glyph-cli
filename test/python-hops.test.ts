@@ -758,3 +758,136 @@ describe("GCLI-125 — a conditional star is a may-skip alternative", () => {
 		}
 	});
 });
+
+// GCLI-124 (DEC-303 (a60) item 9, (a61) item 5): a hop that imports the name conditionally and under an alias
+// (`if C: from p import g as f`) is followed with its imported name g, as the unconditional form is; the first-hop
+// name f is never looked up in the target. p.f is the WRONG edge (p.g is what Python binds).
+describe("GCLI-124 — a conditional alias hop names the imported name, not the first-hop name", () => {
+	const p = "def g():\n    pass\n\ndef f():\n    pass\n";
+	const both = async (holder: string, others: Record<string, string>) => ({
+		fromImport: await probe("from m import f\nCALL\n", "f()", { "m.py": holder, ...others }),
+		attribute: await probe("import m\nCALL\n", "m.f()", { "m.py": holder, ...others }),
+	});
+
+	test("the reproducing input gives p.g, never p.f, in both forms, in an if, a try and a with arm", async () => {
+		const holders: Record<string, string> = {
+			if: "if C:\n    from p import g as f\n",
+			"if / else-less nested": "if C:\n    if D:\n        from p import g as f\n",
+			try: "try:\n    from p import g as f\nexcept ImportError:\n    pass\n",
+			with: "with C:\n    from p import g as f\n",
+		};
+		for (const [label, holder] of Object.entries(holders)) {
+			const r = await both(holder, { "p.py": p });
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(one.callees, label).toEqual(["p.py:g"]);
+				expect(one.delta, label).toEqual(RESOLVED);
+			}
+		}
+	});
+
+	test("twins: no alias keeps p.f, an unconditional alias keeps p.g", async () => {
+		const plain = await both("if C:\n    from p import f\n", { "p.py": p });
+		for (const one of [plain.fromImport, plain.attribute]) expect(one.callees).toEqual(["p.py:f"]);
+		const unconditional = await both("from p import g as f\n", { "p.py": p });
+		for (const one of [unconditional.fromImport, unconditional.attribute]) expect(one.callees).toEqual(["p.py:g"]);
+	});
+
+	test("two conditional hops of the name (both try/except ImportError arms) are alternatives, never one pick", async () => {
+		const q = "def h():\n    pass\n\ndef f():\n    pass\n";
+		const holder = "try:\n    from p import g as f\nexcept ImportError:\n    from q import h as f\n";
+		const r = await both(holder, { "p.py": p, "q.py": q });
+		for (const one of [r.fromImport, r.attribute]) {
+			expect(one.callees.sort()).toEqual(["p.py:g", "q.py:h"]);
+			expect(one.callees).not.toContain("p.py:f");
+			expect(one.callees).not.toContain("q.py:f");
+		}
+	});
+
+	test("a conditional alias hop and a star that can bind the name: alternatives where both can bind, the later one alone only where it always runs", async () => {
+		const x = "def f():\n    pass\n";
+		// the star runs first and the hop may replace it: x.f or p.g
+		const starFirst = await both("from x import *\nif C:\n    from p import g as f\n", { "p.py": p, "x.py": x });
+		for (const one of [starFirst.fromImport, starFirst.attribute]) {
+			expect(one.callees.sort()).toEqual(["p.py:g", "x.py:f"]);
+		}
+		// the unconditional star after the hop overrides it: x.f alone is what Python binds
+		const starLast = await both("if C:\n    from p import g as f\nfrom x import *\n", { "p.py": p, "x.py": x });
+		for (const one of [starLast.fromImport, starLast.attribute]) expect(one.callees).toEqual(["x.py:f"]);
+		for (const one of [starFirst.fromImport, starFirst.attribute, starLast.fromImport, starLast.attribute]) {
+			expect(one.callees).not.toContain("p.py:f");
+		}
+	});
+});
+
+// GCLI-124 Opus round 1 (f041dc25): the from-import form never looks the FIRST-HOP name up in S3's collapsed target
+// once the hop walk has renamed the name and dead-ended, or reached a plain-import hop that binds a module.
+describe("GCLI-124 round 1 — the targets loop does not look up the old name after a rename or a module hop", () => {
+	const xg = "def g():\n    pass\n\ndef f():\n    pass\n";
+	const wrap = (cond: boolean, line: string) => (cond ? `if C:\n    ${line}\n` : `${line}\n`);
+
+	for (const cond of [true, false]) {
+		const form = cond ? "conditional" : "unconditional";
+
+		test(`(a) ${form} alias through a star-only middle module: x.f is never an edge, the attribute form gives x.g`, async () => {
+			const others = { "x.py": xg, "n.py": "from x import *\n", "m.py": wrap(cond, "from n import g as f") };
+			const fromImport = await probe("from m import f\nCALL\n", "f()", others);
+			expect(fromImport.callees).not.toContain("x.py:f");
+			expect(fromImport.callees).toEqual([]);
+			expect(fromImport.delta.inRepo).toBe(0);
+			const attribute = await probe("import m\nCALL\n", "m.f()", others);
+			expect(attribute.callees).toEqual(["x.py:g"]);
+		});
+
+		test(`(b) ${form} alias of a submodule (from . import g as f) binds a module: g.f is never an edge`, async () => {
+			const others = {
+				"pkg/__init__.py": "",
+				"pkg/g.py": "def f():\n    pass\n",
+				"pkg/m.py": wrap(cond, "from . import g as f"),
+			};
+			const fromImport = await probe("from pkg.m import f\nCALL\n", "f()", others);
+			expect(fromImport.callees).toEqual([]);
+			expect(fromImport.delta.inRepo).toBe(0);
+			const attribute = await probe("from pkg import m\nCALL\n", "m.f()", others);
+			expect(attribute.callees).not.toContain("pkg/g.py:f");
+		});
+
+		test(`(c) ${form} plain-import hop (import p as f) binds a module: p.f is never an edge`, async () => {
+			const others = { "p.py": "def f():\n    pass\n", "m.py": wrap(cond, "import p as f") };
+			const fromImport = await probe("from m import f\nCALL\n", "f()", others);
+			expect(fromImport.callees).toEqual([]);
+			expect(fromImport.delta.inRepo).toBe(0);
+			const attribute = await probe("import m\nCALL\n", "m.f()", others);
+			expect(attribute.callees).not.toContain("p.py:f");
+		});
+	}
+
+	test("a conditional hop deeper in a chain reaches the next module's own bindings: n deletes f, so no edge (was p.f)", async () => {
+		const others = {
+			"p.py": "def f():\n    pass\n",
+			"n.py": "from p import f\ndel f\n",
+			"m.py": "if C:\n    from n import f\n",
+		};
+		const fromImport = await probe("from m import f\nCALL\n", "f()", others);
+		expect(fromImport.callees).toEqual([]);
+		expect(fromImport.delta.inRepo).toBe(0);
+	});
+
+	test("a conditional alias hop at depth 2 gives p.g in both forms (the attribute form gave p.f on dev)", async () => {
+		const others = { "p.py": xg, "m.py": "if C:\n    from p import g as f\n", "a.py": "from m import f\n" };
+		const fromImport = await probe("from a import f\nCALL\n", "f()", others);
+		expect(fromImport.callees).toEqual(["p.py:g"]);
+		const attribute = await probe("import a\nCALL\n", "a.f()", others);
+		expect(attribute.callees).toEqual(["p.py:g"]);
+	});
+
+	test("twins: a plain hop through a star-only middle module, and an unaliased import of a def, keep their edge", async () => {
+		const star = await probe("from m import f\nCALL\n", "f()", {
+			"x.py": xg,
+			"n.py": "from x import *\n",
+			"m.py": "from n import f\n",
+		});
+		expect(star.callees).toEqual(["x.py:f"]);
+		const plain = await probe("from m import f\nCALL\n", "f()", { "p.py": xg, "m.py": "if C:\n    from p import f\n" });
+		expect(plain.callees).toEqual(["p.py:f"]);
+	});
+});

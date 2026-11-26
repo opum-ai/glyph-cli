@@ -2364,7 +2364,7 @@ class Resolver {
 		}
 		// N3, N2 (GCLI-118): S3 collapses a re-export chain to its defining file, so the modules the import names
 		// and passes through are read here, each by its own bindings, before the defining file is trusted.
-		const chain = this.sourceChainOutcome(binding, importedName);
+		const chain = this.sourceChainOutcome(binding, importedName, true);
 		if (chain !== null) return chain;
 		const targets = [binding.target, ...binding.alternatives];
 		const symbols: PythonSymbol[] = [];
@@ -2392,32 +2392,40 @@ class Resolver {
 	 * a `del`, a reassignment or a star-bound name is unresolved, a def, a class or alternative imports are
 	 * its symbols. A module with a lone import binding is passed through to the module that import names.
 	 * Null when no module on the chain is gated (the old defining-file path then stands).
+	 *
+	 * GCLI-124 (Opus round 1): the old path looks `name` up in S3's collapsed target, which is right only while the
+	 * walk keeps the name. With `refuseRenamed` (the from-import caller, whose old path that is), a walk that has
+	 * RENAMED the name (an aliased hop, `from n import g as f`) and then dead-ends (a star, a submodule, a missing
+	 * binding, a cycle, an unresolved hop), or that reaches a plain-import hop (`import p as f` binds a module),
+	 * is a refusal: the old name is never looked up in the target, which would be the wrong edge (p.f for p.g).
 	 */
-	private sourceChainOutcome(binding: ImportBinding, name: string): NameOutcome | null {
+	private sourceChainOutcome(binding: ImportBinding, name: string, refuseRenamed = false): NameOutcome | null {
 		const seen = new Set<string>();
 		let current = this.sourceModuleFile(binding);
 		let currentName = name;
+		const refusal: NameOutcome = { kind: "unresolved", reason: "run-time-bound" };
+		const deadEnd = (): NameOutcome | null => (refuseRenamed && currentName !== name ? refusal : null);
 		for (let depth = 0; current !== null && depth <= MAX_MODULE_DEPTH; depth++) {
 			const visit = `${current}\u0000${currentName}`;
-			if (seen.has(visit)) return null;
+			if (seen.has(visit)) return deadEnd();
 			seen.add(visit);
 			const gate = this.moduleBindingGate(current, currentName);
 			if (gate !== null) {
 				if (gate.kind === "symbol" || gate.kind === "multiply" || gate.kind === "unresolved") return gate;
 				return null;
 			}
-			const hop: ImportBinding | undefined = this.fileBindingsByPath
-				.get(current)
-				?.find(
-					(candidate) =>
-						candidate.boundName === currentName && candidate.kind !== "import" && candidate.kind !== "star",
-				);
-			if (hop === undefined || hop.outcome !== "resolved" || hop.target === null || hop.condition !== null) return null;
+			const bound = this.fileBindingsByPath.get(current)?.filter((candidate) => candidate.boundName === currentName);
+			// a plain `import p as f` binds a MODULE, never the S3 target's attribute of that name
+			if (refuseRenamed && bound?.some((candidate) => candidate.kind === "import") === true) return refusal;
+			const hop: ImportBinding | undefined = bound?.find(
+				(candidate) => candidate.kind !== "import" && candidate.kind !== "star",
+			);
+			if (hop === undefined || hop.outcome !== "resolved" || hop.target === null) return deadEnd();
 			// an aliased hop (`from o import g as f`) names the next module's binding by the imported name
 			currentName = hop.name ?? hop.boundName;
 			current = this.sourceModuleFile(hop);
 		}
-		return null;
+		return deadEnd();
 	}
 
 	private resolveMultiply(bindings: readonly RawBinding[]): NameOutcome {
