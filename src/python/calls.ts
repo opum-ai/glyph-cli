@@ -3008,7 +3008,7 @@ class Resolver {
 	}
 
 	/**
-	 * R4 (DEC-303 (a22) item 3): `name` is a LOCAL (found in a function scope; a lambda holds only parameters) whose
+	 * R4 (DEC-303 (a22) item 3): `name` is a LOCAL (found in a function scope; a lambda can hold a walrus or a comprehension target, neither an assign with a call right-hand side, so the lambda arm would refuse anyway) whose
 	 * bindings are ALL plain unannotated `name = Cls(...)` (the single-binding case is rule 6d's,
 	 * which runs first and which this rule never widens), each with a callee that is a bare name
 	 * resolving (`classSymbolOfName`, counting the constructor name's own bindings) to the SAME one

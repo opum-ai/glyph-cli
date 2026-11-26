@@ -3973,8 +3973,12 @@ describe("R4 — a local whose every binding is Cls(...) of one class resolves",
 	async function refused(body: string, label: string, extra: PythonModuleInput[] = []): Promise<void> {
 		const withCall = await analyze([py("app.py", body.replace("CALL", "x.run()")), ...extra]);
 		const without = await analyze([py("app.py", body.replace("CALL", "pass")), ...extra]);
+		// every `run` method in the fixture, by symbol id (a site's calleeId is a symbol id)
+		const runIds = new Set(
+			withCall.symbols.filter((symbol) => symbol.qualname.endsWith(".run")).map((symbol) => symbol.id),
+		);
 		expect(
-			withCall.sites.filter((site) => site.calleeId !== null && site.calleeId.endsWith(".run")),
+			withCall.sites.filter((site) => site.calleeId !== null && runIds.has(site.calleeId)),
 			label,
 		).toEqual([]);
 		const delta = (key: "resolvedInRepo" | "resolvedExternal" | "receiverNeedsInference") =>
@@ -4112,6 +4116,30 @@ describe("R4 — a local whose every binding is Cls(...) of one class resolves",
 			await edges(
 				`${cls}${other}def f(z):\n    x = C()\n    x = C()\n    def g():\n        [0 for a in z]\n        def h():\n            nonlocal x\n            x = C()\n        h()\n    g()\n    x.run()\n`,
 			),
+		).toBe(1);
+		// N2: rule 6d (a single binding) and LIT read the same redirect, so the same comprehension must not capture the write
+		const sixD = (comp: string): string =>
+			`${cls}${other}def f(z):\n    x = C()\n    def g():\n        ${comp}\n        def h():\n            nonlocal x\n            x = D()\n        h()\n    g()\n    CALL\n`;
+		await refused(
+			sixD("[0 for x in z]"),
+			"6d: a comprehension target between the nonlocal write and the single binding",
+		);
+		await refused(
+			`${cls}def f(z):\n    x = []\n    def g():\n        [0 for x in z]\n        def h():\n            nonlocal x\n            x = C()\n        h()\n    g()\n    CALL\n`,
+			"LIT: a comprehension target between the nonlocal write and the literal binding",
+		);
+		// N4: other comprehension target shapes, and the walrus twin (a walrus in a comprehension binds in the function)
+		await refused(
+			`${cls}${other}def f(z):\n    x = C()\n    x = C()\n    async def g():\n        [0 async for x in z]\n        def h():\n            nonlocal x\n            x = D()\n        h()\n    g()\n    CALL\n`,
+			"an async comprehension target",
+		);
+		await refused(compBetween("[0 for (x) in z]"), "a parenthesized comprehension target");
+		await refused(compBetween("[0 for (a, (x)) in z]"), "a nested comprehension target");
+		expect(
+			await edges(
+				`${cls}${other}def f(z):\n    x = C()\n    x = C()\n    def g():\n        [(x := 1) for _ in z]\n        def h():\n            nonlocal x\n            x = D()\n        h()\n    g()\n    x.run()\n`,
+			),
+			"a walrus in a comprehension binds in g, where the nonlocal write lands, so f's local is untouched",
 		).toBe(1);
 		// F1: each nonlocal write is read in the scope that holds it (origin is the FIRST scope, not the last)
 		await refused(
