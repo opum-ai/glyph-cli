@@ -2445,7 +2445,8 @@ class Resolver {
 			}
 			return null;
 		}
-		if (binding.kind === "param" && binding.annotation && binding.annotationScope) {
+		// K1: the annotation of `*args: T` or `**kw: T` types the ELEMENTS, not the tuple or dict.
+		if (binding.kind === "param" && binding.splat === undefined && binding.annotation && binding.annotationScope) {
 			return this.resolveAnnotationClass(binding.annotation, binding.annotationScope);
 		}
 		return null;
@@ -2841,7 +2842,9 @@ class Resolver {
 				// K1: an unshadowed builtin class used as the receiver is the builtin
 				// (`int.from_bytes`, `dict.fromkeys`); `type` is not on the list, and a
 				// builtin function (`len`) is not a class.
-				if (segments.length === 1 && isBuiltinClassName(base.name)) return { bin: "external", reason: "external" };
+				// The outcome can be external through an alias (`int = type`), so the name itself must be the unshadowed builtin.
+				if (segments.length === 1 && isBuiltinClassName(base.name) && this.isUnshadowedBuiltin(base.name, scope, site))
+					return { bin: "external", reason: "external" };
 				return { bin: "receiver", reason: "needs-inference" };
 			case "runtime":
 			case "unresolved":
@@ -2852,6 +2855,9 @@ class Resolver {
 
 	/** K1: `name` is bound exactly once in its scope chain, by a `*args` or `**kwargs` parameter. */
 	private isSplatParameter(name: string, scope: Scope, site: { line: number; column: number }): boolean {
+		// A name bound anywhere in the starting class body is read from the class or the
+		// globals, never from an enclosing function (rule 38 would fall through past a later import).
+		if (scope.kind === "class" && scope.bindings.has(name)) return false;
 		const found = this.lookupBindings(name, scope, site);
 		if (found === null || found.bindings.length !== 1) return false;
 		const binding = found.bindings[0] as RawBinding;

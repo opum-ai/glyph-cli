@@ -3117,6 +3117,33 @@ describe("K1 — *args, **kwargs and an unshadowed builtin class receiver are bu
 		expect(linesTo(plain, symbolId(plain, "C.index", "app.py"))).toEqual([10]);
 	});
 
+	test("the annotation of a splat types its elements, never the tuple or dict (GCLI-108 review)", async () => {
+		await resolvesExternal(`${cls}def f(*args: C):\n    args.index(1)\n`, "*args: C is a tuple, not a C");
+		await resolvesExternal(`${cls}def f(**kw: C):\n    kw.get(1)\n`, "**kw: C is a dict, not a C");
+		await resolvesExternal(
+			`${cls}class D(C):\n    def m(*args: D):\n        args.index(1)\n`,
+			"a typed splat first parameter in a method is no receiver",
+		);
+		// positive twin: an annotated plain parameter is still a C
+		const plain = await analyze([py("app.py", `${cls}def f(x: C):\n    x.index(1)\n`)]);
+		expect(linesTo(plain, symbolId(plain, "C.index", "app.py"))).toEqual([9]);
+	});
+
+	test("an alias of a builtin, or a class body that binds the name, does not qualify (GCLI-108 review)", async () => {
+		await refused("int = type\nint.mro(C)\n", "int aliased to type");
+		await refused("int = len\nint.x()\n", "int aliased to len");
+		await refused("def f():\n    dict = len\n    dict.x()\n", "a local alias of a builtin function");
+		// the name is bound in the class body, so it is read from the class or the globals, not the function
+		await refused(
+			"def f(*args):\n    class C:\n        args.index(1)\n        from m import args\n",
+			"a later import in a class body",
+		);
+		await resolvesExternal(
+			"def f(*args):\n    class C:\n        args.index(1)\n",
+			"twin: the class body binds nothing",
+		);
+	});
+
 	test("a second binding of the name leaves the site unresolved", async () => {
 		await refused("def f(*args):\n    args = [1]\n    args.index(1)\n", "rebound in the function");
 		await refused("def f(*args):\n    for args in z:\n        pass\n    args.index(1)\n", "rebound by a for");
@@ -3176,6 +3203,7 @@ describe("K1 — *args, **kwargs and an unshadowed builtin class receiver are bu
 		const meta = "class Meta(type):\n    def m(self):\n        pass\n\n";
 		const got = await analyze([py("app.py", `${meta}Meta('X', (), {}).m()\n`)]);
 		expect(linesTo(got, symbolId(got, "Meta.m", "app.py"))).toEqual([]);
+		// this clause is carried by E1's instanceClassOf, not a K1 branch; a K1 mutant cannot reach it
 		// positive twin: a class on an unshadowed builtin class base is not opaque
 		const ok = await analyze([py("app.py", "class D(dict):\n    def m(self):\n        pass\n\nD().m()\n")]);
 		expect(linesTo(ok, symbolId(ok, "D.m", "app.py"))).toEqual([5]);
