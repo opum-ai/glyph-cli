@@ -353,6 +353,33 @@ describe("GCLI-118 round 1 — star after the last binding, alias hops, cycles",
 		}
 	});
 
+	test("a conditional def or import AFTER a star is an alternative of the star's name, not the only edge (dev's from-import shape)", async () => {
+		const shapes: Record<string, string> = {
+			"if-arm def": "from x import *\nif C:\n    def f():\n        pass\n",
+			"try-arm def": "from x import *\ntry:\n    pass\nexcept E:\n    def f():\n        pass\n",
+			"if-arm import": "from x import *\nif C:\n    from o import f\n",
+			"if-arm class": "from x import *\nif C:\n    class f:\n        pass\n",
+		};
+		for (const [label, holder] of Object.entries(shapes)) {
+			const r = await both(holder, { "x.py": x, "o.py": x });
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(one.callees.sort(), label).toEqual([label === "if-arm import" ? "o.py:f" : "m.py:f", "x.py:f"]);
+				expect(
+					one.sites.every((s) => s.multiplyBound === true),
+					label,
+				).toBe(true);
+			}
+		}
+		// twins: an UNCONDITIONAL def after the star overrides it; a conditional def BEFORE the star is overridden
+		const overrides = await both("from x import *\ndef f():\n    pass\n", { "x.py": x });
+		for (const one of [overrides.fromImport, overrides.attribute]) expect(one.callees).toEqual(["m.py:f"]);
+		const before = await both("if C:\n    def f():\n        pass\nfrom x import *\n", { "x.py": x });
+		for (const one of [before.fromImport, before.attribute]) expect(one.callees).toEqual(["x.py:f"]);
+		// a conditional alternative that does not resolve to a symbol leaves the name unresolved
+		const external = await both("from x import *\nif C:\n    from nowhere import f\n", { "x.py": x });
+		for (const one of [external.fromImport, external.attribute]) expect(one.sites.map((s) => s.calleeId)).toEqual([]);
+	});
+
 	test("the visit key is (module, name): a walk that returns to a module under another name continues", async () => {
 		const r = await probe("from m import f\nCALL\n", "f()", {
 			"m.py": "def h():\n    pass\nfrom o import g as f\n",

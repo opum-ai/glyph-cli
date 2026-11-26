@@ -1399,7 +1399,11 @@ class FileWalker {
 				: null;
 		const qualname = name !== null ? [...frame.scopeNames, name].join(".") : frame.scope.qualname;
 		if (name !== null && symbolId !== null) {
-			this.addBinding(frame.scope, name, { kind: "def", symbolId });
+			this.addBinding(frame.scope, name, {
+				kind: "def",
+				symbolId,
+				...(isConditionalStatement(node) ? { conditional: true as const } : {}),
+			});
 			// GCLI-101: a def after `global` or `nonlocal` in a class body binds outside the class,
 			// so it is no method of the class (the declaration must precede the def in Python).
 			if (
@@ -1501,7 +1505,11 @@ class FileWalker {
 				: null;
 		const qualname = name !== null ? [...frame.scopeNames, name].join(".") : frame.scope.qualname;
 		if (name !== null && symbolId !== null) {
-			this.addBinding(frame.scope, name, { kind: "class", symbolId });
+			this.addBinding(frame.scope, name, {
+				kind: "class",
+				symbolId,
+				...(isConditionalStatement(node) ? { conditional: true as const } : {}),
+			});
 		}
 
 		const bases: BaseRef[] = [];
@@ -2508,26 +2516,39 @@ class Resolver {
 	private starOverride(path: string, name: string, bindings: readonly RawBinding[]): NameOutcome | null {
 		const stars = this.starBindingsByPath.get(path);
 		if (stars === undefined) return null;
-		let lastLine = 0;
+		// Each binding's line, and whether it always runs (a def, class or import in an `if`, `try` or `except` arm
+		// is an alternative, not the final binding): a star is overridden only by an UNCONDITIONAL later binding.
+		let lastUnconditional = 0;
 		let unpositioned = false;
+		const lines = new Set<number>();
+		const alternatives: { line: number; binding: RawBinding }[] = [];
 		for (const binding of bindings) {
 			let line: number | null = null;
+			let conditional = binding.conditional === true;
 			if (binding.kind === "def" || binding.kind === "class") {
 				line = binding.symbolId !== undefined ? (this.symbolsById.get(binding.symbolId)?.line ?? null) : null;
-			} else if (binding.kind === "import") line = binding.importBinding?.line ?? null;
-			if (line === null) unpositioned = true;
-			else lastLine = Math.max(lastLine, line);
+			} else if (binding.kind === "import") {
+				line = binding.importBinding?.line ?? null;
+				conditional = binding.importBinding?.condition != null;
+			}
+			if (line === null) {
+				unpositioned = true;
+				continue;
+			}
+			lines.add(line);
+			if (conditional) alternatives.push({ line, binding });
+			else lastUnconditional = Math.max(lastUnconditional, line);
 		}
 		let partial = false;
 		for (let index = stars.length - 1; index >= 0; index--) {
 			const star = stars[index] as ImportBinding;
 			const complete = star.outcome === "resolved" && star.target !== null && star.reason === null;
 			const matters = !complete || star.starNames.includes(name);
-			// A star on the same line as the last binding cannot be ordered against it (an import has a line, no
-			// column), and a binding with no position (a conditional alias assignment) cannot be ordered against any
-			// star: either way a star that could bind the name leaves it unresolved rather than guessing.
-			if (matters && (star.line === lastLine || unpositioned)) return { kind: "unresolved", reason: "star-bound" };
-			if (star.line <= lastLine && !unpositioned) break;
+			// A star on the same line as a binding cannot be ordered against it (an import has a line, no column),
+			// and a binding with no position (a conditional alias assignment) cannot be ordered against any star:
+			// either way a star that could bind the name leaves it unresolved rather than guessing.
+			if (matters && (lines.has(star.line) || unpositioned)) return { kind: "unresolved", reason: "star-bound" };
+			if (star.line <= lastUnconditional && !unpositioned) break;
 			if (complete && star.target !== null) {
 				if (!star.starNames.includes(name)) continue;
 				if (partial) return { kind: "unresolved", reason: "star-bound" };
@@ -2535,8 +2556,21 @@ class Resolver {
 				const result = this.resolveStarBound(star.target, name, ctx);
 				if (result.cycle) continue;
 				const found = result.outcome;
-				if (found.kind === "symbol" || found.kind === "multiply") return found;
-				return { kind: "unresolved", reason: "star-bound" };
+				if (found.kind !== "symbol" && found.kind !== "multiply") return { kind: "unresolved", reason: "star-bound" };
+				// a conditional def, class or import AFTER the star is an alternative of the star's name (Q2)
+				const later = alternatives.filter((alternative) => alternative.line > star.line);
+				if (later.length === 0) return found;
+				const symbols: PythonSymbol[] = found.kind === "symbol" ? [found.symbol] : [...found.symbols];
+				for (const { binding } of later) {
+					const alt =
+						binding.kind === "import"
+							? this.resolveImportBinding(binding.importBinding ?? null)
+							: this.resolveStatic(binding);
+					const more = alt.kind === "symbol" ? [alt.symbol] : alt.kind === "multiply" ? alt.symbols : null;
+					if (more === null) return { kind: "unresolved", reason: "star-bound" };
+					for (const symbol of more) if (!symbols.some((existing) => existing.id === symbol.id)) symbols.push(symbol);
+				}
+				return { kind: "multiply", symbols };
 			}
 			partial = true;
 		}
@@ -2631,8 +2665,9 @@ class Resolver {
 	 * star's source is seen. Any other binding of the name in the holder (an
 	 * assignment, `for`, `with` or `except ... as` target, or a `del`, GCLI-115) is a later or earlier
 	 * rebinding the static rules cannot order, so the call stays unresolved
-	 * (rule 2). Known gaps, as for bare names: a def or import in the holder
-	 * wins over a star even where the star comes later, and a star import's
+	 * (rule 2). A def, class or import of the name in the holder is read by
+	 * `moduleBindingGate` before this runs, with the holder's stars ordered
+	 * against it (GCLI-118, `starOverride`). Known gap: a star import's
 	 * `condition` (try/except) is ignored.
 	 * Conservative differences from bare names: a multiply-bound result is
 	 * unresolved `rebound` (no multiplyBound edges), and a cycle ends at the
