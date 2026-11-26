@@ -2428,6 +2428,8 @@ class Resolver {
 				polymorphic: this.descendantsOf(receiver.classInfo).length > 0,
 			});
 		}
+		const instanceCall = this.resolveInstanceCall(name, scope, site);
+		if (instanceCall !== null) return instanceCall;
 		const outcome = this.resolveBareName(name, scope, 0, site);
 		switch (outcome.kind) {
 			case "symbol": {
@@ -2608,6 +2610,35 @@ class Resolver {
 				));
 		if (!isClass) return false;
 		return this.isUnshadowedBuiltin(base.callee.name, owner.parentScope, { line: owner.line, column: 1 });
+	}
+
+	/**
+	 * N3 (DEC-303 (a22) item 3): `x = Cls(); x()` calls `type(x).__call__`,
+	 * found on the MRO of `Cls`. The name must have exactly one binding anywhere
+	 * it is visible, as the walker records bindings (the enumeration a bare call
+	 * uses: assign, annotated, augmented, walrus, for, with, except-as, import, def,
+	 * class, and a global or nonlocal write in the common shapes; the known holes
+	 * are tracked in GCLI-101), and that binding is an assignment whose right-hand
+	 * side is a construction. The class must pass `instanceClassOf` (ok MRO, no
+	 * `__new__`, no metaclass, no opaque base past the builtin classes). A class
+	 * with no `__call__` of its own or inherited is not resolved here.
+	 *
+	 * A refused site (DEC-303 (a31) Q1) returns `null` and keeps the bin it had
+	 * before N3, name / run-time-bound, never receiver-needs-inference.
+	 */
+	private resolveInstanceCall(
+		name: string,
+		scope: Scope,
+		site: { file: string; line: number; column: number },
+	): CallResolution | null {
+		const found = this.lookupBindings(name, scope, site);
+		if (found === null || found.bindings.length !== 1) return null;
+		const binding = found.bindings[0] as RawBinding;
+		if (binding.kind !== "assign" || binding.rhs === undefined || binding.rhs.kind !== "call") return null;
+		const classInfo = this.instanceClassOf(this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0));
+		if (classInfo === null) return null;
+		const resolved = this.methodLookup(classInfo, "__call__", false, true);
+		return resolved.bin === "inRepo" ? resolved : null;
 	}
 
 	private moduleCall(
