@@ -1039,6 +1039,12 @@ class FileWalker {
 				case "augmented_assignment":
 					this.handleAugmented(stack, frame, node);
 					continue;
+				case "delete_statement":
+					// GCLI-115 (DEC-303 (a40) item 1): a `del` target is a binding for scope purposes
+					// (Python language reference, Execution model, binding of names).
+					this.addDeleteBindings(frame.scope, node);
+					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
+					continue;
 				case "for_statement":
 					this.addTargetBindings(frame.scope, node.childForFieldName("left"));
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
@@ -1639,6 +1645,34 @@ class FileWalker {
 			default:
 				return;
 		}
+	}
+
+	/**
+	 * GCLI-115: every name a `del` statement unbinds, recorded as a `rebound` binding so each
+	 * single-binding rule refuses it. An identifier, a tuple, list or parenthesised target
+	 * names its identifiers; an attribute or subscript target binds no name.
+	 */
+	private addDeleteBindings(scope: Scope, node: Node): void {
+		const walk = (target: Node | null): void => {
+			if (target === null) return;
+			switch (target.type) {
+				case "identifier":
+					this.addBinding(scope, target.text, { kind: "rebound" });
+					return;
+				case "expression_list":
+				case "tuple":
+				case "list":
+				case "tuple_pattern":
+				case "list_pattern":
+				case "pattern_list":
+				case "parenthesized_expression":
+					for (const child of target.namedChildren) walk(child);
+					return;
+				default:
+					return;
+			}
+		};
+		for (const child of node.namedChildren) walk(child);
 	}
 
 	private handleAugmented(stack: WalkFrame[], frame: WalkFrame, node: Node): void {

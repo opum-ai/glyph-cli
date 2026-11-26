@@ -2277,12 +2277,11 @@ describe("E1 — Cls(...).m() on a constructed instance", () => {
 		}
 	});
 
-	test("a del of the class name introduces no new value, so it does not block resolution", async () => {
-		// del adds no value to the name: a later read fails, or falls back to an
-		// outer binding (a builtin at module scope, a global in a class body) that
-		// this analysis does not model, so del is not recorded as a second binding.
+	test("a del of the class name is a binding, so it blocks resolution", async () => {
+		// GCLI-115 (DEC-303 (a40) item 1): a del target is a binding for scope purposes, so the name has
+		// two bindings (the class and the del) and the single-binding rule refuses it.
 		const result = await analyze([py("app.py", `${classC}\nC().m()\ndel C\n`)]);
-		expect(callLines(result)).toEqual([5]);
+		expect(callLines(result)).toEqual([]);
 	});
 
 	test("negative: a __new__ in the MRO (own or inherited) leaves the call unresolved", async () => {
@@ -3350,9 +3349,9 @@ describe("LIT — a name whose every binding is a literal of one builtin type is
 		await builtin("def f(z):\n    x = []\n    for y in z:\n        pass\n    x.m()\n", "twin: another for target");
 	});
 
-	test("a del is no binding", async () => {
-		// after `del x` the name is unbound, so the call raises; the claim is vacuous either way
-		await builtin("def f():\n    x = []\n    del x\n    x.m()\n", "del leaves the type claim as it was");
+	test("a del is a binding", async () => {
+		// GCLI-115 (DEC-303 (a40) item 1): the del is a second binding of x, so the every-binding-literal claim fails
+		await refused("def f():\n    x = []\n    del x\n    x.m()\n", "a del is a binding");
 	});
 
 	test("a parameter or a default is not a literal binding", async () => {
@@ -4565,5 +4564,130 @@ describe("ALIAS — a local with one binding to Cls.attr or mod.attr resolves as
 		await refused(imp, "a re-export hop", [py("m.py", "from n import C\n"), py("n.py", cls)]);
 		await refused(imp, "a package __init__", [py("m/__init__.py", cls)]);
 		expect(await edgesTo([py("m.py", cls), py("app.py", imp.replace("CALL", "f(o)"))], "C.m")).toBe(1);
+	});
+});
+
+// GCLI-115 (DEC-303 (a40) item 1, (a41) item 1): a `del` target is a binding for scope purposes, so every
+// rule that counts bindings counts it. Done when sources A and B resolve `x.run()` to NO `C.run`.
+describe("GCLI-115 — a del target is a binding", () => {
+	const cls = "class C:\n    def run(self):\n        pass\n\nclass D:\n    def run(self):\n        pass\n\n";
+
+	/** Sites whose callee is any `run` method in the analysed files. */
+	async function runEdges(source: string, extra: PythonModuleInput[] = []): Promise<number> {
+		const result = await analyze([py("app.py", source), ...extra]);
+		const ids = new Set(result.symbols.filter((s) => s.qualname.endsWith(".run")).map((s) => s.id));
+		return result.sites.filter((s) => s.calleeId !== null && ids.has(s.calleeId)).length;
+	}
+
+	// h() runs k, so at run time x is a D; h2 (a sibling of h) writes a C. The `del` is the only binding of x
+	// in g that is not a nonlocal write, and it is what places both writes on g.
+	const sourceA = `${cls}def g():
+    def h():
+        def k():
+            nonlocal x
+            x = D()
+        k()
+    def h2():
+        nonlocal x
+        x = C()
+    h()
+    x.run()
+    del x
+`;
+
+	test("source A: x.run() is not resolved to C.run", async () => {
+		expect(await runEdges(sourceA)).toBe(0);
+	});
+
+	test("source B (a third writer): x.run() is not resolved to C.run", async () => {
+		const b = sourceA.replace(
+			"    h()\n    x.run()",
+			"    def h3():\n        nonlocal x\n        x = C()\n    h()\n    x.run()",
+		);
+		expect(b).not.toBe(sourceA);
+		expect(await runEdges(b)).toBe(0);
+	});
+
+	test("R4 and 6d: a deleted local is a binding; the same source without the del resolves", async () => {
+		const base = `${cls}def g():\n    x = C()\n    x.run()\n`;
+		expect(await runEdges(base)).toBe(1);
+		expect(await runEdges(`${base}    del x\n`)).toBe(0);
+		expect(await runEdges(`${base}    del (x)\n`)).toBe(0);
+		expect(await runEdges(`${base}    y = 1\n    del y, x\n`)).toBe(0);
+		expect(await runEdges(`${base}    y = 1\n    del (x, y)\n`)).toBe(0);
+		// attribute and subscript targets bind no name: x stays resolved
+		expect(await runEdges(`${base}    del x.attr\n    del x[0]\n`)).toBe(1);
+		// a del in another function does not reach this scope
+		expect(await runEdges(`${base}def other():\n    x = 1\n    del x\n`)).toBe(1);
+	});
+
+	test("a del in a class body and at module level is a binding there", async () => {
+		const mod = `${cls}x = C()\nx.run()\n`;
+		expect(await runEdges(mod)).toBe(1);
+		expect(await runEdges(`${mod}del x\n`)).toBe(0);
+		const inClass = `${cls}class K:\n    x = C()\n    del x\n    x.run()\n`;
+		expect(await runEdges(inClass)).toBe(0);
+	});
+
+	test("the UnboundLocalError input emits no edge", async () => {
+		const src = (extra: string) =>
+			`def m():\n    pass\n\ndef e():\n    f = m\n    def g():\n        f()\n${extra}    g()\n`;
+		const calls = async (source: string) => {
+			const result = await analyze([py("app.py", source)]);
+			return sitesTo(result, symbolId(result, "m")).length;
+		};
+		expect(await calls(src(""))).toBe(1);
+		const withDel = "def m():\n    pass\n\ndef e():\n    f = m\n    def g():\n        f()\n        del f\n    g()\n";
+		expect(await calls(withDel)).toBe(0);
+	});
+
+	test("ALIAS: an alias that is deleted does not resolve", async () => {
+		const base = "class C:\n    def m(self):\n        pass\n\ndef g(o):\n    f = C.m\n    f(o)\n";
+		const calls = async (source: string) => {
+			const result = await analyze([py("app.py", source)]);
+			return sitesTo(result, symbolId(result, "C.m")).length;
+		};
+		expect(await calls(base)).toBe(1);
+		expect(await calls(`${base}    del f\n`)).toBe(0);
+	});
+
+	test("M1: a module-level instance deleted in its source module does not resolve across the import", async () => {
+		const m = (extra: string) => py("m.py", `${cls}inst = C()\n${extra}`);
+		const use = py("app.py", "from m import inst\ninst.run()\n");
+		const edges = async (files: PythonModuleInput[]) => {
+			const result = await analyze(files);
+			return sitesTo(result, symbolId(result, "C.run")).length;
+		};
+		expect(await edges([m(""), use])).toBe(1);
+		expect(await edges([m("del inst\n"), use])).toBe(0);
+	});
+
+	test("LIT: a literal-typed name that is deleted is not builtin", async () => {
+		const lit = (extra: string) => `def g():\n    x = 1\n    x.bit_length()\n${extra}`;
+		const bins = async (source: string) => (await analyze([py("app.py", source)])).callBins;
+		const plain = await bins(lit(""));
+		const deleted = await bins(lit("    del x\n"));
+		expect(plain.resolvedExternal).toBe(1);
+		expect(deleted.resolvedExternal).toBe(0);
+	});
+
+	test("K1: a deleted *args is not a builtin tuple", async () => {
+		const k = (extra: string) => `def g(*args):\n${extra}    args.count(1)\n`;
+		const bins = async (source: string) => (await analyze([py("app.py", source)])).callBins;
+		expect((await bins(k(""))).resolvedExternal).toBe(1);
+		expect((await bins(k("    del args\n"))).resolvedExternal).toBe(0);
+	});
+
+	test("S3: a deleted import binding does not resolve", async () => {
+		const files = (extra: string) => [
+			py("m.py", "def f():\n    pass\n"),
+			py("app.py", `from m import f\nf()\n${extra}`),
+		];
+		const edges = async (extra: string) => {
+			const result = await analyze(files(extra));
+			return sitesTo(result, symbolId(result, "f", "m.py")).length;
+		};
+		expect(await edges("")).toBe(1);
+		expect(await edges("del f\n")).toBe(0);
 	});
 });
