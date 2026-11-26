@@ -2765,7 +2765,7 @@ describe("D1 — a class-scope non-def binding hides a base's def", () => {
 		const at = (result: PythonCallsResult) => linesTo(result, symbolId(result, `B.${name}`, "app.py"));
 		const out: Record<string, { got: number[]; line: number }> = {};
 		const tails: Record<string, string> =
-			name === "m" ? { e1: "C().m()", six: "x = C()\nx.m()" } : { n3: "x = C()\nx()" };
+			name === "m" ? { e1: "C().m()", six: "x = C()\nx.m()", cls: "C.m()" } : { n3: "x = C()\nx()" };
 		for (const [key, tail] of Object.entries(tails)) {
 			const source = `${head}${tail}\n`;
 			const result = await analyze([py("app.py", source)]);
@@ -2787,13 +2787,35 @@ describe("D1 — a class-scope non-def binding hides a base's def", () => {
 		import: "from other import NAME",
 		for: "for NAME in items:\n    pass",
 		with: "with ctx() as NAME:\n    pass",
-		"except as": "try:\n    pass\nexcept Exception as NAME:\n    pass",
 		"nested class": "class NAME:\n    pass",
 		"augmented assignment": "NAME += 1",
 	};
 
 	test("negative: every kind of class-scope binding of the name ends the lookup unresolved", async () => {
 		for (const [kind, body] of Object.entries(hiding)) {
+			for (const name of ["m", "__call__"] as const) {
+				for (const [shape, { got }] of Object.entries(await shapes(body, name))) {
+					expect(got, `${kind} / ${name} / ${shape}`).toEqual([]);
+				}
+			}
+		}
+	});
+
+	// Conservative over-inclusions: each of these the walker records as a class-scope binding although
+	// Python does not leave the name bound (or binds it elsewhere), so the lookup is refused. Each
+	// loses an edge and none invents one. They pin the current behaviour, not a goal.
+	test("conservative: forms the walker counts as a class binding although Python does not keep one", async () => {
+		const overIncluded: Record<string, string> = {
+			// `except E as NAME` ends with an implicit `del NAME`, and the clause may never run
+			"except as": "try:\n    pass\nexcept Exception as NAME:\n    pass",
+			// a comprehension target lives in the comprehension's own scope in Python 3
+			"comprehension target": "_unused = [NAME for NAME in items]",
+			// a global declaration sends the assignment to the module
+			"global then assign": "global NAME\nNAME = None",
+			// `del NAME` is not tracked, so the earlier assignment still counts
+			"assign then del": "NAME = None\ndel NAME",
+		};
+		for (const [kind, body] of Object.entries(overIncluded)) {
 			for (const name of ["m", "__call__"] as const) {
 				for (const [shape, { got }] of Object.entries(await shapes(body, name))) {
 					expect(got, `${kind} / ${name} / ${shape}`).toEqual([]);
