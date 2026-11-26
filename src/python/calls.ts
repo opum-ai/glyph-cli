@@ -318,6 +318,16 @@ const BUILTIN_INSTANCE_CLASSES: ReadonlySet<string> = new Set([
 	"filter",
 ]);
 
+/**
+ * Names a builtin CLASS in BUILTIN_INSTANCE_CLASSES itself defines that a lookup
+ * through an in-repo subclass must not skip (DEC-303 (a31) item 5). `staticmethod`
+ * has had `__call__` since Python 3.10; `classmethod` has none. Deliberately the
+ * one entry: a name is added only when the builtin is known to define it.
+ */
+const BUILTIN_CLASS_DEFINED_NAMES: ReadonlyMap<string, ReadonlySet<string>> = new Map([
+	["staticmethod", new Set(["__call__"])],
+]);
+
 /** Python 3 builtins: a name bound nowhere else in the scope chain (rule 4c). */
 const BUILTINS: ReadonlySet<string> = new Set([
 	"abs",
@@ -2308,6 +2318,12 @@ class Resolver {
 			const entry = mro.entries[index] as MroEntry;
 			if (entry.kind === "opaque") {
 				sawOpaque = true;
+				// (a31) item 5: an unshadowed builtin base earlier in the MRO that defines
+				// the name wins, so the lookup resolves external, never a later in-repo entry.
+				const builtinBase = this.builtinClassBaseName(entry);
+				if (builtinBase !== null && BUILTIN_CLASS_DEFINED_NAMES.get(builtinBase)?.has(name) === true) {
+					return { bin: "external", reason: "external-base" };
+				}
 				continue;
 			}
 			const ids = entry.info.methods.get(name);
@@ -2596,11 +2612,16 @@ class Resolver {
 	 * position of the class that writes it (the owner's scope, not the call site's).
 	 */
 	private isBuiltinClassBase(entry: MroEntry & { kind: "opaque" }): boolean {
+		return this.builtinClassBaseName(entry) !== null;
+	}
+
+	/** The builtin class name behind {@link isBuiltinClassBase}, or null. */
+	private builtinClassBaseName(entry: MroEntry & { kind: "opaque" }): string | null {
 		const parts = entry.key.split(":");
 		const index = Number(parts[parts.length - 1]);
 		const owner = this.classById.get(parts.slice(1, -1).join(":"));
 		const base = owner?.bases[index];
-		if (owner === undefined || base === undefined || base.callee === null || base.callee.kind !== "name") return false;
+		if (owner === undefined || base === undefined || base.callee === null || base.callee.kind !== "name") return null;
 		const name = base.callee.name;
 		const isClass =
 			BUILTIN_INSTANCE_CLASSES.has(name) ||
@@ -2608,8 +2629,8 @@ class Resolver {
 				/(Error|Exception|Warning)$|^(StopIteration|StopAsyncIteration|GeneratorExit|KeyboardInterrupt|SystemExit)$/.test(
 					name,
 				));
-		if (!isClass) return false;
-		return this.isUnshadowedBuiltin(base.callee.name, owner.parentScope, { line: owner.line, column: 1 });
+		if (!isClass) return null;
+		return this.isUnshadowedBuiltin(name, owner.parentScope, { line: owner.line, column: 1 }) ? name : null;
 	}
 
 	/**

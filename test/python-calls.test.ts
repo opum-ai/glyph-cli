@@ -2534,6 +2534,32 @@ describe("N3 — x = Cls(); x() calls type(x).__call__", () => {
 		expect(linesTo(builtin, symbolId(builtin, "C.__call__", "app.py"))).toEqual([6]);
 	});
 
+	// GCLI-102 (DEC-303 (a31) item 5, D4): an unshadowed builtin base earlier in the MRO
+	// that defines the name wins over a later in-repo entry; staticmethod has __call__
+	// since 3.10, classmethod and int do not.
+	test("(a31) item 5: staticmethod earlier in the MRO defines __call__ and wins over a later in-repo base", async () => {
+		const b = "class B:\n    def __call__(self):\n        pass\n\n";
+		const lines = (result: PythonCallsResult) => linesTo(result, symbolId(result, "B.__call__", "app.py"));
+		const wins = await analyze([py("app.py", `${b}class D(staticmethod, B):\n    pass\n\nx = D()\nx()\n`)]);
+		expect(lines(wins)).toEqual([]);
+		// the refused site keeps the bin it had before N3 (name, run-time-bound)
+		expect(wins.callBins.nameNotBound).toBe(1);
+		expect(wins.callBins.receiverNeedsInference).toBe(0);
+		// positive twins reach the same branch with a base that does not define __call__
+		for (const early of ["classmethod", "int", "Exception"]) {
+			const twin = await analyze([py("app.py", `${b}class D(${early}, B):\n    pass\n\nx = D()\nx()\n`)]);
+			expect(lines(twin), early).toEqual([9]);
+		}
+		// staticmethod AFTER the in-repo base does not hide it
+		const after = await analyze([py("app.py", `${b}class D(B, staticmethod):\n    pass\n\nx = D()\nx()\n`)]);
+		expect(lines(after)).toEqual([9]);
+		// a grandparent order: the builtin base is earlier in the MRO of D through E
+		const nested = await analyze([
+			py("app.py", `${b}class E(staticmethod):\n    pass\n\nclass D(E, B):\n    pass\n\nx = D()\nx()\n`),
+		]);
+		expect(lines(nested)).toEqual([]);
+	});
+
 	test("the class's own __call__ is not the call of the class: C() still constructs", async () => {
 		const result = await analyze(module("C()"));
 		expect(callLines(result)).toEqual([]);
