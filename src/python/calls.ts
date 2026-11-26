@@ -186,6 +186,12 @@ interface RawBinding {
 	annotationScope?: Scope | null;
 	/** Rule 38: the statement's start, so a class-body import binds only later uses. */
 	position?: UsePosition;
+	/**
+	 * A comprehension target: the walker records it in the enclosing function (the analyzer counts it, which
+	 * only makes a read refuse), but Python binds it in the comprehension's own scope, so it is not a binding
+	 * `nonlocal` can name and `applyScopeRedirects` does not stop at it.
+	 */
+	comprehension?: true;
 	/** R4: the scope whose text holds this binding, set when `applyScopeRedirects` moves it onto an enclosing scope. */
 	origin?: Scope;
 }
@@ -1036,7 +1042,7 @@ class FileWalker {
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					continue;
 				case "for_in_clause":
-					this.addTargetBindings(frame.scope, node.childForFieldName("left"));
+					this.addTargetBindings(frame.scope, node.childForFieldName("left"), true);
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					continue;
 				case "as_pattern":
@@ -1133,11 +1139,15 @@ class FileWalker {
 		else list.push(binding);
 	}
 
-	private addTargetBindings(scope: Scope, target: Node | null): void {
+	private addTargetBindings(scope: Scope, target: Node | null, comprehension = false): void {
 		if (target === null) return;
 		switch (target.type) {
 			case "identifier":
-				this.addBinding(scope, target.text, { kind: "rebound" });
+				this.addBinding(
+					scope,
+					target.text,
+					comprehension ? { kind: "rebound", comprehension: true } : { kind: "rebound" },
+				);
 				return;
 			case "pattern_list":
 			case "tuple_pattern":
@@ -1149,11 +1159,11 @@ class FileWalker {
 			case "list_splat":
 			// GCLI-107: `with ctx() as (m):` and `as (a, (m))` parenthesise a single name.
 			case "parenthesized_expression": {
-				for (const child of target.namedChildren) this.addTargetBindings(scope, child);
+				for (const child of target.namedChildren) this.addTargetBindings(scope, child, comprehension);
 				return;
 			}
 			case "as_pattern_target": {
-				for (const child of target.namedChildren) this.addTargetBindings(scope, child);
+				for (const child of target.namedChildren) this.addTargetBindings(scope, child, comprehension);
 				return;
 			}
 			// DEC-303 (a23) item 1: Python binds no name through an attribute or
@@ -1700,7 +1710,7 @@ function applyScopeRedirects(scopes: readonly Scope[]): void {
 			while (current !== null) {
 				if (current.kind === "function" || current.kind === "lambda") {
 					nearest ??= current;
-					if (current.bindings.has(name)) {
+					if (current.bindings.get(name)?.some((binding) => binding.comprehension !== true) === true) {
 						target = current;
 						break;
 					}
@@ -2998,7 +3008,7 @@ class Resolver {
 	}
 
 	/**
-	 * R4 (DEC-303 (a22) item 3): `name` is a LOCAL (found in a function or lambda scope) whose
+	 * R4 (DEC-303 (a22) item 3): `name` is a LOCAL (found in a function scope; a lambda holds only parameters) whose
 	 * bindings are ALL plain unannotated `name = Cls(...)` (the single-binding case is rule 6d's,
 	 * which runs first and which this rule never widens), each with a callee that is a bare name
 	 * resolving (`classSymbolOfName`, counting the constructor name's own bindings) to the SAME one
@@ -3011,7 +3021,7 @@ class Resolver {
 	 */
 	private localConstructedClass(name: string, scope: Scope, site: { line: number; column: number }): ClassInfo | null {
 		const found = this.lookupBindings(name, scope, site);
-		if (found === null || (found.scope.kind !== "function" && found.scope.kind !== "lambda")) return null;
+		if (found === null || found.scope.kind !== "function") return null;
 		const bindings = this.enumerableBindings(name, scope, site);
 		if (bindings === null) return null;
 		let symbolId: string | null = null;

@@ -4005,7 +4005,7 @@ describe("R4 — a local whose every binding is Cls(...) of one class resolves",
 				`${cls}def f():\n    x = C()\n    def g():\n        def h():\n            nonlocal x\n            x = C()\n        h()\n    g()\n    x.run()\n`,
 			),
 		).toBe(1);
-		// the nonlocal body's own constructor name is read in ITS scope: a local import there still resolves by the same class
+		// two reads of the same local, two edges
 		expect(await edges(`${cls}def f():\n    x = C()\n    x = C()\n    x.run()\n    x.run()\n`)).toBe(2);
 		// a subclass that inherits run: the edge goes to the base
 		const sub =
@@ -4015,6 +4015,16 @@ describe("R4 — a local whose every binding is Cls(...) of one class resolves",
 		// a constructor imported by a direct from-import of a module file whose name has one class binding
 		expect(await edges("from m import C\ndef f(z):\n    x = C()\n    x = C()\n    x.run()\n", [py("m.py", cls)])).toBe(
 			1,
+		);
+	});
+
+	test("a read from a comprehension or a class body inside the function sees the local and resolves (AC1, F5)", async () => {
+		expect(await edges(`${cls}def f(z):\n    x = C()\n    x = C()\n    return [x.run() for _ in z]\n`)).toBe(1);
+		expect(await edges(`${cls}def f(z):\n    x = C()\n    x = C()\n    class K:\n        x.run()\n`)).toBe(1);
+		// a class body that BINDS the name reads its own binding, not the local
+		await refused(
+			`${cls}def f(z):\n    x = C()\n    x = C()\n    class K:\n        x = 1\n        CALL\n`,
+			"class-body binding",
 		);
 	});
 
@@ -4044,7 +4054,6 @@ describe("R4 — a local whose every binding is Cls(...) of one class resolves",
 			"a type alias": "type x = int",
 			"a dotted constructor": "x = k.C()",
 			"a constructor call with the callee called": "x = C()()",
-			"a global declaration": "global x\n    x = C()",
 		};
 		for (const [label, second] of Object.entries(seconds)) {
 			await refused(
@@ -4078,6 +4087,41 @@ describe("R4 — a local whose every binding is Cls(...) of one class resolves",
 		await refused(
 			nested("def C():\n            pass\n        x = C()"),
 			"nonlocal write whose constructor is a local def",
+		);
+		// B1 (review round 1): a comprehension target is the comprehension's own variable, so it is not a
+		// binding `nonlocal x` can name; the write lands in f, whatever the comprehension forms between them
+		const compBetween = (comp: string, extraDef = ""): string =>
+			`${cls}${other}def f(z):\n    x = C()\n    x = C()\n    def g():\n        ${comp}\n        def h(${extraDef}):\n            nonlocal x\n            x = D()\n        h()\n    g()\n    CALL\n`;
+		for (const comp of [
+			"[0 for x in z]",
+			"(0 for x in z)",
+			"{0 for x in z}",
+			"{0: 0 for x in z}",
+			"[0 for a, x in z]",
+		]) {
+			await refused(compBetween(comp), `a comprehension target between the nonlocal write and the local: ${comp}`);
+		}
+		await refused(compBetween("pass", "a=[0 for x in z]"), "a comprehension in a default argument");
+		// the same for a constructor NAME: f binds class C, h writes C through nonlocal behind a comprehension over C
+		await refused(
+			`${cls}${other}def f(z):\n    class C:\n        def run(self):\n            pass\n    x = C()\n    x = C()\n    def g():\n        [0 for C in z]\n        def h():\n            nonlocal C\n            C = D\n        h()\n    g()\n    CALL\n`,
+			"a comprehension over the constructor name between a nonlocal rebind of it and its class",
+		);
+		// twin: a comprehension over another name changes nothing
+		expect(
+			await edges(
+				`${cls}${other}def f(z):\n    x = C()\n    x = C()\n    def g():\n        [0 for a in z]\n        def h():\n            nonlocal x\n            x = C()\n        h()\n    g()\n    x.run()\n`,
+			),
+		).toBe(1);
+		// F1: each nonlocal write is read in the scope that holds it (origin is the FIRST scope, not the last)
+		await refused(
+			`${cls}${other}def f():\n    x = C()\n    x = C()\n    def g():\n        nonlocal x\n        x = C()\n        def h():\n            nonlocal x\n            C = D\n            x = C()\n        h()\n    g()\n    CALL\n`,
+			"a two-level nonlocal write whose constructor is rebound in the innermost scope",
+		);
+		// F4: `global x` FIRST (valid Python): the name is the module's, so the bindings are not a local's
+		await refused(
+			`${cls}def f():\n    global x\n    x = C()\n    x = C()\n    CALL\n`,
+			"a global declaration before the assignments",
 		);
 		// a `global x` in a nested function makes the name read there the module's, not the local
 		await refused(
