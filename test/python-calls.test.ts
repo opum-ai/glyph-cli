@@ -1914,6 +1914,18 @@ describe("A4 — from m import m for a module file", () => {
 		}
 	});
 
+	test("a cycle of same-named re-exports terminates unresolved (depth guard through the gate)", async () => {
+		const result = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/a/__init__.py", ""),
+			py("pkg/b/__init__.py", ""),
+			py("pkg/a/helper.py", "from pkg.b.helper import helper\n"),
+			py("pkg/b/helper.py", "from pkg.a.helper import helper\n"),
+			py("pkg/use.py", "from pkg.a.helper import helper\n\nhelper()\n"),
+		]);
+		expect(result.callBins.resolvedInRepo).toBe(0);
+	});
+
 	test("a module file inside a single-portion namespace directory resolves (absolute and relative)", async () => {
 		for (const use of [
 			"from pkg.ns.helper import helper\n\nhelper()\n",

@@ -1841,11 +1841,11 @@ class Resolver {
 	 * binds) and it defines or re-exports the name. `from . import m` has no module part
 	 * and stays a module.
 	 */
-	private isSameNameAttribute(binding: ImportBinding, name: string): boolean {
+	private isSameNameAttribute(binding: ImportBinding, name: string, depth = 0): boolean {
 		if (binding.module === "") return false;
 		const source = this.sourceModuleFile(binding);
 		if (source === null || !(source === `${name}.py` || source.endsWith(`/${name}.py`))) return false;
-		return this.symbolInModuleOrReexport(source, name, 0) !== null;
+		return this.symbolInModuleOrReexport(source, name, depth + 1) !== null;
 	}
 
 	/** The file of a from-import's source module (dots resolved against the importer's package), or null. */
@@ -1887,6 +1887,14 @@ class Resolver {
 			if (binding.outcome !== "resolved" || binding.target === null) continue;
 			if (binding.kind === "import") continue;
 			const importedName = binding.name ?? binding.boundName;
+			// A hop that binds a same-named module (not the attribute) yields no symbol;
+			// the depth is threaded so a cycle through the gate terminates (DEC-303 (a22) A4).
+			if (
+				this.isModuleFileForName(binding.target, importedName) &&
+				!this.isSameNameAttribute(binding, importedName, depth + 1)
+			) {
+				continue;
+			}
 			const nested = this.symbolInModuleOrReexport(binding.target, importedName, depth + 1);
 			if (nested !== null) return nested;
 		}
