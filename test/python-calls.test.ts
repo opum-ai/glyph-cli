@@ -4361,6 +4361,56 @@ describe("ALIAS — a local with one binding to Cls.attr or mod.attr resolves as
 			"a comprehension target between the nonlocal write and the local",
 			files(mod),
 		);
+		// B1 (round 1): `del f` makes f a local of g without being a recorded binding, so a nonlocal write in h whose
+		// target the walker cannot see lands on g with origin h; B is read where the write is, in h
+		const other = [py("m.py", mod), py("other.py", "def func():\n    pass\n")];
+		const viaDel = (inner: string): string =>
+			`import m\ndef g():\n    def h():\n        nonlocal f\n        ${inner}\n    h()\n    CALL\n    del f\n`;
+		const del = await analyze([
+			...other,
+			py("app.py", viaDel("import other as m\n        f = m.func").replace("CALL", "f()")),
+		]);
+		const funcIds = new Set([symbolId(del, "func", "m.py"), symbolId(del, "func", "other.py")]);
+		const delSites = del.sites.filter(
+			(site) => site.file === "app.py" && site.calleeId !== null && funcIds.has(site.calleeId),
+		);
+		expect(delSites.map((site) => site.calleeId)).toEqual([symbolId(del, "func", "other.py")]);
+		await refused(
+			viaDel("m = None\n        f = m.func"),
+			"a nonlocal write through del whose module name is rebound in the writer",
+			files(mod),
+		);
+		// the same for the class arm: C is rebound in the writer
+		await refused(
+			"class C:\n    def m(self):\n        pass\ndef g(o):\n    def h():\n        nonlocal f\n        C = None\n        f = C.m\n    h()\n    CALL\n    del f\n",
+			"a nonlocal write through del whose class name is rebound in the writer",
+		);
+		// F3: a parameter is a binding, nested match captures and a walrus inside a comprehension are bindings
+		await refused(
+			"import m\ndef g(f, z):\n    if f is None:\n        f = m.func\n    CALL\n",
+			"a parameter then the alias",
+			files(mod),
+		);
+		await refused(
+			"import m\ndef g(z):\n    f = m.func\n    match z:\n        case [f]:\n            pass\n    CALL\n",
+			"a sequence match capture",
+			files(mod),
+		);
+		await refused(
+			"import m\ndef g(z):\n    f = m.func\n    match z:\n        case C(x=f):\n            pass\n    CALL\n",
+			"a keyword match capture",
+			files(mod),
+		);
+		await refused(
+			"import m\ndef g(z):\n    f = m.func\n    match z:\n        case _ as f:\n            pass\n    CALL\n",
+			"an as-pattern capture",
+			files(mod),
+		);
+		await refused(
+			"import m\ndef g(z):\n    f = m.func\n    w = [(f := 1) for _ in z]\n    CALL\n",
+			"a walrus inside a comprehension",
+			files(mod),
+		);
 		// a global declaration between the use and the local, and the rule is for locals
 		await refused(
 			"import m\ndef g(z):\n    f = m.func\n    def h():\n        global f\n        CALL\n    h()\n",
@@ -4441,8 +4491,9 @@ describe("ALIAS — a local with one binding to Cls.attr or mod.attr resolves as
 			[py("pkg/__init__.py", ""), py("pkg/m.py", mod)],
 		);
 		await refused(
-			`from . import m\n${call}`.replace("from . import m", "from m import func as m"),
-			"m a from-import of a def",
+			`from m import func as m\n${call}`,
+			"m a from-import of a def (reaches classSymbolOfName, which finds a def, not a class)",
+			files(mod),
 		);
 		// the defining module
 		const seconds: Record<string, string> = {
