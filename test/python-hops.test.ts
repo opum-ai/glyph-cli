@@ -1306,3 +1306,57 @@ describe("GCLI-122 item 3 — a nonlocal-moved write is always a second binding,
 		expect(r.sites.map((site) => r.symbols.find((s) => s.id === site.calleeId)?.qualname)).toEqual(["C.m"]);
 	});
 });
+
+describe("GCLI-122 round 1 — a descendant's whole MRO is read, and the descendant may live in another module", () => {
+	const forms: Record<string, string> = {
+		attribute: "    __class__ = 1\n",
+		property: "    @property\n    def __class__(self):\n        return 1\n",
+		method: "    def __class__(self):\n        pass\n",
+	};
+	const C =
+		"class C:\n    def m(self):\n        cls = self.__class__\n        CALL\n    def meth(self):\n        pass\n";
+	const REFUSED: Delta = { inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 };
+
+	for (const [label, mixin] of Object.entries(forms)) {
+		test(`${label}: an in-repo mixin of a descendant that binds __class__ refuses`, async () => {
+			const r = await probe(`${C}class M:\n${mixin}class D(C, M):\n    pass\n`, "cls.meth()");
+			expect(r.callees, label).toEqual([]);
+			expect(r.delta, label).toEqual(REFUSED);
+		});
+	}
+
+	test("twin: a mixin without __class__ keeps the edge", async () => {
+		const r = await probe(`${C}class M:\n    pass\nclass D(C, M):\n    pass\n`, "cls.meth()");
+		expect(r.callees).toEqual(["app.py:C.meth"]);
+		expect(r.delta).toEqual(RESOLVED);
+	});
+
+	test("a descendant in another module refuses through a from-import and through a module attribute base", async () => {
+		const sub = "from app import C\nclass D(C):\n    __class__ = 1\n";
+		const subAttr = "import app\nclass D(app.C):\n    __class__ = 1\n";
+		for (const [label, other] of [
+			["from-import base", sub],
+			["module attribute base", subAttr],
+		] as const) {
+			const r = await probe(`${C}`, "cls.meth()", { "other.py": other });
+			expect(r.callees, label).toEqual([]);
+			expect(r.delta, label).toEqual(REFUSED);
+		}
+	});
+
+	test("twin: a descendant in another module that does not bind __class__ keeps the edge", async () => {
+		const r = await probe(`${C}`, "cls.meth()", { "other.py": "from app import C\nclass D(C):\n    pass\n" });
+		expect(r.callees).toEqual(["app.py:C.meth"]);
+		expect(r.delta).toEqual(RESOLVED);
+	});
+
+	test("item 3: a moved write after an outer binding of a DIFFERENT attribute refuses by count", async () => {
+		const source =
+			"class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\ndef g():\n    f = C.n\n    def h():\n        nonlocal f\n        f = C.m\n    h()\n    f()\n";
+		const r = await analyze([py("app.py", source)]);
+		const callees = r.sites.map((site) => r.symbols.find((s) => s.id === site.calleeId)?.qualname ?? null);
+		expect(callees).not.toContain("C.m");
+		expect(callees).not.toContain("C.n");
+		expect(r.callBins.nameNotBound).toBe(1);
+	});
+});
