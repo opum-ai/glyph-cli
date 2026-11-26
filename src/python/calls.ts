@@ -234,6 +234,11 @@ interface Scope {
 	decorators: string[];
 	classInfo: ClassInfo | null;
 	enclosingClass: ClassInfo | null;
+	/**
+	 * GCLI-125: the lines of module-level `from x import *` statements that may be skipped (`maySkipStatement`, the
+	 * rule a def, a class and an import follow); a star in a `finally` is walked through, one in a loop body is not.
+	 */
+	starMaySkipLines?: Set<number>;
 }
 
 interface BaseRef {
@@ -1640,6 +1645,15 @@ class FileWalker {
 		// position is carried on the binding; a function body ignores it.
 		const position: UsePosition = { line, column: node.startPosition.column + 1 };
 		if (scope.kind === "module") {
+			if (
+				node.type === "import_from_statement" &&
+				node.namedChildren.some((child) => child?.type === "wildcard_import") &&
+				maySkipStatement(node)
+			) {
+				const lines = scope.starMaySkipLines ?? new Set<number>();
+				lines.add(line);
+				scope.starMaySkipLines = lines;
+			}
 			for (const name of importStatementNames(node)) {
 				const binding = this.importBindingsByKey.get(`${this.file}\u0000${line}\u0000${name}`);
 				if (binding !== undefined) {
@@ -2564,8 +2578,9 @@ class Resolver {
 	 * name (Q2): the result is every alternative, or a refusal when one is not a symbol. A star on the same line as
 	 * a binding (an import has a line, no column), or with a binding that has no position (a conditional alias
 	 * assignment) at or after it, leaves the name unresolved rather than guessing. Other bindings with no position
-	 * (a del, an assignment) are rebindings the gate has already refused. A deciding star with a `condition` (inside an
-	 * `if`, `try` or `with` arm, GCLI-125) may not run: the name is the star's OR what `fallback` (the rest of the
+	 * (a del, an assignment) are rebindings the gate has already refused. A deciding star that may be skipped (`starMaySkipLines`,
+	 * the `maySkipStatement` rule: an `if`, `try`-with-`except`, loop, `with` or `case` arm; a `finally` is walked
+	 * through; GCLI-125) may not run: the name is the star's OR what `fallback` (the rest of the
 	 * module) decides, as Q2 alternatives; a fallback that is not a symbol, or an earlier star that could bind the
 	 * name, is a refusal.
 	 */
@@ -2634,7 +2649,7 @@ class Resolver {
 				// the star's OR what the rest of the module decides without it (Q2: every alternative). A rest that is
 				// not a symbol, or an earlier star after the last unconditional binding that could also bind the name
 				// (it would decide in the star's place), is a refusal: no pick between them.
-				const maySkip = star.condition !== null;
+				const maySkip = this.moduleScopesByPath.get(path)?.starMaySkipLines?.has(star.line) === true;
 				if (maySkip) {
 					for (let before = index - 1; before >= 0; before--) {
 						const earlier = stars[before] as ImportBinding;
@@ -2663,7 +2678,9 @@ class Resolver {
 					if (more === null) return { kind: "unresolved", reason: "star-bound" };
 					for (const symbol of more) if (!symbols.some((existing) => existing.id === symbol.id)) symbols.push(symbol);
 				}
-				return { kind: "multiply", symbols };
+				return symbols.length === 1
+					? { kind: "symbol", symbol: symbols[0] as PythonSymbol }
+					: { kind: "multiply", symbols };
 			}
 			partial = true;
 		}

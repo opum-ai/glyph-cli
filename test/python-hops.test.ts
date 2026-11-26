@@ -622,22 +622,81 @@ describe("GCLI-125 — a conditional star is a may-skip alternative", () => {
 	});
 	const def = "def f():\n    pass\n";
 
-	test("an if or try star after an unconditional def or import gives every alternative, each multiplyBound", async () => {
-		const holders: Record<string, string> = {
-			"def, if-star": `${def}if C:\n    from x import *\n`,
-			"def, try-star": `${def}try:\n    from x import *\nexcept ImportError:\n    pass\n`,
-			"def, with-star": `${def}with C:\n    from x import *\n`,
-			"import, if-star": "from y import f\nif C:\n    from x import *\n",
-		};
-		for (const [label, holder] of Object.entries(holders)) {
+	// the star's may-skip is the maySkipStatement rule a def, a class and an import follow (Opus round 1, 8a5de372)
+	const mayBeSkipped: Record<string, string> = {
+		"def, if-star": `${def}if C:\n    from x import *\n`,
+		"def, elif-star": `${def}if C:\n    pass\nelif D:\n    from x import *\n`,
+		"def, else-star": `${def}if C:\n    pass\nelse:\n    from x import *\n`,
+		"def, try-star": `${def}try:\n    from x import *\nexcept ImportError:\n    pass\n`,
+		"def, except-star": `${def}try:\n    pass\nexcept ImportError:\n    from x import *\n`,
+		"def, try-else-star": `${def}try:\n    pass\nexcept ImportError:\n    pass\nelse:\n    from x import *\n`,
+		"def, except*-star": `${def}try:\n    pass\nexcept* E:\n    from x import *\n`,
+		"def, with-star": `${def}with C:\n    from x import *\n`,
+		"def, for-star": `${def}for _ in ():\n    from x import *\n`,
+		"def, for-else-star": `${def}for _ in ():\n    pass\nelse:\n    from x import *\n`,
+		"def, while-star": `${def}while C:\n    from x import *\n`,
+		"def, case-star": `${def}match C:\n    case 1:\n        from x import *\n`,
+		"def, if-try-finally-star": `${def}if C:\n    try:\n        pass\n    finally:\n        from x import *\n`,
+	};
+	test("a star that may be skipped, after an unconditional def, gives every alternative, each multiplyBound", async () => {
+		for (const [label, holder] of Object.entries(mayBeSkipped)) {
 			const r = await both(holder);
 			for (const one of [r.fromImport, r.attribute]) {
-				const rest = label.startsWith("import") ? "y.py:f" : "m.py:f";
-				expect(one.callees.sort(), label).toEqual([rest, "x.py:f"].sort());
+				expect(one.callees.sort(), label).toEqual(["m.py:f", "x.py:f"]);
 				expect(
 					one.sites.every((s) => s.multiplyBound === true),
 					label,
 				).toBe(true);
+				// one call expression, two edges: the bins count the call once
+				expect(one.delta, label).toEqual(RESOLVED);
+				expect(new Set(one.sites.map((s) => `${s.line}:${s.column}`)).size, label).toBe(1);
+			}
+		}
+	});
+
+	test("an import then a skippable star gives both, flagged; the same symbol on both sides is one unflagged symbol", async () => {
+		const r = await both("from y import f\nif C:\n    from x import *\n");
+		for (const one of [r.fromImport, r.attribute]) {
+			expect(one.callees.sort()).toEqual(["x.py:f", "y.py:f"]);
+			expect(one.sites.every((s) => s.multiplyBound === true)).toBe(true);
+			expect(one.delta).toEqual(RESOLVED);
+		}
+		const same = await both("from x import f\nif C:\n    from x import *\n");
+		for (const one of [same.fromImport, same.attribute]) {
+			expect(one.callees).toEqual(["x.py:f"]);
+			expect(one.sites.some((s) => s.multiplyBound === true)).toBe(false);
+			expect(one.delta).toEqual(RESOLVED);
+		}
+	});
+
+	test("a star in a finally, or in a try body with only a finally, always runs: it decides x.f alone, as on dev", async () => {
+		const holders: Record<string, string> = {
+			finally: `${def}try:\n    pass\nfinally:\n    from x import *\n`,
+			"try-only-finally body": `${def}try:\n    from x import *\nfinally:\n    pass\n`,
+		};
+		for (const [label, holder] of Object.entries(holders)) {
+			const r = await both(holder);
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(one.callees, label).toEqual(["x.py:f"]);
+				expect(one.sites.some((s) => s.multiplyBound === true)).toBe(false);
+			}
+		}
+	});
+
+	test("an earlier star overridden by the def does not block the may-skip union; only an earlier live star does", async () => {
+		const r = await both(`from y import *\n${def}if C:\n    from x import *\n`);
+		for (const one of [r.fromImport, r.attribute]) expect(one.callees.sort()).toEqual(["m.py:f", "x.py:f"]);
+	});
+
+	test("an earlier star that is external or unresolved, then a skippable star, is a refusal", async () => {
+		for (const first of ["from ext_missing import *\n", "from .nowhere import *\n"]) {
+			const r = await both(`${def}${first}if C:\n    from x import *\n`);
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(
+					one.sites.map((s) => s.calleeId),
+					first,
+				).toEqual([]);
+				expect(one.delta.inRepo, first).toBe(0);
 			}
 		}
 	});
