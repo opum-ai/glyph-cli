@@ -92,7 +92,7 @@ const FIXTURES: {
 				].join("\n"),
 			),
 		],
-		expectedBins: { resolvedInRepo: 3, resolvedExternal: 0, receiverNeedsInference: 1, nameNotBound: 0 },
+		expectedBins: { resolvedInRepo: 4, resolvedExternal: 0, receiverNeedsInference: 0, nameNotBound: 0 },
 	},
 	{
 		name: "exit seven carried",
@@ -2192,5 +2192,141 @@ describe("A1 — rebindings, diamond and cycle guards", () => {
 			py("src/use.py", "import pkg\n\nclass Child(pkg.Base):\n    def go(self):\n        self.run()\n"),
 		]);
 		expect(linesTo(result, symbolId(result, "Base.run", "src/pkg/impl.py"))).toEqual([5]);
+	});
+});
+
+// GCLI-96 (E1, DEC-303 (a22) item 3): a method called on a directly constructed instance.
+describe("E1 — Cls(...).m() on a constructed instance", () => {
+	const classC = "class C:\n    def m(self):\n        pass\n";
+
+	/** One module: the class, an optional extra statement block, then the call under test at the last line. */
+	function module(extra: string, call = "C().m()"): PythonModuleInput[] {
+		return [py("app.py", `${classC}${extra}\n${call}\n`)];
+	}
+
+	function callLines(result: PythonCallsResult): number[] {
+		return linesTo(result, symbolId(result, "C.m", "app.py"));
+	}
+
+	test("positive: the baseline reaches the branch and resolves to C.m", async () => {
+		const result = await analyze(module(""));
+		expect(callLines(result)).toEqual([5]);
+	});
+
+	test("positive: an imported class, a dotted module class and an inherited method resolve", async () => {
+		const imported = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/mod.py", classC),
+			py("use.py", "from pkg.mod import C\n\nC().m()\n"),
+		]);
+		expect(linesTo(imported, symbolId(imported, "C.m", "pkg/mod.py"))).toEqual([3]);
+		const dotted = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/mod.py", classC),
+			py("use.py", "import pkg.mod\n\npkg.mod.C().m()\n"),
+		]);
+		expect(linesTo(dotted, symbolId(dotted, "C.m", "pkg/mod.py"))).toEqual([3]);
+		const inherited = await analyze([
+			py("app.py", "class B:\n    def m(self):\n        pass\n\nclass C(B):\n    pass\n\nC().m()\n"),
+		]);
+		expect(linesTo(inherited, symbolId(inherited, "B.m", "app.py"))).toEqual([8]);
+	});
+
+	test("positive: the call inside a function and a method body resolves", async () => {
+		const result = await analyze(module("", "def f():\n    return C().m()"));
+		expect(callLines(result)).toEqual([6]);
+	});
+
+	test("negative: every kind of second binding of the class name leaves the call unresolved", async () => {
+		const rebinds: Record<string, string> = {
+			def: "def C():\n    pass\n",
+			class: "class C:\n    pass\n",
+			assign: "C = make()\n",
+			annotated: "C: object = make()\n",
+			augassign: "C += 1\n",
+			walrus: "(C := make())\n",
+			for: "for C in items:\n    pass\n",
+			with: "with ctx() as C:\n    pass\n",
+			except: "try:\n    pass\nexcept Exception as C:\n    pass\n",
+			import: "from other import C\n",
+			conditional: "if flag:\n    class C:\n        pass\n",
+			try: "try:\n    class C:\n        pass\nexcept Exception:\n    pass\n",
+			"global in a nested function": "def rebind():\n    global C\n    C = make()\n",
+		};
+		for (const [kind, extra] of Object.entries(rebinds)) {
+			const result = await analyze(module(extra));
+			const found = result.symbols.filter((symbol) => symbol.qualname === "C.m");
+			const edges = found.flatMap((symbol) => sitesTo(result, symbol.id));
+			// the site is the last line, never an edge of an unresolved receiver
+			expect(
+				edges.filter((site) => site.kind === "call"),
+				kind,
+			).toEqual([]);
+		}
+	});
+
+	test("a del of the class name introduces no new value, so it does not block resolution", async () => {
+		// A name that is deleted can only fail afterwards (NameError), never read
+		// a different object, so `del` is not a second binding of the name.
+		const result = await analyze([py("app.py", `${classC}\nC().m()\ndel C\n`)]);
+		expect(callLines(result)).toEqual([5]);
+	});
+
+	test("negative: a __new__ in the MRO (own or inherited) leaves the call unresolved", async () => {
+		const own = await analyze([
+			py(
+				"app.py",
+				"class C:\n    def __new__(cls):\n        return object()\n\n    def m(self):\n        pass\n\nC().m()\n",
+			),
+		]);
+		expect(linesTo(own, symbolId(own, "C.m", "app.py"))).toEqual([]);
+		const inherited = await analyze([
+			py(
+				"app.py",
+				"class B:\n    def __new__(cls):\n        return object()\n\nclass C(B):\n    def m(self):\n        pass\n\nC().m()\n",
+			),
+		]);
+		expect(linesTo(inherited, symbolId(inherited, "C.m", "app.py"))).toEqual([]);
+	});
+
+	test("negative: a non-default metaclass (own or inherited) leaves the call unresolved", async () => {
+		const own = await analyze([py("app.py", "class C(metaclass=Meta):\n    def m(self):\n        pass\n\nC().m()\n")]);
+		expect(linesTo(own, symbolId(own, "C.m", "app.py"))).toEqual([]);
+		const inherited = await analyze([
+			py("app.py", "class B(metaclass=Meta):\n    pass\n\nclass C(B):\n    def m(self):\n        pass\n\nC().m()\n"),
+		]);
+		expect(linesTo(inherited, symbolId(inherited, "C.m", "app.py"))).toEqual([]);
+	});
+
+	test("positive: metaclass=type is the default and still resolves; a shadowed type does not", async () => {
+		const plain = await analyze([
+			py("app.py", "class C(metaclass=type):\n    def m(self):\n        pass\n\nC().m()\n"),
+		]);
+		expect(linesTo(plain, symbolId(plain, "C.m", "app.py"))).toEqual([5]);
+		const shadowed = await analyze([
+			py("app.py", "type = make()\n\nclass C(metaclass=type):\n    def m(self):\n        pass\n\nC().m()\n"),
+		]);
+		expect(linesTo(shadowed, symbolId(shadowed, "C.m", "app.py"))).toEqual([]);
+	});
+
+	test("negative: an inconsistent MRO, a longer chain, a function callee and an unbound callee stay unresolved", async () => {
+		const mro = await analyze([
+			py(
+				"app.py",
+				"class A:\n    pass\n\nclass B(A):\n    pass\n\nclass C(A, B):\n    def m(self):\n        pass\n\nC().m()\n",
+			),
+		]);
+		expect(linesTo(mro, symbolId(mro, "C.m", "app.py"))).toEqual([]);
+		const chain = await analyze(module("", "C().attr.m()"));
+		expect(callLines(chain)).toEqual([]);
+		const func = await analyze([py("app.py", "def C():\n    pass\n\nC().m()\n")]);
+		expect(func.callBins.resolvedInRepo).toBe(1);
+		const unbound = await analyze([py("app.py", "Missing().m()\n")]);
+		expect(unbound.callBins.resolvedInRepo).toBe(0);
+	});
+
+	test("a class whose method is absent and whose base is external lands external, not an edge", async () => {
+		const result = await analyze([py("app.py", "class C(Ext):\n    pass\n\nC().m()\n")]);
+		expect(result.callBins.resolvedExternal).toBe(1);
 	});
 });

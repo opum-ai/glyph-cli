@@ -150,6 +150,7 @@ type CalleeDesc =
 type BaseDesc =
 	| { kind: "name"; name: string }
 	| { kind: "super"; argCount: number; firstArg: CalleeDesc | null }
+	| { kind: "constructed"; callee: CalleeDesc }
 	| { kind: "literal" }
 	| { kind: "dynamic" };
 
@@ -566,7 +567,14 @@ function describeCallee(node: Node): CalleeDesc {
 				firstArg: positional.length > 0 ? describeCallee(positional[0] as Node) : null,
 			};
 		} else {
-			base = { kind: "dynamic" };
+			// E1: `Cls(...).m()` — a call whose callee is a plain or dotted name; the
+			// resolver decides whether that names a class. Any other callee shape
+			// (a call result, a subscript, a literal) stays a dynamic receiver.
+			const callee = fn === null ? null : describeCallee(fn);
+			base =
+				callee !== null && (callee.kind === "name" || (callee.kind === "attr" && callee.base.kind === "name"))
+					? { kind: "constructed", callee }
+					: { kind: "dynamic" };
 		}
 	} else {
 		base = { kind: "dynamic" };
@@ -2450,6 +2458,7 @@ class Resolver {
 			return { bin: "external", reason: "external" };
 		}
 		if (base.kind === "dynamic") return { bin: "receiver", reason: "needs-inference" };
+		if (base.kind === "constructed") return this.resolveConstructedCall(base.callee, segments, scope, site);
 		if (base.kind === "super") {
 			// Rule 44: `super` is a builtin test; a shadowed or possibly-shadowed name
 			// is an ordinary call, so its result is a dynamic receiver (rule 6f).
@@ -2491,6 +2500,31 @@ class Resolver {
 			case "multiply":
 				return { bin: "receiver", reason: "needs-inference" };
 		}
+	}
+
+	/**
+	 * E1 (DEC-303 (a22) item 3): `Cls(...).m()` calls `m` on a fresh instance of
+	 * `Cls` when the callee resolves, through the same binding enumeration as a
+	 * bare call, to exactly one in-repo class. A `__new__` anywhere in the MRO or a
+	 * non-default metaclass can return something that is not a `Cls`, so those
+	 * stay unresolved, as does a failed MRO and any longer chain (`Cls().a.m()`).
+	 */
+	private resolveConstructedCall(
+		callee: CalleeDesc,
+		segments: readonly string[],
+		scope: Scope,
+		site: { file: string; line: number; column: number },
+	): CallResolution {
+		const unresolved: CallResolution = { bin: "receiver", reason: "needs-inference" };
+		if (segments.length !== 1) return unresolved;
+		const symbol = this.resolveCalleeToSymbol(callee, scope, 0, site);
+		if (symbol === null || symbol.kind !== "class") return unresolved;
+		const classInfo = this.classById.get(symbol.id);
+		if (classInfo === undefined) return unresolved;
+		const mro = this.computeMro(classInfo);
+		if (!mro.ok) return unresolved;
+		if (this.firstMethodEntry(mro, "__new__") !== null || this.effectiveMetaclass(classInfo)) return unresolved;
+		return this.methodLookup(classInfo, segments[0] as string, false, true);
 	}
 
 	private moduleCall(
