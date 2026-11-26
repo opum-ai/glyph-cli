@@ -2331,8 +2331,6 @@ class Resolver {
 					binding.origin === undefined
 				) {
 					outcome = this.resolveBareName(binding.rhs.name, scope, 1);
-					// an alternative that resolves to no def or class adds nothing: the name keeps its others
-					if (outcome.kind !== "symbol" && outcome.kind !== "multiply" && outcome.kind !== "external") continue;
 				} else return rebound;
 				if (outcome.kind === "symbol") outcome = { kind: "multiply", symbols: [outcome.symbol] };
 				if (outcome.kind === "multiply") {

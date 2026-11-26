@@ -4895,11 +4895,15 @@ describe("GCLI-115 — a del target is a binding", () => {
 			await both(src, resolved("f"), resolved("f"), "overload group");
 		});
 
-		test("an unconditional later rebinding, and a conditional value that resolves to nothing", async () => {
+		test("an unconditional later rebinding, and a def arm beside a non-resolving assignment arm", async () => {
 			// (a44) item 4: def f, then f = g with no branch, is pinned rebound with no edge
 			await both("def g():\n    pass\ndef f():\n    pass\nf = g\n", REFUSED_NAME, REFUSED_NAME, "unconditional f = g");
-			// a conditional alternative that resolves to no def or class adds nothing: the def stands, unflagged
-			await both(`${DEF}if X:\n    f = unknown_thing\n`, resolved("f"), resolved("f"), "unresolving alternative");
+			// (a46) item 4: a def in one arm and an assignment whose value resolves to no def or class in the other
+			// refuse in BOTH forms, the cross-module call and the same-module bare-name call
+			const arms = "if X:\n    def f():\n        pass\nelse:\n    f = unknown_thing\n";
+			await both(arms, REFUSED_NAME, REFUSED_NAME, "def arm and a non-resolving assignment arm");
+			await expectDelta(`${arms}CALL\n`, "f()", REFUSED_NAME, "same-module twin");
+			await expectDelta(`${DEF}CALL\n`, "f()", resolved("f"), "same-module def alone");
 		});
 	});
 });
