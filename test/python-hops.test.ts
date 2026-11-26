@@ -1105,3 +1105,141 @@ describe("GCLI-126 — an import in a finally or a try-only-finally body is not 
 		}
 	});
 });
+
+describe("GCLI-120 item 2 — C.__class__ is the metaclass, never a def in C's body", () => {
+	const run = (body: string, others: Record<string, string> = {}) =>
+		probe(`${body}def g():\n    f = ALIAS\n    CALL\n`.replace("ALIAS", "C.__class__"), "f()", others);
+	const forms: Record<string, string> = {
+		method: "class C:\n    def __class__(self):\n        pass\n",
+		property: "class C:\n    @property\n    def __class__(self):\n        return 1\n",
+		attribute: "class C:\n    __class__ = 1\n",
+	};
+	for (const [label, body] of Object.entries(forms)) {
+		test(`${label}: f = C.__class__; f() resolves no edge to C's __class__`, async () => {
+			const r = await run(body);
+			expect(r.callees).toEqual([]);
+			expect(r.delta.inRepo).toBe(0);
+			expect(r.delta).toEqual({
+				inRepo: 0,
+				external: 0,
+				receiver: 0,
+				nameNotBound: 1,
+			});
+		});
+	}
+
+	test("a def __class__ in an in-repo base class is refused too", async () => {
+		const r = await run("class B:\n    def __class__(self):\n        pass\nclass C(B):\n    pass\n");
+		expect(r.callees).toEqual([]);
+		expect(r.delta.inRepo).toBe(0);
+	});
+
+	test("twin: a class without __class__ still resolves f = C.g; f() to C.g, and an inherited method too", async () => {
+		for (const body of [
+			"class C:\n    def g(self):\n        pass\n",
+			"class B:\n    def g(self):\n        pass\nclass C(B):\n    pass\n",
+		]) {
+			const r = await probe(`${body}def h():\n    f = C.g\n    CALL\n`, "f(1)");
+			expect(r.callees).toEqual([expect.stringMatching(/^app\.py:.*\.g$/)]);
+			expect(r.delta).toEqual(RESOLVED);
+		}
+	});
+});
+
+describe("GCLI-120 item 3 — a complete star set that misses a binding form does not claim the unshadowed builtin", () => {
+	const run = (target: string, extra: Record<string, string> = {}) =>
+		probe("from s import *\ndef g(x):\n    CALL\n", "len(x)", {
+			"s.py": target,
+			...extra,
+		});
+	const EXTERNAL: Delta = {
+		inRepo: 0,
+		external: 1,
+		receiver: 0,
+		nameNotBound: 0,
+	};
+	const NOT_BUILTIN: Delta = {
+		inRepo: 0,
+		external: 0,
+		receiver: 0,
+		nameNotBound: 1,
+	};
+	const forms: Record<string, string> = {
+		"a for target": "for len in []:\n    pass\n",
+		"a with-as target": "with open('f') as len:\n    pass\n",
+		"a walrus": "if (len := 1):\n    pass\n",
+		"a match capture": "match 1:\n    case len:\n        pass\n",
+		"a list target": "[len, other] = 1, 2\n",
+		"a nested target": "(a, (len, b)) = (1, (2, 3))\n",
+		"a starred target": "a, *len = 1, 2, 3\n",
+		"a global write": "def f():\n    global len\n    len = 1\n",
+	};
+	for (const [label, target] of Object.entries(forms)) {
+		test(`${label} in the star target: len(x) is not the builtin`, async () => {
+			const r = await run(target);
+			expect(r.delta, label).toEqual(NOT_BUILTIN);
+		});
+	}
+
+	test("twins: a star target whose set is exact keeps len(x) the builtin", async () => {
+		const exact: Record<string, [string, Record<string, string>]> = {
+			"plain def": ["def helper():\n    pass\n", {}],
+			"a missed form on a private name": ["for _len in []:\n    pass\n", {}],
+			"a literal __all__ with a missed form outside it": [
+				"__all__ = ['helper']\ndef helper():\n    pass\nfor len in []:\n    pass\n",
+				{},
+			],
+			"an exact nested star": ["from t import *\n", { "t.py": "def helper():\n    pass\n" }],
+		};
+		for (const [label, [target, extra]] of Object.entries(exact)) {
+			const r = await run(target, extra);
+			expect(r.delta, label).toEqual(EXTERNAL);
+		}
+	});
+
+	test("a missed form behind a nested star in the target is refused too", async () => {
+		const r = await run("from t import *\n", {
+			"t.py": "for len in []:\n    pass\n",
+		});
+		expect(r.delta).toEqual(NOT_BUILTIN);
+	});
+});
+
+describe("GCLI-120 round 1 — rule 46 shares the exactness rule, and `__all__` must be an unconditional value", () => {
+	const staticApp =
+		"from s import *\nclass C:\n    def helper(self):\n        pass\n    @staticmethod\n    def m(self):\n        self.helper()\n    def use(self):\n        CALL\n";
+	const runStatic = (target: string) => probe(staticApp, "C.m()", { "s.py": target });
+
+	test("a staticmethod under an inexact complete star keeps self a plain parameter: no C.helper edge from m", async () => {
+		const r = await runStatic("for i in []:\n    pass\n");
+		expect(r.callees).toEqual(["app.py:C.m"]);
+	});
+
+	test("twin: under an exact star target the same shape also has no C.helper edge", async () => {
+		const r = await runStatic("def other():\n    pass\n");
+		expect(r.callees).toEqual(["app.py:C.m"]);
+	});
+
+	const classApp = "from s import *\nclass C:\n    @classmethod\n    def m(cls):\n        CALL\n";
+	test("a classmethod under an inexact complete star: cls() is not a construction", async () => {
+		const r = await probe(classApp, "cls()", { "s.py": "for i in []:\n    pass\n" });
+		expect(r.delta).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 });
+		expect(r.callees).toEqual([]);
+	});
+	test("twin: a classmethod under an exact star target still constructs C", async () => {
+		const r = await probe(classApp, "cls()", { "s.py": "def other():\n    pass\n" });
+		expect(r.callees).toEqual(["app.py:C"]);
+	});
+
+	const run = (target: string) => probe("from s import *\ndef g(x):\n    CALL\n", "len(x)", { "s.py": target });
+	test("a conditional `__all__` is not certified: len(x) is not the builtin", async () => {
+		const r = await run("if X:\n    __all__ = ['helper']\ndef helper():\n    pass\nfor len in [1]:\n    pass\n");
+		expect(r.delta).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 });
+		expect(r.callees).toEqual([]);
+	});
+	test("a bare annotated `__all__` is not certified: a def len in the target is not the builtin", async () => {
+		const r = await run("__all__: list[str]\ndef len(x):\n    pass\n");
+		expect(r.delta).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 });
+		expect(r.callees).toEqual([]);
+	});
+});
