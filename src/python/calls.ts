@@ -210,6 +210,8 @@ type MroEntry = { kind: "class"; info: ClassInfo; key: string } | { kind: "opaqu
 
 type MroResult = { ok: true; entries: MroEntry[] } | { ok: false };
 
+type DecoratorSlots = "absent" | "false" | "other";
+
 interface ClassInfo {
 	id: string;
 	name: string;
@@ -228,6 +230,15 @@ interface ClassInfo {
 	 */
 	metaclassValue: "none" | "type-name" | "other";
 	decorators: string[];
+	/** The callee of each decorator (the function of `@d(...)`), in source order; parallel to `decorators`. */
+	decoratorCallees: CalleeDesc[];
+	/**
+	 * How each decorator spells `slots`, parallel to `decorators`: "absent" (a bare
+	 * decorator, or a call with no arguments), "false" (exactly `slots=False` and
+	 * nothing else that could carry it), or "other" (any other value, a positional
+	 * argument, or a `**` splat).
+	 */
+	decoratorSlots: DecoratorSlots[];
 	methods: Map<string, string[]>;
 	/** Rule 36(ii): bare names used in this class body as a decorator or call. */
 	classBodyBareUses: Set<string>;
@@ -326,6 +337,19 @@ const BUILTIN_INSTANCE_CLASSES: ReadonlySet<string> = new Set([
  */
 const BUILTIN_CLASS_DEFINED_NAMES: ReadonlyMap<string, ReadonlySet<string>> = new Map([
 	["staticmethod", new Set(["__call__"])],
+]);
+
+/**
+ * Class decorators documented to return the class they are given, so a decorated
+ * class still names the same definition (DEC-303 (a31) Q2). Keyed by module, then
+ * decorator name. A decorator reached any other way (not an unshadowed import of
+ * one of these, or any other callee shape) may replace the class.
+ */
+const NON_REPLACING_CLASS_DECORATORS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
+	["dataclasses", new Set(["dataclass"])],
+	["functools", new Set(["total_ordering"])],
+	["typing", new Set(["final", "runtime_checkable"])],
+	["enum", new Set(["unique"])],
 ]);
 
 /** Python 3 builtins: a name bound nowhere else in the scope chain (rule 4c). */
@@ -569,6 +593,20 @@ function importStatementNames(node: Node): string[] {
 	return names;
 }
 
+/** How a decorator call spells `slots` (see ClassInfo.decoratorSlots). */
+function slotsSpelling(call: Node): DecoratorSlots {
+	let spelling: DecoratorSlots = "absent";
+	for (const arg of call.childForFieldName("arguments")?.namedChildren ?? []) {
+		if (arg === null || arg.type === "comment") continue;
+		const key = arg.type === "keyword_argument" ? arg.childForFieldName("name") : null;
+		if (key === null) return "other"; // a positional argument or a ** splat could carry it
+		if (key.text !== "slots") continue;
+		const value = arg.childForFieldName("value");
+		spelling = value !== null && value.type === "false" ? "false" : "other";
+	}
+	return spelling;
+}
+
 function describeCallee(node: Node): CalleeDesc {
 	if (node.type === "identifier") return { kind: "name", name: node.text };
 	if (node.type === "call") {
@@ -699,6 +737,8 @@ interface WalkFrame {
 	callerId: string | null;
 	scopeNames: string[];
 	decorators?: string[];
+	decoratorCallees?: CalleeDesc[];
+	decoratorSlots?: DecoratorSlots[];
 	underError: boolean;
 }
 
@@ -831,7 +871,14 @@ class FileWalker {
 					this.handleFunction(stack, frame, node, frame.decorators ?? []);
 					continue;
 				case "class_definition":
-					this.handleClass(stack, frame, node, frame.decorators ?? []);
+					this.handleClass(
+						stack,
+						frame,
+						node,
+						frame.decorators ?? [],
+						frame.decoratorCallees ?? [],
+						frame.decoratorSlots ?? [],
+					);
 					continue;
 				case "lambda":
 					this.handleLambda(stack, frame, node);
@@ -993,11 +1040,16 @@ class FileWalker {
 	private handleDecoratedDefinition(stack: WalkFrame[], frame: WalkFrame): void {
 		const definition = frame.node.childForFieldName("definition");
 		const decorators: string[] = [];
+		const decoratorCallees: CalleeDesc[] = [];
+		const decoratorSlots: DecoratorSlots[] = [];
 		for (const child of frame.node.namedChildren) {
 			if (child === null || child.type !== "decorator") continue;
 			const expression = child.namedChild(0);
 			if (expression === null) continue;
 			decorators.push(expression.text);
+			const decoratorFunction = expression.type === "call" ? expression.childForFieldName("function") : expression;
+			decoratorSlots.push(expression.type === "call" ? slotsSpelling(expression) : "absent");
+			decoratorCallees.push(decoratorFunction === null ? { kind: "dynamic" } : describeCallee(decoratorFunction));
 			if (expression.type === "call") {
 				// Rule 21: `@d(args)` is one call site at the decorator line, no decorator site.
 				stack.push({
@@ -1039,6 +1091,8 @@ class FileWalker {
 			callerId: frame.callerId,
 			scopeNames: frame.scopeNames,
 			decorators,
+			decoratorCallees,
+			decoratorSlots,
 			underError: frame.underError,
 		});
 	}
@@ -1143,7 +1197,14 @@ class FileWalker {
 		this.pushDefinitionErrors(stack, node, frame);
 	}
 
-	private handleClass(stack: WalkFrame[], frame: WalkFrame, node: Node, decorators: string[]): void {
+	private handleClass(
+		stack: WalkFrame[],
+		frame: WalkFrame,
+		node: Node,
+		decorators: string[],
+		decoratorCallees: CalleeDesc[],
+		decoratorSlots: DecoratorSlots[],
+	): void {
 		const nameNode = node.childForFieldName("name");
 		const name = nameNode !== null && !nameNode.isMissing ? nameNode.text : null;
 		const symbolId =
@@ -1195,6 +1256,8 @@ class FileWalker {
 						bases,
 						metaclassValue,
 						decorators,
+						decoratorCallees,
+						decoratorSlots,
 						methods: new Map(),
 						classBodyBareUses: new Set<string>(),
 					}
@@ -2143,6 +2206,53 @@ class Resolver {
 		}
 	}
 
+	/**
+	 * DEC-303 (a31) Q2: a decorator can replace the class, so a decorated class is
+	 * not known to be itself. False only when every decorator is a bare or called
+	 * `d` bound by exactly one `from m import d` (alias allowed), or `m.d` with `m`
+	 * bound by exactly one `import m` (alias allowed), where `m.d` is on
+	 * NON_REPLACING_CLASS_DECORATORS. Relative imports, local imports, star
+	 * imports, rebound names and every other callee shape count as replacing.
+	 */
+	private hasReplacingDecorator(classInfo: ClassInfo): boolean {
+		const use = { line: classInfo.line, column: 1 };
+		for (const [position, callee] of classInfo.decoratorCallees.entries()) {
+			let moduleName: string;
+			let decoratorName: string;
+			let bindingName: string;
+			let wantKind: "from" | "import";
+			if (callee.kind === "name") {
+				bindingName = callee.name;
+				wantKind = "from";
+			} else if (callee.kind === "attr" && callee.base.kind === "name" && callee.segments.length === 1) {
+				bindingName = callee.base.name;
+				wantKind = "import";
+			} else {
+				return true;
+			}
+			const found = this.lookupBindings(bindingName, classInfo.parentScope, use);
+			if (found === null || found.bindings.length !== 1) return true;
+			const binding = found.bindings[0] as RawBinding;
+			const imported = binding.kind === "import" ? binding.importBinding : null;
+			if (imported === null || imported === undefined || imported.kind !== wantKind) return true;
+			// A repo file named like the stdlib module resolves the import in-repo: not the stdlib decorator.
+			if (imported.outcome !== "external") return true;
+			if (wantKind === "from") {
+				moduleName = imported.module;
+				decoratorName = imported.name ?? "";
+			} else {
+				moduleName = imported.module;
+				decoratorName = (callee as { segments: string[] }).segments[0] as string;
+			}
+			if (NON_REPLACING_CLASS_DECORATORS.get(moduleName)?.has(decoratorName) !== true) return true;
+			// (a32) dataclass(slots=True) returns a NEW class: only a bare, slots-absent or
+			// slots=False dataclass keeps the original, so any other spelling refuses. No
+			// other listed decorator takes `slots`, so the test needs no name check.
+			if (classInfo.decoratorSlots[position] === "other") return true;
+		}
+		return false;
+	}
+
 	private knownClassOf(name: string, scope: Scope, use?: UsePosition): ClassInfo | null {
 		const found = this.lookupBindings(name, scope, use);
 		if (found === null || found.bindings.length !== 1) return null;
@@ -2160,7 +2270,9 @@ class Resolver {
 			}
 			if (binding.rhs !== undefined && binding.rhs.kind === "call") {
 				const symbol = this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0);
-				return symbol !== null && symbol.kind === "class" ? (this.classById.get(symbol.id) ?? null) : null;
+				const constructed = symbol !== null && symbol.kind === "class" ? (this.classById.get(symbol.id) ?? null) : null;
+				// (a31) Q2: a decorated class may have been replaced, so `x = Cls(); x.m()` is refused.
+				return constructed !== null && this.hasReplacingDecorator(constructed) ? null : constructed;
 			}
 			return null;
 		}
@@ -2591,7 +2703,9 @@ class Resolver {
 	 * is an unshadowed builtin CLASS name (BUILTIN_INSTANCE_CLASSES or a builtin
 	 * exception class) whose constructor returns an instance of the subclass being
 	 * constructed (not `type`, not `reversed`, not a builtin function) is not
-	 * opaque for this purpose (DEC-303 (a30)).
+	 * opaque for this purpose (DEC-303 (a30)). A class with a decorator that is not
+	 * on NON_REPLACING_CLASS_DECORATORS is refused too: it may have been replaced
+	 * (DEC-303 (a31) Q2). Decorators on a BASE class are not read (not measured).
 	 */
 	private instanceClassOf(symbol: PythonSymbol | null): ClassInfo | null {
 		if (symbol === null || symbol.kind !== "class") return null;
@@ -2599,6 +2713,7 @@ class Resolver {
 		if (classInfo === undefined) return null;
 		const mro = this.computeMro(classInfo);
 		if (!mro.ok) return null;
+		if (this.hasReplacingDecorator(classInfo)) return null;
 		if (this.firstMethodEntry(mro, "__new__") !== null || this.effectiveMetaclass(classInfo)) return null;
 		for (const entry of mro.entries) {
 			if (entry.kind === "opaque" && !this.isBuiltinClassBase(entry)) return null;

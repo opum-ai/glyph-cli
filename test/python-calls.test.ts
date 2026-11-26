@@ -2565,3 +2565,154 @@ describe("N3 — x = Cls(); x() calls type(x).__call__", () => {
 		expect(callLines(result)).toEqual([]);
 	});
 });
+
+// GCLI-105 (DEC-303 (a31) Q2): a class decorator can replace the class, so a decorated
+// class is refused for E1, N3 and the constructor-bound case of rule 6d unless every
+// decorator is an unshadowed import of one on the known non-replacing list.
+describe("class decorators — refused unless on the non-replacing list", () => {
+	/** One class with `m` and `__call__`, behind `decorators`, and the three site shapes. */
+	async function sites(header: string, decorators: string, extra: PythonModuleInput[] = []) {
+		const cls = `${header}${decorators}class C:\n    def m(self):\n        pass\n\n    def __call__(self):\n        pass\n\n`;
+		const line = (tail: string) => cls.split("\n").length - 1 + tail.split("\n").length - 1;
+		const e1Tail = "C().m()\n";
+		const sixD = "x = C()\nx.m()\n";
+		const n3 = "x = C()\nx()\n";
+		const e1 = await analyze([...extra, py("app.py", cls + e1Tail)]);
+		const six = await analyze([...extra, py("app.py", cls + sixD)]);
+		const three = await analyze([...extra, py("app.py", cls + n3)]);
+		const at = (result: PythonCallsResult, name: string) => linesTo(result, symbolId(result, name, "app.py"));
+		return {
+			e1: at(e1, "C.m"),
+			e1Line: line(e1Tail),
+			six: at(six, "C.m"),
+			sixLine: line(sixD),
+			n3: at(three, "C.__call__"),
+			n3Line: line(n3),
+			bins: { e1: e1.callBins, six: six.callBins, n3: three.callBins },
+		};
+	}
+
+	const allowed: Record<string, [string, string]> = {
+		undecorated: ["", ""],
+		"from dataclasses import dataclass, bare": ["from dataclasses import dataclass\n\n", "@dataclass\n"],
+		"dataclass called": ["from dataclasses import dataclass\n\n", "@dataclass(frozen=True)\n"],
+		"dataclass aliased": ["from dataclasses import dataclass as dcl\n\n", "@dcl\n"],
+		"import dataclasses": ["import dataclasses\n\n", "@dataclasses.dataclass\n"],
+		"import dataclasses as dc, called": ["import dataclasses as dc\n\n", "@dc.dataclass(frozen=True)\n"],
+		"dataclass with slots=False": ["from dataclasses import dataclass\n\n", "@dataclass(slots=False)\n"],
+		"dataclass with slots=False among others": [
+			"from dataclasses import dataclass\n\n",
+			"@dataclass(frozen=True, slots=False)\n",
+		],
+		"dataclass called with no arguments": ["from dataclasses import dataclass\n\n", "@dataclass()\n"],
+		"dataclass with an unrelated keyword after another listed decorator": [
+			"from typing import final\nfrom dataclasses import dataclass\n\n",
+			"@final\n@dataclass(order=True)\n",
+		],
+		"functools.total_ordering": ["from functools import total_ordering\n\n", "@total_ordering\n"],
+		"typing.final": ["from typing import final\n\n", "@final\n"],
+		"typing.runtime_checkable": ["import typing\n\n", "@typing.runtime_checkable\n"],
+		"enum.unique": ["from enum import unique\n\n", "@unique\n"],
+		"two listed decorators": [
+			"from dataclasses import dataclass\nfrom typing import final\n\n",
+			"@final\n@dataclass\n",
+		],
+	};
+
+	const refused: Record<string, [string, string]> = {
+		"an unknown name": ["", "@register\n"],
+		"a local def": ["def mydec(cls):\n    return cls\n\n", "@mydec\n"],
+		"a third-party import": ["from attrs import define\n\n", "@define\n"],
+		"the right name from the wrong module": ["from mod import dataclass\n\n", "@dataclass\n"],
+		"the right module with the wrong name": ["from dataclasses import field\n\n", "@field\n"],
+		"a relative import": ["from .dataclasses import dataclass\n\n", "@dataclass\n"],
+		"an attribute of the wrong module": ["import dataclasses\n\n", "@dataclasses.total_ordering\n"],
+		"an attribute on a name that is not an import": ["", "@dataclasses.dataclass\n"],
+		"a module imported and then used bare": ["import dataclasses\n\n", "@dataclasses\n"],
+		"a from-imported name used as a module": ["from dataclasses import dataclass\n\n", "@dataclass.dataclass\n"],
+		"a dotted decorator of two segments": ["import dataclasses\n\n", "@dataclasses.dataclass.x\n"],
+		"dataclass with slots=True": ["from dataclasses import dataclass\n\n", "@dataclass(slots=True)\n"],
+		"dataclass with slots=True through a module alias": ["import dataclasses as dc\n\n", "@dc.dataclass(slots=True)\n"],
+		"dataclass with slots set to a variable": [
+			"from dataclasses import dataclass\n\nUSE = flag()\n\n",
+			"@dataclass(slots=USE)\n",
+		],
+		"dataclass with slots=True among others": [
+			"from dataclasses import dataclass\n\n",
+			"@dataclass(frozen=True, slots=True)\n",
+		],
+		"dataclass with a ** splat that could carry slots": [
+			"from dataclasses import dataclass\n\nOPTS = {}\n\n",
+			"@dataclass(**OPTS)\n",
+		],
+		"dataclass with a positional argument": ["from dataclasses import dataclass\n\n", "@dataclass(None)\n"],
+		"a listed decorator after a slots dataclass": [
+			"from dataclasses import dataclass\nfrom typing import final\n\n",
+			"@final\n@dataclass(slots=True)\n",
+		],
+		"a call result": ["from dataclasses import dataclass\n\n", "@dataclass()()\n"],
+		"a listed decorator plus an unlisted one": ["from dataclasses import dataclass\n\n", "@dataclass\n@register\n"],
+		"a listed name rebound after the import": [
+			"from dataclasses import dataclass\n\ndataclass = wrap(dataclass)\n\n",
+			"@dataclass\n",
+		],
+		"a listed name bound by an import twice": [
+			"from dataclasses import dataclass\nfrom other import dataclass\n\n",
+			"@dataclass\n",
+		],
+		"a function-local import": ["def f():\n    from dataclasses import dataclass\n\n", "@dataclass\n"],
+	};
+
+	test("positive: a class with no decorator, or only listed ones, resolves at all three sites", async () => {
+		for (const [name, [header, decorators]] of Object.entries(allowed)) {
+			const result = await sites(header, decorators);
+			expect(result.e1, `E1 ${name}`).toEqual([result.e1Line]);
+			expect(result.six, `6d ${name}`).toEqual([result.sixLine]);
+			expect(result.n3, `N3 ${name}`).toEqual([result.n3Line]);
+		}
+	});
+
+	test("negative: any other decorator leaves E1, N3 and the constructor-bound 6d site unresolved", async () => {
+		for (const [name, [header, decorators]] of Object.entries(refused)) {
+			const result = await sites(header, decorators);
+			expect(result.e1, `E1 ${name}`).toEqual([]);
+			expect(result.six, `6d ${name}`).toEqual([]);
+			expect(result.n3, `N3 ${name}`).toEqual([]);
+		}
+	});
+
+	test("negative: a repo file named like the stdlib module is not the stdlib decorator", async () => {
+		const local = (module: string, name: string) => [
+			py(`${module}.py`, `def ${name}(cls):\n    return replace(cls)\n`),
+		];
+		const cases: [string, string, string, string][] = [
+			["dataclasses", "dataclass", "from dataclasses import dataclass\n\n", "@dataclass\n"],
+			["typing", "final", "from typing import final\n\n", "@final\n"],
+			["enum", "unique", "import enum\n\n", "@enum.unique\n"],
+			["functools", "total_ordering", "import functools\n\n", "@functools.total_ordering\n"],
+		];
+		for (const [module, name, header, decorators] of cases) {
+			const result = await sites(header, decorators, local(module, name));
+			expect(result.e1, `E1 ${module}`).toEqual([]);
+			expect(result.six, `6d ${module}`).toEqual([]);
+			expect(result.n3, `N3 ${module}`).toEqual([]);
+		}
+	});
+
+	test("a refused site stays in the bin it had without the rule", async () => {
+		const result = await sites("", "@register\n");
+		// E1 and 6d: the method call needs a receiver type; N3: x() is run-time-bound. The one
+		// in-repo call each is the construction C().
+		expect(result.bins.e1.receiverNeedsInference).toBe(1);
+		expect(result.bins.six.receiverNeedsInference).toBe(1);
+		expect(result.bins.n3.nameNotBound).toBe(1);
+		expect(result.bins.n3.receiverNeedsInference).toBe(0);
+	});
+
+	test("an annotated receiver is not the constructor-bound case and keeps resolving", async () => {
+		const result = await analyze([
+			py("app.py", "@register\nclass C:\n    def m(self):\n        pass\n\ndef f(x: C):\n    x.m()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "C.m", "app.py"))).toEqual([7]);
+	});
+});
