@@ -49,7 +49,7 @@ concurrency:
 jobs:
   docs:
     name: Docs
-    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     env:
       # The published lore this job runs. The lore managed block in CLAUDE.md
@@ -91,7 +91,7 @@ jobs:
   # build on somebody's unrelated pull request.
   tracker:
     name: Tracker integrity
-    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -138,7 +138,7 @@ jobs:
   # toolchains, so a proof has to carry the bytes it ran with.
   check:
     name: Check
-    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -187,7 +187,7 @@ jobs:
   # routes. This change does not touch any ruleset.
   package:
     name: Package
-    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
