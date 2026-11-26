@@ -2860,6 +2860,11 @@ class Resolver {
 		if (scope.kind === "class" && scope.bindings.has(name)) return false;
 		const found = this.lookupBindings(name, scope, site);
 		if (found === null || found.bindings.length !== 1) return false;
+		// A `global name` in any scope between the use and the parameter's function makes
+		// the read a module-level one, which `lookupBindings` does not consult.
+		for (let current: Scope | null = scope; current !== null && current !== found.scope; current = current.parent) {
+			if (current.globalNames.has(name)) return false;
+		}
 		const binding = found.bindings[0] as RawBinding;
 		return binding.kind === "param" && binding.splat !== undefined;
 	}

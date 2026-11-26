@@ -3133,6 +3133,24 @@ describe("K1 — *args, **kwargs and an unshadowed builtin class receiver are bu
 		await refused("int = type\nint.mro(C)\n", "int aliased to type");
 		await refused("int = len\nint.x()\n", "int aliased to len");
 		await refused("def f():\n    dict = len\n    dict.x()\n", "a local alias of a builtin function");
+		// a `global` declaration between the use and the parameter's function reads the module (GCLI-108 round 2)
+		await refused(
+			"args = make()\ndef f(*args):\n    def g():\n        global args\n        args.index(1)\n",
+			"global in a nested function, with a module-level args",
+		);
+		await refused(
+			"def f(*args):\n    class K:\n        global args\n        args.index(1)\n",
+			"global in a class body, with no module-level args",
+		);
+		// positive twins: a read-only nonlocal really reads f's parameter; no declaration likewise
+		await resolvesExternal(
+			"def f(*args):\n    def g():\n        nonlocal args\n        args.index(1)\n",
+			"twin: a read-only nonlocal",
+		);
+		await resolvesExternal(
+			"args = make()\ndef f(*args):\n    def g():\n        args.index(1)\n",
+			"twin: no global, the closure reads the parameter",
+		);
 		// the name is bound in the class body, so it is read from the class or the globals, not the function
 		await refused(
 			"def f(*args):\n    class C:\n        args.index(1)\n        from m import args\n",
@@ -3173,6 +3191,7 @@ describe("K1 — *args, **kwargs and an unshadowed builtin class receiver are bu
 	test("an unshadowed builtin class used as a receiver is the builtin", async () => {
 		for (const call of [
 			"int.from_bytes(b'x', 'big')",
+			"object.__new__(C)",
 			"dict.fromkeys([1])",
 			"str.join(',', [])",
 			"bytes.fromhex('00')",
