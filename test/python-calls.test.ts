@@ -5045,19 +5045,26 @@ describe("GCLI-115 — a del target is a binding", () => {
 		});
 
 		test("a multiply or rebound cross-module base (a49 item 1 (a), (b))", async () => {
-			const alts =
-				"if X:\n    class T:\n        def write(self):\n            pass\n        def run(self):\n            self.write()\nelse:\n    class T:\n        def write(self):\n            pass\n";
-			// (a) S still counts as a subclass of EVERY alternative: self.write() in an alternative is polymorphic
-			const sub = await analyze([
-				py("m.py", alts),
-				py("app.py", "from m import T\nclass S(T):\n    def write(self):\n        pass\n"),
-			]);
-			const writes = new Set(sub.symbols.filter((symbol) => symbol.qualname === "T.write").map((symbol) => symbol.id));
-			const selfCalls = sub.sites.filter(
-				(site) => site.file === "m.py" && site.calleeId !== null && writes.has(site.calleeId),
-			);
-			expect(selfCalls.length).toBeGreaterThan(0);
-			expect(selfCalls.every((site) => site.polymorphic === true)).toBe(true);
+			// BOTH alternatives call self.write(), so "every alternative" differs from "the first alternative"
+			const arm = (indent: string) =>
+				`${indent}class T:\n${indent}    def write(self):\n${indent}        pass\n${indent}    def run(self):\n${indent}        self.write()\n`;
+			const alts = `if X:\n${arm("    ")}else:\n${arm("    ")}`;
+			const overriding = "class S(T):\n    def write(self):\n        pass\n";
+			// (a) S still counts as a subclass of EVERY alternative, through a from-import and a module attribute:
+			// self.write() in each alternative is polymorphic
+			for (const [label, app] of [
+				["from-import", `from m import T\n${overriding}`],
+				["module attribute", `import m\n${overriding.replace("S(T)", "S(m.T)")}`],
+			] as const) {
+				const sub = await analyze([py("m.py", alts), py("app.py", app)]);
+				const writeIds = sub.symbols.filter((symbol) => symbol.qualname === "T.write").map((symbol) => symbol.id);
+				expect(writeIds.length, label).toBe(2);
+				for (const id of writeIds) {
+					const calls = sub.sites.filter((site) => site.file === "m.py" && site.calleeId === id);
+					expect(calls.length, `${label}: a self call to each alternative`).toBe(1);
+					expect(calls[0]?.polymorphic, `${label}: polymorphic for each alternative`).toBe(true);
+				}
+			}
 			// (b) class S(T, U): U defines write, T is a multiply or rebound base ahead of it: the edge to U.write
 			// is kept and flagged externalBaseBefore
 			for (const [label, tsource] of [
