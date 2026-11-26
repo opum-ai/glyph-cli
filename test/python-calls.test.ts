@@ -4889,6 +4889,39 @@ describe("GCLI-115 — a del target is a binding", () => {
 			await expectDelta("import pkg.live\nCALL\n", "pkg.live.Live()", resolved("Live"), "module attribute", live);
 		});
 
+		test("a method reached through a REBOUND in-repo base is not credited to an external base ((a47) item 2 (i))", async () => {
+			const own = "class S(T):\n    pass\ns = S()\nCALL\n";
+			// cross-module: m.T is rebound (a call value), so S's base may define write; it is not external
+			await expectDelta(
+				`from m import T\n${own}`,
+				"s.write()",
+				REFUSED_RECEIVER,
+				"rebound base through a from-import",
+				[py("m.py", "class T:\n    pass\nT = make()\n")],
+			);
+			await expectDelta(
+				"import m\nclass S(m.T):\n    pass\ns = S()\nCALL\n",
+				"s.write()",
+				REFUSED_RECEIVER,
+				"rebound base through a module attribute",
+				[py("m.py", "class T:\n    pass\nT = make()\n")],
+			);
+			// same-module twin: the rebound base is the same shape
+			await expectDelta(
+				`class T:\n    pass\nT = make()\n${own}`,
+				"s.write()",
+				REFUSED_RECEIVER,
+				"rebound base in the same module",
+			);
+			// control: a genuinely external base stays external (the method is found only in it)
+			await expectDelta(
+				"import ext\nclass S(ext.Base):\n    pass\ns = S()\nCALL\n",
+				"s.write()",
+				BUILTIN,
+				"external base",
+			);
+		});
+
 		test("an @overload group is one def, not alternatives", async () => {
 			const src =
 				"from typing import overload\n@overload\ndef f(a: int) -> int: ...\n@overload\ndef f(a: str) -> str: ...\ndef f(a):\n    pass\n";

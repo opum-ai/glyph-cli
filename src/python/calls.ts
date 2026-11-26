@@ -228,7 +228,10 @@ interface BaseRef {
 	text: string;
 }
 
-type MroEntry = { kind: "class"; info: ClassInfo; key: string } | { kind: "opaque"; name: string; key: string };
+type MroEntry =
+	| { kind: "class"; info: ClassInfo; key: string }
+	/** `rebound`: the base is an in-repo name that is rebound, not an external base (DEC-303 (a47) item 2 (i)). */
+	| { kind: "opaque"; name: string; key: string; rebound?: true };
 
 type MroResult = { ok: true; entries: MroEntry[] } | { ok: false };
 
@@ -2670,6 +2673,26 @@ class Resolver {
 		return this.classById.get(symbol.id) ?? null;
 	}
 
+	/**
+	 * GCLI-116 (DEC-303 (a47) item 2 (i)): a base that is an in-repo name whose resolution is `rebound` is not
+	 * an external base, so a method missing from the known MRO is not credited to it (the (a34) D1 pattern).
+	 */
+	private baseIsRebound(classInfo: ClassInfo, base: BaseRef): boolean {
+		const callee = base.callee;
+		if (callee === null) return false;
+		if (callee.kind === "name") {
+			const outcome = this.resolveBareName(callee.name, classInfo.parentScope, 0);
+			return outcome.kind === "unresolved" && outcome.reason === "rebound";
+		}
+		if (callee.kind === "attr" && callee.base.kind === "name") {
+			const head = this.resolveBareName(callee.base.name, classInfo.parentScope, 0);
+			if (head.kind !== "module" || head.path === null) return false;
+			const outcome = this.resolveModuleChain(head.path, callee.segments, 0);
+			return outcome.kind === "unresolved" && outcome.reason === "rebound";
+		}
+		return false;
+	}
+
 	private computeMro(classInfo: ClassInfo): MroResult {
 		if (classInfo.mro !== undefined) return classInfo.mro;
 		if (this.computingMro.has(classInfo)) return { ok: false };
@@ -2690,7 +2713,12 @@ class Resolver {
 					const entry: MroEntry = { kind: "class", info: baseClass, key: baseClass.id };
 					tail.push(entry);
 				} else {
-					const entry: MroEntry = { kind: "opaque", name: baseRef.text, key: `opaque:${classInfo.id}:${index}` };
+					const entry: MroEntry = {
+						kind: "opaque",
+						name: baseRef.text,
+						key: `opaque:${classInfo.id}:${index}`,
+						...(this.baseIsRebound(classInfo, baseRef) ? { rebound: true as const } : {}),
+					};
 					sequences.push([entry]);
 					tail.push(entry);
 				}
@@ -2805,10 +2833,12 @@ class Resolver {
 			start = index < 0 ? 1 : index + 1;
 		}
 		let sawOpaque = false;
+		let sawRebound = false;
 		for (let index = start; index < mro.entries.length; index++) {
 			const entry = mro.entries[index] as MroEntry;
 			if (entry.kind === "opaque") {
 				sawOpaque = true;
+				if (entry.rebound === true) sawRebound = true;
 				// (a31) item 5: an unshadowed builtin base earlier in the MRO that defines
 				// the name wins, so the lookup resolves external, never a later in-repo entry.
 				const builtinBase = this.builtinClassBaseName(entry);
@@ -2849,6 +2879,8 @@ class Resolver {
 			);
 			return { bin: "inRepo", edges, polymorphic, multiplyBound: callables.length > 1 };
 		}
+		// a rebound in-repo base may define the method: not found only in an external base
+		if (sawRebound) return { bin: "receiver", reason: "rebound-base" };
 		if (sawOpaque) return { bin: "external", reason: "external-base" };
 		return { bin: "receiver", reason: "instance-attribute" };
 	}
