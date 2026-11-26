@@ -2324,18 +2324,25 @@ class Resolver {
 	private sourceChainOutcome(binding: ImportBinding, name: string): NameOutcome | null {
 		const seen = new Set<string>();
 		let current = this.sourceModuleFile(binding);
+		let currentName = name;
 		for (let depth = 0; current !== null && depth <= MAX_MODULE_DEPTH; depth++) {
-			if (seen.has(current)) return null;
-			seen.add(current);
-			const gate = this.moduleBindingGate(current, name);
+			const visit = `${current}\u0000${currentName}`;
+			if (seen.has(visit)) return null;
+			seen.add(visit);
+			const gate = this.moduleBindingGate(current, currentName);
 			if (gate !== null) {
 				if (gate.kind === "symbol" || gate.kind === "multiply" || gate.kind === "unresolved") return gate;
 				return null;
 			}
 			const hop: ImportBinding | undefined = this.fileBindingsByPath
 				.get(current)
-				?.find((candidate) => candidate.boundName === name && candidate.kind !== "import" && candidate.kind !== "star");
+				?.find(
+					(candidate) =>
+						candidate.boundName === currentName && candidate.kind !== "import" && candidate.kind !== "star",
+				);
 			if (hop === undefined || hop.outcome !== "resolved" || hop.target === null || hop.condition !== null) return null;
+			// an aliased hop (`from o import g as f`) names the next module's binding by the imported name
+			currentName = hop.name ?? hop.boundName;
 			current = this.sourceModuleFile(hop);
 		}
 		return null;
@@ -2443,11 +2450,11 @@ class Resolver {
 		this.gateActive.add(key);
 		try {
 			const rebound: NameOutcome = { kind: "unresolved", reason: "rebound" };
-			// N2 (GCLI-118, DEC-303 (a50) items 3 and 4): a star import in m after the name's bindings is walked
-			// last to first, as the bare name's lookup walks it (rule 45).
-			const star = this.starOverride(path, name, countable);
-			if (star !== null) return star;
-			if (!hasDef && countable.length === 1) return null;
+			// N2 (GCLI-118, DEC-303 (a50) items 3 and 4): a star import in m after the LAST binding of the name is
+			// walked last to first, as the bare name's lookup walks it (rule 45). Any binding that cannot be
+			// positioned or ordered (a del, an assignment, a global write) is a rebinding that returns first.
+			const star = (): NameOutcome | null => this.starOverride(path, name, countable);
+			if (!hasDef && countable.length === 1) return star();
 			const symbols: PythonSymbol[] = [];
 			let external = false;
 			for (const binding of bindings) {
@@ -2479,8 +2486,11 @@ class Resolver {
 				else return rebound;
 			}
 			if (symbols.length === 0) return rebound;
-			if (symbols.length === 1 && !external) return { kind: "symbol", symbol: symbols[0] as PythonSymbol };
-			return { kind: "multiply", symbols };
+			const decided: NameOutcome =
+				symbols.length === 1 && !external
+					? { kind: "symbol", symbol: symbols[0] as PythonSymbol }
+					: { kind: "multiply", symbols };
+			return star() ?? decided;
 		} finally {
 			this.gateActive.delete(key);
 		}
@@ -2491,28 +2501,25 @@ class Resolver {
 	 * when none does. Stars are walked last to first: a complete star that exports the name decides it (the star's
 	 * own binding of the name, never the earlier def), a complete one that does not is skipped, and a partial one
 	 * (unresolved, external, non-literal `__all__`) reached first leaves the name star-bound and unresolved. A star
-	 * that comes before every binding of the name is overridden by it and does not count. A binding with no known
-	 * position makes every star count.
+	 * that comes at or before the LAST positioned binding of the name is overridden by it and does not count (a
+	 * star between two bindings leaves the gate's alternatives as they were). Bindings with no position are
+	 * rebindings the gate has already refused.
 	 */
 	private starOverride(path: string, name: string, bindings: readonly RawBinding[]): NameOutcome | null {
 		const stars = this.starBindingsByPath.get(path);
 		if (stars === undefined) return null;
-		let firstLine = Number.POSITIVE_INFINITY;
+		let lastLine = 0;
 		for (const binding of bindings) {
 			let line: number | null = null;
 			if (binding.kind === "def" || binding.kind === "class") {
 				line = binding.symbolId !== undefined ? (this.symbolsById.get(binding.symbolId)?.line ?? null) : null;
 			} else if (binding.kind === "import") line = binding.importBinding?.line ?? null;
-			if (line === null) {
-				firstLine = 0;
-				break;
-			}
-			firstLine = Math.min(firstLine, line);
+			if (line !== null) lastLine = Math.max(lastLine, line);
 		}
 		let partial = false;
 		for (let index = stars.length - 1; index >= 0; index--) {
 			const star = stars[index] as ImportBinding;
-			if (star.line < firstLine) break;
+			if (star.line <= lastLine) break;
 			if (star.outcome === "resolved" && star.target !== null && star.reason === null) {
 				if (!star.starNames.includes(name)) continue;
 				if (partial) return { kind: "unresolved", reason: "star-bound" };

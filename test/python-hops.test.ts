@@ -274,3 +274,72 @@ describe("A2 — the interim single-binding refusal is retired (the httpx shape)
 		expect(r.callees).toEqual(["pkg/_s.py:codes.get"]);
 	});
 });
+
+// GCLI-118 Opus round 1 (eeb6f8ef): a star decides only after the LAST binding of the name, the hop walk follows an
+// alias, a cycle in the walk terminates, and an import-only holder's module-valued bindings stay the old path's.
+describe("GCLI-118 round 1 — star after the last binding, alias hops, cycles", () => {
+	const x = "def f():\n    pass\n";
+	const both = async (holder: string, others: Record<string, string>) => ({
+		fromImport: await probe("from m import f\nCALL\n", "f()", { "m.py": holder, ...others }),
+		attribute: await probe("import m\nCALL\n", "m.f()", { "m.py": holder, ...others }),
+	});
+
+	test("a star between two bindings does not decide: the later def overrides it, x.f gets no edge", async () => {
+		const r = await both("from y import f\nfrom x import *\ndef f():\n    pass\n", { "x.py": x, "y.py": x });
+		for (const one of [r.fromImport, r.attribute]) {
+			expect(one.callees).not.toContain("x.py:f");
+			expect(one.callees.sort()).toEqual(["m.py:f", "y.py:f"]);
+		}
+	});
+
+	test("a rebinding after the star ends it: del, None, a for target and a global write give no edge", async () => {
+		const rebinders: Record<string, string> = {
+			del: "del f\n",
+			"f = None": "f = None\n",
+			"for target": "for f in []:\n    pass\n",
+			"global write": "def g():\n    global f\n    f = 1\n",
+		};
+		for (const [label, tail] of Object.entries(rebinders)) {
+			const r = await both(`${m}from x import *\n${tail}`, { "x.py": x });
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(
+					one.sites.map((s) => s.calleeId),
+					label,
+				).toEqual([]);
+				expect(one.delta.inRepo, label).toBe(0);
+			}
+		}
+	});
+
+	test("a star on the same line as the import before it does not decide; the import stands", async () => {
+		const r = await both("from x import *; from o import f\n", { "x.py": x, "o.py": x });
+		for (const one of [r.fromImport, r.attribute]) expect(one.callees).toEqual(["o.py:f"]);
+	});
+
+	test("an aliased hop reads the next module by the imported name (from o import g as f)", async () => {
+		const files = { "o.py": "from p import g\ndef f():\n    pass\n", "p.py": "def g():\n    pass\n" };
+		const r = await both("from o import g as f\n", files);
+		for (const one of [r.fromImport, r.attribute]) {
+			expect(one.delta).toEqual(RESOLVED);
+			expect(one.callees).toEqual(["p.py:g"]);
+		}
+		// o rebinding the IMPORTED name g ends the chain
+		const rebound = await both("from o import g as f\n", { ...files, "o.py": "from p import g\ng = None\n" });
+		for (const one of [rebound.fromImport, rebound.attribute]) {
+			expect(one.sites.map((s) => s.calleeId)).toEqual([]);
+		}
+		// o rebinding an unrelated name f does not
+		const unrelated = await both("from o import g as f\n", { ...files, "o.py": "from p import g\nf = None\n" });
+		for (const one of [unrelated.fromImport, unrelated.attribute]) {
+			expect(one.callees).toEqual(["p.py:g"]);
+		}
+	});
+
+	test("a cycle in the hop walk (a imports f from b, b from a) terminates with no edge", async () => {
+		const files = { "a.py": "from b import f\n", "b.py": "from a import f\n" };
+		const fromImport = await probe("from a import f\nCALL\n", "f()", files);
+		expect(fromImport.sites.map((s) => s.calleeId)).toEqual([]);
+		const attribute = await probe("import a\nCALL\n", "a.f()", files);
+		expect(attribute.sites.map((s) => s.calleeId)).toEqual([]);
+	});
+});
