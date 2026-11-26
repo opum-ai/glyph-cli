@@ -2398,7 +2398,7 @@ class Resolver {
 					(candidate) =>
 						candidate.boundName === currentName && candidate.kind !== "import" && candidate.kind !== "star",
 				);
-			if (hop === undefined || hop.outcome !== "resolved" || hop.target === null || hop.condition !== null) return null;
+			if (hop === undefined || hop.outcome !== "resolved" || hop.target === null) return null;
 			// an aliased hop (`from o import g as f`) names the next module's binding by the imported name
 			currentName = hop.name ?? hop.boundName;
 			current = this.sourceModuleFile(hop);
