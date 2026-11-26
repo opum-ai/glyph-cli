@@ -2511,8 +2511,8 @@ class Resolver {
 			// N2 (GCLI-118, DEC-303 (a50) items 3 and 4): a star import in m after the LAST binding of the name is
 			// walked last to first, as the bare name's lookup walks it (rule 45). Any binding that cannot be
 			// positioned or ordered (a del, an assignment, a global write) is a rebinding that returns first.
-			const star = (): NameOutcome | null => this.starOverride(path, name, countable);
-			if (!hasDef && countable.length === 1) return star();
+			const star = (fallback: NameOutcome): NameOutcome | null => this.starOverride(path, name, countable, fallback);
+			if (!hasDef && countable.length === 1) return star(this.resolveStatic(countable[0] as RawBinding));
 			const symbols: PythonSymbol[] = [];
 			let external = false;
 			for (const binding of bindings) {
@@ -2548,7 +2548,7 @@ class Resolver {
 				symbols.length === 1 && !external
 					? { kind: "symbol", symbol: symbols[0] as PythonSymbol }
 					: { kind: "multiply", symbols };
-			return star() ?? decided;
+			return star(decided) ?? decided;
 		} finally {
 			this.gateActive.delete(key);
 		}
@@ -2564,9 +2564,17 @@ class Resolver {
 	 * name (Q2): the result is every alternative, or a refusal when one is not a symbol. A star on the same line as
 	 * a binding (an import has a line, no column), or with a binding that has no position (a conditional alias
 	 * assignment) at or after it, leaves the name unresolved rather than guessing. Other bindings with no position
-	 * (a del, an assignment) are rebindings the gate has already refused.
+	 * (a del, an assignment) are rebindings the gate has already refused. A deciding star with a `condition` (inside an
+	 * `if`, `try` or `with` arm, GCLI-125) may not run: the name is the star's OR what `fallback` (the rest of the
+	 * module) decides, as Q2 alternatives; a fallback that is not a symbol, or an earlier star that could bind the
+	 * name, is a refusal.
 	 */
-	private starOverride(path: string, name: string, bindings: readonly RawBinding[]): NameOutcome | null {
+	private starOverride(
+		path: string,
+		name: string,
+		bindings: readonly RawBinding[],
+		fallback: NameOutcome,
+	): NameOutcome | null {
 		const stars = this.starBindingsByPath.get(path);
 		if (stars === undefined) return null;
 		// Each binding's line, and whether it always runs (a def, class or import in an `if`, `try` or `except` arm
@@ -2622,8 +2630,30 @@ class Resolver {
 				if (found.kind !== "symbol" && found.kind !== "multiply") return { kind: "unresolved", reason: "star-bound" };
 				// a conditional def, class or import AFTER the star is an alternative of the star's name (Q2)
 				const later = alternatives.filter((alternative) => alternative.line > star.line);
-				if (later.length === 0) return found;
+				// GCLI-125 (N-6, DEC-303 (a62) item 6): a star inside an `if` or `try` arm may not run. The name is then
+				// the star's OR what the rest of the module decides without it (Q2: every alternative). A rest that is
+				// not a symbol, or an earlier star after the last unconditional binding that could also bind the name
+				// (it would decide in the star's place), is a refusal: no pick between them.
+				const maySkip = star.condition !== null;
+				if (maySkip) {
+					for (let before = index - 1; before >= 0; before--) {
+						const earlier = stars[before] as ImportBinding;
+						if (earlier.line < lastUnconditional) break;
+						const earlierComplete =
+							earlier.outcome === "resolved" && earlier.target !== null && earlier.reason === null;
+						if (!earlierComplete || earlier.starNames.includes(name))
+							return { kind: "unresolved", reason: "star-bound" };
+					}
+					if (fallback.kind !== "symbol" && fallback.kind !== "multiply")
+						return { kind: "unresolved", reason: "star-bound" };
+				}
+				if (later.length === 0 && !maySkip) return found;
 				const symbols: PythonSymbol[] = found.kind === "symbol" ? [found.symbol] : [...found.symbols];
+				if (maySkip) {
+					const rest =
+						fallback.kind === "symbol" ? [fallback.symbol] : fallback.kind === "multiply" ? fallback.symbols : [];
+					for (const symbol of rest) if (!symbols.some((existing) => existing.id === symbol.id)) symbols.push(symbol);
+				}
 				for (const { binding } of later) {
 					const alt =
 						binding.kind === "import"

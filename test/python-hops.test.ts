@@ -611,3 +611,64 @@ describe("GCLI-118 round 1 — star after the last binding, alias hops, cycles",
 		expect(attribute.sites.map((s) => s.calleeId)).toEqual([]);
 	});
 });
+
+// GCLI-125 (DEC-303 (a62) item 6, N-6): a star inside an if or try arm may not run, so after an unconditional def
+// the name is the star's OR the def's (Q2), never the star's alone.
+describe("GCLI-125 — a conditional star is a may-skip alternative", () => {
+	const x = "def f():\n    pass\n";
+	const both = async (holder: string) => ({
+		fromImport: await probe("from m import f\nCALL\n", "f()", { "m.py": holder, "x.py": x, "y.py": x }),
+		attribute: await probe("import m\nCALL\n", "m.f()", { "m.py": holder, "x.py": x, "y.py": x }),
+	});
+	const def = "def f():\n    pass\n";
+
+	test("an if or try star after an unconditional def or import gives every alternative, each multiplyBound", async () => {
+		const holders: Record<string, string> = {
+			"def, if-star": `${def}if C:\n    from x import *\n`,
+			"def, try-star": `${def}try:\n    from x import *\nexcept ImportError:\n    pass\n`,
+			"def, with-star": `${def}with C:\n    from x import *\n`,
+			"import, if-star": "from y import f\nif C:\n    from x import *\n",
+		};
+		for (const [label, holder] of Object.entries(holders)) {
+			const r = await both(holder);
+			for (const one of [r.fromImport, r.attribute]) {
+				const rest = label.startsWith("import") ? "y.py:f" : "m.py:f";
+				expect(one.callees.sort(), label).toEqual([rest, "x.py:f"].sort());
+				expect(
+					one.sites.every((s) => s.multiplyBound === true),
+					label,
+				).toBe(true);
+			}
+		}
+	});
+
+	test("twins: an unconditional star after the def decides x.f alone; a conditional star BEFORE the def is overridden", async () => {
+		const after = await both(`${def}from x import *\n`);
+		for (const one of [after.fromImport, after.attribute]) {
+			expect(one.callees).toEqual(["x.py:f"]);
+			expect(one.sites.some((s) => s.multiplyBound === true)).toBe(false);
+		}
+		const before = await both(`if C:\n    from x import *\n${def}`);
+		for (const one of [before.fromImport, before.attribute]) expect(one.callees).toEqual(["m.py:f"]);
+		const lone = await both("if C:\n    from x import *\n");
+		for (const one of [lone.fromImport, lone.attribute]) expect(one.callees).toEqual(["x.py:f"]);
+	});
+
+	test("an earlier star that could bind the name, or a rest that is not a symbol, is a refusal, not a pick", async () => {
+		const holders: Record<string, string> = {
+			"two conditional stars": `${def}if C:\n    from x import *\nelse:\n    from y import *\n`,
+			"unconditional star then conditional star": `${def}from y import *\nif C:\n    from x import *\n`,
+			"external import then conditional star": "from ext import f\nif C:\n    from x import *\n",
+		};
+		for (const [label, holder] of Object.entries(holders)) {
+			const r = await both(holder);
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(
+					one.sites.map((s) => s.calleeId),
+					label,
+				).toEqual([]);
+				expect(one.delta.inRepo, label).toBe(0);
+			}
+		}
+	});
+});
