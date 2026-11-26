@@ -2830,6 +2830,51 @@ describe("D1 — a class-scope non-def binding hides a base's def", () => {
 		}
 	});
 
+	// GCLI-107: two binding kinds the walker missed. Each binds NAME in the class, so the
+	// lookup ends unresolved; the `m = None` control is the shape they must match.
+	test("a PEP 695 type alias and a with-as tuple, list, nested or starred target bind the name (GCLI-107)", async () => {
+		const bodies: Record<string, string> = {
+			"control: plain assignment": "NAME = None",
+			"type alias": "type NAME = int",
+			"type alias with type parameters": "type NAME[T] = list[T]",
+			"with-as name": "with ctx() as NAME:\n    pass",
+			"with-as tuple": "with ctx() as (NAME, n):\n    pass",
+			"with-as tuple, name second": "with ctx() as (n, NAME):\n    pass",
+			"with-as bare tuple after a name": "with a() as x, b() as (NAME, n):\n    pass",
+			"with-as list": "with ctx() as [NAME, n]:\n    pass",
+			"with-as nested": "with ctx() as (a, (NAME, b)):\n    pass",
+			"with-as star in a tuple": "with ctx() as (a, *NAME):\n    pass",
+			"with-as star in a list": "with ctx() as [a, *NAME]:\n    pass",
+			"parenthesised with items": "with (ctx() as (NAME, n)):\n    pass",
+		};
+		for (const [label, body] of Object.entries(bodies)) {
+			for (const name of ["m", "__call__"] as const) {
+				for (const [shape, { got }] of Object.entries(await shapes(body, name))) {
+					expect(got, `${label} / ${name} / ${shape}`).toEqual([]);
+				}
+			}
+		}
+	});
+
+	test("twins: a type alias or with-as target of another name, or an attribute target, binds nothing (GCLI-107)", async () => {
+		const bodies = [
+			"type other = int",
+			"with ctx() as (a, b):\n    pass",
+			"with ctx() as [a, *b]:\n    pass",
+			// an attribute or subscript target binds no name
+			"with ctx() as NAME.x:\n    pass",
+			"with ctx() as (a, NAME.x):\n    pass",
+			"with ctx() as a[NAME]:\n    pass",
+		];
+		for (const body of bodies) {
+			for (const name of ["m", "__call__"] as const) {
+				for (const [shape, { got, line }] of Object.entries(await shapes(body, name))) {
+					expect(got, `${body} / ${name} / ${shape}`).toEqual([line]);
+				}
+			}
+		}
+	});
+
 	test("positive twins: an unrelated binding, or no binding, still reaches the base", async () => {
 		for (const body of ["other = None", "pass", "from other import NAME2", "def NAME(self):\n    pass"]) {
 			for (const name of ["m", "__call__"] as const) {
