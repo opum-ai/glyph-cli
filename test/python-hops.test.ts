@@ -1557,8 +1557,10 @@ describe("GCLI-121 — a quoted annotation resolves as its unquoted twin", () =>
 // enclosing binding of the same name.
 describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", () => {
 	const cls = "class C:\n    def run(self):\n        pass\nclass D:\n    def run(self):\n        pass\n";
-	/** The `.run` callees only: `x = C()` in the setup is itself an edge. */
-	const runs = (r: { callees: (string | null)[] }) => r.callees.filter((c) => c?.endsWith(".run"));
+	const REFUSED: Delta = { inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 };
+	/** The `.run` and `.save` callees only: `x = C()` in the setup is itself an edge. */
+	const runs = (r: { callees: (string | null)[] }) =>
+		r.callees.filter((c) => c?.endsWith(".run") || c?.endsWith(".save"));
 	const lines = (body: string, indent: string) =>
 		body
 			.split("\n")
@@ -1586,7 +1588,7 @@ describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", (
 		test(`${label}: x.run() is not claimed as C.run`, async () => {
 			const r = await probe(inFunction(generic), "x.run()");
 			expect(runs(r)).not.toContain("app.py:C.run");
-			expect(r.delta.inRepo, label).toBe(0);
+			expect(r.delta, label).toEqual(REFUSED);
 		});
 	}
 
@@ -1611,7 +1613,7 @@ describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", (
 		expect(runs(r)).toEqual(["app.py:C.run"]);
 	});
 
-	test("a default value and a decorator are read in the enclosing scope, not the type-parameter scope", async () => {
+	test("a default value is read in the enclosing scope, not the type-parameter scope", async () => {
 		const r = await probe(`${cls}x = C()\ndef h[x](a=x.run()):\n    pass\nCALL\n`, "pass");
 		expect(runs(r)).toEqual(["app.py:C.run"]);
 	});
@@ -1620,7 +1622,7 @@ describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", (
 		const mod = (generic: string) => probe(`${cls}${generic}`, "p.run()");
 		const shadowed = await mod("def g[C](p: C):\n    CALL\n");
 		expect(runs(shadowed)).not.toContain("app.py:C.run");
-		expect(shadowed.delta.inRepo).toBe(0);
+		expect(shadowed.delta).toEqual(REFUSED);
 		const twin = await mod("def g[T](p: C):\n    CALL\n");
 		expect(runs(twin)).toEqual(["app.py:C.run"]);
 	});
@@ -1637,5 +1639,41 @@ describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", (
 		expect(runs(r)).not.toContain("app.py:C.run");
 		const twin = await probe(inFunction("def h[x: C]():\n    CALL\n"), "C().run()");
 		expect(runs(twin)).toEqual(["app.py:C.run"]);
+	});
+
+	// Opus round 1, B1: an annotation scope directly inside a class body still reads the class's names.
+	test("a generic declared in a class body reads the class body's names, as before", async () => {
+		const item = "class Item:\n    def save(self):\n        pass\n";
+		const annotation = await probe(
+			`${item}class Outer:\n    class Item:\n        def save(self):\n            pass\n    def get[T](self, item: Item):\n        CALL\n`,
+			"item.save()",
+		);
+		expect(runs(annotation)).toEqual(["app.py:Outer.Item.save"]);
+		const base = await probe(
+			"class B:\n    def run(self):\n        pass\nclass Outer:\n    class B:\n        def run(self):\n            pass\n    class K[T](B):\n        def m(self):\n            CALL\n",
+			"self.run()",
+		);
+		expect(runs(base)).toEqual(["app.py:Outer.B.run"]);
+		const alias = await probe(
+			`${item}class Outer:\n    class Item:\n        def save(self):\n            pass\n    type A[T] = CALL\n`,
+			"Item().save()",
+		);
+		expect(runs(alias)).toEqual(["app.py:Outer.Item.save"]);
+	});
+
+	test("the body of a generic method still skips the class body", async () => {
+		const r = await probe(
+			"class Item:\n    def save(self):\n        pass\nclass Outer:\n    class Item:\n        def save(self):\n            pass\n    def get[T](self):\n        CALL\n",
+			"Item().save()",
+		);
+		expect(runs(r)).toEqual(["app.py:Item.save"]);
+	});
+
+	test("a class's own type parameter is still seen through the class body by a generic method's annotation", async () => {
+		const r = await probe(
+			"class C:\n    def run(self):\n        pass\nclass K[C]:\n    def m[U](self, p: C):\n        CALL\n",
+			"p.run()",
+		);
+		expect(runs(r)).toEqual([]);
 	});
 });

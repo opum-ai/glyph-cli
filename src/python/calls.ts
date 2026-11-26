@@ -1262,7 +1262,7 @@ class FileWalker {
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					// GCLI-112: the value sees the alias's own type parameters.
 					const typeScope = this.typeParameterScope(frame, node);
-					const value = node.namedChild(node.namedChildCount - 1);
+					const value = node.childForFieldName("right") ?? node.namedChild(node.namedChildCount - 1);
 					if (typeScope !== null && value !== null) {
 						const pushed = stack.find((entry) => entry.node.id === value.id);
 						if (pushed !== undefined) pushed.scope = typeScope;
@@ -1671,10 +1671,10 @@ class FileWalker {
 						const value = child.childForFieldName("value");
 						metaclassValue =
 							value !== null && value.type === "identifier" && value.text === "type" ? "type-name" : "other";
-						this.pushOuter(stack, child, frame);
+						this.pushOuter(stack, child, baseFrame);
 						continue;
 					}
-					this.pushOuter(stack, child, frame);
+					this.pushOuter(stack, child, baseFrame);
 					continue;
 				}
 				bases.push({ callee: describeCallee(child), text: child.text });
@@ -2229,7 +2229,9 @@ class Resolver {
 					if (bindings.length > 0) return { scope: current, bindings };
 				}
 			}
-			first = false;
+			// GCLI-112: a type-parameter scope sits directly inside a class body for a generic declared there, and
+			// Python reads the class's names from that annotation scope, so the class is still the first real scope.
+			first = first && current.typeParams === true;
 			current = current.parent;
 		}
 		return null;
