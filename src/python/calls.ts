@@ -1405,6 +1405,7 @@ class Resolver {
 	private readonly fileSymbols = new Map<string, PythonSymbol[]>();
 	private readonly classById = new Map<string, ClassInfo>();
 	private readonly pathToModule = new Map<string, string>();
+	private readonly pathToPackage = new Map<string, string>();
 	private readonly modulePathByName = new Map<string, string>();
 	/** DEC-303 (a27) Q2: a module-name prefix with no file of its own, mapped to its directory. */
 	private readonly namespaceDirByName = new Map<string, string>();
@@ -1436,6 +1437,7 @@ class Resolver {
 		}
 		for (const module of graph.modules) {
 			this.pathToModule.set(module.path, module.module);
+			this.pathToPackage.set(module.path, module.package);
 			if (!module.shadowed && !this.modulePathByName.has(module.module)) {
 				this.modulePathByName.set(module.module, module.path);
 			}
@@ -1778,7 +1780,9 @@ class Resolver {
 			return { kind: "module", path: binding.target };
 		}
 		const importedName = binding.name ?? binding.boundName;
-		if (this.isModuleFileForName(binding.target, importedName)) return { kind: "module", path: binding.target };
+		if (this.isModuleFileForName(binding.target, importedName) && !this.isSameNameAttribute(binding, importedName)) {
+			return { kind: "module", path: binding.target };
+		}
 		const targets = [binding.target, ...binding.alternatives];
 		const symbols: PythonSymbol[] = [];
 		for (const target of targets) {
@@ -1830,6 +1834,32 @@ class Resolver {
 
 	// --- module helpers ----------------------------------------------------
 
+	/**
+	 * DEC-303 (a22) item 3, group A4: `from m import m` binds that attribute, not the
+	 * module, only when the SOURCE module `m` is a module FILE (`m.py`, never a package
+	 * `__init__.py` or a namespace directory, whose same-named submodule is what Python
+	 * binds) and it defines or re-exports the name. `from . import m` has no module part
+	 * and stays a module.
+	 */
+	private isSameNameAttribute(binding: ImportBinding, name: string, depth = 0): boolean {
+		if (binding.module === "") return false;
+		const source = this.sourceModuleFile(binding);
+		if (source === null || !(source === `${name}.py` || source.endsWith(`/${name}.py`))) return false;
+		return this.symbolInModuleOrReexport(source, name, depth + 1) !== null;
+	}
+
+	/** The file of a from-import's source module (dots resolved against the importer's package), or null. */
+	private sourceModuleFile(binding: ImportBinding): string | null {
+		if (binding.dots === 0) return this.modulePathByName.get(binding.module) ?? null;
+		const pkg = this.pathToPackage.get(binding.path);
+		if (pkg === undefined) return null;
+		const parts = pkg === "" ? [] : pkg.split(".");
+		const keep = parts.length - (binding.dots - 1);
+		if (keep < 0) return null;
+		const name = [...parts.slice(0, keep), binding.module].filter((part) => part !== "").join(".");
+		return this.modulePathByName.get(name) ?? null;
+	}
+
 	private isModuleFileForName(path: string, name: string): boolean {
 		return (
 			path === `${name}.py` ||
@@ -1857,6 +1887,14 @@ class Resolver {
 			if (binding.outcome !== "resolved" || binding.target === null) continue;
 			if (binding.kind === "import") continue;
 			const importedName = binding.name ?? binding.boundName;
+			// A hop that binds a same-named module (not the attribute) yields no symbol;
+			// the depth is threaded so a cycle through the gate terminates (DEC-303 (a22) A4).
+			if (
+				this.isModuleFileForName(binding.target, importedName) &&
+				!this.isSameNameAttribute(binding, importedName, depth + 1)
+			) {
+				continue;
+			}
 			const nested = this.symbolInModuleOrReexport(binding.target, importedName, depth + 1);
 			if (nested !== null) return nested;
 		}
@@ -1886,7 +1924,10 @@ class Resolver {
 				}
 				if (binding.kind === "import") return { kind: "module", path: binding.target };
 				const importedName = binding.name ?? binding.boundName;
-				if (this.isModuleFileForName(binding.target, importedName)) {
+				if (
+					this.isModuleFileForName(binding.target, importedName) &&
+					!this.isSameNameAttribute(binding, importedName)
+				) {
 					return { kind: "module", path: binding.target };
 				}
 				return this.resolveModuleAttribute(binding.target, importedName, visited, depth + 1);
