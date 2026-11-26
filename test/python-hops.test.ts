@@ -1445,3 +1445,110 @@ describe("GCLI-136 — an __all__ in a statement that may be skipped does not ma
 		}
 	});
 });
+
+// GCLI-121 (DEC-303 (a70), arm A): a plain quoted annotation resolves exactly as its unquoted twin.
+describe("GCLI-121 — a quoted annotation resolves as its unquoted twin", () => {
+	const cls = "class C:\n    def meth(self):\n        pass\n";
+	const run = (ann: string, prelude = cls) => probe(`${prelude}def g(x: ${ann}):\n    CALL\n`, "x.meth()");
+	const EDGE = ["app.py:C.meth"];
+	const NONE: Delta = { inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 };
+
+	const resolves: Record<string, string> = {
+		name: '"C"',
+		"single quotes": "'C'",
+		"X | None": '"C | None"',
+		"None | X": '"None | C"',
+		"Optional[X]": '"Optional[C]"',
+		"Union[X, None]": '"Union[C, None]"',
+		"typing.Optional": '"typing.Optional[C]"',
+		"inner quoted in Optional": 'Optional["C"]',
+		"quoted in a pipe": '"C" | None',
+		spaces: '" C | None "',
+	};
+	for (const [label, ann] of Object.entries(resolves)) {
+		test(`${label}: ${ann} resolves x.meth()`, async () => {
+			const r = await run(ann);
+			expect(r.delta, label).toEqual(RESOLVED);
+			expect(r.callees, label).toEqual(EDGE);
+		});
+	}
+
+	test("a forward reference to a later class, in a function scope and at module scope", async () => {
+		const later = 'def g(x: "C"):\n    CALL\n\nclass C:\n    def meth(self):\n        pass\n';
+		const r = await probe(later, "x.meth()");
+		expect(r.delta).toEqual(RESOLVED);
+		const inner = await probe(
+			'def outer():\n    def g(x: "C"):\n        CALL\n    class C:\n        def meth(self):\n            pass\n',
+			"x.meth()",
+		);
+		expect(inner.delta).toEqual(RESOLVED);
+	});
+
+	test("imported, TYPE_CHECKING-imported, and a dotted name through a TYPE_CHECKING import", async () => {
+		const others = { "m.py": cls };
+		for (const [prelude, ann] of [
+			["from m import C\n", '"C"'],
+			["from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    from m import C\n", '"C"'],
+			["from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    import m\n", '"m.C"'],
+			["import m\n", '"m.C | None"'],
+		] as const) {
+			const r = await probe(`${prelude}def g(x: ${ann}):\n    CALL\n`, "x.meth()", others);
+			expect(r.delta, prelude + ann).toEqual(RESOLVED);
+			expect(r.callees, prelude + ann).toEqual(["m.py:C.meth"]);
+		}
+	});
+
+	const refused: Record<string, string> = {
+		"two classes": '"C | D"',
+		"list[C]": '"list[C]"',
+		garbage: '"C D"',
+		empty: '""',
+		"unclosed bracket": '"Optional[C"',
+		"f-string": 'f"C"',
+		"r-string": 'r"C"',
+		"b-string": 'b"C"',
+		concatenated: '"C" "D"',
+		"triple-quoted": '"""C"""',
+		escaped: '"C\\x41"',
+		"Optional of two": '"Optional[C, None]"',
+		"nested quote": "\"Optional['C']\"",
+		"a call": '"C()"',
+		"Union two classes": '"Union[C, D]"',
+	};
+	for (const [label, ann] of Object.entries(refused)) {
+		test(`refused ${label}: ${ann} gives no edge`, async () => {
+			const r = await run(ann, `${cls}class D:\n    def meth(self):\n        pass\n`);
+			expect(r.delta, label).toEqual(NONE);
+			expect(r.callees, label).toEqual([]);
+		});
+	}
+
+	test("a quoted name bound twice, or conditionally, refuses", async () => {
+		const twice = await run('"C"', `${cls}class C:\n    def meth(self):\n        pass\n`);
+		expect(twice.delta).toEqual(NONE);
+		const cond = await probe(
+			'from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    from m import C\nelse:\n    C = object\ndef g(x: "C"):\n    CALL\n',
+			"x.meth()",
+			{ "m.py": cls },
+		);
+		expect(cond.delta).toEqual(NONE);
+	});
+
+	test("twins: the unquoted annotation of each shape resolves as before", async () => {
+		for (const ann of ["C", "C | None", "None | C", "Optional[C]", "Union[C, None]"]) {
+			const r = await run(ann, `from typing import Optional, Union\n${cls}`);
+			expect(r.delta, ann).toEqual(RESOLVED);
+		}
+	});
+
+	test("Q2 (self.attr.m()) and Q3 (return annotations) stay out: no edge", async () => {
+		const q2 = await probe(
+			`${cls}class H:\n    def __init__(self):\n        self.a: "C" = make()\n    def run(self):\n        CALL\n`,
+			"self.a.meth()",
+		);
+		expect(q2.delta).toEqual(NONE);
+		const q3 = await probe(`${cls}def make() -> "C":\n    pass\ndef g():\n    CALL\n`, "make().meth()");
+		expect(q3.callees).not.toContain("app.py:C.meth");
+		expect(q3.delta.receiver).toBe(1);
+	});
+});
