@@ -389,6 +389,37 @@ describe("GCLI-118 round 1 — star after the last binding, alias hops, cycles",
 		for (const one of [later.fromImport, later.attribute]) expect(one.callees).toEqual(["x.py:f"]);
 	});
 
+	test("an import that may not run, after a star, is an alternative of the star's name (loop, except*, finally, with)", async () => {
+		const arms: Record<string, string> = {
+			"for body": "from x import *\nfor i in v:\n    from o import f\n",
+			"while body": "from x import *\nwhile C:\n    from o import f\n",
+			"except* arm": "from x import *\ntry:\n    pass\nexcept* E:\n    from o import f\n",
+			finally: "from x import *\ntry:\n    pass\nfinally:\n    from o import f\n",
+			"try body with only a finally": "from x import *\ntry:\n    from o import f\nfinally:\n    pass\n",
+			"with body": "from x import *\nwith v:\n    from o import f\n",
+			"star on its own line then a loop import": "from o import f\nfrom x import *\nfor i in v:\n    from o import f\n",
+		};
+		for (const [label, holder] of Object.entries(arms)) {
+			const r = await both(holder, { "x.py": x, "o.py": x });
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(one.callees.sort(), label).toEqual(["o.py:f", "x.py:f"]);
+				expect(
+					one.sites.every((s) => s.multiplyBound === true),
+					label,
+				).toBe(true);
+			}
+		}
+		// the same-line shape (a tie with the unconditional import) is the tie rule's: unresolved, in both forms
+		const tie = await both("from o import f; from x import *\nfor i in v:\n    from o import f\n", {
+			"x.py": x,
+			"o.py": x,
+		});
+		for (const one of [tie.fromImport, tie.attribute]) expect(one.sites.map((s) => s.calleeId)).toEqual([]);
+		// twins: an UNCONDITIONAL import after the star overrides it
+		const overrides = await both("from x import *\nfrom o import f\n", { "x.py": x, "o.py": x });
+		for (const one of [overrides.fromImport, overrides.attribute]) expect(one.callees).toEqual(["o.py:f"]);
+	});
+
 	test("a case-arm DEF is an alternative while a case-arm ASSIGNMENT still refuses (GCLI-116's rule, unchanged)", async () => {
 		const def = await both("def f():\n    pass\nmatch v:\n    case 1:\n        def f():\n            pass\n", {});
 		for (const one of [def.fromImport, def.attribute]) {

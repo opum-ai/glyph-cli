@@ -1642,8 +1642,14 @@ class FileWalker {
 		if (scope.kind === "module") {
 			for (const name of importStatementNames(node)) {
 				const binding = this.importBindingsByKey.get(`${this.file}\u0000${line}\u0000${name}`);
-				if (binding !== undefined) this.addBinding(scope, name, { kind: "import", importBinding: binding, position });
-				else this.addBinding(scope, name, { kind: "localimport", position });
+				if (binding !== undefined) {
+					this.addBinding(scope, name, {
+						kind: "import",
+						importBinding: binding,
+						position,
+						...(maySkipStatement(node) ? { conditional: true as const } : {}),
+					});
+				} else this.addBinding(scope, name, { kind: "localimport", position });
 			}
 			return;
 		}
@@ -2584,7 +2590,7 @@ class Resolver {
 				line = this.symbolsById.get(binding.symbolId)?.line ?? null;
 			} else if (binding.kind === "import") {
 				line = binding.importBinding?.line ?? null;
-				conditional = binding.importBinding?.condition != null;
+				conditional = conditional || binding.importBinding?.condition != null;
 			}
 			if (line === null) {
 				unpositioned = true;
