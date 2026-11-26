@@ -374,6 +374,35 @@ describe("GCLI-118 round 1 — star after the last binding, alias hops, cycles",
 		for (const one of [alias.fromImport, alias.attribute]) expect(one.callees.sort()).toEqual(["m.py:f", "m.py:g"]);
 	});
 
+	test("moving the overridden break first hides no tie: a star on the same line as the LAST unconditional binding still refuses", async () => {
+		// the star is on the line of the last (only) unconditional binding: not before it, so it is a tie
+		for (const holder of ["from o import f; from x import *\n", "from x import *; from o import f\n"]) {
+			const r = await both(holder, { "x.py": x, "o.py": x });
+			for (const one of [r.fromImport, r.attribute])
+				expect(
+					one.sites.map((s) => s.calleeId),
+					holder,
+				).toEqual([]);
+		}
+		// and with a star one line LATER the same import is overridden, not a tie
+		const later = await both("from o import f\nfrom x import *\n", { "x.py": x, "o.py": x });
+		for (const one of [later.fromImport, later.attribute]) expect(one.callees).toEqual(["x.py:f"]);
+	});
+
+	test("a case-arm DEF is an alternative while a case-arm ASSIGNMENT still refuses (GCLI-116's rule, unchanged)", async () => {
+		const def = await both("def f():\n    pass\nmatch v:\n    case 1:\n        def f():\n            pass\n", {});
+		for (const one of [def.fromImport, def.attribute]) {
+			expect(one.callees.sort()).toEqual(["m.py:f", "m.py:f"].sort());
+			expect(one.sites.length).toBe(2);
+			expect(one.sites.every((s) => s.multiplyBound === true)).toBe(true);
+		}
+		const assign = await both("def f():\n    pass\nmatch v:\n    case 1:\n        f = None\n", {});
+		for (const one of [assign.fromImport, assign.attribute]) {
+			expect(one.sites.map((s) => s.calleeId)).toEqual([]);
+			expect(one.delta.inRepo).toBe(0);
+		}
+	});
+
 	test("a same-line star before a LATER unconditional def is overridden by it, not a tie", async () => {
 		const r = await both("from o import f; from x import *\ndef f():\n    pass\n", { "x.py": x, "o.py": x });
 		// the star is no part of the answer (no tie, no refusal): the gate's own alternatives stand, as on dev
