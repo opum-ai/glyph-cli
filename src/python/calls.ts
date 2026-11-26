@@ -287,6 +287,37 @@ type ModuleAttrOutcome =
 	| { kind: "external" }
 	| { kind: "unresolved"; reason: string };
 
+/**
+ * Builtin CLASSES whose constructor returns an instance of the subclass being
+ * constructed, for every subtype (DEC-303 (a29) Q2, (a30)). `reversed` is absent:
+ * its `__new__` returns `seq.__reversed__()` when the sequence defines it. Final
+ * classes (`bool`, `range`, `slice`, `memoryview`) cannot be subclassed and are
+ * not listed. `type` is deliberately absent: a class with `type`
+ * in its MRO is a metaclass, and calling it creates a class. Builtin functions
+ * (`print`, `len`) are not classes. Exception classes are matched by name below.
+ */
+const BUILTIN_INSTANCE_CLASSES: ReadonlySet<string> = new Set([
+	"object",
+	"int",
+	"float",
+	"complex",
+	"str",
+	"bytes",
+	"bytearray",
+	"list",
+	"tuple",
+	"dict",
+	"set",
+	"frozenset",
+	"property",
+	"staticmethod",
+	"classmethod",
+	"enumerate",
+	"zip",
+	"map",
+	"filter",
+]);
+
 /** Python 3 builtins: a name bound nowhere else in the scope chain (rule 4c). */
 const BUILTINS: ReadonlySet<string> = new Set([
 	"abs",
@@ -2505,11 +2536,13 @@ class Resolver {
 	}
 
 	/**
-	 * E1 (DEC-303 (a22) item 3): `Cls(...).m()` calls `m` on a fresh instance of
-	 * `Cls` when the callee resolves, through the same binding enumeration as a
-	 * bare call, to exactly one in-repo class. A `__new__` anywhere in the MRO or a
-	 * non-default metaclass can return something that is not a `Cls`, so those
-	 * stay unresolved, as does a failed MRO and any longer chain (`Cls().a.m()`).
+	 * E1 (DEC-303 (a22) item 3, (a29) Q3): `Cls(...).m()` calls `m` on a fresh
+	 * instance of `Cls` when the callee is a plain name, or a dotted name rooted at
+	 * a MODULE (`mod.Cls(...)`), that resolves through the binding enumeration of
+	 * a bare call to exactly one in-repo class. A nested-class callee
+	 * (`Outer.Inner(...)`) stays unresolved, as `Outer.Inner()` alone does. The
+	 * class must pass `instanceClassOf`; one segment only (`Cls().a.m()` stays
+	 * unresolved).
 	 */
 	private resolveConstructedCall(
 		callee: CalleeDesc,
@@ -2519,8 +2552,15 @@ class Resolver {
 	): CallResolution {
 		const unresolved: CallResolution = { bin: "receiver", reason: "needs-inference" };
 		if (segments.length !== 1) return unresolved;
-		const symbol = this.resolveCalleeToSymbol(callee, scope, 0, site);
-		if (symbol === null || symbol.kind !== "class") return unresolved;
+		let symbol: PythonSymbol | null = null;
+		if (callee.kind === "name") {
+			symbol = this.resolveCalleeToSymbol(callee, scope, 0, site);
+		} else if (callee.kind === "attr" && callee.base.kind === "name") {
+			const base = this.resolveBareName(callee.base.name, scope, 0, site);
+			if (base.kind !== "module" || base.path === null) return unresolved;
+			const outcome = this.resolveModuleChain(base.path, callee.segments, 0);
+			symbol = outcome.kind === "symbol" ? outcome.symbol : null;
+		}
 		const classInfo = this.instanceClassOf(symbol);
 		if (classInfo === null) return unresolved;
 		return this.methodLookup(classInfo, segments[0] as string, false, true);
@@ -2528,8 +2568,14 @@ class Resolver {
 
 	/**
 	 * The class whose instance `Cls(...)` is, when the construction is known to
-	 * return one: an ok MRO, no `__new__` in it and no non-default metaclass.
-	 * Shared by E1 (`Cls(...).m()`) and N3 (`x = Cls(); x()`).
+	 * return one: an ok MRO, no `__new__` in it, no non-default metaclass, and no
+	 * opaque MRO entry. An opaque base can define `__new__` or carry a metaclass
+	 * whose `__call__` changes what the call returns, so those two checks cannot be
+	 * completed past it and the site fails closed (DEC-303 (a29) Q2). A base that
+	 * is an unshadowed builtin CLASS name (BUILTIN_INSTANCE_CLASSES or a builtin
+	 * exception class) whose constructor returns an instance of the subclass being
+	 * constructed (not `type`, not `reversed`, not a builtin function) is not
+	 * opaque for this purpose (DEC-303 (a30)).
 	 */
 	private instanceClassOf(symbol: PythonSymbol | null): ClassInfo | null {
 		if (symbol === null || symbol.kind !== "class") return null;
@@ -2538,7 +2584,32 @@ class Resolver {
 		const mro = this.computeMro(classInfo);
 		if (!mro.ok) return null;
 		if (this.firstMethodEntry(mro, "__new__") !== null || this.effectiveMetaclass(classInfo)) return null;
+		for (const entry of mro.entries) {
+			if (entry.kind === "opaque" && !this.isBuiltinClassBase(entry)) return null;
+		}
 		return classInfo;
+	}
+
+	/**
+	 * An opaque MRO entry written as a plain name that is a builtin CLASS from
+	 * BUILTIN_INSTANCE_CLASSES or a builtin exception class, unshadowed at the
+	 * position of the class that writes it (the owner's scope, not the call site's).
+	 */
+	private isBuiltinClassBase(entry: MroEntry & { kind: "opaque" }): boolean {
+		const parts = entry.key.split(":");
+		const index = Number(parts[parts.length - 1]);
+		const owner = this.classById.get(parts.slice(1, -1).join(":"));
+		const base = owner?.bases[index];
+		if (owner === undefined || base === undefined || base.callee === null || base.callee.kind !== "name") return false;
+		const name = base.callee.name;
+		const isClass =
+			BUILTIN_INSTANCE_CLASSES.has(name) ||
+			(BUILTINS.has(name) &&
+				/(Error|Exception|Warning)$|^(StopIteration|StopAsyncIteration|GeneratorExit|KeyboardInterrupt|SystemExit)$/.test(
+					name,
+				));
+		if (!isClass) return false;
+		return this.isUnshadowedBuiltin(base.callee.name, owner.parentScope, { line: owner.line, column: 1 });
 	}
 
 	/**
@@ -2546,8 +2617,10 @@ class Resolver {
 	 * found on the MRO of `Cls`. The name must have exactly one binding anywhere
 	 * it is visible (the enumeration a bare call uses, so a rebinding of any kind,
 	 * a global or nonlocal write included, leaves it unresolved) and that binding
-	 * is an assignment whose right-hand side is a construction. A class with no
-	 * `__call__` of its own or inherited (or an opaque base) is not resolved here.
+	 * is an assignment whose right-hand side is a construction. The class must
+	 * pass `instanceClassOf` (ok MRO, no `__new__`, no metaclass, no opaque base
+	 * past the builtin classes). A class with no `__call__` of its own or inherited
+	 * is not resolved here.
 	 */
 	private resolveInstanceCall(
 		name: string,

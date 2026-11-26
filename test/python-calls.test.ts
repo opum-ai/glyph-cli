@@ -2331,9 +2331,106 @@ describe("E1 — Cls(...).m() on a constructed instance", () => {
 		expect(unbound.callBins.resolvedInRepo).toBe(0);
 	});
 
-	test("a class whose method is absent and whose base is external lands external, not an edge", async () => {
-		const result = await analyze([py("app.py", "class C(Ext):\n    pass\n\nC().m()\n")]);
-		expect(result.callBins.resolvedExternal).toBe(1);
+	test("(a29) Q2: an opaque MRO entry fails closed to receiver-needs-inference, own or inherited", async () => {
+		const own = await analyze([py("app.py", "class C(Ext):\n    def m(self):\n        pass\n\nC().m()\n")]);
+		expect(linesTo(own, symbolId(own, "C.m", "app.py"))).toEqual([]);
+		expect(own.callBins.receiverNeedsInference).toBe(1);
+		const absent = await analyze([py("app.py", "class C(Ext):\n    pass\n\nC().m()\n")]);
+		expect(absent.callBins.receiverNeedsInference).toBe(1);
+		expect(absent.callBins.resolvedExternal).toBe(0);
+		const inherited = await analyze([
+			py("app.py", "class B(Ext):\n    pass\n\nclass C(B):\n    def m(self):\n        pass\n\nC().m()\n"),
+		]);
+		expect(linesTo(inherited, symbolId(inherited, "C.m", "app.py"))).toEqual([]);
+		// the construction C() resolves; the .m() call is counted receiver-needs-inference
+		expect(inherited.callBins.receiverNeedsInference).toBe(1);
+		expect(inherited.callBins.resolvedInRepo).toBe(1);
+	});
+
+	test("(a29) Q2: an unshadowed builtin base is not opaque; a shadowed one is", async () => {
+		const body = "    def m(self):\n        pass\n\nC().m()\n";
+		for (const base of ["Exception", "object", "dict"]) {
+			const result = await analyze([py("app.py", `class C(${base}):\n${body}`)]);
+			expect(linesTo(result, symbolId(result, "C.m", "app.py")), base).toEqual([7 - 2]);
+		}
+		const shadowed = await analyze([py("app.py", `Exception = make()\n\nclass C(Exception):\n${body}`)]);
+		expect(linesTo(shadowed, symbolId(shadowed, "C.m", "app.py"))).toEqual([]);
+	});
+
+	test("(a30) the builtin exemption: an inherited builtin base resolves; type, a metaclass MRO and a builtin function do not", async () => {
+		const body = "    def m(self):\n        pass\n\nC().m()\n";
+		const inherited = await analyze([py("app.py", `class B(Exception):\n    pass\n\nclass C(B):\n${body}`)]);
+		expect(linesTo(inherited, symbolId(inherited, "C.m", "app.py"))).toEqual([8]);
+		// `type` makes C a metaclass: calling it builds a class, so the site fails closed
+		const typed = await analyze([py("app.py", `class C(type):\n${body}`)]);
+		expect(linesTo(typed, symbolId(typed, "C.m", "app.py"))).toEqual([]);
+		expect(typed.callBins.receiverNeedsInference).toBe(1);
+		const throughBase = await analyze([py("app.py", `class M(type):\n    pass\n\nclass C(M):\n${body}`)]);
+		expect(linesTo(throughBase, symbolId(throughBase, "C.m", "app.py"))).toEqual([]);
+		expect(throughBase.callBins.receiverNeedsInference).toBe(1);
+		// reversed.__new__ may return seq.__reversed__(), not the subclass
+		const reversed = await analyze([py("app.py", `class C(reversed):\n${body}`)]);
+		expect(linesTo(reversed, symbolId(reversed, "C.m", "app.py"))).toEqual([]);
+		expect(reversed.callBins.receiverNeedsInference).toBe(1);
+		// an exception-looking name that is not a builtin stays opaque
+		const notBuiltin = await analyze([py("app.py", `class C(MyError):\n${body}`)]);
+		expect(linesTo(notBuiltin, symbolId(notBuiltin, "C.m", "app.py"))).toEqual([]);
+		// the non-Error/Exception/Warning builtin exceptions resolve
+		for (const name of ["StopIteration", "SystemExit", "KeyboardInterrupt", "GeneratorExit", "StopAsyncIteration"]) {
+			const result = await analyze([py("app.py", `class C(${name}):\n${body}`)]);
+			expect(linesTo(result, symbolId(result, "C.m", "app.py")), name).toEqual([5]);
+		}
+		// a builtin function is not a class
+		const func = await analyze([py("app.py", `class C(print):\n${body}`)]);
+		expect(linesTo(func, symbolId(func, "C.m", "app.py"))).toEqual([]);
+		// a metaclass call builds X, then .m(): at runtime that reaches Meta.m, so this empty
+		// expectation is a fail-closed miss the (a30) ruling accepts, not ground truth
+		const meta = await analyze([
+			py("app.py", "class Meta(type):\n    def m(self):\n        pass\n\nMeta('X', (object,), {}).m()\n"),
+		]);
+		expect(linesTo(meta, symbolId(meta, "Meta.m", "app.py"))).toEqual([]);
+		expect(meta.callBins.receiverNeedsInference).toBe(1);
+		// a positive twin proves the same shape resolves without `type`
+		const twin = await analyze([py("app.py", `class C(object):\n${body}`)]);
+		expect(linesTo(twin, symbolId(twin, "C.m", "app.py"))).toEqual([5]);
+	});
+
+	test("(a30) the builtin base is checked in the owner's scope, not the call site's", async () => {
+		const shadowedInOwner = await analyze([
+			py("base.py", "Exception = make()\n\nclass B(Exception):\n    def m(self):\n        pass\n"),
+			py("use.py", "from base import B\n\nclass C(B):\n    pass\n\nC().m()\n"),
+		]);
+		expect(linesTo(shadowedInOwner, symbolId(shadowedInOwner, "B.m", "base.py"))).toEqual([]);
+		const shadowedAtCallSite = await analyze([
+			py("base.py", "class B(Exception):\n    def m(self):\n        pass\n"),
+			py("use.py", "from base import B\n\nException = make()\n\nclass C(B):\n    pass\n\nC().m()\n"),
+		]);
+		expect(linesTo(shadowedAtCallSite, symbolId(shadowedAtCallSite, "B.m", "base.py"))).toEqual([8]);
+	});
+
+	test("(a29) Q3: a dotted callee must be rooted at a module; a nested class or an object attribute stays unresolved", async () => {
+		const nested = await analyze([
+			py("app.py", "class Outer:\n    class Inner:\n        def m(self):\n            pass\n\nOuter.Inner().m()\n"),
+		]);
+		expect(linesTo(nested, symbolId(nested, "Outer.Inner.m", "app.py"))).toEqual([]);
+		// both the construction and the method call are counted, neither resolved
+		expect(nested.callBins.receiverNeedsInference).toBe(2);
+		expect(nested.callBins.resolvedInRepo).toBe(0);
+		const object = await analyze([py("app.py", `${classC}\nobj = make()\nobj.C().m()\n`)]);
+		expect(callLines(object)).toEqual([]);
+	});
+
+	test("(a29) Q1: E1 keeps the polymorphic flag when a subclass overrides the method", async () => {
+		const result = await analyze([
+			py(
+				"app.py",
+				"class C:\n    def m(self):\n        pass\n\nclass D(C):\n    def m(self):\n        pass\n\nC().m()\n",
+			),
+		]);
+		const sites = sitesTo(result, symbolId(result, "C.m", "app.py"));
+		expect(sites.map((site) => site.line)).toEqual([9]);
+		expect(sites[0]?.polymorphic).toBe(true);
+		expect(result.polymorphicCount).toBe(1);
 	});
 });
 
@@ -2406,6 +2503,22 @@ describe("N3 — x = Cls(); x() calls type(x).__call__", () => {
 		expect(none.callBins.resolvedInRepo).toBe(1); // only the construction C()
 		const opaque = await analyze([py("app.py", "class C(Ext):\n    pass\n\nx = C()\nx()\n")]);
 		expect(opaque.sites.filter((site) => site.line === 5)).toEqual([]);
+	});
+
+	test("(a29)/(a30) opaque bases fail closed; builtin classes do not; type and reversed do", async () => {
+		const call = "    def __call__(self):\n        pass\n\nx = C()\nx()\n";
+		const opaque = await analyze([py("app.py", `class C(Ext):\n${call}`)]);
+		expect(linesTo(opaque, symbolId(opaque, "C.__call__", "app.py"))).toEqual([]);
+		const typed = await analyze([py("app.py", `class C(type):\n${call}`)]);
+		expect(linesTo(typed, symbolId(typed, "C.__call__", "app.py"))).toEqual([]);
+		const reversed = await analyze([py("app.py", `class C(reversed):\n${call}`)]);
+		expect(linesTo(reversed, symbolId(reversed, "C.__call__", "app.py"))).toEqual([]);
+		// a builtin base with no __call__ anywhere: no edge and not resolved-external either
+		const noCall = await analyze([py("app.py", "class C(Exception):\n    pass\n\nx = C()\nx()\n")]);
+		expect(noCall.callBins.resolvedExternal).toBe(0);
+		expect(noCall.sites.filter((site) => site.line === 5)).toEqual([]);
+		const builtin = await analyze([py("app.py", `class C(Exception):\n${call}`)]);
+		expect(linesTo(builtin, symbolId(builtin, "C.__call__", "app.py"))).toEqual([6]);
 	});
 
 	test("the class's own __call__ is not the call of the class: C() still constructs", async () => {
