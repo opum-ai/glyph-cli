@@ -143,6 +143,9 @@ describe("TS — every binding of the local must be the one type(self) or self._
 		"type of an attribute": inMethod("k = type(self.x)"),
 		"self.__class__.__class__": inMethod("k = self.__class__.__class__"),
 		"a call of the class": inMethod("k = type(self)()"),
+		"another callee": inMethod("k = len(self)"),
+		"another attribute": inMethod("k = self.helper"),
+		"a bare annotation, then type(self)": inMethod("k: object\nk = type(self)"),
 	};
 	for (const [label, source] of Object.entries(refusedCases)) {
 		test(`refused: ${label}`, async () => {
@@ -232,8 +235,23 @@ describe("TS — the receiver, type and self must be what the rule names", () =>
 			const bins = (r: PythonCallsResult) => r.callBins;
 			const d = (key: "resolvedInRepo" | "resolvedExternal" | "receiverNeedsInference" | "nameNotBound") =>
 				bins(withCall)[key] - bins(without)[key];
-			expect(withCall.sites.filter((x) => x.calleeId !== null && x.line === 4)).toEqual([]);
-			return { inRepo: d("resolvedInRepo"), external: d("resolvedExternal"), receiver: d("receiverNeedsInference") };
+			const callLine = (base.match(/\n/g)?.length ?? 0) + 4;
+			expect(withCall.sites.filter((x) => x.line === callLine)).toEqual([]);
+			const reasons = (r: PythonCallsResult) =>
+				Object.fromEntries(r.unresolvedReceiverReasons.map((x) => [x.reason, x.count]));
+			const before = reasons(without);
+			const after = reasons(withCall);
+			const reasonDelta = Object.fromEntries(
+				Object.keys({ ...before, ...after })
+					.map((key) => [key, (after[key] ?? 0) - (before[key] ?? 0)] as const)
+					.filter(([, n]) => n !== 0),
+			);
+			return {
+				inRepo: d("resolvedInRepo"),
+				external: d("resolvedExternal"),
+				receiver: d("receiverNeedsInference"),
+				reasons: reasonDelta,
+			};
 		};
 		for (const base of ["", "class B:\n    pass\n", "class B(dict):\n    pass\n", "from nowhere import B\n"]) {
 			const viaLocal = await unknown("type(self)", "k.unknown()", base);
@@ -249,7 +267,7 @@ describe("TS — the receiver, type and self must be what the rule names", () =>
 		});
 	});
 
-	test("a local at module level or in a class body is not rule TS's (the function-scope guard is an equivalent mutant: receiverOf is null there)", async () => {
+	test("a local at module level or in a class body is not rule TS's (the function-scope guard is an equivalent mutant: a class scope is reached only by a read starting there, and enumerableBindings refuses a class scope that binds the name)", async () => {
 		const modLevel = await probe(`${C}x = C()\nk = type(x)\nCALL\n`);
 		expect(modLevel.sites).toEqual([]);
 		expect(modLevel.delta).toEqual(REFUSED);
@@ -261,6 +279,15 @@ describe("TS — the receiver, type and self must be what the rule names", () =>
 		);
 		expect(inClassBody.sites).toEqual([]);
 		expect(inClassBody.delta).toEqual(REFUSED);
+		// a class body nested in a method sees the method's receiver, but the local is the class body's own binding
+		const innerClass = await probe(inMethod("class Inner:\n    k = type(self)\n    CALL"));
+		expect(innerClass.sites).toEqual([]);
+		expect(innerClass.delta).toEqual(REFUSED);
+	});
+
+	test("a read from a nested def that shadows type: the builtin test is the binding's scope, not the read's", async () => {
+		const r = await probe(inMethod("k = type(self)\ndef g():\n    type = 1\n    CALL\ng()"));
+		expect(r.delta).toEqual(RESOLVED);
 	});
 
 	test("a nested def's own parameter shadowing self: the read resolves, a binding inside it refuses", async () => {
@@ -289,6 +316,11 @@ describe("TS — the receiver, type and self must be what the rule names", () =>
 		const { delta, sites } = await probe(`${bad}    def run(self):\n        k = self.__class__\n        CALL\n`);
 		expect(sites).toEqual([]);
 		expect(delta).toEqual(REFUSED);
+		// the reason: refused by TS, so the site stays needs-inference and no mro-failed reason appears
+		const result = (await probe(`${bad}    def run(self):\n        k = self.__class__\n        CALL\n`)).result;
+		const reasons = result.unresolvedReceiverReasons.map((x) => x.reason);
+		expect(reasons).toContain("needs-inference");
+		expect(reasons).not.toContain("mro-failed");
 	});
 });
 
