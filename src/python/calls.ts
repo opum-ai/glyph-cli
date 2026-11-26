@@ -3762,10 +3762,14 @@ class Resolver {
 			// not an ancestor of C counts when it binds `__class__` (round 1 of #212).
 			for (const descendant of this.descendantsOf(receiver.classInfo)) {
 				if (descendant.scope?.bindings.has("__class__") === true) return null;
+				// DEC-303 (a68): the (a56) MRO check runs over each descendant's MRO as over C's own: a descendant
+				// whose MRO does not compute refuses, and so does an entry glyph-cli cannot read (an opaque or
+				// external non-builtin base such as unittest.mock's Mock, which defines `__class__`).
 				const descendantMro = this.computeMro(descendant);
-				if (!descendantMro.ok) continue;
+				if (!descendantMro.ok) return null;
 				for (const entry of descendantMro.entries) {
 					if (entry.kind === "class" && entry.info.scope?.bindings.has("__class__") === true) return null;
+					if (entry.kind === "opaque" && this.builtinClassBaseName(entry) === null) return null;
 				}
 			}
 		}

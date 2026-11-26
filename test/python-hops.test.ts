@@ -1360,3 +1360,44 @@ describe("GCLI-122 round 1 — a descendant's whole MRO is read, and the descend
 		expect(r.callBins.nameNotBound).toBe(1);
 	});
 });
+
+describe("GCLI-122 round 1, DEC-303 (a68) — a descendant's unreadable or non-computing MRO refuses self.__class__", () => {
+	const C =
+		"class C:\n    def m(self):\n        cls = self.__class__\n        CALL\n    def meth(self):\n        pass\n";
+	const REFUSED: Delta = { inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 };
+
+	test("an external non-builtin base of a descendant refuses (a name imported from an unindexed module, and mock.Mock)", async () => {
+		const shapes: Record<string, string> = {
+			"imported mixin": `from lib import Mixin\n${C}class D(C, Mixin):\n    pass\n`,
+			"mock.Mock": `from unittest import mock\n${C}class D(C, mock.Mock):\n    pass\n`,
+			"module attribute mixin": `import lib\n${C}class D(C, lib.Mixin):\n    pass\n`,
+		};
+		for (const [label, source] of Object.entries(shapes)) {
+			const r = await probe(source, "cls.meth()");
+			expect(r.callees, label).toEqual([]);
+			expect(r.delta, label).toEqual(REFUSED);
+		}
+	});
+
+	test("twin: an unshadowed builtin base of a descendant still resolves", async () => {
+		for (const base of ["Exception", "dict", "object"]) {
+			const r = await probe(`${C}class D(C, ${base}):\n    pass\n`, "cls.meth()");
+			expect(r.callees, base).toEqual(["app.py:C.meth"]);
+			expect(r.delta, base).toEqual(RESOLVED);
+		}
+	});
+
+	test("a descendant whose MRO does not compute refuses", async () => {
+		const r = await probe(`${C}class B(C):\n    pass\nclass D(C, B):\n    pass\n`, "cls.meth()");
+		expect(r.callees).toEqual([]);
+		expect(r.delta).toEqual(REFUSED);
+	});
+
+	test("type(self) is unaffected by the same descendants", async () => {
+		const src = (alias: string) =>
+			`from lib import Mixin\nclass C:\n    def m(self):\n        cls = ${alias}\n        CALL\n    def meth(self):\n        pass\nclass D(C, Mixin):\n    pass\n`;
+		const r = await probe(src("type(self)"), "cls.meth()");
+		expect(r.callees).toEqual(["app.py:C.meth"]);
+		expect(r.delta).toEqual(RESOLVED);
+	});
+});
