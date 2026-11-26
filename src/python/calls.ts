@@ -201,6 +201,8 @@ interface RawBinding {
 	 * `nonlocal` can name and `applyScopeRedirects` does not stop at it.
 	 */
 	comprehension?: true;
+	/** N1 (GCLI-118): the comprehension whose own scope holds this iteration target, as one-based start and end. */
+	comprehensionRange?: { start: UsePosition; end: UsePosition };
 	/** R4: the scope whose text holds this binding, set when `applyScopeRedirects` moves it onto an enclosing scope. */
 	origin?: Scope;
 	/**
@@ -973,6 +975,22 @@ function classOfRhs(node: Node): ClassOfDesc | null {
 	return null;
 }
 
+/** N1: the one-based range of the comprehension a `for_in_clause` sits in, or null when none is known. */
+function comprehensionRangeOf(owner: Node | boolean): { start: UsePosition; end: UsePosition } | null {
+	if (typeof owner === "boolean") return null;
+	return {
+		start: { line: owner.startPosition.row + 1, column: owner.startPosition.column + 1 },
+		end: { line: owner.endPosition.row + 1, column: owner.endPosition.column + 1 },
+	};
+}
+
+/** N1: a comprehension iteration target that the read at `use` is not inside of (so it does not bind there). */
+function isOutsideComprehensionTarget(binding: RawBinding, use: UsePosition): boolean {
+	if (binding.comprehension !== true || binding.comprehensionRange === undefined) return false;
+	const { start, end } = binding.comprehensionRange;
+	return positionBefore(use, start) || !positionBefore(use, end);
+}
+
 function classOfField(node: Node): { classOf?: ClassOfDesc } {
 	const classOf = classOfRhs(node);
 	return classOf === null ? {} : { classOf };
@@ -1096,7 +1114,7 @@ class FileWalker {
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					continue;
 				case "for_in_clause":
-					this.addTargetBindings(frame.scope, node.childForFieldName("left"), true);
+					this.addTargetBindings(frame.scope, node.childForFieldName("left"), node.parent ?? true);
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					continue;
 				case "as_pattern":
@@ -1193,16 +1211,20 @@ class FileWalker {
 		else list.push(binding);
 	}
 
-	private addTargetBindings(scope: Scope, target: Node | null, comprehension = false): void {
+	private addTargetBindings(scope: Scope, target: Node | null, comprehension: Node | boolean = false): void {
 		if (target === null) return;
 		switch (target.type) {
-			case "identifier":
+			case "identifier": {
+				const range = comprehensionRangeOf(comprehension);
 				this.addBinding(
 					scope,
 					target.text,
-					comprehension ? { kind: "rebound", comprehension: true } : { kind: "rebound" },
+					comprehension !== false
+						? { kind: "rebound", comprehension: true, ...(range !== null ? { comprehensionRange: range } : {}) }
+						: { kind: "rebound" },
 				);
 				return;
+			}
 			case "pattern_list":
 			case "tuple_pattern":
 			case "list_pattern":
@@ -2134,7 +2156,14 @@ class Resolver {
 	): NameOutcome {
 		const found = this.lookupBindings(name, scope, use);
 		if (found === null) return this.resolveUnbound(name, scope, use, starCtx);
-		const bindings = found.bindings;
+		// N1 (GCLI-118): a comprehension's iteration target lives in the comprehension's own scope, so at module
+		// level it is no binding of the module name for a read outside that comprehension. A read with no known
+		// position, or inside the comprehension, keeps it (the conservative reading).
+		const bindings =
+			found.scope.kind === "module" && use !== undefined
+				? found.bindings.filter((binding) => !isOutsideComprehensionTarget(binding, use))
+				: found.bindings;
+		if (bindings.length === 0) return this.resolveUnbound(name, scope, use, starCtx);
 		const dynamic = bindings.some(
 			(binding) => binding.kind === "param" || binding.kind === "assign" || binding.kind === "rebound",
 		);
@@ -2261,6 +2290,10 @@ class Resolver {
 		if (this.isModuleFileForName(binding.target, importedName) && !this.isSameNameAttribute(binding, importedName)) {
 			return { kind: "module", path: binding.target };
 		}
+		// N3, N2 (GCLI-118): S3 collapses a re-export chain to its defining file, so the modules the import names
+		// and passes through are read here, each by its own bindings, before the defining file is trusted.
+		const chain = this.sourceChainOutcome(binding, importedName);
+		if (chain !== null) return chain;
 		const targets = [binding.target, ...binding.alternatives];
 		const symbols: PythonSymbol[] = [];
 		let forcedMultiply = false;
@@ -2279,6 +2312,33 @@ class Resolver {
 		if (symbols.length === 1 && !forcedMultiply) return { kind: "symbol", symbol: symbols[0] as PythonSymbol };
 		if (symbols.length > 0) return { kind: "multiply", symbols };
 		return { kind: "unresolved", reason: "run-time-bound" };
+	}
+
+	/**
+	 * N3 (GCLI-118): from the module a from-import names, follow the name's re-export hops, reading each
+	 * module's own bindings with `moduleBindingGate`. The first module whose bindings the gate reads decides:
+	 * a `del`, a reassignment or a star-bound name is unresolved, a def, a class or alternative imports are
+	 * its symbols. A module with a lone import binding is passed through to the module that import names.
+	 * Null when no module on the chain is gated (the old defining-file path then stands).
+	 */
+	private sourceChainOutcome(binding: ImportBinding, name: string): NameOutcome | null {
+		const seen = new Set<string>();
+		let current = this.sourceModuleFile(binding);
+		for (let depth = 0; current !== null && depth <= MAX_MODULE_DEPTH; depth++) {
+			if (seen.has(current)) return null;
+			seen.add(current);
+			const gate = this.moduleBindingGate(current, name);
+			if (gate !== null) {
+				if (gate.kind === "symbol" || gate.kind === "multiply" || gate.kind === "unresolved") return gate;
+				return null;
+			}
+			const hop: ImportBinding | undefined = this.fileBindingsByPath
+				.get(current)
+				?.find((candidate) => candidate.boundName === name && candidate.kind !== "import" && candidate.kind !== "star");
+			if (hop === undefined || hop.outcome !== "resolved" || hop.target === null || hop.condition !== null) return null;
+			current = this.sourceModuleFile(hop);
+		}
+		return null;
 	}
 
 	private resolveMultiply(bindings: readonly RawBinding[]): NameOutcome {
@@ -2370,12 +2430,24 @@ class Resolver {
 		const scope = this.moduleScopesByPath.get(path);
 		const bindings = scope?.bindings.get(name);
 		if (scope === undefined || bindings === undefined) return null;
-		if (!bindings.some((binding) => binding.kind === "def" || binding.kind === "class")) return null;
+		const countable = bindings.filter((binding) => binding.bare !== true && binding.comprehension !== true);
+		const hasDef = countable.some((binding) => binding.kind === "def" || binding.kind === "class");
+		// N3 (GCLI-118, DEC-303 (a49) item 5): a module that only RE-EXPORTS the name (an import binding and no def
+		// or class) is read the same way once it has a second binding of the name: a `del`, a reassignment, a
+		// second import. A lone import binding stays with the symbol-table path, which follows the hop (and whose
+		// next hop is gated in `symbolInModuleOrReexport`).
+		const hasImport = countable.some((binding) => binding.kind === "import");
+		if (!hasDef && !hasImport) return null;
 		const key = `${path}\u0000${name}`;
 		if (this.gateActive.has(key)) return null;
 		this.gateActive.add(key);
 		try {
 			const rebound: NameOutcome = { kind: "unresolved", reason: "rebound" };
+			// N2 (GCLI-118, DEC-303 (a50) items 3 and 4): a star import in m after the name's bindings is walked
+			// last to first, as the bare name's lookup walks it (rule 45).
+			const star = this.starOverride(path, name, countable);
+			if (star !== null) return star;
+			if (!hasDef && countable.length === 1) return null;
 			const symbols: PythonSymbol[] = [];
 			let external = false;
 			for (const binding of bindings) {
@@ -2412,6 +2484,48 @@ class Resolver {
 		} finally {
 			this.gateActive.delete(key);
 		}
+	}
+
+	/**
+	 * N2 (GCLI-118): the outcome a module-level `from x import *` after the name's own bindings imposes, or null
+	 * when none does. Stars are walked last to first: a complete star that exports the name decides it (the star's
+	 * own binding of the name, never the earlier def), a complete one that does not is skipped, and a partial one
+	 * (unresolved, external, non-literal `__all__`) reached first leaves the name star-bound and unresolved. A star
+	 * that comes before every binding of the name is overridden by it and does not count. A binding with no known
+	 * position makes every star count.
+	 */
+	private starOverride(path: string, name: string, bindings: readonly RawBinding[]): NameOutcome | null {
+		const stars = this.starBindingsByPath.get(path);
+		if (stars === undefined) return null;
+		let firstLine = Number.POSITIVE_INFINITY;
+		for (const binding of bindings) {
+			let line: number | null = null;
+			if (binding.kind === "def" || binding.kind === "class") {
+				line = binding.symbolId !== undefined ? (this.symbolsById.get(binding.symbolId)?.line ?? null) : null;
+			} else if (binding.kind === "import") line = binding.importBinding?.line ?? null;
+			if (line === null) {
+				firstLine = 0;
+				break;
+			}
+			firstLine = Math.min(firstLine, line);
+		}
+		let partial = false;
+		for (let index = stars.length - 1; index >= 0; index--) {
+			const star = stars[index] as ImportBinding;
+			if (star.line < firstLine) break;
+			if (star.outcome === "resolved" && star.target !== null && star.reason === null) {
+				if (!star.starNames.includes(name)) continue;
+				if (partial) return { kind: "unresolved", reason: "star-bound" };
+				const ctx: StarLookupContext = { visited: new Set<string>(), hops: 0, cycle: false };
+				const result = this.resolveStarBound(star.target, name, ctx);
+				if (result.cycle) continue;
+				const found = result.outcome;
+				if (found.kind === "symbol" || found.kind === "multiply") return found;
+				return { kind: "unresolved", reason: "star-bound" };
+			}
+			partial = true;
+		}
+		return partial ? { kind: "unresolved", reason: "star-import" } : null;
 	}
 
 	private symbolInModule(path: string, name: string): PythonSymbol | null {
@@ -2478,6 +2592,11 @@ class Resolver {
 					!this.isSameNameAttribute(binding, importedName)
 				) {
 					return { kind: "module", path: binding.target };
+				}
+				// N3 (GCLI-118): S3's target is the defining file; the modules between are read by their own bindings.
+				const chain = this.sourceChainOutcome(binding, importedName);
+				if (chain !== null && (chain.kind === "symbol" || chain.kind === "multiply" || chain.kind === "unresolved")) {
+					return chain;
 				}
 				return this.resolveModuleAttribute(binding.target, importedName, visited, depth + 1);
 			}
@@ -3618,19 +3737,9 @@ class Resolver {
 		const sub =
 			holderName === undefined ? undefined : holderName === "" ? classSegment : `${holderName}.${classSegment}`;
 		if (sub !== undefined && (this.modulePathByName.has(sub) || this.namespaceDirByName.has(sub))) return null;
-		// INTERIM (DEC-303 (a52) item 1, retired by GCLI-118): `resolveModuleAttribute` takes the FIRST import
-		// binding of the class name and never reads the holder's other bindings, so a rebind (`C = None`,
-		// `del C`, a for, with or walrus target, a global write, a second import in a try/except, a star
-		// import that may bind it) would still draw an edge here. This path therefore needs exactly ONE
-		// module-scope binding of the class name, counted as item 2 counts it (`enumerableBindings`). Left to
-		// the general hop reading of GCLI-118, whose (a44) rules then apply to this path too.
-		const holderScope = this.moduleScopesByPath.get(holder.path);
-		if (holderScope === undefined) return null;
-		const own = this.enumerableBindings(classSegment, holderScope, { line: 0, column: 0 });
-		// A bare annotation (N4) and a comprehension iteration target (N1) bind no module name, so they are not counted.
-		if (own === null || own.filter((binding) => binding.bare !== true && binding.comprehension !== true).length !== 1) {
-			return null;
-		}
+		// (DEC-303 (a52) item 1, retired by GCLI-118) The holder's bindings of the class name are read by the
+		// general hop reading in `resolveModuleAttribute`: a rebind, a `del`, a second import or a star import
+		// that may bind the name leaves the chain unresolved, so no single-binding refusal is needed here.
 		const prefix = this.resolveModuleChain(path, segments.slice(0, -1), 0);
 		if (prefix.kind !== "symbol" || prefix.symbol.kind !== "class") return null;
 		const classInfo = this.classById.get(prefix.symbol.id);
