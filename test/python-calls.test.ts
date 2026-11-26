@@ -5103,3 +5103,92 @@ describe("GCLI-115 — a del target is a binding", () => {
 		});
 	});
 });
+
+// GCLI-117 (A2, DEC-303 (a22) item 3, (a45) item 1): `m.C.meth(...)` resolves through the module
+// attribute to the class method, as the bare-class `C.meth(...)` lookup does.
+describe("A2 — module.Class.method resolves as the bare-class lookup does", () => {
+	const m = "class C:\n    def meth(self):\n        return 1\n    @staticmethod\n    def st():\n        return 2\n";
+
+	/** Edge targets (qualname) of the app.py sites on `line`, with the full bin counts. */
+	async function at(files: PythonModuleInput[], line: number) {
+		const result = await analyze(files);
+		const byId = new Map(result.symbols.map((symbol) => [symbol.id, symbol.qualname]));
+		const targets = result.sites
+			.filter((site) => site.file === "app.py" && site.line === line)
+			.map((site) => `${site.kind}:${byId.get(site.calleeId as string)}`);
+		return { targets, bins: result.callBins };
+	}
+
+	test("m.C.st() and m.C.meth(m.C()) resolve to the method; m.C().meth() is unchanged", async () => {
+		const app = "import m\n\ndef run():\n    m.C.st()\n    m.C().meth()\n    m.C.meth(m.C())\n";
+		const files = [py("m.py", m), py("app.py", app)];
+		expect((await at(files, 4)).targets).toEqual(["call:C.st"]);
+		expect((await at(files, 5)).targets.sort()).toEqual(["call:C.meth", "new:C"]);
+		expect((await at(files, 6)).targets.sort()).toEqual(["call:C.meth", "new:C"]);
+		expect((await at(files, 4)).bins).toMatchObject({ resolvedInRepo: 5, nameNotBound: 0, receiverNeedsInference: 0 });
+	});
+
+	test("an alias of the module, an inherited method and a package module resolve", async () => {
+		expect((await at([py("m.py", m), py("app.py", "import m as k\ndef run():\n    k.C.st()\n")], 3)).targets).toEqual([
+			"call:C.st",
+		]);
+		const inherited = "class B:\n    def meth(self):\n        pass\nclass C(B):\n    pass\n";
+		expect(
+			(await at([py("m.py", inherited), py("app.py", "import m\ndef run():\n    m.C.meth(1)\n")], 3)).targets,
+		).toEqual(["call:B.meth"]);
+		const pkg = [py("pkg/__init__.py", ""), py("pkg/m.py", m)];
+		expect((await at([...pkg, py("app.py", "import pkg.m\ndef run():\n    pkg.m.C.st()\n")], 3)).targets).toEqual([
+			"call:C.st",
+		]);
+		expect((await at([...pkg, py("app.py", "from pkg import m\ndef run():\n    m.C.st()\n")], 3)).targets).toEqual([
+			"call:C.st",
+		]);
+	});
+
+	test("negative controls stay unresolved, each in the bin it had before the rule", async () => {
+		type Key = "resolvedInRepo" | "resolvedExternal" | "receiverNeedsInference" | "nameNotBound";
+		const cases: Record<string, { files: PythonModuleInput[]; bin: Key }> = {
+			"an unknown method": {
+				files: [py("m.py", m), py("app.py", "import m\ndef run():\n    CALL\n")],
+				bin: "nameNotBound",
+			},
+			"a rebound class name": {
+				files: [py("m.py", `${m}C = None\n`), py("app.py", "import m\ndef run():\n    CALL\n")],
+				bin: "nameNotBound",
+			},
+			"an external module": { files: [py("app.py", "import os\ndef run():\n    CALL\n")], bin: "resolvedExternal" },
+			"a property": {
+				files: [
+					py("m.py", "class C:\n    @property\n    def p(self):\n        return 1\n"),
+					py("app.py", "import m\ndef run():\n    CALL\n"),
+				],
+				bin: "nameNotBound",
+			},
+		};
+		const calls: Record<string, string> = {
+			"an unknown method": "m.C.nope()",
+			"a rebound class name": "m.C.st()",
+			"an external module": "os.C.st()",
+			"a property": "m.C.p()",
+		};
+		for (const [label, { files, bin }] of Object.entries(cases)) {
+			const app = files[files.length - 1] as PythonModuleInput;
+			const text = new TextDecoder().decode(app.bytes);
+			const rest = files.slice(0, -1);
+			const withCall = await analyze([...rest, py("app.py", text.replace("CALL", calls[label] as string))]);
+			const without = await analyze([...rest, py("app.py", text.replace("CALL", "pass"))]);
+			expect(
+				withCall.sites.filter((site) => site.file === "app.py"),
+				label,
+			).toEqual([]);
+			const keys: Key[] = ["resolvedInRepo", "resolvedExternal", "receiverNeedsInference", "nameNotBound"];
+			for (const key of keys) {
+				expect(withCall.callBins[key] - without.callBins[key], `${label}: ${key}`).toBe(key === bin ? 1 : 0);
+			}
+		}
+		// an unknown class: the attribute is not found in m, as before
+		const unknown = await analyze([py("m.py", m), py("app.py", "import m\ndef run():\n    m.D.st()\n")]);
+		expect(unknown.sites.filter((site) => site.file === "app.py")).toEqual([]);
+		expect(unknown.callBins.nameNotBound).toBe(1);
+	});
+});
