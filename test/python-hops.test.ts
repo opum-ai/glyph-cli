@@ -1630,6 +1630,9 @@ describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", (
 	test("a base named like a type parameter is not the module class", async () => {
 		const generic = await probe(`${cls}class K[C](C):\n    def m(self):\n        CALL\n`, "self.run()");
 		expect(runs(generic)).not.toContain("app.py:C.run");
+		// The base is the type parameter, a name no class symbol stands behind: an external base, as for any single
+		// `rebound` base, so the call is binned external rather than receiver (not an in-repo edge).
+		expect(generic.delta).toEqual({ inRepo: 0, external: 1, receiver: 0, nameNotBound: 0 });
 		const twin = await probe(`${cls}class K[T](C):\n    def m(self):\n        CALL\n`, "self.run()");
 		expect(runs(twin)).toEqual(["app.py:C.run"]);
 	});
@@ -1675,5 +1678,45 @@ describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", (
 			"p.run()",
 		);
 		expect(runs(r)).toEqual([]);
+	});
+
+	// DEC-303 (a71), round 2: Rule 36(ii) -- a bare name called in its own class body runs as a plain function, so the
+	// def of that name yields no receiver. A call in a generic's annotation, return type, base, keyword argument or
+	// alias value is in the class body for that rule even though it walks in the type-parameter scope.
+	describe("a bare call in a generic's expression inside a class body is a class-body use (Rule 36(ii))", () => {
+		const helpers = (r: { callees: (string | null)[] }) => r.callees.filter((c) => c?.endsWith(".helper"));
+		const bare = (member: string) =>
+			probe(
+				`class Outer:\n    def helper(self):\n        pass\n    def run(self):\n        CALL\n${member}`,
+				"self.helper()",
+			);
+		const forms: Record<string, string> = {
+			"alias value": "    type A[T] = run()\n",
+			"parameter annotation": "    def g[T](self, x: run()):\n        pass\n",
+			"return type": "    def g[T](self) -> run():\n        pass\n",
+			"class base": "    class K[T](run()):\n        pass\n",
+			"class keyword argument": "    class K[T](kw=run()):\n        pass\n",
+			"non-generic alias (the twin)": "    type A = run()\n",
+			"non-generic annotation (the twin)": "    def g(self, x: run()):\n        pass\n",
+			"a bare call in the body (the twin)": "    run()\n",
+		};
+		for (const [label, member] of Object.entries(forms)) {
+			test(`${label}: self.helper() inside run gets no receiver edge`, async () => {
+				const r = await bare(member);
+				expect(r.delta, label).toEqual(REFUSED);
+				expect(helpers(r), label).toEqual([]);
+			});
+		}
+
+		test("a generic whose expressions call nothing keeps the edge", async () => {
+			const r = await bare("    type A[T] = int\n    def g[T](self, x: int) -> int:\n        pass\n");
+			expect(r.delta.inRepo).toBe(1);
+			expect(helpers(r)).toEqual(["app.py:Outer.helper"]);
+		});
+
+		test("a bare call in a generic method's own body is not a class-body use", async () => {
+			const r = await bare("    def g[T](self):\n        run()\n");
+			expect(helpers(r)).toEqual(["app.py:Outer.helper"]);
+		});
 	});
 });

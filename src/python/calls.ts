@@ -1210,8 +1210,11 @@ class FileWalker {
 					const callee = describeCallee(node.childForFieldName("function") ?? node);
 					// Rule 36(ii): a bare name called in its own class body runs as a
 					// plain function, so that def yields no receiver.
-					if (callee.kind === "name" && frame.scope.kind === "class" && frame.scope.classInfo !== null) {
-						frame.scope.classInfo.classBodyBareUses.add(callee.name);
+					// A call in a generic's annotation, base or alias value walks in a type-parameter scope but still
+					// runs in the enclosing class body (DEC-303 (a71)).
+					const bodyScope = withoutTypeParameterScopes(frame.scope);
+					if (callee.kind === "name" && bodyScope.kind === "class" && bodyScope.classInfo !== null) {
+						bodyScope.classInfo.classBodyBareUses.add(callee.name);
 					}
 					this.calls.push({
 						file: this.file,
@@ -2057,6 +2060,17 @@ function makeModuleScope(file: string): Scope {
 		classInfo: null,
 		enclosingClass: null,
 	};
+}
+
+/**
+ * GCLI-112 (DEC-303 (a71)): the scope a read really runs in, past any leading type-parameter scopes. A
+ * type-parameter scope is function-kind and holds only the declared names, so a test of "is this a class body"
+ * on a scope that may be one must look past it. A generic method's own body is not one: its scope is the def's.
+ */
+function withoutTypeParameterScopes(scope: Scope): Scope {
+	let current = scope;
+	while (current.typeParams === true && current.parent !== null) current = current.parent;
+	return current;
 }
 
 function moduleScopeOf(scope: Scope): Scope {
@@ -3803,9 +3817,12 @@ class Resolver {
 	 * `applyScopeRedirects`, so they are in the list.
 	 */
 	private enumerableBindings(name: string, scope: Scope, site: { line: number; column: number }): RawBinding[] | null {
-		if (scope.kind === "class" && scope.bindings.has(name)) return null;
+		const bodyScope = withoutTypeParameterScopes(scope);
+		if (bodyScope.kind === "class" && bodyScope.bindings.has(name)) return null;
 		const found = this.lookupBindings(name, scope, site);
 		if (found === null) return null;
+		// A type-parameter name is declared, not assigned: never an enumerable local (DEC-303 (a71)).
+		if (found.scope.typeParams === true) return null;
 		// A `from m import *` at module level is a binding statement in the module's own
 		// text that `importStatementNames` does not record, and its export set is not
 		// enumerable here: refuse on any star import of the module.
