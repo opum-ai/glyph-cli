@@ -3542,6 +3542,19 @@ class Resolver {
 		) {
 			return null;
 		}
+		// INTERIM (DEC-303 (a52) item 1, retired by GCLI-118): `resolveModuleAttribute` takes the FIRST import
+		// binding of the class name and never reads the holder's other bindings, so a rebind (`C = None`,
+		// `del C`, a for, with or walrus target, a global write, a second import in a try/except, a star
+		// import that may bind it) would still draw an edge here. This path therefore needs exactly ONE
+		// module-scope binding of the class name, counted as item 2 counts it (`enumerableBindings`). Left to
+		// the general hop reading of GCLI-118, whose (a44) rules then apply to this path too.
+		const holderScope = this.moduleScopesByPath.get(holder.path);
+		if (holderScope === undefined) return null;
+		const own = this.enumerableBindings(classSegment, holderScope, { line: 0, column: 0 });
+		// A bare annotation (N4) and a comprehension iteration target (N1) bind no module name, so they are not counted.
+		if (own === null || own.filter((binding) => binding.bare !== true && binding.comprehension !== true).length !== 1) {
+			return null;
+		}
 		const prefix = this.resolveModuleChain(path, segments.slice(0, -1), 0);
 		if (prefix.kind !== "symbol" || prefix.symbol.kind !== "class") return null;
 		const classInfo = this.classById.get(prefix.symbol.id);

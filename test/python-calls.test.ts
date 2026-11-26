@@ -5252,6 +5252,65 @@ describe("A2 — module.Class.method resolves as the bare-class lookup does", ()
 		expect(withTarget.targets).toEqual([]);
 	});
 
+	test("B1: a class imported into m needs exactly one module-scope binding of its name in m", async () => {
+		const n = py("n.py", m);
+		const o = py("o.py", "class C:\n    pass\n");
+		const call = "import m\ndef run():\n    CALL\n";
+		const shapes: Record<string, string> = {
+			"import then None": "from n import C\nC = None\n",
+			"import then del": "from n import C\ndel C\n",
+			"import then for target": "from n import C\nfor C in z:\n    pass\n",
+			"import then walrus": "from n import C\n(C := 1)\n",
+			"import then global write": "from n import C\ndef f():\n    global C\n    C = 1\n",
+			"star import that may bind it": "from n import *\n",
+			"a star import after the import": "from n import C\nfrom o import *\n",
+		};
+		for (const [label, source] of Object.entries(shapes)) {
+			await refused(
+				[n, o, py("m.py", source), py("app.py", call)],
+				"m.C.st()",
+				"nameNotBound",
+				"attribute-not-found",
+				label,
+			);
+		}
+		// a second import in a try/except: an alternative, refused (no first pick)
+		const alt = [py("_a.py", m), py("_b.py", m)];
+		const tried = "try:\n    from _a import C\nexcept ImportError:\n    from _b import C\n";
+		await refused(
+			[...alt, py("m.py", tried), py("app.py", call)],
+			"m.C.st()",
+			"nameNotBound",
+			"attribute-not-found",
+			"try/except imports",
+		);
+		// the with target also binds a bare name in m: only the edge is asserted
+		const withT = await at(
+			[
+				n,
+				py("m.py", "from n import C\nwith q() as C:\n    pass\n"),
+				py("app.py", "import m\ndef run():\n    m.C.st()\n"),
+			],
+			3,
+		);
+		expect(withT.targets).toEqual([]);
+		// the single plain import keeps its edge, and so do the two shapes that bind no module name
+		const ok: Record<string, string> = {
+			"plain import": "from n import C\n",
+			"bare annotation ignored": "from n import C\nC: int\n",
+			"comprehension target ignored": "from n import C\nxs = [C for C in z]\n",
+		};
+		for (const [label, source] of Object.entries(ok)) {
+			const result = await at([n, py("m.py", source), py("app.py", "import m\ndef run():\n    m.C.st()\n")], 3);
+			expect(result.targets, label).toEqual(["call:C.st"]);
+		}
+		for (const source of [`${m}C: int\n`, `${m}xs = [C for C in z]\n`]) {
+			expect((await at([py("m.py", source), py("app.py", "import m\ndef run():\n    m.C.st()\n")], 3)).targets).toEqual(
+				["call:C.st"],
+			);
+		}
+	});
+
 	test("negative controls stay unresolved, each in the bin and with the reason it had before the rule", async () => {
 		const call = "import m\ndef run():\n    CALL\n";
 		await refused(
