@@ -4578,7 +4578,7 @@ describe("GCLI-115 — a del target is a binding", () => {
 		external: number;
 		receiver: number;
 		name: number;
-		/** The qualnames of the callees of the sites the call adds, sorted. */
+		/** The qualnames of the callees of the sites the call adds, sorted; `|multi` marks a multiplyBound edge. */
 		targets: string[];
 	};
 	const REFUSED_RECEIVER: Delta = { edges: 0, inRepo: 0, external: 0, receiver: 1, name: 0, targets: [] };
@@ -4609,7 +4609,12 @@ describe("GCLI-115 — a del target is a binding", () => {
 		const qualnames = new Map(withCall.symbols.map((symbol) => [symbol.id, symbol.qualname]));
 		const added = withCall.sites.filter((site) => !before.has(key(site)));
 		return {
-			targets: added.map((site) => qualnames.get(site.calleeId ?? "") ?? `?${site.calleeId}`).sort(),
+			targets: added
+				.map(
+					(site) =>
+						`${qualnames.get(site.calleeId ?? "") ?? `?${site.calleeId}`}${site.multiplyBound === true ? "|multi" : ""}`,
+				)
+				.sort(),
 			edges: withCall.sites.length - without.sites.length,
 			inRepo: bin("resolvedInRepo"),
 			external: bin("resolvedExternal"),
@@ -4827,5 +4832,74 @@ describe("GCLI-115 — a del target is a binding", () => {
 		expect(await reasons("def f():\n    pass\ndel f\ndef g():\n    f()\n")).toEqual([
 			{ reason: "rebound", count: 1, firstSites: [{ file: "app.py", line: 5, column: 5 }] },
 		]);
+	});
+
+	// GCLI-116 (DEC-303 (a43) item 2, (a44)): a cross-module call reads m's module-level BINDINGS.
+	describe("GCLI-116 — a from-import or module-attribute call reads m's bindings", () => {
+		/** `m.py` holds `source`; app.py calls `f()` through a from-import or through `m.f()`. */
+		async function both(
+			source: string,
+			expectedFrom: Delta,
+			expectedAttr: Delta,
+			label: string,
+			extraFiles: PythonModuleInput[] = [],
+		): Promise<void> {
+			const files = [py("m.py", source), ...extraFiles];
+			await expectDelta("from m import f\nCALL\n", "f()", expectedFrom, `${label}: from-import`, files);
+			await expectDelta("import m\nCALL\n", "m.f()", expectedAttr, `${label}: module attribute`, files);
+		}
+		const DEF = "def f():\n    pass\n";
+
+		test("the twin resolves; a del or a reassignment to a non-resolving value makes the name rebound", async () => {
+			await both(DEF, resolved("f"), resolved("f"), "twin");
+			await both(`${DEF}del f\n`, REFUSED_NAME, REFUSED_NAME, "del f");
+			await both(`${DEF}f = 1\n`, REFUSED_NAME, REFUSED_NAME, "f = 1");
+			await both(`${DEF}f = make()\n`, REFUSED_NAME, REFUSED_NAME, "f = make()");
+		});
+
+		test("a function's global write or del counts as a module binding", async () => {
+			await both(`${DEF}def reset():\n    global f\n    f = 1\n`, REFUSED_NAME, REFUSED_NAME, "global write");
+			await both(`${DEF}def reset():\n    global f\n    del f\n`, REFUSED_NAME, REFUSED_NAME, "global del");
+		});
+
+		test("Q2 control: alternative defs keep one edge each, each flagged multiplyBound", async () => {
+			const two = { edges: 2, inRepo: 1, external: 0, receiver: 0, name: 0, targets: ["f|multi", "f|multi"] };
+			await both("if X:\n    def f():\n        pass\nelse:\n    def f():\n        pass\n", two, two, "platform arms");
+			await both("try:\n    def f():\n        pass\nexcept E:\n    def f():\n        pass\n", two, two, "try fallback");
+		});
+
+		test("rule (ii): an external alternative keeps the in-repo edge, flagged; an in-repo alternative adds its edge", async () => {
+			const one = { edges: 1, inRepo: 1, external: 0, receiver: 0, name: 0, targets: ["f|multi"] };
+			await both(`${DEF}try:\n    from ext import f\nexcept ImportError:\n    pass\n`, one, one, "external fallback");
+			const two = { edges: 2, inRepo: 1, external: 0, receiver: 0, name: 0, targets: ["f|multi", "g|multi"] };
+			await both(
+				"def g():\n    pass\nif X:\n    def f():\n        pass\nelse:\n    f = g\n",
+				two,
+				two,
+				"in-repo alias",
+			);
+		});
+
+		test("rule (i): an alternative that resolves to the SAME class keeps one edge and no flag (rich/live.py's shape)", async () => {
+			const live = [
+				py("pkg/__init__.py", ""),
+				py("pkg/live.py", 'class Live:\n    pass\n\nif __name__ == "__main__":\n    from .live import Live as Live\n'),
+			];
+			await expectDelta("from pkg.live import Live\nCALL\n", "Live()", resolved("Live"), "from-import", live);
+			await expectDelta("import pkg.live\nCALL\n", "pkg.live.Live()", resolved("Live"), "module attribute", live);
+		});
+
+		test("an @overload group is one def, not alternatives", async () => {
+			const src =
+				"from typing import overload\n@overload\ndef f(a: int) -> int: ...\n@overload\ndef f(a: str) -> str: ...\ndef f(a):\n    pass\n";
+			await both(src, resolved("f"), resolved("f"), "overload group");
+		});
+
+		test("an unconditional later rebinding, and a conditional value that resolves to nothing", async () => {
+			// (a44) item 4: def f, then f = g with no branch, is pinned rebound with no edge
+			await both("def g():\n    pass\ndef f():\n    pass\nf = g\n", REFUSED_NAME, REFUSED_NAME, "unconditional f = g");
+			// a conditional alternative that resolves to no def or class adds nothing: the def stands, unflagged
+			await both(`${DEF}if X:\n    f = unknown_thing\n`, resolved("f"), resolved("f"), "unresolving alternative");
+		});
 	});
 });

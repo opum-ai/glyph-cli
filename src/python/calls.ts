@@ -196,6 +196,11 @@ interface RawBinding {
 	comprehension?: true;
 	/** R4: the scope whose text holds this binding, set when `applyScopeRedirects` moves it onto an enclosing scope. */
 	origin?: Scope;
+	/**
+	 * GCLI-116 (DEC-303 (a44) item 4): the assignment sits in an `if` or `try` arm, so it is an alternative
+	 * of the name (Q2's platform arms and try/except fallbacks), not an unconditional rebinding.
+	 */
+	conditional?: true;
 }
 
 interface Scope {
@@ -313,6 +318,7 @@ type StarBoundResult = { outcome: NameOutcome; cycle: boolean };
 
 type ModuleAttrOutcome =
 	| { kind: "symbol"; symbol: PythonSymbol }
+	| { kind: "multiply"; symbols: PythonSymbol[] }
 	| { kind: "module"; path: string }
 	| { kind: "external" }
 	| { kind: "unresolved"; reason: string };
@@ -1614,6 +1620,7 @@ class FileWalker {
 				rhs,
 				annotation,
 				annotationScope: annotation !== null ? frame.scope : null,
+				...(isConditionalStatement(node) ? { conditional: true as const } : {}),
 			});
 		} else if (left !== null) {
 			// A tuple target binds run-time values; a subscript/attribute binds no name.
@@ -1679,6 +1686,36 @@ class FileWalker {
 		}
 		this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 	}
+}
+
+/**
+ * GCLI-116: a statement inside an `if`/`elif`/`else` arm or a `try`, `except` or `else` arm of a `try` (not
+ * `finally`) up to its enclosing def, class or module. `with`, loop bodies and `finally` run unconditionally
+ * for this purpose, which keeps the answer the conservative one (rebound).
+ */
+function isConditionalStatement(node: Node): boolean {
+	let current: Node | null = node.parent;
+	while (current !== null) {
+		switch (current.type) {
+			case "function_definition":
+			case "class_definition":
+			case "module":
+				return false;
+			case "if_statement":
+			case "elif_clause":
+			case "else_clause":
+			case "except_clause":
+			case "except_group_clause":
+				return true;
+			case "try_statement":
+				return true;
+			case "finally_clause":
+				return false;
+			default:
+				current = current.parent;
+		}
+	}
+	return false;
 }
 
 function makeModuleScope(file: string): Scope {
@@ -1786,6 +1823,8 @@ class Resolver {
 	private readonly starBindingsByPath = new Map<string, ImportBinding[]>();
 	/** Rule 33: each file's module scope, for reading a star target's bindings. */
 	private readonly moduleScopesByPath: Map<string, Scope>;
+	/** GCLI-116: the (module, name) lookups `moduleBindingGate` is inside, so a self-import adds nothing. */
+	private readonly gateActive = new Set<string>();
 	private readonly computingMro = new Set<ClassInfo>();
 	private childrenMap: Map<string, ClassInfo[]> | null = null;
 	private descendantsCache = new Map<string, ClassInfo[]>();
@@ -2163,12 +2202,21 @@ class Resolver {
 		}
 		const targets = [binding.target, ...binding.alternatives];
 		const symbols: PythonSymbol[] = [];
+		let forcedMultiply = false;
 		for (const target of targets) {
+			const gate = this.moduleBindingGate(target, importedName);
+			if (gate !== null) {
+				if (gate.kind === "unresolved") return gate;
+				const found = gate.kind === "symbol" ? [gate.symbol] : gate.kind === "multiply" ? gate.symbols : [];
+				if (gate.kind === "multiply") forcedMultiply = true;
+				for (const symbol of found) if (!symbols.some((existing) => existing.id === symbol.id)) symbols.push(symbol);
+				continue;
+			}
 			const symbol = this.symbolInModuleOrReexport(target, importedName, 0);
 			if (symbol !== null && !symbols.some((existing) => existing.id === symbol.id)) symbols.push(symbol);
 		}
-		if (symbols.length === 1) return { kind: "symbol", symbol: symbols[0] as PythonSymbol };
-		if (symbols.length > 1) return { kind: "multiply", symbols };
+		if (symbols.length === 1 && !forcedMultiply) return { kind: "symbol", symbol: symbols[0] as PythonSymbol };
+		if (symbols.length > 0) return { kind: "multiply", symbols };
 		return { kind: "unresolved", reason: "run-time-bound" };
 	}
 
@@ -2247,6 +2295,61 @@ class Resolver {
 		);
 	}
 
+	/**
+	 * GCLI-116 (DEC-303 (a43) item 2, (a44) items 1 and 4): what module `path` binds `name` to, read from
+	 * m's module-level BINDINGS (after the `global` and `nonlocal` redirects, so a `del` and a function's
+	 * `global` write count) rather than from its symbol table. Null when the module has no def or class of
+	 * the name (the symbol-table path then stands) or the lookup re-enters itself (a self-import such as
+	 * `from .live import Live as Live` adds nothing). A `del`, a value that does not resolve to a def or
+	 * class, or an unresolved import makes the name rebound (no edge). A def, a class, an import or a
+	 * conditional assignment of a resolving name is an alternative: one symbol with no other alternative is
+	 * (i) no alternative, a different target or an external one is (ii) Q2's multiply-bound alternatives.
+	 */
+	private moduleBindingGate(path: string, name: string): NameOutcome | null {
+		const scope = this.moduleScopesByPath.get(path);
+		const bindings = scope?.bindings.get(name);
+		if (scope === undefined || bindings === undefined) return null;
+		if (!bindings.some((binding) => binding.kind === "def" || binding.kind === "class")) return null;
+		const key = `${path}\u0000${name}`;
+		if (this.gateActive.has(key)) return null;
+		this.gateActive.add(key);
+		try {
+			const rebound: NameOutcome = { kind: "unresolved", reason: "rebound" };
+			const symbols: PythonSymbol[] = [];
+			let external = false;
+			for (const binding of bindings) {
+				let outcome: NameOutcome;
+				if (binding.kind === "def" || binding.kind === "class") {
+					// an `@overload` stub has no symbol of its own (the group collapses into its implementation)
+					if (binding.symbolId === undefined || !this.symbolsById.has(binding.symbolId)) continue;
+					outcome = this.resolveStatic(binding);
+				} else if (binding.kind === "import") outcome = this.resolveImportBinding(binding.importBinding ?? null);
+				else if (
+					binding.kind === "assign" &&
+					binding.conditional === true &&
+					binding.rhs?.kind === "alias" &&
+					binding.origin === undefined
+				) {
+					outcome = this.resolveBareName(binding.rhs.name, scope, 1);
+					// an alternative that resolves to no def or class adds nothing: the name keeps its others
+					if (outcome.kind !== "symbol" && outcome.kind !== "multiply" && outcome.kind !== "external") continue;
+				} else return rebound;
+				if (outcome.kind === "symbol") outcome = { kind: "multiply", symbols: [outcome.symbol] };
+				if (outcome.kind === "multiply") {
+					for (const symbol of outcome.symbols) {
+						if (!symbols.some((existing) => existing.id === symbol.id)) symbols.push(symbol);
+					}
+				} else if (outcome.kind === "external") external = true;
+				else return rebound;
+			}
+			if (symbols.length === 0) return rebound;
+			if (symbols.length === 1 && !external) return { kind: "symbol", symbol: symbols[0] as PythonSymbol };
+			return { kind: "multiply", symbols };
+		} finally {
+			this.gateActive.delete(key);
+		}
+	}
+
 	private symbolInModule(path: string, name: string): PythonSymbol | null {
 		const symbols = this.fileSymbols.get(path);
 		if (symbols === undefined) return null;
@@ -2284,6 +2387,10 @@ class Resolver {
 		const key = `${path}\u0000${name}`;
 		if (visited.has(key)) return { kind: "unresolved", reason: "import-cycle" };
 		visited.add(key);
+		const gate = this.moduleBindingGate(path, name);
+		if (gate !== null) {
+			if (gate.kind === "symbol" || gate.kind === "multiply" || gate.kind === "unresolved") return gate;
+		}
 		const direct = this.symbolInModule(path, name);
 		if (direct !== null) return { kind: "symbol", symbol: direct };
 		const moduleName = this.pathToModule.get(path);
@@ -2863,28 +2970,36 @@ class Resolver {
 				return { bin: "name", reason: outcome.reason };
 			case "unresolved":
 				return { bin: "name", reason: outcome.reason };
-			case "multiply": {
-				// Rule 25: each in-repository class alternative is a full construction
-				// (rule 8), so it gets an edge to the class and one to its resolved
-				// `__init__`; every edge is flagged multiplyBound and the site is one.
-				const edges: EdgeSpec[] = [];
-				for (const symbol of outcome.symbols) {
-					if (symbol.kind === "class") {
-						const classInfo = this.classById.get(symbol.id);
-						if (classInfo !== undefined) {
-							const resolved = this.construction(classInfo, site, { multiplyBound: true });
-							if (resolved.bin === "inRepo") edges.push(...resolved.edges);
-						} else {
-							edges.push(symbolEdge(symbol, "new", { multiplyBound: true }));
-						}
-					} else {
-						edges.push(symbolEdge(symbol, "call", { multiplyBound: true }));
-					}
+			case "multiply":
+				return this.multiplyCall(outcome.symbols, site);
+		}
+	}
+
+	/**
+	 * Rule 25: each in-repository class alternative is a full construction (rule 8), so it gets an edge to
+	 * the class and one to its resolved `__init__`; every edge is flagged multiplyBound and the site is one.
+	 * Shared by a bare name and a module attribute (GCLI-116).
+	 */
+	private multiplyCall(
+		symbols: readonly PythonSymbol[],
+		site: { file: string; line: number; column: number },
+	): CallResolution {
+		const edges: EdgeSpec[] = [];
+		for (const symbol of symbols) {
+			if (symbol.kind === "class") {
+				const classInfo = this.classById.get(symbol.id);
+				if (classInfo !== undefined) {
+					const resolved = this.construction(classInfo, site, { multiplyBound: true });
+					if (resolved.bin === "inRepo") edges.push(...resolved.edges);
+				} else {
+					edges.push(symbolEdge(symbol, "new", { multiplyBound: true }));
 				}
-				if (edges.length > 0) return { bin: "inRepo", edges, polymorphic: false, multiplyBound: true };
-				return { bin: "external", reason: "external" };
+			} else {
+				edges.push(symbolEdge(symbol, "call", { multiplyBound: true }));
 			}
 		}
+		if (edges.length > 0) return { bin: "inRepo", edges, polymorphic: false, multiplyBound: true };
+		return { bin: "external", reason: "external" };
 	}
 
 	private resolveAttributeCall(
@@ -3345,6 +3460,8 @@ class Resolver {
 				}
 				return { bin: "inRepo", edges: [symbolEdge(outcome.symbol, "call")], polymorphic: false, multiplyBound: false };
 			}
+			case "multiply":
+				return this.multiplyCall(outcome.symbols, site);
 			case "module":
 				return { bin: "name", reason: "module-called" };
 			case "external":
