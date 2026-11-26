@@ -1204,3 +1204,42 @@ describe("GCLI-120 item 3 — a complete star set that misses a binding form doe
 		expect(r.delta).toEqual(NOT_BUILTIN);
 	});
 });
+
+describe("GCLI-120 round 1 — rule 46 shares the exactness rule, and `__all__` must be an unconditional value", () => {
+	const staticApp =
+		"from s import *\nclass C:\n    def helper(self):\n        pass\n    @staticmethod\n    def m(self):\n        self.helper()\n    def use(self):\n        CALL\n";
+	const runStatic = (target: string) => probe(staticApp, "C.m()", { "s.py": target });
+
+	test("a staticmethod under an inexact complete star keeps self a plain parameter: no C.helper edge from m", async () => {
+		const r = await runStatic("for i in []:\n    pass\n");
+		expect(r.callees).toEqual(["app.py:C.m"]);
+	});
+
+	test("twin: under an exact star target the same shape also has no C.helper edge", async () => {
+		const r = await runStatic("def other():\n    pass\n");
+		expect(r.callees).toEqual(["app.py:C.m"]);
+	});
+
+	const classApp = "from s import *\nclass C:\n    @classmethod\n    def m(cls):\n        CALL\n";
+	test("a classmethod under an inexact complete star: cls() is not a construction", async () => {
+		const r = await probe(classApp, "cls()", { "s.py": "for i in []:\n    pass\n" });
+		expect(r.delta).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 });
+		expect(r.callees).toEqual([]);
+	});
+	test("twin: a classmethod under an exact star target still constructs C", async () => {
+		const r = await probe(classApp, "cls()", { "s.py": "def other():\n    pass\n" });
+		expect(r.callees).toEqual(["app.py:C"]);
+	});
+
+	const run = (target: string) => probe("from s import *\ndef g(x):\n    CALL\n", "len(x)", { "s.py": target });
+	test("a conditional `__all__` is not certified: len(x) is not the builtin", async () => {
+		const r = await run("if X:\n    __all__ = ['helper']\ndef helper():\n    pass\nfor len in [1]:\n    pass\n");
+		expect(r.delta).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 });
+		expect(r.callees).toEqual([]);
+	});
+	test("a bare annotated `__all__` is not certified: a def len in the target is not the builtin", async () => {
+		const r = await run("__all__: list[str]\ndef len(x):\n    pass\n");
+		expect(r.delta).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 });
+		expect(r.callees).toEqual([]);
+	});
+});

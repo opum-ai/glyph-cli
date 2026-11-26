@@ -2125,6 +2125,8 @@ class Resolver {
 		if (stars === undefined) return false;
 		for (const star of stars) {
 			if (star.outcome === "resolved" && star.target !== null && star.reason === null) {
+				// GCLI-120: the complement of isUnshadowedBuiltin, so an inexact complete set leaves the kind unknown.
+				if (!this.starSetIsExact(star, new Set())) return true;
 				if (star.starNames.includes(name)) return false;
 			} else {
 				return true;
@@ -2150,7 +2152,14 @@ class Resolver {
 		const all = target.bindings.get("__all__");
 		if (all !== undefined) {
 			const only = all[0] as RawBinding;
-			return all.length === 1 && only.kind === "assign" && only.viaGlobal !== true;
+			// a conditional `__all__` may not run, and a bare annotation `__all__: T` binds nothing
+			return (
+				all.length === 1 &&
+				only.kind === "assign" &&
+				only.viaGlobal !== true &&
+				only.conditional !== true &&
+				only.bare !== true
+			);
 		}
 		const names = new Set(star.starNames);
 		for (const bound of target.bindings.keys()) {
