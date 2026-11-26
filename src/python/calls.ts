@@ -154,15 +154,20 @@ type BaseDesc =
 	| { kind: "literal" }
 	| { kind: "dynamic" };
 
+/** TS (DEC-303 (a22) item 3): the right-hand side is `type(x)` (`viaType`) or `x.__class__` for a bare name `x`. */
+interface ClassOfDesc {
+	receiver: string;
+	viaType: boolean;
+}
+
 type BindingRhs =
 	| { kind: "alias"; name: string }
-	| { kind: "call"; callee: CalleeDesc }
+	/** `classOf`: TS reads this extra fact only; every other reader sees the call as it was before TS. */
+	| { kind: "call"; callee: CalleeDesc; classOf?: ClassOfDesc }
 	/** ALIAS: the right-hand side is a dotted attribute `B.attr` (one segment after a name). */
-	| { kind: "attr"; callee: CalleeDesc }
+	| { kind: "attr"; callee: CalleeDesc; classOf?: ClassOfDesc }
 	/** LIT: the right-hand side is a literal or comprehension of one builtin type. */
 	| { kind: "literal"; type: string }
-	/** TS (DEC-303 (a22) item 3): the right-hand side is `type(x)` (`viaType`) or `x.__class__` for a bare name `x`. */
-	| { kind: "classof"; receiver: string; viaType: boolean }
 	| { kind: "other" };
 
 /** A source position (one-based) for rule 38's order-aware class-body imports. */
@@ -948,7 +953,7 @@ function literalType(node: Node): string | null {
 }
 
 /** TS: `type(x)` with one positional bare-name argument, or `x.__class__` on a bare name. */
-function classOfRhs(node: Node): BindingRhs | null {
+function classOfRhs(node: Node): ClassOfDesc | null {
 	if (node.type === "call") {
 		const fn = node.childForFieldName("function");
 		const args = node.childForFieldName("arguments");
@@ -956,16 +961,21 @@ function classOfRhs(node: Node): BindingRhs | null {
 		if (args.type !== "argument_list" || args.namedChildCount !== 1) return null;
 		const only = args.namedChildren[0];
 		if (only === null || only === undefined || only.type !== "identifier") return null;
-		return { kind: "classof", receiver: only.text, viaType: true };
+		return { receiver: only.text, viaType: true };
 	}
 	if (node.type === "attribute") {
 		const object = node.childForFieldName("object");
 		const attribute = node.childForFieldName("attribute");
 		if (object === null || attribute === null) return null;
 		if (object.type !== "identifier" || attribute.text !== "__class__") return null;
-		return { kind: "classof", receiver: object.text, viaType: false };
+		return { receiver: object.text, viaType: false };
 	}
 	return null;
+}
+
+function classOfField(node: Node): { classOf?: ClassOfDesc } {
+	const classOf = classOfRhs(node);
+	return classOf === null ? {} : { classOf };
 }
 
 function literalRhs(node: Node): BindingRhs {
@@ -1638,12 +1648,15 @@ class FileWalker {
 				? { kind: "other" }
 				: right.type === "identifier"
 					? { kind: "alias", name: right.text }
-					: (classOfRhs(right) ??
-						(right.type === "call"
-							? { kind: "call", callee: describeCallee(right.childForFieldName("function") ?? right) }
-							: right.type === "attribute"
-								? { kind: "attr", callee: describeCallee(right) }
-								: literalRhs(right)));
+					: right.type === "call"
+						? {
+								kind: "call",
+								callee: describeCallee(right.childForFieldName("function") ?? right),
+								...classOfField(right),
+							}
+						: right.type === "attribute"
+							? { kind: "attr", callee: describeCallee(right), ...classOfField(right) }
+							: literalRhs(right);
 
 		if (left !== null && left.type === "identifier") {
 			this.addBinding(frame.scope, left.text, {
@@ -3323,13 +3336,14 @@ class Resolver {
 		if (bindings === null || bindings.length !== 1) return null;
 		const binding = bindings[0] as RawBinding;
 		if (binding.kind !== "assign" || binding.annotation) return null;
-		if (binding.rhs?.kind !== "classof") return null;
-		if (binding.rhs.viaType && !this.isUnshadowedBuiltin("type", found.scope)) return null;
-		const receiver = this.receiverOf(binding.rhs.receiver, found.scope);
+		const classOf = binding.rhs !== undefined && "classOf" in binding.rhs ? binding.rhs.classOf : undefined;
+		if (classOf === undefined) return null;
+		if (classOf.viaType && !this.isUnshadowedBuiltin("type", found.scope)) return null;
+		const receiver = this.receiverOf(classOf.receiver, found.scope);
 		if (receiver === null || receiver.kind !== "instance") return null;
 		// (a23) item 3, (a55) item 3: a class on the MRO that defines `__class__` (an attribute, a
 		// property or a method) leaves `self.__class__` unresolved; `type(self)` does not consult it.
-		if (!binding.rhs.viaType) {
+		if (!classOf.viaType) {
 			const mro = this.computeMro(receiver.classInfo);
 			if (!mro.ok) return null;
 			for (const entry of mro.entries) {

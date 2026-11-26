@@ -215,16 +215,123 @@ describe("TS — the receiver, type and self must be what the rule names", () =>
 		expect(fn.delta).toEqual(REFUSED);
 	});
 
-	test("an unknown method on the class stays refused for the reason it had (negative control)", async () => {
-		const source = inMethod("k = type(self)\nk.nope()");
-		const result = await analyze([py("app.py", source.replace("CALL", "pass"))]);
-		expect(result.sites.filter((s) => s.calleeId !== null && s.line === 8)).toEqual([]);
+	test("an unknown method on the class stays unresolved, in the same bin as self.unknown() (negative control)", async () => {
+		const unknown = async (rhs: string, call: string, base = "") => {
+			const withCall = await analyze([
+				py(
+					"app.py",
+					`${base}class C${base === "" ? "" : "(B)"}:\n    def run(self):\n        k = ${rhs}\n        ${call}\n`,
+				),
+			]);
+			const without = await analyze([
+				py(
+					"app.py",
+					`${base}class C${base === "" ? "" : "(B)"}:\n    def run(self):\n        k = ${rhs}\n        pass\n`,
+				),
+			]);
+			const bins = (r: PythonCallsResult) => r.callBins;
+			const d = (key: "resolvedInRepo" | "resolvedExternal" | "receiverNeedsInference" | "nameNotBound") =>
+				bins(withCall)[key] - bins(without)[key];
+			expect(withCall.sites.filter((x) => x.calleeId !== null && x.line === 4)).toEqual([]);
+			return { inRepo: d("resolvedInRepo"), external: d("resolvedExternal"), receiver: d("receiverNeedsInference") };
+		};
+		for (const base of ["", "class B:\n    pass\n", "class B(dict):\n    pass\n", "from nowhere import B\n"]) {
+			const viaLocal = await unknown("type(self)", "k.unknown()", base);
+			const viaSelf = await unknown("type(self)", "self.unknown()", base);
+			expect(viaLocal, JSON.stringify(base)).toEqual(viaSelf);
+		}
+		// pinned shapes: no base is an instance attribute (receiver bin); a builtin base resolves external (the bin move)
+		expect(await unknown("type(self)", "k.unknown()")).toMatchObject({ inRepo: 0, receiver: 1 });
+		expect(await unknown("type(self)", "k.unknown()", "class B(dict):\n    pass\n")).toMatchObject({
+			inRepo: 0,
+			external: 1,
+			receiver: 0,
+		});
 	});
 
-	test("a local at module level or in a class body is not rule TS's", async () => {
-		const modLevel = await probe(`${C}k = type(C())\nCALL\n`);
+	test("a local at module level or in a class body is not rule TS's (the function-scope guard is an equivalent mutant: receiverOf is null there)", async () => {
+		const modLevel = await probe(`${C}x = C()\nk = type(x)\nCALL\n`);
 		expect(modLevel.sites).toEqual([]);
 		expect(modLevel.delta).toEqual(REFUSED);
+		const modClass = await probe(`${C}x = C()\nk = x.__class__\nCALL\n`);
+		expect(modClass.sites).toEqual([]);
+		expect(modClass.delta).toEqual(REFUSED);
+		const inClassBody = await probe(
+			"class C:\n    def meth(self):\n        pass\n    x = 1\n    k = type(x)\n    CALL\n",
+		);
+		expect(inClassBody.sites).toEqual([]);
+		expect(inClassBody.delta).toEqual(REFUSED);
+	});
+
+	test("a nested def's own parameter shadowing self: the read resolves, a binding inside it refuses", async () => {
+		const readsOuter = await probe(inMethod("k = type(self)\ndef g(self):\n    CALL\ng(1)"));
+		expect(readsOuter.delta).toEqual(RESOLVED);
+		const bindsInner = await probe(inMethod("def g(self):\n    k = type(self)\n    CALL\ng(1)"));
+		expect(bindsInner.sites).toEqual([]);
+		expect(bindsInner.delta).toEqual(REFUSED);
+	});
+
+	test("a method of a class nested in a function resolves; a del-only second binding refuses", async () => {
+		const nested = await probe(
+			"def f():\n    class C:\n        def meth(self):\n            pass\n        def run(self):\n            k = type(self)\n            CALL\n",
+		);
+		expect(nested.delta).toEqual(RESOLVED);
+		expect(nested.sites.map((s) => s.calleeId)).toEqual([
+			nested.result.symbols.find((x) => x.qualname.endsWith("C.meth"))?.id ?? null,
+		]);
+		const delOnly = await probe(inMethod("k = type(self)\ndel k\nCALL"));
+		expect(delOnly.sites).toEqual([]);
+		expect(delOnly.delta).toEqual(REFUSED);
+	});
+
+	test("an MRO that does not compute refuses self.__class__ (the reason, not the bin, is what the check moves)", async () => {
+		const bad = "class A:\n    pass\nclass B(A):\n    pass\nclass C(A, B):\n    def meth(self):\n        pass\n";
+		const { delta, sites } = await probe(`${bad}    def run(self):\n        k = self.__class__\n        CALL\n`);
+		expect(sites).toEqual([]);
+		expect(delta).toEqual(REFUSED);
+	});
+});
+
+// GCLI-119 round 1, B1: `k = type(x)` keeps the right-hand side every pre-TS reader saw (a call whose callee is
+// `type`), so an in-repo class named `type` resolves exactly as it did before TS: rules 6d, R4, M1 and N3.
+describe("TS — an in-repo class named type: the pre-TS readers still see the call", () => {
+	const typeClass = "class type:\n    def meth(self):\n        pass\n    def __call__(self):\n        pass\n";
+	const wantMeth = (r: Awaited<ReturnType<typeof probe>>) =>
+		expect(r.sites.map((s) => s.calleeId)).toEqual([idOf(r.result, "type.meth")]);
+
+	test("6d, function scope: a single k = type(a) is a construction of the in-repo class", async () => {
+		const r = await probe(`${typeClass}def f(a):\n    k = type(a)\n    CALL\n`);
+		expect(r.delta).toEqual(RESOLVED);
+		wantMeth(r);
+	});
+
+	test("6d, module scope", async () => {
+		const r = await probe(`${typeClass}a = 1\nk = type(a)\nCALL\n`);
+		expect(r.delta).toEqual(RESOLVED);
+		wantMeth(r);
+	});
+
+	test("R4: two k = type(a) bindings", async () => {
+		const r = await probe(`${typeClass}def f(a):\n    k = type(a)\n    k = type(a)\n    CALL\n`);
+		expect(r.delta).toEqual(RESOLVED);
+		wantMeth(r);
+	});
+
+	test("M1: an imported module-level instance k = type(a)", async () => {
+		const r = await probe("from m import k\nCALL\n", [py("m.py", `${typeClass}a = 1\nk = type(a)\n`)]);
+		expect(r.delta).toEqual(RESOLVED);
+		wantMeth(r);
+	});
+
+	test("N3: x = type(a); x() calls the in-repo __call__", async () => {
+		const withCall = await analyze([py("app.py", `${typeClass}def f(a):\n    x = type(a)\n    x()\n`)]);
+		expect(withCall.sites.map((s) => s.calleeId)).toContain(idOf(withCall, "type.__call__"));
+	});
+
+	test("an in-repo `type` from a from-import", async () => {
+		const r = await probe("from m import type\ndef f(a):\n    k = type(a)\n    CALL\n", [py("m.py", typeClass)]);
+		expect(r.delta).toEqual(RESOLVED);
+		wantMeth(r);
 	});
 });
 
