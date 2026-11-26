@@ -227,3 +227,45 @@ describe("TS — the receiver, type and self must be what the rule names", () =>
 		expect(modLevel.delta).toEqual(REFUSED);
 	});
 });
+
+// DEC-303 (a55) item 3: a class that defines `__class__` leaves `self.__class__` unresolved; `type(self)`
+// does not consult `__class__`, so it still resolves.
+describe("TS — a class that defines __class__ leaves self.__class__ unresolved", () => {
+	const defs: Record<string, string> = {
+		"an attribute": "    __class__ = int\n",
+		"a property": "    @property\n    def __class__(self):\n        return int\n",
+		"a method": "    def __class__(self):\n        return int\n",
+	};
+	const run = (rhs: string): string => `    def run(self):\n        k = ${rhs}\n        CALL\n`;
+	for (const [label, def] of Object.entries(defs)) {
+		test(`the enclosing class defines __class__ as ${label}: self.__class__ refuses, type(self) resolves`, async () => {
+			const refused = await probe(`class C:\n${def}    def meth(self):\n        pass\n${run("self.__class__")}`);
+			expect(refused.sites).toEqual([]);
+			expect(refused.delta).toEqual(REFUSED);
+			const resolved = await probe(`class C:\n${def}    def meth(self):\n        pass\n${run("type(self)")}`);
+			expect(resolved.delta).toEqual(RESOLVED);
+			expect(resolved.sites.map((s) => s.calleeId)).toEqual([idOf(resolved.result, "C.meth")]);
+		});
+
+		test(`an in-repo base on the MRO defines __class__ as ${label}: self.__class__ refuses, type(self) resolves`, async () => {
+			const base = `class B:\n${def}class C(B):\n    def meth(self):\n        pass\n`;
+			const refused = await probe(`${base}${run("self.__class__")}`);
+			expect(refused.sites).toEqual([]);
+			expect(refused.delta).toEqual(REFUSED);
+			const resolved = await probe(`${base}${run("type(self)")}`);
+			expect(resolved.delta).toEqual(RESOLVED);
+			expect(resolved.sites.map((s) => s.calleeId)).toEqual([idOf(resolved.result, "C.meth")]);
+		});
+	}
+
+	test("a base off the MRO, or a __class__ read rather than defined, does not refuse (positive twins)", async () => {
+		const unrelated = await probe(
+			`class Z:\n    __class__ = int\nclass C:\n    def meth(self):\n        pass\n${run("self.__class__")}`,
+		);
+		expect(unrelated.delta).toEqual(RESOLVED);
+		const read = await probe(
+			`class C:\n    def meth(self):\n        pass\n    def other(self):\n        return self.__class__\n${run("self.__class__")}`,
+		);
+		expect(read.delta).toEqual(RESOLVED);
+	});
+});

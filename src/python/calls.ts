@@ -3327,6 +3327,15 @@ class Resolver {
 		if (binding.rhs.viaType && !this.isUnshadowedBuiltin("type", found.scope)) return null;
 		const receiver = this.receiverOf(binding.rhs.receiver, found.scope);
 		if (receiver === null || receiver.kind !== "instance") return null;
+		// (a23) item 3, (a55) item 3: a class on the MRO that defines `__class__` (an attribute, a
+		// property or a method) leaves `self.__class__` unresolved; `type(self)` does not consult it.
+		if (!binding.rhs.viaType) {
+			const mro = this.computeMro(receiver.classInfo);
+			if (!mro.ok) return null;
+			for (const entry of mro.entries) {
+				if (entry.kind === "class" && entry.info.scope?.bindings.has("__class__") === true) return null;
+			}
+		}
 		return receiver.classInfo;
 	}
 
