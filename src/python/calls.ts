@@ -2537,9 +2537,11 @@ class Resolver {
 			if (!hasDef && countable.length === 1) return star(this.resolveStatic(countable[0] as RawBinding));
 			const symbols: PythonSymbol[] = [];
 			let external = false;
+			const overridden = this.overriddenByLastImport(bindings);
 			for (const binding of bindings) {
 				// a write through `global` (from a function or class body) is a rebinding the static rules cannot order
 				if (binding.viaGlobal === true) return rebound;
+				if (overridden.has(binding)) continue;
 				// N4: a bare annotation at module scope binds no name. N1: a comprehension's iteration target
 				// lives in the comprehension's own scope, not in the module.
 				if (binding.bare === true || binding.comprehension === true) continue;
@@ -2574,6 +2576,34 @@ class Resolver {
 		} finally {
 			this.gateActive.delete(key);
 		}
+	}
+
+	/**
+	 * GCLI-126: the bindings of a name that its LAST binding always overrides. When every def, class and import of
+	 * the name has a line, the last one by line is an import that may not be skipped (`maySkipStatement`, which
+	 * walks through a `finally` and a try-only-finally body) and no other binding shares its line, the earlier
+	 * ones never reach a read after it: they are not alternatives. Empty whenever a binding has no position or is
+	 * of another kind, so the gate then reads every binding exactly as it did.
+	 */
+	private overriddenByLastImport(bindings: readonly RawBinding[]): ReadonlySet<RawBinding> {
+		const none = new Set<RawBinding>();
+		const positioned: { line: number; binding: RawBinding }[] = [];
+		for (const binding of bindings) {
+			if (binding.bare === true || binding.comprehension === true) continue;
+			let line: number | null = null;
+			if (binding.kind === "def" || binding.kind === "class") {
+				if (binding.symbolId === undefined) return none;
+				line = this.symbolsById.get(binding.symbolId)?.line ?? null;
+			} else if (binding.kind === "import") line = binding.importBinding?.line ?? null;
+			if (line === null) return none;
+			positioned.push({ line, binding });
+		}
+		const last = Math.max(...positioned.map((entry) => entry.line));
+		const atLast = positioned.filter((entry) => entry.line === last);
+		const final = atLast[0]?.binding;
+		if (atLast.length !== 1 || final === undefined || final.kind !== "import" || final.conditional === true)
+			return none;
+		return new Set(positioned.filter((entry) => entry.line < last).map((entry) => entry.binding));
 	}
 
 	/**
@@ -2620,8 +2650,9 @@ class Resolver {
 				}
 				line = this.symbolsById.get(binding.symbolId)?.line ?? null;
 			} else if (binding.kind === "import") {
+				// GCLI-126: an import is conditional by the same walk a def and a class follow (`maySkipStatement`, recorded
+				// on the binding), not by S3's own condition, which marks a `finally` and a try-only-finally body.
 				line = binding.importBinding?.line ?? null;
-				conditional = conditional || binding.importBinding?.condition != null;
 			}
 			if (line === null) {
 				unpositioned = true;
