@@ -1208,7 +1208,8 @@ describe("rule 32 — only a plain first parameter is a receiver", () => {
 		const result = await one(
 			"class C:\n    def index(self):\n        pass\n    def m(*args):\n        args.index(1)\n",
 		);
-		expect(result.callBins.receiverNeedsInference).toBe(1);
+		// GCLI-108 (K1): the splat is a tuple, so the call is the builtin's, not unresolved
+		expect(result.callBins.resolvedExternal).toBe(1);
 		expect(linesTo(result, symbolId(result, "C.index"))).toEqual([]);
 	});
 
@@ -1216,7 +1217,8 @@ describe("rule 32 — only a plain first parameter is a receiver", () => {
 		const result = await one(
 			"class C:\n    def get(self, key):\n        pass\n    def m(**kwargs):\n        kwargs.get(1)\n",
 		);
-		expect(result.callBins.receiverNeedsInference).toBe(1);
+		// GCLI-108 (K1): the splat is a dict, so the call is the builtin's
+		expect(result.callBins.resolvedExternal).toBe(1);
 		expect(linesTo(result, symbolId(result, "C.get"))).toEqual([]);
 	});
 
@@ -1224,8 +1226,9 @@ describe("rule 32 — only a plain first parameter is a receiver", () => {
 		const result = await one(
 			"class C(Unknown):\n    def index(self):\n        pass\n    def m(*args):\n        args.index(1)\n",
 		);
-		expect(result.callBins.receiverNeedsInference).toBe(1);
-		expect(result.callBins.resolvedExternal).toBe(0);
+		// GCLI-108 (K1): resolved-external as the tuple's method, whatever the opaque base
+		expect(result.callBins.receiverNeedsInference).toBe(0);
+		expect(result.callBins.resolvedExternal).toBe(1);
 	});
 
 	test("rule 32: @classmethod with *args is not a construction", async () => {
@@ -1539,7 +1542,8 @@ describe("rule 41 — rule 36 and the typed splat are pinned", () => {
 			"class C:\n    def other(self):\n        pass\n    def m(*args: Any):\n        args.other()\n    def p(self: Any):\n        self.other()\n    def q(self=None):\n        self.other()\n",
 		);
 		expect(linesTo(result, symbolId(result, "C.other"))).toEqual([7, 9]);
-		expect(result.callBins.receiverNeedsInference).toBe(1);
+		// GCLI-108 (K1): `args.other()` is the tuple's, resolved-external
+		expect(result.callBins.resolvedExternal).toBe(1);
 	});
 });
 
@@ -3054,5 +3058,173 @@ describe("D2 — nonlocal two levels down, global in a class body, match capture
 			await resolves(matching(cases), `twin ${name} (module)`);
 			await resolves(matching(cases, "function"), `twin ${name} (function)`);
 		}
+	});
+});
+
+// GCLI-108 (K1, DEC-303 (a22) item 3, (a29) and (a30)): `*args` is a tuple, `**kwargs` a
+// dict, and an unshadowed builtin class used as a receiver is the builtin; all are
+// resolved-external, and the rule is refused wherever a binding of the name is not enumerable.
+describe("K1 — *args, **kwargs and an unshadowed builtin class receiver are builtin", () => {
+	const cls = "class C:\n    def index(self, x):\n        pass\n\n    def get(self, x):\n        pass\n\n";
+
+	/** The bins of the one attribute call `needle` in `source`, and whether any in-repo edge was made. */
+	async function bins(source: string) {
+		const result = await analyze([py("app.py", source)]);
+		return {
+			external: result.callBins.resolvedExternal,
+			receiver: result.callBins.receiverNeedsInference,
+			name: result.callBins.nameNotBound,
+			inRepo: result.callBins.resolvedInRepo,
+			edges: result.sites.length,
+		};
+	}
+
+	async function resolvesExternal(source: string, label: string): Promise<void> {
+		const got = await bins(source);
+		expect(got, label).toMatchObject({ external: 1, receiver: 0, inRepo: 0, edges: 0 });
+	}
+
+	async function refused(source: string, label: string): Promise<void> {
+		const got = await bins(source);
+		// the one attribute call is receiver-needs-inference: not external, no edge
+		expect(got.external, label).toBe(0);
+		expect(got.receiver, label).toBe(1);
+		expect(got.edges, label).toBe(0);
+	}
+
+	test("a method called on *args or **kwargs is the builtin's", async () => {
+		await resolvesExternal("def f(*args):\n    args.index(1)\n", "*args");
+		await resolvesExternal("def f(**kwargs):\n    kwargs.get(1)\n", "**kwargs");
+		await resolvesExternal("def f(a, *args, b=1, **kw):\n    args.count(1)\n", "among other parameters");
+		await resolvesExternal("def f(*args: int):\n    args.index(1)\n", "*args with an annotation");
+		await resolvesExternal("def f(**kwargs: str):\n    kwargs.get(1)\n", "**kwargs with an annotation");
+		await resolvesExternal("f = lambda *a, **k: a.index(1)\n", "a lambda *args");
+		await resolvesExternal("def f(*args):\n    def g():\n        args.index(1)\n", "read from a nested function");
+	});
+
+	test("it never reaches an in-repo method of the same name, and a splat first parameter is no receiver ((a12)(a))", async () => {
+		await resolvesExternal(`${cls}def f(*args):\n    args.index(1)\n`, "a module class defines index");
+		await resolvesExternal(
+			`${cls}class D(C):\n    def m(*args):\n        args.index(1)\n`,
+			"a splat first parameter in a method",
+		);
+		await resolvesExternal(
+			`${cls}class D(C):\n    def m(*args: int):\n        args.index(1)\n`,
+			"a typed splat first parameter in a method",
+		);
+		// positive twin: a plain first parameter is the instance, so the lookup reaches C.index
+		const plain = await analyze([py("app.py", `${cls}class D(C):\n    def m(self):\n        self.index(1)\n`)]);
+		expect(linesTo(plain, symbolId(plain, "C.index", "app.py"))).toEqual([10]);
+	});
+
+	test("the annotation of a splat types its elements, never the tuple or dict (GCLI-108 review)", async () => {
+		await resolvesExternal(`${cls}def f(*args: C):\n    args.index(1)\n`, "*args: C is a tuple, not a C");
+		await resolvesExternal(`${cls}def f(**kw: C):\n    kw.get(1)\n`, "**kw: C is a dict, not a C");
+		await resolvesExternal(
+			`${cls}class D(C):\n    def m(*args: D):\n        args.index(1)\n`,
+			"a typed splat first parameter in a method is no receiver",
+		);
+		// positive twin: an annotated plain parameter is still a C
+		const plain = await analyze([py("app.py", `${cls}def f(x: C):\n    x.index(1)\n`)]);
+		expect(linesTo(plain, symbolId(plain, "C.index", "app.py"))).toEqual([9]);
+	});
+
+	test("an alias of a builtin, or a class body that binds the name, does not qualify (GCLI-108 review)", async () => {
+		await refused("int = type\nint.mro(C)\n", "int aliased to type");
+		await refused("int = len\nint.x()\n", "int aliased to len");
+		await refused("def f():\n    dict = len\n    dict.x()\n", "a local alias of a builtin function");
+		// a `global` declaration between the use and the parameter's function reads the module (GCLI-108 round 2)
+		await refused(
+			"args = make()\ndef f(*args):\n    def g():\n        global args\n        args.index(1)\n",
+			"global in a nested function, with a module-level args",
+		);
+		await refused(
+			"def f(*args):\n    class K:\n        global args\n        args.index(1)\n",
+			"global in a class body, with no module-level args",
+		);
+		// positive twins: a read-only nonlocal really reads f's parameter; no declaration likewise
+		await resolvesExternal(
+			"def f(*args):\n    def g():\n        nonlocal args\n        args.index(1)\n",
+			"twin: a read-only nonlocal",
+		);
+		await resolvesExternal(
+			"args = make()\ndef f(*args):\n    def g():\n        args.index(1)\n",
+			"twin: no global, the closure reads the parameter",
+		);
+		// the name is bound in the class body, so it is read from the class or the globals, not the function
+		await refused(
+			"def f(*args):\n    class C:\n        args.index(1)\n        from m import args\n",
+			"a later import in a class body",
+		);
+		await resolvesExternal(
+			"def f(*args):\n    class C:\n        args.index(1)\n",
+			"twin: the class body binds nothing",
+		);
+	});
+
+	test("a second binding of the name leaves the site unresolved", async () => {
+		await refused("def f(*args):\n    args = [1]\n    args.index(1)\n", "rebound in the function");
+		await refused("def f(*args):\n    for args in z:\n        pass\n    args.index(1)\n", "rebound by a for");
+		await refused(
+			"def f(*args):\n    def g():\n        nonlocal args\n        args = make()\n    args.index(1)\n",
+			"a nonlocal write in a nested function",
+		);
+		await refused(
+			"def f(**kw):\n    def g():\n        nonlocal kw\n        kw = make()\n    kw.get(1)\n",
+			"a nonlocal write to **kw",
+		);
+		await refused(
+			"def f(*args):\n    with ctx() as (args, n):\n        pass\n    args.index(1)\n",
+			"rebound by with-as",
+		);
+		await refused("def f(*args):\n    args: list = []\n    args.index(1)\n", "rebound by an annotated assignment");
+		// positive twin: another name rebound leaves *args alone
+		await resolvesExternal("def f(*args):\n    other = 1\n    args.index(1)\n", "twin: another name rebound");
+	});
+
+	test("only a splat parameter qualifies, not an ordinary one or an attribute chain", async () => {
+		await refused("def f(args):\n    args.index(1)\n", "a plain parameter named args");
+		await refused("def f(*args):\n    args.a.index(1)\n", "two segments");
+		await refused("def f(*, a):\n    a.index(1)\n", "a keyword-only parameter after a bare star");
+	});
+
+	test("an unshadowed builtin class used as a receiver is the builtin", async () => {
+		for (const call of [
+			"int.from_bytes(b'x', 'big')",
+			"object.__new__(C)",
+			"dict.fromkeys([1])",
+			"str.join(',', [])",
+			"bytes.fromhex('00')",
+			"float.fromhex('0x1')",
+			"list.append(x, 1)",
+			"OSError.with_traceback(e, None)",
+			"bool.__and__(True, False)",
+			"range.count(r, 1)",
+		]) {
+			await resolvesExternal(`${call}\n`, call);
+		}
+		// inside a function the name is still the builtin
+		await resolvesExternal("def f():\n    int.from_bytes(b'x', 'big')\n", "inside a function");
+	});
+
+	test("a shadowed builtin class, type, a builtin function or a longer chain stays unresolved", async () => {
+		await refused("int = make()\nint.from_bytes(b'x', 'big')\n", "shadowed at module level");
+		await refused("def f(int):\n    int.from_bytes(b'x', 'big')\n", "shadowed by a parameter");
+		await refused("def f():\n    int = make()\n    int.from_bytes(b'x', 'big')\n", "shadowed by a local");
+		await refused("from lib import *\nint.from_bytes(b'x', 'big')\n", "a star import could supply it");
+		await refused("type.mro(C)\n", "type is outside the exemption");
+		await refused("len.x()\n", "a builtin function is not a class");
+		await refused("dict.fromkeys.x()\n", "a longer chain");
+		await refused("class C:\n    int = make()\n    int.from_bytes(b'x', 'big')\n", "shadowed in a class body");
+	});
+
+	test("a class with type in its MRO is still refused (a30)", async () => {
+		const meta = "class Meta(type):\n    def m(self):\n        pass\n\n";
+		const got = await analyze([py("app.py", `${meta}Meta('X', (), {}).m()\n`)]);
+		expect(linesTo(got, symbolId(got, "Meta.m", "app.py"))).toEqual([]);
+		// this clause is carried by E1's instanceClassOf, not a K1 branch; a K1 mutant cannot reach it
+		// positive twin: a class on an unshadowed builtin class base is not opaque
+		const ok = await analyze([py("app.py", "class D(dict):\n    def m(self):\n        pass\n\nD().m()\n")]);
+		expect(linesTo(ok, symbolId(ok, "D.m", "app.py"))).toEqual([5]);
 	});
 });
