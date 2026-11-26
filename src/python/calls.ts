@@ -157,6 +157,8 @@ type BaseDesc =
 type BindingRhs =
 	| { kind: "alias"; name: string }
 	| { kind: "call"; callee: CalleeDesc }
+	/** ALIAS: the right-hand side is a dotted attribute `B.attr` (one segment after a name). */
+	| { kind: "attr"; callee: CalleeDesc }
 	/** LIT: the right-hand side is a literal or comprehension of one builtin type. */
 	| { kind: "literal"; type: string }
 	| { kind: "other" };
@@ -1596,7 +1598,9 @@ class FileWalker {
 					? { kind: "alias", name: right.text }
 					: right.type === "call"
 						? { kind: "call", callee: describeCallee(right.childForFieldName("function") ?? right) }
-						: literalRhs(right);
+						: right.type === "attribute"
+							? { kind: "attr", callee: describeCallee(right) }
+							: literalRhs(right);
 
 		if (left !== null && left.type === "identifier") {
 			this.addBinding(frame.scope, left.text, {
@@ -2803,6 +2807,8 @@ class Resolver {
 		}
 		const instanceCall = this.resolveInstanceCall(name, scope, site);
 		if (instanceCall !== null) return instanceCall;
+		const aliased = this.resolveAliasCall(name, scope, site);
+		if (aliased !== null) return aliased;
 		const outcome = this.resolveBareName(name, scope, 0, site);
 		switch (outcome.kind) {
 			case "symbol": {
@@ -3087,6 +3093,62 @@ class Resolver {
 		// re-export hop. Also refuses `from pkg import n` where pkg/__init__.py re-exports (F4).
 		if (this.sourceModuleFile(imported) !== target) return null;
 		return { target, name: imported.name };
+	}
+
+	/**
+	 * ALIAS (DEC-303 (a23) item 2): a bare call of a LOCAL (found in a function scope) with exactly ONE
+	 * binding, a plain unannotated `name = B.attr` (a name, one segment), where `B.attr` itself resolves
+	 * to an in-repo definition as it does when called directly: `B` a module bound by a plain `import`
+	 * and `attr` a def or class bound exactly once in that module file, or `B` a class (`classSymbolOfName`)
+	 * whose `attr` the A2 lookup (`methodLookup`) resolves. Item 2's enumeration counts the local (a
+	 * nonlocal write from a nested scope is a second binding), `B` in the scope holding the alias, and
+	 * `attr` in the module file that defines it; a re-export hop, a star, a conditional or from-import of
+	 * the module, an external module or a chain deeper than one segment stays unresolved. null when not an alias.
+	 */
+	private resolveAliasCall(
+		name: string,
+		scope: Scope,
+		site: { file: string; line: number; column: number },
+	): CallResolution | null {
+		const found = this.lookupBindings(name, scope, site);
+		if (found === null || found.scope.kind !== "function") return null;
+		const bindings = this.enumerableBindings(name, scope, site);
+		if (bindings === null || bindings.length !== 1) return null;
+		const binding = bindings[0] as RawBinding;
+		if (binding.annotation || binding.rhs?.kind !== "attr") return null;
+		const callee = binding.rhs.callee;
+		if (callee.kind !== "attr" || callee.base.kind !== "name" || callee.segments.length !== 1) return null;
+		// A binding moved here from a nested scope by `nonlocal` is refused. The walker records no `del`, and
+		// `del f` makes f local to its function, so a nonlocal write can land on the wrong function and the
+		// single recorded binding may not be the last one assigned (round 2 review of GCLI-113).
+		if (binding.origin !== undefined) return null;
+		const holder = found.scope;
+		const baseName = callee.base.name;
+		const attr = callee.segments[0] as string;
+		const here = { line: 0, column: 0 };
+		const classSymbol = this.classSymbolOfName(baseName, holder, here);
+		if (classSymbol !== null) {
+			const classInfo = this.classById.get(classSymbol.id);
+			if (classInfo === undefined) return null;
+			const resolved = this.methodLookup(classInfo, attr, false, true);
+			return resolved.bin === "inRepo" ? resolved : null;
+		}
+		const baseBindings = this.enumerableBindings(baseName, holder, here);
+		if (baseBindings === null || baseBindings.length !== 1) return null;
+		const baseBinding = baseBindings[0] as RawBinding;
+		const baseImport = baseBinding.kind === "import" ? (baseBinding.importBinding ?? null) : null;
+		if (baseImport === null || baseImport.kind !== "import" || baseImport.condition !== null) return null;
+		const imported = this.resolveImportBinding(baseImport);
+		if (imported.kind !== "module" || imported.path === null) return null;
+		const moduleScope = this.moduleScopesByPath.get(imported.path);
+		if (moduleScope === undefined) return null;
+		const defined = this.enumerableBindings(attr, moduleScope, here);
+		if (defined === null || defined.length !== 1) return null;
+		const definition = defined[0] as RawBinding;
+		if (definition.symbolId === undefined) return null; // only a def or a class statement carries a symbol
+		const symbol = this.symbolsById.get(definition.symbolId);
+		if (symbol === undefined) return null;
+		return this.moduleAttrToResolution({ kind: "symbol", symbol }, site);
 	}
 
 	/** K1: `name` is bound exactly once in its scope chain, by a `*args` or `**kwargs` parameter. */

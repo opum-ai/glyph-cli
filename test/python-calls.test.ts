@@ -4246,3 +4246,324 @@ describe("R4 — a local whose every binding is Cls(...) of one class resolves",
 		expect(await edges(`${cls}def f():\n    x = C()\n    x = C()\n    x()\n`)).toBe(0);
 	});
 });
+
+// GCLI-113 (ALIAS, DEC-303 (a23) item 2): a local with exactly one binding, to `Cls.attr` or `mod.attr`,
+// resolves a bare call as that attribute does.
+describe("ALIAS — a local with one binding to Cls.attr or mod.attr resolves as that attribute does", () => {
+	const mod = "def func():\n    pass\n\nclass K:\n    pass\n\ndef other():\n    pass\n";
+	const cls = "class C:\n    def m(self):\n        pass\n\n";
+
+	function calleeIds(result: PythonCallsResult, qualname: string): string[] {
+		return result.symbols.filter((symbol) => symbol.qualname === qualname).map((symbol) => symbol.id);
+	}
+
+	/** The number of edges from the application's call line to any definition named `qualname`. */
+	async function edgesTo(files: PythonModuleInput[], qualname: string): Promise<number> {
+		const result = await analyze(files);
+		const ids = new Set(calleeIds(result, qualname));
+		return result.sites.filter((site) => site.file === "app.py" && site.calleeId !== null && ids.has(site.calleeId))
+			.length;
+	}
+
+	/**
+	 * `app` holds the placeholder CALL (a bare call of `f`, or `pass`). A refused call has no edge from
+	 * its own line (by symbol id) and stays in the bin it had before the rule: no more in-repo and no more
+	 * external sites than the source with the call replaced, and exactly one more unresolved bare-name or
+	 * receiver site.
+	 */
+	async function refused(app: string, label: string, extra: PythonModuleInput[] = []): Promise<void> {
+		const callLine = app.split("\n").findIndex((line) => line.includes("CALL")) + 1;
+		expect(callLine, `${label}: the fixture has a CALL line`).toBeGreaterThan(0);
+		const withCall = await analyze([py("app.py", app.replace("CALL", "f()")), ...extra]);
+		const without = await analyze([py("app.py", app.replace("CALL", "pass")), ...extra]);
+		expect(
+			withCall.sites.filter((site) => site.file === "app.py" && site.line === callLine),
+			label,
+		).toEqual([]);
+		const delta = (key: "resolvedInRepo" | "resolvedExternal" | "receiverNeedsInference" | "nameNotBound") =>
+			withCall.callBins[key] - without.callBins[key];
+		expect(
+			{
+				inRepo: delta("resolvedInRepo"),
+				external: delta("resolvedExternal"),
+				unresolved: delta("receiverNeedsInference") + delta("nameNotBound"),
+			},
+			label,
+		).toEqual({ inRepo: 0, external: 0, unresolved: 1 });
+	}
+
+	const files = (m: string): PythonModuleInput[] => [py("m.py", m)];
+
+	test("mod.attr resolves a bare call of the local to the module's def or class, and Cls.attr to the method", async () => {
+		const app = "import m\ndef g():\n    f = m.func\n    f()\n";
+		expect(await edgesTo([py("m.py", mod), py("app.py", app)], "func")).toBe(1);
+		expect(
+			await edgesTo([py("m.py", mod), py("app.py", "import m as k\ndef g():\n    f = k.func\n    f()\n")], "func"),
+		).toBe(1);
+		// a class: the call constructs it, as m.K() does
+		expect(await edgesTo([py("m.py", mod), py("app.py", "import m\ndef g():\n    f = m.K\n    f()\n")], "K")).toBe(1);
+		// a nested function reads the alias as a closure
+		expect(
+			await edgesTo(
+				[py("m.py", mod), py("app.py", "import m\ndef g():\n    f = m.func\n    def h():\n        f()\n    h()\n")],
+				"func",
+			),
+		).toBe(1);
+		// Cls.attr: the A2 lookup, including a method inherited from a base
+		expect(await edgesTo([py("app.py", `${cls}def g(o):\n    f = C.m\n    f(o)\n`)], "C.m")).toBe(1);
+		const sub = "class B:\n    def m(self):\n        pass\nclass C(B):\n    pass\ndef g(o):\n    f = C.m\n    f(o)\n";
+		expect(await edgesTo([py("app.py", sub)], "B.m")).toBe(1);
+		// a class imported by a direct from-import of a module file with one class binding
+		expect(
+			await edgesTo([py("m.py", cls), py("app.py", "from m import C\ndef g(o):\n    f = C.m\n    f(o)\n")], "C.m"),
+		).toBe(1);
+		// an alias to a function defined in the same module is not ALIAS (a plain name): unchanged, still one edge by the old alias rule
+		expect(await edgesTo([py("app.py", "def func():\n    pass\ndef g():\n    f = func\n    f()\n")], "func")).toBe(1);
+	});
+
+	test("every way the local gets a second binding refuses the call", async () => {
+		const seconds: Record<string, string> = {
+			rebind: "f = None",
+			"rebind to the same attribute": "f = m.func",
+			"another attribute": "f = m.other",
+			"augmented assignment": "f += 1",
+			"for target": "for f in z:\n        pass",
+			"with-as": "with open(z) as f:\n        pass",
+			"except-as": "try:\n        pass\n    except Exception as f:\n        pass",
+			walrus: "(f := 1)",
+			"comprehension target (counted, as LIT counts it)": "w = [1 for f in z]",
+			"match capture": "match z:\n        case f:\n            pass",
+			"tuple target": "f, w = z",
+			"starred target": "w, *f = z",
+			"local import": "import f",
+			"local from-import": "from os import path as f",
+			"nested def": "def f():\n        pass",
+			"nested class": "class f:\n        pass",
+			"annotated binding": "f: int = 1",
+			"type alias": "type f = int",
+		};
+		for (const [label, second] of Object.entries(seconds)) {
+			await refused(`import m\ndef g(z):\n    f = m.func\n    ${second}\n    CALL\n`, label, files(mod));
+		}
+		await refused("import m\ndef g(z):\n    f: object = m.func\n    CALL\n", "an annotated alias", files(mod));
+		// a nonlocal write from a nested scope, at any depth
+		const nonlocalWrite = (inner: string, deeper = false): string =>
+			deeper
+				? `import m\ndef g(z):\n    f = m.func\n    def h():\n        def i():\n            nonlocal f\n            ${inner}\n        i()\n    h()\n    CALL\n`
+				: `import m\ndef g(z):\n    f = m.func\n    def h():\n        nonlocal f\n        ${inner}\n    h()\n    CALL\n`;
+		await refused(nonlocalWrite("f = None"), "a nonlocal rebind", files(mod));
+		await refused(nonlocalWrite("f = m.other"), "a nonlocal write of another attribute", files(mod));
+		await refused(nonlocalWrite("f = None", true), "a nonlocal rebind two levels down", files(mod));
+		await refused(nonlocalWrite("for f in z:\n                pass"), "a nonlocal for target", files(mod));
+		// B1 (R4 round 1): a comprehension over the name between the nonlocal write and the local does not capture the write
+		await refused(
+			"import m\ndef g(z):\n    f = m.func\n    def h():\n        [0 for f in z]\n        def i():\n            nonlocal f\n            f = None\n        i()\n    h()\n    CALL\n",
+			"a comprehension target between the nonlocal write and the local",
+			files(mod),
+		);
+		// B1 (round 1, round 2): `del f` makes f a local of g without being a recorded binding, so a nonlocal
+		// write whose target the walker cannot see lands on g with `origin` set. A binding that carries an
+		// origin is refused, whatever the writer binds `m` to.
+		const other = [py("m.py", mod), py("other.py", "def func():\n    pass\n")];
+		const viaDel = (inner: string): string =>
+			`import m\ndef g():\n    def h():\n        nonlocal f\n        ${inner}\n    h()\n    CALL\n    del f\n`;
+		await refused(
+			viaDel("import other as m\n        f = m.func"),
+			"a nonlocal write through del, writer imports another module",
+			other,
+		);
+		await refused(
+			viaDel("m = None\n        f = m.func"),
+			"a nonlocal write through del whose module name is rebound in the writer",
+			files(mod),
+		);
+		// round 2: two nonlocal writers; the deeper one lands in h, the other in g, and g holds one binding
+		await refused(
+			"import m\nimport other\ndef g():\n    def h():\n        def k():\n            nonlocal f\n            f = other.func\n        k()\n    def h2():\n        nonlocal f\n        f = m.func\n    h()\n    CALL\n    del f\n",
+			"two nonlocal writers with a del, module arm",
+			other,
+		);
+		await refused(
+			"class C:\n    def m(self):\n        pass\nclass D:\n    def m(self):\n        pass\ndef g():\n    def h():\n        def k():\n            nonlocal f\n            f = D.m\n        k()\n    def h2():\n        nonlocal f\n        f = C.m\n    h()\n    CALL\n    del f\n",
+			"two nonlocal writers with a del, class arm",
+		);
+		// F3: a global write of the module name from a function, through an import of another module
+		await refused(
+			"import m\ndef w():\n    global m\n    import other as m\ndef g(z):\n    f = m.func\n    CALL\n",
+			"a global import rebinding the module name",
+			other,
+		);
+		// the same for the class arm: C is rebound in the writer
+		await refused(
+			"class C:\n    def m(self):\n        pass\ndef g(o):\n    def h():\n        nonlocal f\n        C = None\n        f = C.m\n    h()\n    CALL\n    del f\n",
+			"a nonlocal write through del whose class name is rebound in the writer",
+		);
+		// F3: a parameter is a binding, nested match captures and a walrus inside a comprehension are bindings
+		await refused(
+			"import m\ndef g(f, z):\n    if f is None:\n        f = m.func\n    CALL\n",
+			"a parameter then the alias",
+			files(mod),
+		);
+		await refused(
+			"import m\ndef g(z):\n    f = m.func\n    match z:\n        case [f]:\n            pass\n    CALL\n",
+			"a sequence match capture",
+			files(mod),
+		);
+		await refused(
+			"import m\ndef g(z):\n    f = m.func\n    match z:\n        case C(x=f):\n            pass\n    CALL\n",
+			"a keyword match capture",
+			files(mod),
+		);
+		await refused(
+			"import m\ndef g(z):\n    f = m.func\n    match z:\n        case _ as f:\n            pass\n    CALL\n",
+			"an as-pattern capture",
+			files(mod),
+		);
+		await refused(
+			"import m\ndef g(z):\n    f = m.func\n    w = [(f := 1) for _ in z]\n    CALL\n",
+			"a walrus inside a comprehension",
+			files(mod),
+		);
+		// a global declaration between the use and the local, and the rule is for locals
+		await refused(
+			"import m\ndef g(z):\n    f = m.func\n    def h():\n        global f\n        CALL\n    h()\n",
+			"a global declaration in the nested use",
+			files(mod),
+		);
+		await refused("import m\nf = m.func\nCALL\n", "a module-level name", files(mod));
+		await refused(
+			"import m\ndef g(z):\n    f = m.func\n    class Q:\n        f = 1\n        CALL\n",
+			"a class-body binding of the name",
+			files(mod),
+		);
+		// twin: a single binding in the same shape resolves
+		expect(
+			await edgesTo([py("m.py", mod), py("app.py", "import m\ndef g(z):\n    f = m.func\n    f()\n")], "func"),
+		).toBe(1);
+	});
+
+	test("a right-hand side that does not itself resolve refuses the call", async () => {
+		const rhs: Record<string, string> = {
+			"a missing attribute": "m.nope",
+			"a call": "m.func()",
+			"a deeper chain": "m.func.x",
+			"a name": "z",
+			"a literal": "[1]",
+			"an unknown base": "unknown.func",
+			"an external module": "os.getcwd",
+			"a subscript": "m.func[0]",
+			"a lambda": "lambda: 0",
+		};
+		for (const [label, right] of Object.entries(rhs)) {
+			await refused(`import m\nimport os\ndef g(z):\n    f = ${right}\n    CALL\n`, label, files(mod));
+		}
+		await refused("import m.sub\ndef g(z):\n    f = m.sub.func\n    CALL\n", "a submodule chain", [
+			py("m/__init__.py", ""),
+			py("m/sub.py", mod),
+		]);
+		await refused(
+			"import m\ndef g(z):\n    f = m.K.attr\n    CALL\n",
+			"a class attribute of a module class",
+			files(mod),
+		);
+		await refused(
+			"import m\ndef g(z):\n    f = m.func\n    CALL\n",
+			"twin shape with a non-def attribute",
+			files("func = 1\n"),
+		);
+	});
+
+	test("the module and the attribute need exactly one binding in every module the rule reads", async () => {
+		const call = "def g(z):\n    f = m.func\n    CALL\n";
+		// the importing module
+		await refused(`import m\nm = None\n${call}`, "m rebound at module level", files(mod));
+		await refused(`import m\nimport m\n${call}`, "m imported twice", files(mod));
+		await refused(`import m\nfor m in []:\n    pass\n${call}`, "m a for target", files(mod));
+		await refused(`import m\nwith open('f') as m:\n    pass\n${call}`, "m a with-as", files(mod));
+		await refused(`import m\n(m := 1)\n${call}`, "m a walrus", files(mod));
+		await refused(
+			`import m\ndef k():\n    global m\n    m = 1\n${call}`,
+			"m a global write from a function",
+			files(mod),
+		);
+		await refused(
+			`import m\nclass Q:\n    global m\n    m = 1\n${call}`,
+			"m a global write from a class body",
+			files(mod),
+		);
+		await refused(`import m\nfrom other import *\n${call}`, "a module-level star in the importing module", files(mod));
+		await refused(
+			"import m\ndef g(z):\n    m = None\n    f = m.func\n    CALL\n",
+			"m rebound in the function itself",
+			files(mod),
+		);
+		await refused(`if z:\n    import m\n${call}`, "a conditional import of m", files(mod));
+		await refused(
+			`from pkg import m\n${call}`,
+			"m a from-import of a module (a re-export of m by the package is not enumerated)",
+			[py("pkg/__init__.py", ""), py("pkg/m.py", mod)],
+		);
+		await refused(
+			`from m import func as m\n${call}`,
+			"m a from-import of a def (reaches classSymbolOfName, which finds a def, not a class)",
+			files(mod),
+		);
+		// the defining module
+		const seconds: Record<string, string> = {
+			"func defined twice": "def func():\n    pass\n",
+			"func rebound": "func = None\n",
+			"func a for target": "for func in []:\n    pass\n",
+			"func a with-as": "with open('f') as func:\n    pass\n",
+			"func a walrus": "(func := 1)\n",
+			"func a global write from a function": "def k():\n    global func\n    func = 1\n",
+			"func a global write from a class body": "class Q:\n    global func\n    func = 1\n",
+			"a module-level star": "from other import *\n",
+			"func imported over the def": "from other import func\n",
+			"func annotated": "func: int = 1\n",
+		};
+		for (const [label, second] of Object.entries(seconds)) {
+			await refused(`import m\n${call}`, label, files(`${mod}${second}`));
+		}
+		// a re-export hop, an import of the attribute, and a package that re-exports it
+		await refused(`import m\n${call}`, "a re-export hop", [py("m.py", "from n import func\n"), py("n.py", mod)]);
+		await refused(`import m\n${call}`, "a package re-export", [
+			py("m/__init__.py", "from .impl import func\n"),
+			py("m/impl.py", mod),
+		]);
+		await refused(`import m\n${call}`, "a hop whose re-exporting module rebinds the name", [
+			py("m.py", "from n import func\nfunc = None\n"),
+			py("n.py", mod),
+		]);
+		// an external module imports nothing in-repo
+		await refused(`import os\n${call.replace("m.func", "os.getcwd")}`, "an external module attribute");
+		// twin: the same shapes with one binding resolve
+		expect(await edgesTo([py("m.py", mod), py("app.py", `import m\n${call.replace("CALL", "f()")}`)], "func")).toBe(1);
+	});
+
+	test("Cls.attr needs the class and the attribute bound once, in every module the rule reads", async () => {
+		const call = "def g(o):\n    f = C.m\n    CALL\n";
+		await refused(`${cls}${cls}${call}`, "C defined twice");
+		await refused(`${cls}C = None\n${call}`, "C rebound");
+		await refused(`${cls}for C in []:\n    pass\n${call}`, "C a for target");
+		await refused(`${cls}def k():\n    global C\n    C = 1\n${call}`, "C a global write from a function");
+		await refused(`from other import *\n${cls}${call}`, "a module-level star in the module");
+		await refused(`${cls}def g(o):\n    C = None\n    f = C.m\n    CALL\n`, "C rebound in the function");
+		await refused(`import other\nclass C(other.Base):\n    pass\n${call}`, "an opaque base that may define m");
+		await refused(`class C:\n    m = 1\n${call}`, "m a class attribute, not a def");
+		await refused(`class C:\n    def m(self):\n        pass\n    m = None\n${call}`, "m rebound in the class body");
+		// two defs of m: the alias resolves as `C.m()` does, to both (multiply-bound edges), not fewer
+		const twoDefs = "class C:\n    def m(self):\n        pass\n    def m(self):\n        pass\n";
+		expect(await edgesTo([py("app.py", `${twoDefs}def g(o):\n    f = C.m\n    f(o)\n`)], "C.m")).toBe(2);
+		expect(await edgesTo([py("app.py", `${twoDefs}def g(o):\n    C.m(o)\n`)], "C.m")).toBe(2);
+		await refused(`class C:\n    pass\n${call}`, "no m on the class");
+		await refused(`import other\nC = other.C\n${call}`, "C an external class");
+		// a class imported from a module file: the source module's own binding of it is counted
+		const imp = `from m import C\n${call}`;
+		await refused(imp, "C rebound in its source module", [py("m.py", `${cls}C = 1\n`)]);
+		await refused(imp, "C defined twice in its source module", [py("m.py", `${cls}${cls}`)]);
+		await refused(imp, "a star in its source module", [py("m.py", `${cls}from other import *\n`)]);
+		await refused(imp, "a re-export hop", [py("m.py", "from n import C\n"), py("n.py", cls)]);
+		await refused(imp, "a package __init__", [py("m/__init__.py", cls)]);
+		expect(await edgesTo([py("m.py", cls), py("app.py", imp.replace("CALL", "f(o)"))], "C.m")).toBe(1);
+	});
+});
