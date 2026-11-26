@@ -2110,3 +2110,67 @@ describe("A1 — star re-export read as a module attribute", () => {
 		expect(result.callBins.resolvedInRepo).toBe(0);
 	});
 });
+
+// GCLI-95 review round 1: rebindings the star read must see, a diamond, guards that are reached.
+describe("A1 — rebindings, diamond and cycle guards", () => {
+	const helper = "def helper():\n    pass\n";
+	const use = "import pkg\n\npkg.helper()\n";
+
+	test("negative: a rebinding in the holder after the star keeps the call unresolved (assign, for, with, except)", async () => {
+		for (const rebind of [
+			"helper = make()\n",
+			"for helper in items:\n    pass\n",
+			"with ctx() as helper:\n    pass\n",
+			"try:\n    pass\nexcept Exception as helper:\n    pass\n",
+		]) {
+			const result = await analyze([
+				py("src/pkg/__init__.py", `from .impl import *\n${rebind}`),
+				py("src/pkg/impl.py", helper),
+				py("src/use.py", use),
+			]);
+			expect(linesTo(result, symbolId(result, "helper", "src/pkg/impl.py"))).toEqual([]);
+			expect(result.callBins.resolvedInRepo).toBe(0);
+		}
+	});
+
+	test("negative: a rebinding in the star source keeps the call unresolved", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", "from .impl import *\n"),
+			py("src/pkg/impl.py", `${helper}\nhelper = deco(helper)\n`),
+			py("src/use.py", use),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "src/pkg/impl.py"))).toEqual([]);
+		expect(result.callBins.resolvedInRepo).toBe(0);
+	});
+
+	test("a diamond of stars resolves: two branches that both star-import the same source", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", "from .a import *\nfrom .b import *\n"),
+			py("src/pkg/a.py", "from .c import *\n"),
+			py("src/pkg/b.py", "from .c import *\n"),
+			py("src/pkg/c.py", helper),
+			py("src/use.py", use),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "src/pkg/c.py"))).toEqual([3]);
+	});
+
+	test("negative: complete stars in a cycle whose __all__ names a name nothing defines reach the guard and stay unresolved", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", "from .a import *\n"),
+			py("src/pkg/a.py", '__all__ = ["helper"]\nfrom .b import *\n'),
+			py("src/pkg/b.py", '__all__ = ["helper"]\nfrom .a import *\n'),
+			py("src/use.py", use),
+		]);
+		expect(result.callBins.resolvedInRepo).toBe(0);
+		expect(result.callBins.nameNotBound).toBe(1);
+	});
+
+	test("a class base written pkg.Name resolves, so an inherited method is found through it", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", "from .impl import *\n"),
+			py("src/pkg/impl.py", "class Base:\n    def run(self):\n        pass\n"),
+			py("src/use.py", "import pkg\n\nclass Child(pkg.Base):\n    def go(self):\n        self.run()\n"),
+		]);
+		expect(linesTo(result, symbolId(result, "Base.run", "src/pkg/impl.py"))).toEqual([5]);
+	});
+});
