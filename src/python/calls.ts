@@ -2080,6 +2080,8 @@ class Resolver {
 		if (stars !== undefined) {
 			for (const star of stars) {
 				if (star.outcome === "resolved" && star.target !== null && star.reason === null) {
+					// GCLI-120 (DEC-303 (a57) item 3): a complete set is trusted only when it is exact.
+					if (!this.starSetIsExact(star, new Set())) return false;
 					if (star.starNames.includes(name)) return false;
 				} else {
 					// A partial or unknown star import may bind the name.
@@ -2123,12 +2125,44 @@ class Resolver {
 		if (stars === undefined) return false;
 		for (const star of stars) {
 			if (star.outcome === "resolved" && star.target !== null && star.reason === null) {
+				if (!this.starSetIsExact(star, new Set())) return true;
 				if (star.starNames.includes(name)) return false;
 			} else {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * GCLI-120 (DEC-303 (a57) item 3, (a12)(b)): a complete star set is exact, so `name not in starNames` means
+	 * the star cannot bind `name`, only when the target's own binder bindings agree with it. The set is built from
+	 * `collectModuleDeclaration`, which misses a `for` or with-as target, a walrus, a match capture, a list or
+	 * nested or starred target and a `global` write. Exact means either the target's `__all__` is one plain
+	 * assignment (the star then binds exactly the literal names), or every public (non-underscore) name the
+	 * target's module scope binds is in the set and every star the target itself carries is exact in turn. Any
+	 * doubt (an unindexed target, a cycle) is not exact, so the star may bind the name.
+	 */
+	private starSetIsExact(star: ImportBinding, visiting: Set<string>): boolean {
+		if (star.outcome !== "resolved" || star.target === null || star.reason !== null) return false;
+		if (visiting.has(star.target)) return false;
+		const target = this.moduleScopesByPath.get(star.target);
+		if (target === undefined) return false;
+		const all = target.bindings.get("__all__");
+		if (all !== undefined) {
+			const only = all[0] as RawBinding;
+			return all.length === 1 && only.kind === "assign" && only.viaGlobal !== true;
+		}
+		const names = new Set(star.starNames);
+		for (const bound of target.bindings.keys()) {
+			if (!bound.startsWith("_") && !names.has(bound)) return false;
+		}
+		visiting.add(star.target);
+		for (const nested of this.starBindingsByPath.get(star.target) ?? []) {
+			if (!this.starSetIsExact(nested, visiting)) return false;
+		}
+		visiting.delete(star.target);
+		return true;
 	}
 
 	/**
@@ -3800,6 +3834,9 @@ class Resolver {
 		if (classSymbol !== null) {
 			const classInfo = this.classById.get(classSymbol.id);
 			if (classInfo === undefined) return null;
+			// GCLI-120 (DEC-303 (a57) item 2): `C.__class__` finds type's data descriptor on the metaclass before the
+			// class body, so it is the metaclass whatever C defines (a method, a property or an attribute).
+			if (attr === "__class__") return null;
 			const resolved = this.methodLookup(classInfo, attr, false, true);
 			return resolved.bin === "inRepo" ? resolved : null;
 		}
