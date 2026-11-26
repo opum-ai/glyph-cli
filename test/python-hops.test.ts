@@ -688,6 +688,33 @@ describe("GCLI-125 — a conditional star is a may-skip alternative", () => {
 		for (const one of [r.fromImport, r.attribute]) expect(one.callees.sort()).toEqual(["m.py:f", "x.py:f"]);
 	});
 
+	test("a one-symbol union with a multiply outcome in it keeps the multiplyBound flag (DEC-303 (a65))", async () => {
+		const bare = (holder: string, others: Record<string, string>) => ({ "m.py": holder, ...others });
+		// round 2 (64aed52a): the fallback is `multiply` (ext.f or x.f), the star's symbol is x.f: Python allows ext.f or x.f
+		const viaFallback = bare(
+			"try:\n    from ext import f\nexcept ImportError:\n    from x import f\nif C:\n    from x import *\n",
+			{
+				"x.py": x,
+			},
+		);
+		// the same through a later alternative that cannot be skipped by the star's own condition
+		const viaLater = bare("from x import *\nif C:\n    from x import f\n", {
+			"x.py": "try:\n    from ext import f\nexcept ImportError:\n    def f():\n        pass\n",
+		});
+		for (const [label, others] of Object.entries({ viaFallback, viaLater })) {
+			const fromImport = await probe("from m import f\nCALL\n", "f()", others);
+			const attribute = await probe("import m\nCALL\n", "m.f()", others);
+			for (const one of [fromImport, attribute]) {
+				expect(one.callees, label).toEqual(["x.py:f"]);
+				expect(
+					one.sites.every((s) => s.multiplyBound === true),
+					label,
+				).toBe(true);
+				expect(one.delta, label).toEqual(RESOLVED);
+			}
+		}
+	});
+
 	test("an earlier star that is external or unresolved, then a skippable star, is a refusal", async () => {
 		for (const first of ["from ext_missing import *\n", "from .nowhere import *\n"]) {
 			const r = await both(`${def}${first}if C:\n    from x import *\n`);

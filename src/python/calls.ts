@@ -2664,7 +2664,11 @@ class Resolver {
 				}
 				if (later.length === 0 && !maySkip) return found;
 				const symbols: PythonSymbol[] = found.kind === "symbol" ? [found.symbol] : [...found.symbols];
+				// DEC-303 (a65): a one-symbol union is a plain symbol only when no outcome in it was `multiply`; a
+				// multiply outcome (an external alternative dropped from its symbols) keeps the flag on the edge.
+				let anyMultiply = found.kind === "multiply";
 				if (maySkip) {
+					anyMultiply ||= fallback.kind === "multiply";
 					const rest =
 						fallback.kind === "symbol" ? [fallback.symbol] : fallback.kind === "multiply" ? fallback.symbols : [];
 					for (const symbol of rest) if (!symbols.some((existing) => existing.id === symbol.id)) symbols.push(symbol);
@@ -2676,9 +2680,10 @@ class Resolver {
 							: this.resolveStatic(binding);
 					const more = alt.kind === "symbol" ? [alt.symbol] : alt.kind === "multiply" ? alt.symbols : null;
 					if (more === null) return { kind: "unresolved", reason: "star-bound" };
+					anyMultiply ||= alt.kind === "multiply";
 					for (const symbol of more) if (!symbols.some((existing) => existing.id === symbol.id)) symbols.push(symbol);
 				}
-				return symbols.length === 1
+				return symbols.length === 1 && !anyMultiply
 					? { kind: "symbol", symbol: symbols[0] as PythonSymbol }
 					: { kind: "multiply", symbols };
 			}
