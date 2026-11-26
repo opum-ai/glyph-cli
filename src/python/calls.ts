@@ -1932,6 +1932,62 @@ class Resolver {
 				}
 				return this.resolveModuleAttribute(binding.target, importedName, visited, depth + 1);
 			}
+			return this.resolveStarAttribute(path, bindings, name);
+		}
+		return { kind: "unresolved", reason: "attribute-not-found" };
+	}
+
+	/**
+	 * DEC-303 (a22) item 3, A1: `pkg.Name` where no def, import or submodule of
+	 * `pkg` carries the name reads what `from m import *` bound. Stars are read
+	 * last to first, as rule 45 reads them: a complete star that does not export
+	 * the name is skipped, one that does decides the answer, and an incomplete
+	 * star (unresolved, external, non-literal `__all__`) may supply any name, so
+	 * it leaves the call unresolved. The selected star is resolved the way a bare
+	 * name bound by it is (rule 33, `resolveStarBound`), so a rebinding in the
+	 * star's source is seen. Any other binding of the name in the holder (an
+	 * assignment, `for`, `with` or `except ... as` target) is a later or earlier
+	 * rebinding the static rules cannot order, so the call stays unresolved
+	 * (rule 2). Known gaps, as for bare names: a def or import in the holder
+	 * wins over a star even where the star comes later, `del name` after the star
+	 * is not modelled, and a star import's `condition` (try/except) is ignored.
+	 * Conservative differences from bare names: a multiply-bound result is
+	 * unresolved `rebound` (no multiplyBound edges), and a cycle ends at the
+	 * selected star instead of continuing to earlier ones (rule 40).
+	 */
+	private resolveStarAttribute(holder: string, bindings: readonly ImportBinding[], name: string): ModuleAttrOutcome {
+		// No star in the holder: nothing to read here, and the holder check below would
+		// only replace attribute-not-found with `rebound` for every plain module.
+		if (!bindings.some((binding) => binding.kind === "star")) {
+			return { kind: "unresolved", reason: "attribute-not-found" };
+		}
+		const holderScope = this.moduleScopesByPath.get(holder);
+		if (holderScope !== undefined && this.lookupBindings(name, holderScope) !== null) {
+			return { kind: "unresolved", reason: "rebound" };
+		}
+		for (let index = bindings.length - 1; index >= 0; index--) {
+			const star = bindings[index] as ImportBinding;
+			if (star.kind !== "star") continue;
+			if (star.outcome !== "resolved" || star.target === null) {
+				return { kind: "unresolved", reason: star.reason ?? "star-import" };
+			}
+			if (!star.starNames.includes(name)) continue;
+			const ctx: StarLookupContext = { visited: new Set<string>(), hops: 0, cycle: false };
+			const found = this.resolveStarBound(star.target, name, ctx).outcome;
+			switch (found.kind) {
+				case "symbol":
+					return { kind: "symbol", symbol: found.symbol };
+				case "module":
+					return found.path === null ? { kind: "external" } : { kind: "module", path: found.path };
+				case "external":
+					return { kind: "external" };
+				case "runtime":
+					return { kind: "unresolved", reason: found.reason };
+				case "multiply":
+					return { kind: "unresolved", reason: "rebound" };
+				case "unresolved":
+					return { kind: "unresolved", reason: found.reason };
+			}
 		}
 		return { kind: "unresolved", reason: "attribute-not-found" };
 	}
