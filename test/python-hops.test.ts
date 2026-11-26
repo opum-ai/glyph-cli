@@ -1243,3 +1243,161 @@ describe("GCLI-120 round 1 — rule 46 shares the exactness rule, and `__all__` 
 		expect(r.callees).toEqual([]);
 	});
 });
+
+describe("GCLI-122 — an in-repo descendant that binds __class__ makes self.__class__ unresolved", () => {
+	const forms: Record<string, string> = {
+		attribute: "    __class__ = 1\n",
+		property: "    @property\n    def __class__(self):\n        return 1\n",
+		method: "    def __class__(self):\n        pass\n",
+	};
+	const app = (alias: string, d: string, extra = "") =>
+		`class C:\n    def m(self):\n        cls = ${alias}\n        CALL\n    def meth(self):\n        pass\nclass D(C):\n${d}${extra}`;
+	const REFUSED: Delta = { inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 };
+
+	for (const [label, d] of Object.entries(forms)) {
+		test(`${label}: self.__class__ refuses, the type(self) twin resolves C.meth`, async () => {
+			const refused = await probe(app("self.__class__", d), "cls.meth()");
+			expect(refused.callees, label).toEqual([]);
+			expect(refused.delta, label).toEqual(REFUSED);
+			const twin = await probe(app("type(self)", d), "cls.meth()");
+			expect(twin.callees, label).toEqual(["app.py:C.meth"]);
+			expect(twin.delta, label).toEqual(RESOLVED);
+		});
+	}
+
+	test("a grandchild that binds __class__ refuses too", async () => {
+		const r = await probe(app("self.__class__", "    pass\n", "class E(D):\n    __class__ = 1\n"), "cls.meth()");
+		expect(r.callees).toEqual([]);
+		expect(r.delta).toEqual(REFUSED);
+	});
+
+	test("twins: a descendant without __class__, and an unrelated class that binds it, still resolve self.__class__", async () => {
+		for (const [label, extra] of [
+			["no binding", ""],
+			["unrelated class", "class U:\n    __class__ = 1\n"],
+		] as const) {
+			const r = await probe(app("self.__class__", "    pass\n", extra), "cls.meth()");
+			expect(r.callees, label).toEqual(["app.py:C.meth"]);
+			expect(r.delta, label).toEqual(RESOLVED);
+		}
+	});
+});
+
+describe("GCLI-122 item 3 — a nonlocal-moved write is always a second binding, so the alias refuses by count", () => {
+	const cls = "class C:\n    def m(self):\n        pass\n";
+	const shapes: Record<string, string> = {
+		"outer parameter, call in the outer function": `${cls}def g(f):\n    def h():\n        nonlocal f\n        f = C.m\n    h()\n    f()\n`,
+		"outer assign, call in the outer function": `${cls}def g():\n    f = None\n    def h():\n        nonlocal f\n        f = C.m\n    h()\n    f()\n`,
+		"outer assign, call in the inner function": `${cls}def g():\n    f = None\n    def h():\n        nonlocal f\n        f = C.m\n        f()\n    h()\n`,
+		"two levels of nesting": `${cls}def g():\n    f = None\n    def h():\n        def i():\n            nonlocal f\n            f = C.m\n        i()\n    h()\n    f()\n`,
+		"an outer for target": `${cls}def g():\n    for f in []:\n        pass\n    def h():\n        nonlocal f\n        f = C.m\n    h()\n    f()\n`,
+	};
+	for (const [label, source] of Object.entries(shapes)) {
+		test(`${label}: f() has no edge to C.m`, async () => {
+			const r = await analyze([py("app.py", source)]);
+			const callees = r.sites.map((site) => r.symbols.find((s) => s.id === site.calleeId)?.qualname ?? null);
+			expect(callees).not.toContain("C.m");
+			expect(r.callBins.nameNotBound).toBe(1);
+		});
+	}
+
+	test("control: a single unmoved binding still resolves", async () => {
+		const r = await analyze([py("app.py", `${cls}def g():\n    f = C.m\n    f()\n`)]);
+		expect(r.sites.map((site) => r.symbols.find((s) => s.id === site.calleeId)?.qualname)).toEqual(["C.m"]);
+	});
+});
+
+describe("GCLI-122 round 1 — a descendant's whole MRO is read, and the descendant may live in another module", () => {
+	const forms: Record<string, string> = {
+		attribute: "    __class__ = 1\n",
+		property: "    @property\n    def __class__(self):\n        return 1\n",
+		method: "    def __class__(self):\n        pass\n",
+	};
+	const C =
+		"class C:\n    def m(self):\n        cls = self.__class__\n        CALL\n    def meth(self):\n        pass\n";
+	const REFUSED: Delta = { inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 };
+
+	for (const [label, mixin] of Object.entries(forms)) {
+		test(`${label}: an in-repo mixin of a descendant that binds __class__ refuses`, async () => {
+			const r = await probe(`${C}class M:\n${mixin}class D(C, M):\n    pass\n`, "cls.meth()");
+			expect(r.callees, label).toEqual([]);
+			expect(r.delta, label).toEqual(REFUSED);
+		});
+	}
+
+	test("twin: a mixin without __class__ keeps the edge", async () => {
+		const r = await probe(`${C}class M:\n    pass\nclass D(C, M):\n    pass\n`, "cls.meth()");
+		expect(r.callees).toEqual(["app.py:C.meth"]);
+		expect(r.delta).toEqual(RESOLVED);
+	});
+
+	test("a descendant in another module refuses through a from-import and through a module attribute base", async () => {
+		const sub = "from app import C\nclass D(C):\n    __class__ = 1\n";
+		const subAttr = "import app\nclass D(app.C):\n    __class__ = 1\n";
+		for (const [label, other] of [
+			["from-import base", sub],
+			["module attribute base", subAttr],
+		] as const) {
+			const r = await probe(`${C}`, "cls.meth()", { "other.py": other });
+			expect(r.callees, label).toEqual([]);
+			expect(r.delta, label).toEqual(REFUSED);
+		}
+	});
+
+	test("twin: a descendant in another module that does not bind __class__ keeps the edge", async () => {
+		const r = await probe(`${C}`, "cls.meth()", { "other.py": "from app import C\nclass D(C):\n    pass\n" });
+		expect(r.callees).toEqual(["app.py:C.meth"]);
+		expect(r.delta).toEqual(RESOLVED);
+	});
+
+	test("item 3: a moved write after an outer binding of a DIFFERENT attribute refuses by count", async () => {
+		const source =
+			"class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\ndef g():\n    f = C.n\n    def h():\n        nonlocal f\n        f = C.m\n    h()\n    f()\n";
+		const r = await analyze([py("app.py", source)]);
+		const callees = r.sites.map((site) => r.symbols.find((s) => s.id === site.calleeId)?.qualname ?? null);
+		expect(callees).not.toContain("C.m");
+		expect(callees).not.toContain("C.n");
+		expect(r.callBins.nameNotBound).toBe(1);
+	});
+});
+
+describe("GCLI-122 round 1, DEC-303 (a68) — a descendant's unreadable or non-computing MRO refuses self.__class__", () => {
+	const C =
+		"class C:\n    def m(self):\n        cls = self.__class__\n        CALL\n    def meth(self):\n        pass\n";
+	const REFUSED: Delta = { inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 };
+
+	test("an external non-builtin base of a descendant refuses (a name imported from an unindexed module, and mock.Mock)", async () => {
+		const shapes: Record<string, string> = {
+			"imported mixin": `from lib import Mixin\n${C}class D(C, Mixin):\n    pass\n`,
+			"mock.Mock": `from unittest import mock\n${C}class D(C, mock.Mock):\n    pass\n`,
+			"module attribute mixin": `import lib\n${C}class D(C, lib.Mixin):\n    pass\n`,
+		};
+		for (const [label, source] of Object.entries(shapes)) {
+			const r = await probe(source, "cls.meth()");
+			expect(r.callees, label).toEqual([]);
+			expect(r.delta, label).toEqual(REFUSED);
+		}
+	});
+
+	test("twin: an unshadowed builtin base of a descendant still resolves", async () => {
+		for (const base of ["Exception", "dict", "object"]) {
+			const r = await probe(`${C}class D(C, ${base}):\n    pass\n`, "cls.meth()");
+			expect(r.callees, base).toEqual(["app.py:C.meth"]);
+			expect(r.delta, base).toEqual(RESOLVED);
+		}
+	});
+
+	test("a descendant whose MRO does not compute refuses", async () => {
+		const r = await probe(`${C}class B(C):\n    pass\nclass D(C, B):\n    pass\n`, "cls.meth()");
+		expect(r.callees).toEqual([]);
+		expect(r.delta).toEqual(REFUSED);
+	});
+
+	test("type(self) is unaffected by the same descendants", async () => {
+		const src = (alias: string) =>
+			`from lib import Mixin\nclass C:\n    def m(self):\n        cls = ${alias}\n        CALL\n    def meth(self):\n        pass\nclass D(C, Mixin):\n    pass\n`;
+		const r = await probe(src("type(self)"), "cls.meth()");
+		expect(r.callees).toEqual(["app.py:C.meth"]);
+		expect(r.delta).toEqual(RESOLVED);
+	});
+});
