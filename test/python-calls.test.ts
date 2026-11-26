@@ -2163,6 +2163,26 @@ describe("A1 — rebindings, diamond and cycle guards", () => {
 		]);
 		expect(result.callBins.resolvedInRepo).toBe(0);
 		expect(result.callBins.nameNotBound).toBe(1);
+		expect(result.unresolvedNameReasons.map((entry) => entry.reason)).toEqual(["import-cycle"]);
+	});
+
+	test("a later complete star that does not export the name is skipped", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", "from .impl import *\nfrom .other import *\n"),
+			py("src/pkg/impl.py", helper),
+			py("src/pkg/other.py", "def unrelated():\n    pass\n"),
+			py("src/use.py", use),
+		]);
+		expect(linesTo(result, symbolId(result, "helper", "src/pkg/impl.py"))).toEqual([3]);
+	});
+
+	test("a plain module with no star reports attribute-not-found, not rebound, for a module-level assignment", async () => {
+		const result = await analyze([
+			py("src/pkg/__init__.py", ""),
+			py("src/pkg/plain.py", "CONST = 3\n"),
+			py("src/use.py", "from pkg import plain\n\nplain.CONST()\n"),
+		]);
+		expect(result.unresolvedNameReasons.map((entry) => entry.reason)).toEqual(["attribute-not-found"]);
 	});
 
 	test("a class base written pkg.Name resolves, so an inherited method is found through it", async () => {

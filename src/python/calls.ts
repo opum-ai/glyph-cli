@@ -1949,10 +1949,18 @@ class Resolver {
 	 * assignment, `for`, `with` or `except ... as` target) is a later or earlier
 	 * rebinding the static rules cannot order, so the call stays unresolved
 	 * (rule 2). Known gaps, as for bare names: a def or import in the holder
-	 * wins over a star even where the star comes later, and a star import's
-	 * `condition` (try/except) is ignored.
+	 * wins over a star even where the star comes later, `del name` after the star
+	 * is not modelled, and a star import's `condition` (try/except) is ignored.
+	 * Conservative differences from bare names: a multiply-bound result is
+	 * unresolved `rebound` (no multiplyBound edges), and a cycle ends at the
+	 * selected star instead of continuing to earlier ones (rule 40).
 	 */
 	private resolveStarAttribute(holder: string, bindings: readonly ImportBinding[], name: string): ModuleAttrOutcome {
+		// No star in the holder: nothing to read here, and the holder check below would
+		// only replace attribute-not-found with `rebound` for every plain module.
+		if (!bindings.some((binding) => binding.kind === "star")) {
+			return { kind: "unresolved", reason: "attribute-not-found" };
+		}
 		const holderScope = this.moduleScopesByPath.get(holder);
 		if (holderScope !== undefined && this.lookupBindings(name, holderScope) !== null) {
 			return { kind: "unresolved", reason: "rebound" };
