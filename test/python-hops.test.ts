@@ -389,13 +389,11 @@ describe("GCLI-118 round 1 — star after the last binding, alias hops, cycles",
 		for (const one of [later.fromImport, later.attribute]) expect(one.callees).toEqual(["x.py:f"]);
 	});
 
-	test("an import that may not run, after a star, is an alternative of the star's name (loop, except*, finally, with)", async () => {
+	test("an import that may not run, after a star, is an alternative of the star's name (loop, except*, with)", async () => {
 		const arms: Record<string, string> = {
 			"for body": "from x import *\nfor i in v:\n    from o import f\n",
 			"while body": "from x import *\nwhile C:\n    from o import f\n",
 			"except* arm": "from x import *\ntry:\n    pass\nexcept* E:\n    from o import f\n",
-			finally: "from x import *\ntry:\n    pass\nfinally:\n    from o import f\n",
-			"try body with only a finally": "from x import *\ntry:\n    from o import f\nfinally:\n    pass\n",
 			"with body": "from x import *\nwith v:\n    from o import f\n",
 			"star on its own line then a loop import": "from o import f\nfrom x import *\nfor i in v:\n    from o import f\n",
 		};
@@ -415,6 +413,17 @@ describe("GCLI-118 round 1 — star after the last binding, alias hops, cycles",
 			"o.py": x,
 		});
 		for (const one of [tie.fromImport, tie.attribute]) expect(one.sites.map((s) => s.calleeId)).toEqual([]);
+		// GCLI-126: an import in a finally, or in a try body with only a finally, always runs: it overrides the star
+		for (const holder of [
+			"from x import *\ntry:\n    pass\nfinally:\n    from o import f\n",
+			"from x import *\ntry:\n    from o import f\nfinally:\n    pass\n",
+		]) {
+			const r = await both(holder, { "x.py": x, "o.py": x });
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(one.callees, holder).toEqual(["o.py:f"]);
+				expect(one.sites.some((s) => s.multiplyBound === true)).toBe(false);
+			}
+		}
 		// twins: an UNCONDITIONAL import after the star overrides it
 		const overrides = await both("from x import *\nfrom o import f\n", { "x.py": x, "o.py": x });
 		for (const one of [overrides.fromImport, overrides.attribute]) expect(one.callees).toEqual(["o.py:f"]);
@@ -1020,5 +1029,79 @@ describe("GCLI-127 round 1 — same-symbol stars keep deciding, the refusal is s
 			...others,
 		});
 		expect(one.callees).toEqual(["b.py:f"]);
+	});
+});
+
+// GCLI-126 (DEC-303 (a62) item 5, (a63)): an import is conditional by the walk a def and a class follow
+// (maySkipStatement: a finally and a try-only-finally body are walked through), not by S3's own condition.
+describe("GCLI-126 — an import in a finally or a try-only-finally body is not an alternative of an earlier binding", () => {
+	const x = "def f():\n    pass\n";
+	const both = async (holder: string) => ({
+		fromImport: await probe("from m import f\nCALL\n", "f()", { "m.py": holder, "x.py": x, "y.py": x }),
+		attribute: await probe("import m\nCALL\n", "m.f()", { "m.py": holder, "x.py": x, "y.py": x }),
+	});
+	const def = "def f():\n    pass\n";
+
+	test("a finally or try-only-finally import after an earlier binding decides alone: x.f, unflagged, one call in the bins", async () => {
+		const holders: Record<string, string> = {
+			"def, finally import": `${def}try:\n    pass\nfinally:\n    from x import f\n`,
+			"def, try-only-finally import": `${def}try:\n    from x import f\nfinally:\n    pass\n`,
+			// the walk is the same for a plain unconditional import: it always runs, so it overrides the def too
+			"def, plain import": `${def}from x import f\n`,
+			"import, finally import": "from y import f\ntry:\n    pass\nfinally:\n    from x import f\n",
+			"import, nested try-finally import":
+				"from y import f\ntry:\n    try:\n        pass\n    finally:\n        from x import f\nfinally:\n    pass\n",
+		};
+		for (const [label, holder] of Object.entries(holders)) {
+			const r = await both(holder);
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(one.callees, label).toEqual(["x.py:f"]);
+				expect(
+					one.sites.some((s) => s.multiplyBound === true),
+					label,
+				).toBe(false);
+				expect(one.delta, label).toEqual(RESOLVED);
+			}
+		}
+	});
+
+	test("an import in any arm that may be skipped stays an alternative of the earlier binding, each multiplyBound", async () => {
+		const arms: Record<string, string> = {
+			if: "if C:\n    from x import f\n",
+			elif: "if C:\n    pass\nelif D:\n    from x import f\n",
+			else: "if C:\n    pass\nelse:\n    from x import f\n",
+			"try body with an except": "try:\n    from x import f\nexcept ImportError:\n    pass\n",
+			except: "try:\n    pass\nexcept ImportError:\n    from x import f\n",
+			"except*": "try:\n    pass\nexcept* E:\n    from x import f\n",
+			case: "match C:\n    case 1:\n        from x import f\n",
+			for: "for _ in ():\n    from x import f\n",
+			while: "while C:\n    from x import f\n",
+			with: "with C:\n    from x import f\n",
+		};
+		for (const [label, arm] of Object.entries(arms)) {
+			const r = await both(`${def}${arm}`);
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(one.callees.sort(), label).toEqual(["m.py:f", "x.py:f"]);
+				expect(
+					one.sites.every((s) => s.multiplyBound === true),
+					label,
+				).toBe(true);
+				expect(one.delta, label).toEqual(RESOLVED);
+			}
+		}
+	});
+
+	test("twins: a def AFTER the finally import, and a conditional import after it, keep every alternative", async () => {
+		const defAfter = await both(`try:\n    pass\nfinally:\n    from x import f\n${def}`);
+		for (const one of [defAfter.fromImport, defAfter.attribute]) {
+			expect(one.callees.sort()).toEqual(["m.py:f", "x.py:f"]);
+			expect(one.sites.every((s) => s.multiplyBound === true)).toBe(true);
+		}
+		const condAfter = await both(`${def}try:\n    pass\nfinally:\n    from x import f\nif C:\n    from y import f\n`);
+		for (const one of [condAfter.fromImport, condAfter.attribute]) {
+			// the last binding may be skipped, so nothing is overridden: every binding stays an alternative, as before
+			expect(one.callees.sort()).toEqual(["m.py:f", "x.py:f", "y.py:f"]);
+			expect(one.sites.every((s) => s.multiplyBound === true)).toBe(true);
+		}
 	});
 });
