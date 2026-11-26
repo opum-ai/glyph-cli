@@ -2875,6 +2875,11 @@ class Resolver {
 			if (segments.length > 1) return { bin: "receiver", reason: "needs-inference" };
 			return this.methodLookup(known, lastName, false, true);
 		}
+		// M1 (DEC-303 (a22) item 3): an imported module-level instance of one in-repo class.
+		if (segments.length === 1) {
+			const instance = this.importedInstanceClass(base.name, scope, site);
+			if (instance !== null) return this.methodLookup(instance, lastName, false, true);
+		}
 		// K1 (DEC-303 (a22) item 3): `*args` is a tuple and `**kwargs` a dict, so a method
 		// called on one is the builtin's. The name must have exactly one binding in
 		// its scope chain (a rebind, or a nonlocal write from a nested scope, is a
@@ -2949,6 +2954,38 @@ class Resolver {
 	 */
 	private starMayBind(file: string): boolean {
 		return (this.starBindingsByPath.get(file)?.length ?? 0) > 0;
+	}
+
+	/**
+	 * M1 (DEC-303 (a22) item 3): `name` is bound exactly once in its own scope, by
+	 * `from m import inst` (alias allowed) of a MODULE FILE `m` (a package `__init__`
+	 * stays unresolved, A4), and `inst` is bound exactly once in `m`'s module scope, by a
+	 * plain unannotated `inst = Cls(...)` whose callee resolves, from `m`, to one in-repo
+	 * class that passes `instanceClassOf` (an ok MRO, no `__new__` or metaclass, not
+	 * replaced by a decorator). Both enumerations are item 2's: a second binding in either
+	 * module, a `global` write from a function of `m`, or a module-level star import in
+	 * either module leaves the call unresolved. A write from outside `m` (`m.inst = ...`)
+	 * is the accepted blind spot. The module-attribute form `m.inst.f()` is not covered.
+	 */
+	private importedInstanceClass(name: string, scope: Scope, site: { line: number; column: number }): ClassInfo | null {
+		const bindings = this.enumerableBindings(name, scope, site);
+		if (bindings === null || bindings.length !== 1) return null;
+		const binding = bindings[0] as RawBinding;
+		const imported = binding.kind === "import" ? (binding.importBinding ?? null) : null;
+		if (imported === null || (imported.kind !== "from" && imported.kind !== "relative")) return null;
+		if (imported.outcome !== "resolved" || imported.target === null || imported.reason !== null) return null;
+		if (imported.name === null || imported.name === "*" || imported.condition !== null) return null;
+		const target = imported.target;
+		if (target.endsWith("/__init__.py") || target === "__init__.py") return null;
+		if (this.isModuleFileForName(target, imported.name)) return null;
+		const defining = this.moduleScopesByPath.get(target);
+		if (defining === undefined || this.starMayBind(target)) return null;
+		const defined = defining.bindings.get(imported.name);
+		if (defined === undefined || defined.length !== 1) return null;
+		const instance = defined[0] as RawBinding;
+		if (instance.kind !== "assign" || instance.annotation || instance.rhs?.kind !== "call") return null;
+		const symbol = this.resolveCalleeToSymbol(instance.rhs.callee, defining, 0);
+		return this.instanceClassOf(symbol);
 	}
 
 	/** K1: `name` is bound exactly once in its scope chain, by a `*args` or `**kwargs` parameter. */

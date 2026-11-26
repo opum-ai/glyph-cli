@@ -3563,3 +3563,228 @@ describe("LIT — a name whose every binding is a literal of one builtin type is
 		expect(result.callBins.resolvedExternal).toBe(0);
 	});
 });
+
+describe("M1 — an imported module-level instance of one in-repo class resolves across the import", () => {
+	const cls = "class C:\n    def run(self):\n        pass\n\n";
+	const use = "from m import inst\n\ndef f():\n    inst.run()\n";
+
+	/** Edges the analyzer draws to `C.run` (the construction `C()` is a different callee). */
+	async function runEdges(files: PythonModuleInput[]): Promise<number> {
+		const result = await analyze(files);
+		return sitesTo(result, symbolId(result, "C.run", "m.py")).length;
+	}
+
+	async function resolves(defining: string, app: string, label: string, path = "m.py"): Promise<void> {
+		expect(await runEdges([py(path, defining), py("app.py", app)]), label).toBe(1);
+	}
+
+	async function refusedM1(defining: string, app: string, label: string, path = "m.py"): Promise<void> {
+		expect(await runEdges([py(path, defining), py("app.py", app)]), label).toBe(0);
+	}
+
+	test("from m import inst, with an alias, a relative import, and at module level", async () => {
+		await resolves(`${cls}inst = C()\n`, use, "plain");
+		await resolves(`${cls}inst = C()\n`, "from m import inst as i\ndef f():\n    i.run()\n", "alias");
+		await resolves(`${cls}inst = C()\n`, "from m import inst\ninst.run()\n", "used at module level");
+		const rel = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/m.py", `${cls}inst = C()\n`),
+			py("pkg/app.py", "from .m import inst\ndef f():\n    inst.run()\n"),
+		]);
+		expect(sitesTo(rel, symbolId(rel, "C.run", "pkg/m.py")).length, "relative import").toBe(1);
+		await resolves(
+			`${cls}inst = C()\n`,
+			"def f():\n    from m import inst\n    inst.run()\n",
+			"import inside a function",
+		);
+		await resolves(
+			`${cls}inst = C()\n`,
+			"from m import inst\nclass K:\n    def g(self):\n        inst.run()\n",
+			"in a method",
+		);
+	});
+
+	test("the constructor must be one known in-repo class", async () => {
+		const bad: Record<string, string> = {
+			factory: `${cls}def make():\n    return C()\ninst = make()\n`,
+			"an external class": `import other\ninst = other.Thing()\n${cls}`,
+			"a class with __new__":
+				"class C:\n    def __new__(cls):\n        return object.__new__(cls)\n    def run(self):\n        pass\ninst = C()\n",
+			"a class with a metaclass":
+				"class Meta(type):\n    pass\nclass C(metaclass=Meta):\n    def run(self):\n        pass\ninst = C()\n",
+			"a class with an opaque base":
+				"import other\nclass C(other.Base):\n    def run(self):\n        pass\ninst = C()\n",
+			"a decorated class": "import other\n@other.deco\nclass C:\n    def run(self):\n        pass\ninst = C()\n",
+			"a name": `${cls}x = 1\ninst = x\n`,
+			"a literal": `${cls}inst = []\n`,
+			"an attribute call on an instance": `${cls}inst = C().run\n`,
+		};
+		for (const [label, defining] of Object.entries(bad)) {
+			await refusedM1(defining, use, label);
+		}
+		// twins: a subclass whose own run is the target, and a plain base chain
+		const sub = "class B:\n    def run(self):\n        pass\nclass C(B):\n    pass\ninst = C()\n";
+		const result = await analyze([py("m.py", sub), py("app.py", use)]);
+		expect(sitesTo(result, symbolId(result, "B.run", "m.py")).length).toBe(1);
+	});
+
+	test("every way the defining module gives the name a second binding refuses the call", async () => {
+		const seconds: Record<string, string> = {
+			rebind: "inst = None",
+			"rebind to another instance": "inst = C()",
+			"augmented assignment": "inst += 1",
+			"for target": "for inst in range(2):\n    pass",
+			"with-as": "with ctx() as inst:\n    pass",
+			"with-as tuple": "with ctx() as (inst, n):\n    pass",
+			"except-as": "try:\n    pass\nexcept E as inst:\n    pass",
+			walrus: "(inst := make())",
+			"comprehension target (the analyzer counts it, as LIT does)": "q = [1 for inst in z]",
+			"match capture": "match z:\n    case inst:\n        pass",
+			import: "import inst",
+			"from import": "from other import inst",
+			def: "def inst():\n    pass",
+			class: "class inst:\n    pass",
+			"tuple target": "inst, n = make()",
+			"star target": "*inst, n = make()",
+			"annotated, no value": "inst: int",
+			"type alias": "type inst = int",
+			"conditional rebind": "if z:\n    inst = None",
+			"global write from a function": "def g():\n    global inst\n    inst = None",
+		};
+		for (const [label, second] of Object.entries(seconds)) {
+			await refusedM1(`${cls}z = 1\ninst = C()\n${second}\n`, use, label);
+		}
+		// twins: the same statements on another name leave the instance alone
+		await resolves(`${cls}z = 1\ninst = C()\nother = None\n`, use, "twin: another name");
+		await resolves(`${cls}z = 1\ninst = C()\nfor y in z:\n    pass\n`, use, "twin: another for target");
+		await resolves(
+			`${cls}inst = C()\ndef g():\n    global inst\n    return inst\n`,
+			use,
+			"twin: a read-only global declaration",
+		);
+		await resolves(`${cls}inst = C()\ndef g():\n    inst = None\n`, use, "twin: a function-local inst");
+		await resolves(`${cls}inst = C()\nclass K:\n    inst = None\n`, use, "twin: a class-body inst");
+	});
+
+	test("an annotation on the binding refuses the call", async () => {
+		await refusedM1(`${cls}inst: C = C()\n`, use, "an annotated constructor");
+		await refusedM1(
+			`${cls}class D:\n    def run(self):\n        pass\ninst: D = C()\n`,
+			use,
+			"an annotation that names another class",
+		);
+	});
+
+	test("a star import in the defining module or the importing module refuses the call", async () => {
+		await refusedM1(`from other import *\n${cls}inst = C()\n`, use, "star in the defining module");
+		const result = await analyze([
+			py("m.py", `${cls}inst = C()\n`),
+			py("other.py", "x = 1\n"),
+			py("app.py", `${use}from other import *\n`),
+		]);
+		expect(sitesTo(result, symbolId(result, "C.run", "m.py")).length).toBe(0);
+	});
+
+	test("a second binding in the importing module refuses the call", async () => {
+		const defining = `${cls}inst = C()\n`;
+		const seconds: Record<string, string> = {
+			rebind: "inst = None",
+			"second import from another module": "from n import inst",
+			"second import of the same name": "from m import inst",
+			"for target": "for inst in range(2):\n    pass",
+			def: "def inst():\n    pass",
+		};
+		for (const [label, second] of Object.entries(seconds)) {
+			const files = [
+				py("m.py", defining),
+				py("n.py", "inst = None\n"),
+				py("app.py", `from m import inst\n${second}\ndef f():\n    inst.run()\n`),
+			];
+			const result = await analyze(files);
+			const count = sitesTo(result, symbolId(result, "C.run", "m.py")).length;
+			expect(count, label).toBe(0);
+		}
+		// a global write in the importing module
+		await refusedM1(
+			defining,
+			"from m import inst\ndef g():\n    global inst\n    inst = None\ndef f():\n    inst.run()\n",
+			"global write from a function",
+		);
+		// a function-local rebind shadows the import
+		await refusedM1(defining, "from m import inst\ndef f():\n    inst = None\n    inst.run()\n", "a local rebind");
+		await resolves(
+			defining,
+			"from m import inst\ndef f(inst2):\n    inst2 = 1\n    inst.run()\n",
+			"twin: another name",
+		);
+	});
+
+	test("a package __init__ stays unresolved (A4), a module import is not an instance, other forms are not covered", async () => {
+		const defining = `${cls}inst = C()\n`;
+		const pkg = [
+			py("pkg/__init__.py", `${cls}inst = C()\n`),
+			py("app.py", "from pkg import inst\ndef f():\n    inst.run()\n"),
+		];
+		const result = await analyze(pkg);
+		expect(sitesTo(result, symbolId(result, "C.run", "pkg/__init__.py")).length).toBe(0);
+		await refusedM1(defining, "import m\ndef f():\n    m.inst.run()\n", "m.inst is not M1");
+		await refusedM1(defining, "from m import inst\ndef f():\n    inst.a.run()\n", "two segments");
+		await refusedM1(defining, "from m import inst\ndef f():\n    inst()\n", "a call of the instance");
+		await refusedM1(
+			defining,
+			"from m import *\ndef f():\n    inst.run()\n",
+			"a star import is not a from-import of the name",
+		);
+		// a re-export hop is whatever S3 already resolves (the import's target is m.py); a rebind in
+		// the re-exporting module or an aliased re-export is not resolved by S3, so M1 does not carry it
+		const hop = async (r: string): Promise<number> => {
+			const reexport = await analyze([
+				py("m.py", defining),
+				py("r.py", r),
+				py("app.py", "from r import inst\ndef f():\n    inst.run()\n"),
+			]);
+			return sitesTo(reexport, symbolId(reexport, "C.run", "m.py")).length;
+		};
+		expect(await hop("from m import inst\n"), "re-export").toBe(1);
+		expect(await hop("from m import inst\ninst = None\n"), "re-export then rebind").toBe(0);
+		expect(await hop("from m import inst as other\n"), "aliased re-export").toBe(0);
+	});
+
+	test("a from-import of a submodule is the module, not the instance inside it", async () => {
+		const files = [
+			py("pkg/__init__.py", ""),
+			py("pkg/inst.py", `${cls}inst = C()\n`),
+			py("app.py", "from pkg import inst\ndef f():\n    inst.run()\n"),
+		];
+		const result = await analyze(files);
+		expect(sitesTo(result, symbolId(result, "C.run", "pkg/inst.py")).length).toBe(0);
+	});
+
+	test("a re-export bound to two modules is refused", async () => {
+		const c = `${cls}inst = C()\n`;
+		const result = await analyze([
+			py("m.py", c),
+			py("n.py", c.replace("C", "D")),
+			py("r.py", "try:\n    from m import inst\nexcept ImportError:\n    from n import inst\n"),
+			py("app.py", "from r import inst\ndef f():\n    inst.run()\n"),
+		]);
+		expect(sitesTo(result, symbolId(result, "C.run", "m.py")).length).toBe(0);
+	});
+
+	test("an import under a condition is refused", async () => {
+		await refusedM1(
+			`${cls}inst = C()\n`,
+			"if z:\n    from m import inst\ndef f():\n    inst.run()\n",
+			"import under if",
+		);
+	});
+
+	test("a conditional or aliased import with several targets is refused", async () => {
+		const defining = `${cls}inst = C()\n`;
+		await refusedM1(
+			defining,
+			"try:\n    from m import inst\nexcept ImportError:\n    inst = None\ndef f():\n    inst.run()\n",
+			"try/except fallback",
+		);
+	});
+});
