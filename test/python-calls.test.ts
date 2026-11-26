@@ -3414,6 +3414,65 @@ describe("LIT — a name whose every binding is a literal of one builtin type is
 		);
 	});
 
+	test("a module-level star import is a binding statement (GCLI-109 review)", async () => {
+		const multi = async (files: PythonModuleInput[]) => {
+			const result = await analyze(files);
+			return { external: result.callBins.resolvedExternal, receiver: result.callBins.receiverNeedsInference };
+		};
+		const exporting = py("m.py", "class C:\n    pass\nx = other\n");
+		const notExporting = py("m.py", "__all__ = ['y']\ny = 1\nx = other\n");
+		for (const [label, use] of [
+			["at module level", "x.m()\n"],
+			["in a function", "def f():\n    x.m()\n"],
+		] as const) {
+			const after = `x = []\nfrom m import *\n${use}`;
+			expect(await multi([exporting, py("app.py", after)]), `a complete star exporting x, ${label}`).toEqual({
+				external: 0,
+				receiver: 1,
+			});
+			expect(
+				await multi([exporting, py("app.py", `from m import *\nx = []\n${use}`)]),
+				`a star before the literal, ${label}`,
+			).toEqual({
+				external: 0,
+				receiver: 1,
+			});
+			expect(
+				await multi([py("app.py", `x = []\nfrom nowhere import *\n${use}`)]),
+				`an unresolved star, ${label}`,
+			).toEqual({
+				external: 0,
+				receiver: 1,
+			});
+			// positive twin: a complete star that does not export x leaves the literal alone
+			expect(await multi([notExporting, py("app.py", after)]), `twin: a complete star without x, ${label}`).toEqual({
+				external: 1,
+				receiver: 0,
+			});
+			// positive twin: no star
+			expect(await multi([py("app.py", after.replace("from m import *\n", ""))]), `twin: no star, ${label}`).toEqual({
+				external: 1,
+				receiver: 0,
+			});
+		}
+	});
+
+	test("target shapes the walker must read as a second binding (GCLI-109 review)", async () => {
+		await refused("def f():\n    x = []\n    (x) = make()\n    x.m()\n", "a parenthesised target");
+		await refused("def f():\n    x = []\n    ((x)) = make()\n    x.m()\n", "a doubly parenthesised target");
+		await refused("def f():\n    x = []\n    [x] = make()\n    x.m()\n", "a list target");
+		await refused("def f():\n    x = []\n    (x, n) = make()\n    x.m()\n", "a parenthesised tuple target");
+		await refused("def f():\n    x = []\n    a = x = make()\n    x.m()\n", "a chained assignment");
+		await refused(
+			"def f():\n    x = []\n    try:\n        pass\n    except* E as x:\n        pass\n    x.m()\n",
+			"except* as",
+		);
+		await refused("def f():\n    x = []\n    async with ctx() as x:\n        pass\n    x.m()\n", "async with-as");
+		await refused("def f():\n    x = []\n    async for x in z:\n        pass\n    x.m()\n", "async for");
+		await builtin("def f():\n    match = []\n    match.append(1)\n", "match is an identifier here");
+		await builtin("def f():\n    type = []\n    type.append(1)\n", "type is an identifier here");
+	});
+
 	test("a literal never reaches an in-repo method of the same name", async () => {
 		await builtin(`${cls}def f():\n    x = []\n    x.append(1)\n`, "C.append is not reached");
 		await builtin(`${cls}def f():\n    x = {}\n    x.get(1)\n`, "C.get is not reached");
