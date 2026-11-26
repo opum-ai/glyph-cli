@@ -2509,10 +2509,23 @@ describe("N3 — x = Cls(); x() calls type(x).__call__", () => {
 		const call = "    def __call__(self):\n        pass\n\nx = C()\nx()\n";
 		const opaque = await analyze([py("app.py", `class C(Ext):\n${call}`)]);
 		expect(linesTo(opaque, symbolId(opaque, "C.__call__", "app.py"))).toEqual([]);
+		// (a31) Q1: a refused site stays in the bin it had before N3 (name, run-time-bound):
+		// the construction C() is the one in-repo call, x() is the one name-bin call.
+		expect(opaque.callBins).toEqual({
+			resolvedInRepo: 1,
+			resolvedExternal: 0,
+			receiverNeedsInference: 0,
+			nameNotBound: 1,
+		});
+		expect(opaque.unresolvedNameReasons.map((entry) => entry.reason)).toEqual(["run-time-bound"]);
 		const typed = await analyze([py("app.py", `class C(type):\n${call}`)]);
 		expect(linesTo(typed, symbolId(typed, "C.__call__", "app.py"))).toEqual([]);
+		expect(typed.callBins.nameNotBound).toBe(1);
+		expect(typed.callBins.receiverNeedsInference).toBe(0);
 		const reversed = await analyze([py("app.py", `class C(reversed):\n${call}`)]);
 		expect(linesTo(reversed, symbolId(reversed, "C.__call__", "app.py"))).toEqual([]);
+		expect(reversed.callBins.nameNotBound).toBe(1);
+		expect(reversed.callBins.receiverNeedsInference).toBe(0);
 		// a builtin base with no __call__ anywhere: no edge and not resolved-external either
 		const noCall = await analyze([py("app.py", "class C(Exception):\n    pass\n\nx = C()\nx()\n")]);
 		expect(noCall.callBins.resolvedExternal).toBe(0);
