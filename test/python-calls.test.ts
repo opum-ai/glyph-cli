@@ -2604,6 +2604,10 @@ describe("class decorators — refused unless on the non-replacing list", () => 
 			"from dataclasses import dataclass\n\n",
 			"@dataclass(frozen=True, slots=False)\n",
 		],
+		"dataclass called through an alias with a keyword": [
+			"from dataclasses import dataclass as dcl\n\n",
+			"@dcl(frozen=True)\n",
+		],
 		"dataclass called with no arguments": ["from dataclasses import dataclass\n\n", "@dataclass()\n"],
 		"dataclass with an unrelated keyword after another listed decorator": [
 			"from typing import final\nfrom dataclasses import dataclass\n\n",
@@ -2650,6 +2654,26 @@ describe("class decorators — refused unless on the non-replacing list", () => 
 			"from dataclasses import dataclass\nfrom typing import final\n\n",
 			"@final\n@dataclass(slots=True)\n",
 		],
+		"total_ordering called with a keyword": [
+			"from functools import total_ordering\n\nX = make()\n\n",
+			"@total_ordering(cls=X)\n",
+		],
+		"total_ordering called with a positional argument": [
+			"from functools import total_ordering\n\nX = make()\n\n",
+			"@total_ordering(X)\n",
+		],
+		"total_ordering called through its module": [
+			"import functools\n\nX = make()\n\n",
+			"@functools.total_ordering(cls=X)\n",
+		],
+		"total_ordering called with no arguments": ["from functools import total_ordering\n\n", "@total_ordering()\n"],
+		"total_ordering called through an alias": [
+			"from functools import total_ordering as order\n\nX = make()\n\n",
+			"@order(cls=X)\n",
+		],
+		"final called": ["from typing import final\n\nX = make()\n\n", "@final(cls=X)\n"],
+		"runtime_checkable called": ["import typing\n\nX = make()\n\n", "@typing.runtime_checkable(cls=X)\n"],
+		"unique called": ["from enum import unique\n\nX = make()\n\n", "@unique(cls=X)\n"],
 		"a call result": ["from dataclasses import dataclass\n\n", "@dataclass()()\n"],
 		"a listed decorator plus an unlisted one": ["from dataclasses import dataclass\n\n", "@dataclass\n@register\n"],
 		"a listed name rebound after the import": [

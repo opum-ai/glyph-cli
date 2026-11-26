@@ -239,6 +239,8 @@ interface ClassInfo {
 	 * argument, or a `**` splat).
 	 */
 	decoratorSlots: DecoratorSlots[];
+	/** Whether each decorator is written as a call `@d(...)`, parallel to `decorators`. */
+	decoratorCalled: boolean[];
 	methods: Map<string, string[]>;
 	/** Rule 36(ii): bare names used in this class body as a decorator or call. */
 	classBodyBareUses: Set<string>;
@@ -351,6 +353,9 @@ const NON_REPLACING_CLASS_DECORATORS: ReadonlyMap<string, ReadonlySet<string>> =
 	["typing", new Set(["final", "runtime_checkable"])],
 	["enum", new Set(["unique"])],
 ]);
+
+/** The listed decorators that are factories: the only ones a called form `@d(...)` may use (DEC-303 (a33)). */
+const NON_REPLACING_CLASS_DECORATOR_FACTORIES: ReadonlySet<string> = new Set(["dataclasses.dataclass"]);
 
 /** Python 3 builtins: a name bound nowhere else in the scope chain (rule 4c). */
 const BUILTINS: ReadonlySet<string> = new Set([
@@ -739,6 +744,7 @@ interface WalkFrame {
 	decorators?: string[];
 	decoratorCallees?: CalleeDesc[];
 	decoratorSlots?: DecoratorSlots[];
+	decoratorCalled?: boolean[];
 	underError: boolean;
 }
 
@@ -878,6 +884,7 @@ class FileWalker {
 						frame.decorators ?? [],
 						frame.decoratorCallees ?? [],
 						frame.decoratorSlots ?? [],
+						frame.decoratorCalled ?? [],
 					);
 					continue;
 				case "lambda":
@@ -1042,12 +1049,14 @@ class FileWalker {
 		const decorators: string[] = [];
 		const decoratorCallees: CalleeDesc[] = [];
 		const decoratorSlots: DecoratorSlots[] = [];
+		const decoratorCalled: boolean[] = [];
 		for (const child of frame.node.namedChildren) {
 			if (child === null || child.type !== "decorator") continue;
 			const expression = child.namedChild(0);
 			if (expression === null) continue;
 			decorators.push(expression.text);
 			const decoratorFunction = expression.type === "call" ? expression.childForFieldName("function") : expression;
+			decoratorCalled.push(expression.type === "call");
 			decoratorSlots.push(expression.type === "call" ? slotsSpelling(expression) : "absent");
 			decoratorCallees.push(decoratorFunction === null ? { kind: "dynamic" } : describeCallee(decoratorFunction));
 			if (expression.type === "call") {
@@ -1093,6 +1102,7 @@ class FileWalker {
 			decorators,
 			decoratorCallees,
 			decoratorSlots,
+			decoratorCalled,
 			underError: frame.underError,
 		});
 	}
@@ -1204,6 +1214,7 @@ class FileWalker {
 		decorators: string[],
 		decoratorCallees: CalleeDesc[],
 		decoratorSlots: DecoratorSlots[],
+		decoratorCalled: boolean[],
 	): void {
 		const nameNode = node.childForFieldName("name");
 		const name = nameNode !== null && !nameNode.isMissing ? nameNode.text : null;
@@ -1258,6 +1269,7 @@ class FileWalker {
 						decorators,
 						decoratorCallees,
 						decoratorSlots,
+						decoratorCalled,
 						methods: new Map(),
 						classBodyBareUses: new Set<string>(),
 					}
@@ -2245,9 +2257,16 @@ class Resolver {
 				decoratorName = (callee as { segments: string[] }).segments[0] as string;
 			}
 			if (NON_REPLACING_CLASS_DECORATORS.get(moduleName)?.has(decoratorName) !== true) return true;
+			// (a33) only a decorator FACTORY may be called: `@total_ordering(cls=X)` applies the
+			// decorator to X and decorates the class with the result, so it replaces the class.
+			if (
+				classInfo.decoratorCalled[position] === true &&
+				!NON_REPLACING_CLASS_DECORATOR_FACTORIES.has(`${moduleName}.${decoratorName}`)
+			) {
+				return true;
+			}
 			// (a32) dataclass(slots=True) returns a NEW class: only a bare, slots-absent or
-			// slots=False dataclass keeps the original, so any other spelling refuses. No
-			// other listed decorator takes `slots`, so the test needs no name check.
+			// slots=False dataclass keeps the original, so any other spelling refuses.
 			if (classInfo.decoratorSlots[position] === "other") return true;
 		}
 		return false;
