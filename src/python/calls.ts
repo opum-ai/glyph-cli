@@ -2324,11 +2324,11 @@ class Resolver {
 	 * it leaves the call unresolved. The selected star is resolved the way a bare
 	 * name bound by it is (rule 33, `resolveStarBound`), so a rebinding in the
 	 * star's source is seen. Any other binding of the name in the holder (an
-	 * assignment, `for`, `with` or `except ... as` target) is a later or earlier
+	 * assignment, `for`, `with` or `except ... as` target, or a `del`, GCLI-115) is a later or earlier
 	 * rebinding the static rules cannot order, so the call stays unresolved
 	 * (rule 2). Known gaps, as for bare names: a def or import in the holder
-	 * wins over a star even where the star comes later, a `del name` is a binding
-	 * of the name in the holder (GCLI-115) and so refuses, and a star import's `condition` (try/except) is ignored.
+	 * wins over a star even where the star comes later, and a star import's
+	 * `condition` (try/except) is ignored.
 	 * Conservative differences from bare names: a multiply-bound result is
 	 * unresolved `rebound` (no multiplyBound edges), and a cycle ends at the
 	 * selected star instead of continuing to earlier ones (rule 40).
