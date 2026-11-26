@@ -1039,6 +1039,12 @@ class FileWalker {
 				case "augmented_assignment":
 					this.handleAugmented(stack, frame, node);
 					continue;
+				case "delete_statement":
+					// GCLI-115 (DEC-303 (a40) item 1): a `del` target is a binding for scope purposes
+					// (Python language reference, Execution model, binding of names).
+					this.addDeleteBindings(frame.scope, node);
+					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
+					continue;
 				case "for_statement":
 					this.addTargetBindings(frame.scope, node.childForFieldName("left"));
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
@@ -1639,6 +1645,31 @@ class FileWalker {
 			default:
 				return;
 		}
+	}
+
+	/**
+	 * GCLI-115: every name a `del` statement unbinds, recorded as a `rebound` binding so each
+	 * single-binding rule refuses it. An identifier, a tuple, list or parenthesised target
+	 * names its identifiers; an attribute or subscript target binds no name.
+	 */
+	private addDeleteBindings(scope: Scope, node: Node): void {
+		const walk = (target: Node | null): void => {
+			if (target === null) return;
+			switch (target.type) {
+				case "identifier":
+					this.addBinding(scope, target.text, { kind: "rebound" });
+					return;
+				case "expression_list":
+				case "tuple":
+				case "list":
+				case "parenthesized_expression":
+					for (const child of target.namedChildren) walk(child);
+					return;
+				default:
+					return;
+			}
+		};
+		for (const child of node.namedChildren) walk(child);
 	}
 
 	private handleAugmented(stack: WalkFrame[], frame: WalkFrame, node: Node): void {
@@ -2293,11 +2324,11 @@ class Resolver {
 	 * it leaves the call unresolved. The selected star is resolved the way a bare
 	 * name bound by it is (rule 33, `resolveStarBound`), so a rebinding in the
 	 * star's source is seen. Any other binding of the name in the holder (an
-	 * assignment, `for`, `with` or `except ... as` target) is a later or earlier
+	 * assignment, `for`, `with` or `except ... as` target, or a `del`, GCLI-115) is a later or earlier
 	 * rebinding the static rules cannot order, so the call stays unresolved
 	 * (rule 2). Known gaps, as for bare names: a def or import in the holder
-	 * wins over a star even where the star comes later, `del name` after the star
-	 * is not modelled, and a star import's `condition` (try/except) is ignored.
+	 * wins over a star even where the star comes later, and a star import's
+	 * `condition` (try/except) is ignored.
 	 * Conservative differences from bare names: a multiply-bound result is
 	 * unresolved `rebound` (no multiplyBound edges), and a cycle ends at the
 	 * selected star instead of continuing to earlier ones (rule 40).
@@ -3118,9 +3149,9 @@ class Resolver {
 		if (binding.annotation || binding.rhs?.kind !== "attr") return null;
 		const callee = binding.rhs.callee;
 		if (callee.kind !== "attr" || callee.base.kind !== "name" || callee.segments.length !== 1) return null;
-		// A binding moved here from a nested scope by `nonlocal` is refused. The walker records no `del`, and
-		// `del f` makes f local to its function, so a nonlocal write can land on the wrong function and the
-		// single recorded binding may not be the last one assigned (round 2 review of GCLI-113).
+		// A binding moved here from a nested scope by `nonlocal` is refused (kept under DEC-303 (a40) item 4).
+		// Since GCLI-115 a `del f` is a recorded binding, so it no longer alone makes this the single binding,
+		// but a moved write may still not be the last one assigned (round 2 review of GCLI-113).
 		if (binding.origin !== undefined) return null;
 		const holder = found.scope;
 		const baseName = callee.base.name;

@@ -2277,12 +2277,11 @@ describe("E1 — Cls(...).m() on a constructed instance", () => {
 		}
 	});
 
-	test("a del of the class name introduces no new value, so it does not block resolution", async () => {
-		// del adds no value to the name: a later read fails, or falls back to an
-		// outer binding (a builtin at module scope, a global in a class body) that
-		// this analysis does not model, so del is not recorded as a second binding.
+	test("a del of the class name is a binding, so it blocks resolution", async () => {
+		// GCLI-115 (DEC-303 (a40) item 1): a del target is a binding for scope purposes, so the name has
+		// two bindings (the class and the del) and the single-binding rule refuses it.
 		const result = await analyze([py("app.py", `${classC}\nC().m()\ndel C\n`)]);
-		expect(callLines(result)).toEqual([5]);
+		expect(callLines(result)).toEqual([]);
 	});
 
 	test("negative: a __new__ in the MRO (own or inherited) leaves the call unresolved", async () => {
@@ -2820,7 +2819,7 @@ describe("D1 — a class-scope non-def binding hides a base's def", () => {
 			"except as": "try:\n    pass\nexcept Exception as NAME:\n    pass",
 			// a comprehension target lives in the comprehension's own scope in Python 3
 			"comprehension target": "_unused = [NAME for NAME in items]",
-			// `del NAME` is not tracked, so the earlier assignment still counts
+			// `del NAME` is a binding (GCLI-115), so the name has two bindings and the earlier assignment still counts
 			"assign then del": "NAME = None\ndel NAME",
 		};
 		for (const [kind, body] of Object.entries(overIncluded)) {
@@ -3350,9 +3349,9 @@ describe("LIT — a name whose every binding is a literal of one builtin type is
 		await builtin("def f(z):\n    x = []\n    for y in z:\n        pass\n    x.m()\n", "twin: another for target");
 	});
 
-	test("a del is no binding", async () => {
-		// after `del x` the name is unbound, so the call raises; the claim is vacuous either way
-		await builtin("def f():\n    x = []\n    del x\n    x.m()\n", "del leaves the type claim as it was");
+	test("a del is a binding", async () => {
+		// GCLI-115 (DEC-303 (a40) item 1): the del is a second binding of x, so the every-binding-literal claim fails
+		await refused("def f():\n    x = []\n    del x\n    x.m()\n", "a del is a binding");
 	});
 
 	test("a parameter or a default is not a literal binding", async () => {
@@ -4361,9 +4360,9 @@ describe("ALIAS — a local with one binding to Cls.attr or mod.attr resolves as
 			"a comprehension target between the nonlocal write and the local",
 			files(mod),
 		);
-		// B1 (round 1, round 2): `del f` makes f a local of g without being a recorded binding, so a nonlocal
-		// write whose target the walker cannot see lands on g with `origin` set. A binding that carries an
-		// origin is refused, whatever the writer binds `m` to.
+		// B1 (round 1, round 2): `del f` makes f a local of g. Since GCLI-115 the del is a recorded binding, and
+		// a nonlocal write still lands on g with `origin` set. A binding that carries an origin is refused,
+		// whatever the writer binds `m` to.
 		const other = [py("m.py", mod), py("other.py", "def func():\n    pass\n")];
 		const viaDel = (inner: string): string =>
 			`import m\ndef g():\n    def h():\n        nonlocal f\n        ${inner}\n    h()\n    CALL\n    del f\n`;
@@ -4565,5 +4564,268 @@ describe("ALIAS — a local with one binding to Cls.attr or mod.attr resolves as
 		await refused(imp, "a re-export hop", [py("m.py", "from n import C\n"), py("n.py", cls)]);
 		await refused(imp, "a package __init__", [py("m/__init__.py", cls)]);
 		expect(await edgesTo([py("m.py", cls), py("app.py", imp.replace("CALL", "f(o)"))], "C.m")).toBe(1);
+	});
+});
+
+// GCLI-115 (DEC-303 (a40) item 1, (a41) item 1, (a42) item 3): a `del` target is a binding for scope purposes,
+// so every rule that counts bindings counts it. Done when sources A and B resolve `x.run()` to NO `C.run`.
+describe("GCLI-115 — a del target is a binding", () => {
+	const cls = "class C:\n    def run(self):\n        pass\n\nclass D:\n    def run(self):\n        pass\n\n";
+
+	type Delta = {
+		edges: number;
+		inRepo: number;
+		external: number;
+		receiver: number;
+		name: number;
+		/** The qualnames of the callees of the sites the call adds, sorted. */
+		targets: string[];
+	};
+	const REFUSED_RECEIVER: Delta = { edges: 0, inRepo: 0, external: 0, receiver: 1, name: 0, targets: [] };
+	const REFUSED_NAME: Delta = { edges: 0, inRepo: 0, external: 0, receiver: 0, name: 1, targets: [] };
+	const BUILTIN: Delta = { edges: 0, inRepo: 0, external: 1, receiver: 0, name: 0, targets: [] };
+	/** One edge to `target`, binned resolved in-repo: pinning the callee, not only the count. */
+	const resolved = (target: string): Delta => ({
+		edges: 1,
+		inRepo: 1,
+		external: 0,
+		receiver: 0,
+		name: 0,
+		targets: [target],
+	});
+
+	/**
+	 * `body` holds the placeholder CALL. The delta is the same source with CALL as the call against CALL as
+	 * `pass`: the call's own edges and bin, so a refusal is checked by where the call lands, not only that no
+	 * edge exists (the R4 helper's bin half).
+	 */
+	async function delta(body: string, call: string, extra: PythonModuleInput[] = []): Promise<Delta> {
+		const withCall = await analyze([py("app.py", body.replace("CALL", call)), ...extra]);
+		const without = await analyze([py("app.py", body.replace("CALL", "pass")), ...extra]);
+		const bin = (key: keyof PythonCallsResult["callBins"]) => withCall.callBins[key] - without.callBins[key];
+		// the sites the call adds: the replaced line shifts nothing, so a site's position keys it in both runs
+		const key = (site: PythonCallSite) => `${site.file}:${site.line}:${site.column}:${site.calleeId}`;
+		const before = new Set(without.sites.map(key));
+		const qualnames = new Map(withCall.symbols.map((symbol) => [symbol.id, symbol.qualname]));
+		const added = withCall.sites.filter((site) => !before.has(key(site)));
+		return {
+			targets: added.map((site) => qualnames.get(site.calleeId ?? "") ?? `?${site.calleeId}`).sort(),
+			edges: withCall.sites.length - without.sites.length,
+			inRepo: bin("resolvedInRepo"),
+			external: bin("resolvedExternal"),
+			receiver: bin("receiverNeedsInference"),
+			name: bin("nameNotBound"),
+		};
+	}
+
+	async function expectDelta(
+		body: string,
+		call: string,
+		expected: Delta,
+		label: string,
+		extra: PythonModuleInput[] = [],
+	): Promise<void> {
+		expect(await delta(body, call, extra), label).toEqual(expected);
+	}
+
+	// h() runs k, so at run time x is a D; h2 (a sibling of h) writes a C. The `del` is the only binding of x
+	// in g that is not a nonlocal write, and it is what places both writes on g.
+	const sourceA = `${cls}def g():
+    def h():
+        def k():
+            nonlocal x
+            x = D()
+        k()
+    def h2():
+        nonlocal x
+        x = C()
+    h()
+    CALL
+    del x
+`;
+
+	test("source A: x.run() is not resolved to C.run", async () => {
+		await expectDelta(sourceA, "x.run()", REFUSED_RECEIVER, "source A");
+	});
+
+	test("source B (a third writer): x.run() is not resolved to C.run", async () => {
+		const b = sourceA.replace(
+			"    h()\n    CALL",
+			"    def h3():\n        nonlocal x\n        x = C()\n    h()\n    CALL",
+		);
+		expect(b).not.toBe(sourceA);
+		await expectDelta(b, "x.run()", REFUSED_RECEIVER, "source B");
+	});
+
+	test("two-level nonlocal placement with an ordinary binding (a42 item 3 (i)): x.run() is not resolved", async () => {
+		const src = `${cls}def g():
+    x = C()
+    def h():
+        def k():
+            nonlocal x
+            x = D()
+        k()
+    h()
+    CALL
+`;
+		await expectDelta(src, "x.run()", REFUSED_RECEIVER, "x = C() in g, k writes D by nonlocal");
+	});
+
+	test("creation path: a del in h makes x local to h, so k's write lands on h and g's x stays one C", async () => {
+		// Python: `del x` in h (no nonlocal) makes x a local of h, and k's `nonlocal x` binds that local.
+		// g's x is then only `x = C()`. Resolving x.run() in g to C.run is correct.
+		const src = `${cls}def g():
+    x = C()
+    def h():
+        def k():
+            nonlocal x
+            x = D()
+        k()
+        del x
+    h()
+    CALL
+`;
+		await expectDelta(src, "x.run()", resolved("C.run"), "k's nonlocal write is placed on h by the del");
+	});
+
+	test("placement invariant (a43 item 1): k's write lands on h iff h binds x by assignment or del", async () => {
+		// h binds x by assignment: k's `nonlocal x` binds h's local, so g keeps a single C and x.run() resolves.
+		const src = `${cls}def g():
+    x = C()
+    def h():
+        x = None
+        def k():
+            nonlocal x
+            x = D()
+        k()
+    h()
+    CALL
+`;
+		await expectDelta(src, "x.run()", resolved("C.run"), "an assignment in h places k's write on h");
+	});
+
+	test("R4 and 6d: a deleted local is a binding; the twin without the del resolves", async () => {
+		const base = `${cls}def g():\n    x = C()\n    CALL\n`;
+		await expectDelta(base, "x.run()", resolved("C.run"), "twin");
+		const refused = async (tail: string, label: string) =>
+			expectDelta(`${cls}def g():\n    x = C()\n    CALL\n${tail}`, "x.run()", REFUSED_RECEIVER, label);
+		await refused("    del x\n", "del x");
+		await refused("    del (x)\n", "del (x)");
+		await refused("    y = 1\n    del y, x\n", "del y, x");
+		await refused("    y = 1\n    del (x, y)\n", "del (x, y)");
+		await refused("    y = 1\n    del [x, y]\n", "del [x, y] (the list form)");
+		await refused("    y = 1\n    del [x], y\n", "del [x], y");
+		// attribute and subscript targets bind no name: x stays resolved
+		await expectDelta(
+			`${base}    del x.attr\n    del x[0]\n`,
+			"x.run()",
+			resolved("C.run"),
+			"attribute and subscript twins",
+		);
+		// a del in another function does not reach this scope
+		await expectDelta(`${base}def other():\n    x = 1\n    del x\n`, "x.run()", resolved("C.run"), "a del elsewhere");
+	});
+
+	test("a del target's subscript still has its calls walked", async () => {
+		const src = "def key():\n    pass\n\ndef g(d):\n    del d[key()]\n";
+		const result = await analyze([py("app.py", src)]);
+		expect(sitesTo(result, symbolId(result, "key")).length).toBe(1);
+	});
+
+	test("a del in a class body and at module level is a binding there", async () => {
+		await expectDelta(`${cls}x = C()\nCALL\n`, "x.run()", resolved("C.run"), "module twin");
+		await expectDelta(`${cls}x = C()\nCALL\ndel x\n`, "x.run()", REFUSED_RECEIVER, "module del");
+		await expectDelta(`${cls}class K:\n    x = C()\n    CALL\n`, "x.run()", resolved("C.run"), "class-body twin");
+		await expectDelta(
+			`${cls}class K:\n    x = C()\n    del x\n    CALL\n`,
+			"x.run()",
+			REFUSED_RECEIVER,
+			"class-body del",
+		);
+	});
+
+	test("the UnboundLocalError input emits no edge", async () => {
+		const src = (tail: string) =>
+			`def m():\n    pass\n\ndef e():\n    f = m\n    def g():\n        CALL\n${tail}    g()\n`;
+		await expectDelta(src(""), "f()", resolved("m"), "twin");
+		await expectDelta(src("").replace("        CALL\n", "        CALL\n        del f\n"), "f()", REFUSED_NAME, "del f");
+	});
+
+	test("ALIAS: an alias that is deleted does not resolve", async () => {
+		const base = "class C:\n    def m(self):\n        pass\n\ndef g(o):\n    f = C.m\n    CALL\n";
+		await expectDelta(base, "f(o)", resolved("C.m"), "twin");
+		await expectDelta(`${base}    del f\n`, "f(o)", REFUSED_NAME, "del f");
+	});
+
+	test("M1: a module-level instance deleted in its source module does not resolve across the import", async () => {
+		const m = (extra: string) => [py("m.py", `${cls}inst = C()\n${extra}`)];
+		const app = "from m import inst\nCALL\n";
+		await expectDelta(app, "inst.run()", resolved("C.run"), "twin", m(""));
+		await expectDelta(app, "inst.run()", REFUSED_RECEIVER, "del in the source module", m("del inst\n"));
+		// a `global` write that deletes: the del is a module binding through the redirect
+		await expectDelta(
+			app,
+			"inst.run()",
+			REFUSED_RECEIVER,
+			"global x; del x in a function of the source module",
+			m("def reset():\n    global inst\n    del inst\n"),
+		);
+	});
+
+	test("LIT: a literal-typed name that is deleted is not builtin", async () => {
+		const src = (tail: string) => `def g():\n    x = 1\n    CALL\n${tail}`;
+		await expectDelta(src(""), "x.bit_length()", BUILTIN, "twin");
+		await expectDelta(src("    del x\n"), "x.bit_length()", REFUSED_RECEIVER, "deleted");
+	});
+
+	test("K1: a deleted *args is not a builtin tuple", async () => {
+		const src = (tail: string) => `def g(*args):\n${tail}    CALL\n`;
+		await expectDelta(src(""), "args.count(1)", BUILTIN, "twin");
+		await expectDelta(src("    del args\n"), "args.count(1)", REFUSED_RECEIVER, "deleted");
+	});
+
+	test("S3: a deleted import binding does not resolve", async () => {
+		const mod = [py("m.py", "def f():\n    pass\n")];
+		await expectDelta("from m import f\nCALL\n", "f()", resolved("f"), "twin", mod);
+		await expectDelta("from m import f\nCALL\ndel f\n", "f()", REFUSED_NAME, "del f", mod);
+	});
+
+	test("N3: a deleted callable instance is not resolved to __call__", async () => {
+		const src = (tail: string) => `class C:\n    def __call__(self):\n        pass\n\nx = C()\nCALL\n${tail}`;
+		await expectDelta(src(""), "x()", resolved("C.__call__"), "twin");
+		await expectDelta(src("del x\n"), "x()", REFUSED_NAME, "del x");
+	});
+
+	test("E1: Cls().m() with the class name deleted draws no edge from either site, and keeps its bins", async () => {
+		const src = (tail: string) => `class C:\n    def m(self):\n        pass\n\nCALL\n${tail}`;
+		// twin: the construction (to the class) and the method call are both resolved in-repo
+		await expectDelta(
+			src(""),
+			"C().m()",
+			{ edges: 2, inRepo: 2, external: 0, receiver: 0, name: 0, targets: ["C", "C.m"] },
+			"twin",
+		);
+		// refused: the class name has two bindings, so neither site draws an edge to C or C.m; the
+		// construction stays a name-bin site and the method call a receiver-bin site
+		await expectDelta(
+			src("del C\n"),
+			"C().m()",
+			{ edges: 0, inRepo: 0, external: 0, receiver: 1, name: 1, targets: [] },
+			"del C",
+		);
+	});
+
+	test("R4: two C() bindings and a del are refused; the twin without the del resolves", async () => {
+		const src = (tail: string) => `${cls}def g(z):\n    x = C()\n    if z:\n        x = C()\n    CALL\n${tail}`;
+		await expectDelta(src(""), "x.run()", resolved("C.run"), "twin");
+		await expectDelta(src("    del x\n"), "x.run()", REFUSED_RECEIVER, "del x");
+	});
+
+	test("rule 5: a name that is a def plus a del is rebound", async () => {
+		const reasons = async (source: string) => (await analyze([py("app.py", source)])).unresolvedNameReasons;
+		expect(await reasons("def f():\n    pass\ndef g():\n    f()\n")).toEqual([]);
+		expect(await reasons("def f():\n    pass\ndel f\ndef g():\n    f()\n")).toEqual([
+			{ reason: "rebound", count: 1, firstSites: [{ file: "app.py", line: 5, column: 5 }] },
+		]);
 	});
 });
