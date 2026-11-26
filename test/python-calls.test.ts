@@ -4361,24 +4361,37 @@ describe("ALIAS — a local with one binding to Cls.attr or mod.attr resolves as
 			"a comprehension target between the nonlocal write and the local",
 			files(mod),
 		);
-		// B1 (round 1): `del f` makes f a local of g without being a recorded binding, so a nonlocal write in h whose
-		// target the walker cannot see lands on g with origin h; B is read where the write is, in h
+		// B1 (round 1, round 2): `del f` makes f a local of g without being a recorded binding, so a nonlocal
+		// write whose target the walker cannot see lands on g with `origin` set. A binding that carries an
+		// origin is refused, whatever the writer binds `m` to.
 		const other = [py("m.py", mod), py("other.py", "def func():\n    pass\n")];
 		const viaDel = (inner: string): string =>
 			`import m\ndef g():\n    def h():\n        nonlocal f\n        ${inner}\n    h()\n    CALL\n    del f\n`;
-		const del = await analyze([
-			...other,
-			py("app.py", viaDel("import other as m\n        f = m.func").replace("CALL", "f()")),
-		]);
-		const funcIds = new Set([symbolId(del, "func", "m.py"), symbolId(del, "func", "other.py")]);
-		const delSites = del.sites.filter(
-			(site) => site.file === "app.py" && site.calleeId !== null && funcIds.has(site.calleeId),
+		await refused(
+			viaDel("import other as m\n        f = m.func"),
+			"a nonlocal write through del, writer imports another module",
+			other,
 		);
-		expect(delSites.map((site) => site.calleeId)).toEqual([symbolId(del, "func", "other.py")]);
 		await refused(
 			viaDel("m = None\n        f = m.func"),
 			"a nonlocal write through del whose module name is rebound in the writer",
 			files(mod),
+		);
+		// round 2: two nonlocal writers; the deeper one lands in h, the other in g, and g holds one binding
+		await refused(
+			"import m\nimport other\ndef g():\n    def h():\n        def k():\n            nonlocal f\n            f = other.func\n        k()\n    def h2():\n        nonlocal f\n        f = m.func\n    h()\n    CALL\n    del f\n",
+			"two nonlocal writers with a del, module arm",
+			other,
+		);
+		await refused(
+			"class C:\n    def m(self):\n        pass\nclass D:\n    def m(self):\n        pass\ndef g():\n    def h():\n        def k():\n            nonlocal f\n            f = D.m\n        k()\n    def h2():\n        nonlocal f\n        f = C.m\n    h()\n    CALL\n    del f\n",
+			"two nonlocal writers with a del, class arm",
+		);
+		// F3: a global write of the module name from a function, through an import of another module
+		await refused(
+			"import m\ndef w():\n    global m\n    import other as m\ndef g(z):\n    f = m.func\n    CALL\n",
+			"a global import rebinding the module name",
+			other,
 		);
 		// the same for the class arm: C is rebound in the writer
 		await refused(

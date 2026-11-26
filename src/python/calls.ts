@@ -3118,10 +3118,11 @@ class Resolver {
 		if (binding.annotation || binding.rhs?.kind !== "attr") return null;
 		const callee = binding.rhs.callee;
 		if (callee.kind !== "attr" || callee.base.kind !== "name" || callee.segments.length !== 1) return null;
-		// The scope whose TEXT wrote the binding: a `nonlocal` write whose target the walker cannot see (a `del f`
-		// in the enclosing function makes `f` its local but is not a recorded binding) lands the binding there
-		// with `origin` set, and `B` is read where it was written.
-		const holder = binding.origin ?? found.scope;
+		// A binding moved here from a nested scope by `nonlocal` is refused. The walker records no `del`, and
+		// `del f` makes f local to its function, so a nonlocal write can land on the wrong function and the
+		// single recorded binding may not be the last one assigned (round 2 review of GCLI-113).
+		if (binding.origin !== undefined) return null;
+		const holder = found.scope;
 		const baseName = callee.base.name;
 		const attr = callee.segments[0] as string;
 		const here = { line: 0, column: 0 };
