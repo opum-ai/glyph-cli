@@ -3755,6 +3755,12 @@ class Resolver {
 				// an unshadowed builtin class) may define `__class__` (unittest.mock's Mock does).
 				if (entry.kind === "opaque" && this.builtinClassBaseName(entry) === null) return null;
 			}
+			// GCLI-122 (DEC-303 (a58) items 2 and 4): `self` in an instance method of C may be an instance of any
+			// descendant of C, so an in-repo descendant that binds `__class__` (an attribute, a property or a
+			// method) leaves `self.__class__` unresolved too. A descendant outside the repository cannot be seen.
+			for (const descendant of this.descendantsOf(receiver.classInfo)) {
+				if (descendant.scope?.bindings.has("__class__") === true) return null;
+			}
 		}
 		return receiver.classInfo;
 	}

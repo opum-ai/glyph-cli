@@ -1243,3 +1243,42 @@ describe("GCLI-120 round 1 — rule 46 shares the exactness rule, and `__all__` 
 		expect(r.callees).toEqual([]);
 	});
 });
+
+describe("GCLI-122 — an in-repo descendant that binds __class__ makes self.__class__ unresolved", () => {
+	const forms: Record<string, string> = {
+		attribute: "    __class__ = 1\n",
+		property: "    @property\n    def __class__(self):\n        return 1\n",
+		method: "    def __class__(self):\n        pass\n",
+	};
+	const app = (alias: string, d: string, extra = "") =>
+		`class C:\n    def m(self):\n        cls = ${alias}\n        CALL\n    def meth(self):\n        pass\nclass D(C):\n${d}${extra}`;
+	const REFUSED: Delta = { inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 };
+
+	for (const [label, d] of Object.entries(forms)) {
+		test(`${label}: self.__class__ refuses, the type(self) twin resolves C.meth`, async () => {
+			const refused = await probe(app("self.__class__", d), "cls.meth()");
+			expect(refused.callees, label).toEqual([]);
+			expect(refused.delta, label).toEqual(REFUSED);
+			const twin = await probe(app("type(self)", d), "cls.meth()");
+			expect(twin.callees, label).toEqual(["app.py:C.meth"]);
+			expect(twin.delta, label).toEqual(RESOLVED);
+		});
+	}
+
+	test("a grandchild that binds __class__ refuses too", async () => {
+		const r = await probe(app("self.__class__", "    pass\n", "class E(D):\n    __class__ = 1\n"), "cls.meth()");
+		expect(r.callees).toEqual([]);
+		expect(r.delta).toEqual(REFUSED);
+	});
+
+	test("twins: a descendant without __class__, and an unrelated class that binds it, still resolve self.__class__", async () => {
+		for (const [label, extra] of [
+			["no binding", ""],
+			["unrelated class", "class U:\n    __class__ = 1\n"],
+		] as const) {
+			const r = await probe(app("self.__class__", "    pass\n", extra), "cls.meth()");
+			expect(r.callees, label).toEqual(["app.py:C.meth"]);
+			expect(r.delta, label).toEqual(RESOLVED);
+		}
+	});
+});
