@@ -2232,9 +2232,11 @@ describe("E1 — Cls(...).m() on a constructed instance", () => {
 		expect(linesTo(inherited, symbolId(inherited, "B.m", "app.py"))).toEqual([8]);
 	});
 
-	test("positive: the call inside a function and a method body resolves", async () => {
+	test("positive: the call inside a function and inside a method body resolves", async () => {
 		const result = await analyze(module("", "def f():\n    return C().m()"));
 		expect(callLines(result)).toEqual([6]);
+		const method = await analyze(module("", "class D:\n    def g(self):\n        return C().m()"));
+		expect(callLines(method)).toEqual([7]);
 	});
 
 	test("negative: every kind of second binding of the class name leaves the call unresolved", async () => {
@@ -2319,6 +2321,9 @@ describe("E1 — Cls(...).m() on a constructed instance", () => {
 		expect(linesTo(mro, symbolId(mro, "C.m", "app.py"))).toEqual([]);
 		const chain = await analyze(module("", "C().attr.m()"));
 		expect(callLines(chain)).toEqual([]);
+		// the first segment is a real method, so only the one-segment guard keeps this off C.m
+		const methodChain = await analyze(module("", "C().m.x()"));
+		expect(callLines(methodChain)).toEqual([]);
 		const func = await analyze([py("app.py", "def C():\n    pass\n\nC().m()\n")]);
 		expect(func.callBins.resolvedInRepo).toBe(1);
 		const unbound = await analyze([py("app.py", "Missing().m()\n")]);
