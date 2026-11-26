@@ -186,6 +186,8 @@ interface RawBinding {
 	annotationScope?: Scope | null;
 	/** Rule 38: the statement's start, so a class-body import binds only later uses. */
 	position?: UsePosition;
+	/** R4: the scope whose text holds this binding, set when `applyScopeRedirects` moves it onto an enclosing scope. */
+	origin?: Scope;
 }
 
 interface Scope {
@@ -1687,6 +1689,7 @@ function applyScopeRedirects(scopes: readonly Scope[]): void {
 			const moved = scope.bindings.get(name);
 			if (moved === undefined) continue;
 			scope.bindings.delete(name);
+			for (const binding of moved) binding.origin ??= scope;
 			// GCLI-101 (1): the scope `nonlocal` names is the nearest enclosing function that
 			// binds the name, which may be more than one level up. A function that only
 			// declares it nonlocal too holds no binding until the deeper one is moved in, and
@@ -2875,6 +2878,11 @@ class Resolver {
 			if (segments.length > 1) return { bin: "receiver", reason: "needs-inference" };
 			return this.methodLookup(known, lastName, false, true);
 		}
+		// R4 (DEC-303 (a22) item 3): a local whose every binding is `Cls(...)` of one class.
+		if (segments.length === 1) {
+			const local = this.localConstructedClass(base.name, scope, site);
+			if (local !== null) return this.methodLookup(local, lastName, false, true);
+		}
 		// M1 (DEC-303 (a22) item 3): an imported module-level instance of one in-repo class.
 		if (segments.length === 1) {
 			const instance = this.importedInstanceClass(base.name, scope, site);
@@ -2990,6 +2998,40 @@ class Resolver {
 	}
 
 	/**
+	 * R4 (DEC-303 (a22) item 3): `name` is a LOCAL (found in a function or lambda scope) whose
+	 * bindings are ALL plain unannotated `name = Cls(...)` (the single-binding case is rule 6d's,
+	 * which runs first and which this rule never widens), each with a callee that is a bare name
+	 * resolving (`classSymbolOfName`, counting the constructor name's own bindings) to the SAME one
+	 * in-repo class that passes `instanceClassOf`. A single binding is rule 6d's. The enumeration is
+	 * item 2's: writes through `nonlocal` from nested scopes are in the list (each read in the
+	 * scope whose text holds it, `origin`), and a `global` declaration between the use and the local
+	 * refuses. Any other binding form (parameter, for, with-as, except-as, walrus, import, def,
+	 * class, augmented, annotated, tuple or star target, match capture) is not an `assign` with an
+	 * unannotated call right-hand side and refuses.
+	 */
+	private localConstructedClass(name: string, scope: Scope, site: { line: number; column: number }): ClassInfo | null {
+		const found = this.lookupBindings(name, scope, site);
+		if (found === null || (found.scope.kind !== "function" && found.scope.kind !== "lambda")) return null;
+		const bindings = this.enumerableBindings(name, scope, site);
+		if (bindings === null) return null;
+		let symbolId: string | null = null;
+		let symbol: PythonSymbol | null = null;
+		for (const binding of bindings) {
+			if (binding.annotation || binding.rhs?.kind !== "call") return null;
+			if (binding.rhs.callee.kind !== "name") return null;
+			const constructed = this.classSymbolOfName(binding.rhs.callee.name, binding.origin ?? found.scope, {
+				line: 0,
+				column: 0,
+			});
+			if (constructed === null) return null;
+			if (symbolId !== null && constructed.id !== symbolId) return null;
+			symbolId = constructed.id;
+			symbol = constructed;
+		}
+		return this.instanceClassOf(symbol);
+	}
+
+	/**
 	 * The one in-repo class symbol a module-scope name denotes (B2, review round 2): the name has
 	 * exactly ONE binding in `module` (item 2's enumeration, not S3's incomplete local-name set),
 	 * and that binding is either a `class` statement, or a direct from-import of a name that is
@@ -2997,7 +3039,12 @@ class Resolver {
 	 * re-export hop, a conditional import and a package `__init__` are refused.
 	 */
 	private moduleClassSymbol(name: string, module: Scope): PythonSymbol | null {
-		const own = this.enumerableBindings(name, module, { line: 0, column: 0 });
+		return this.classSymbolOfName(name, module, { line: 0, column: 0 });
+	}
+
+	/** `moduleClassSymbol` for a name read from any scope: item 2's enumeration decides the one binding. */
+	private classSymbolOfName(name: string, module: Scope, site: { line: number; column: number }): PythonSymbol | null {
+		const own = this.enumerableBindings(name, module, site);
 		if (own === null || own.length !== 1) return null;
 		const binding = own[0] as RawBinding;
 		if (binding.kind === "class") {
