@@ -329,12 +329,10 @@ describe("GCLI-118 round 1 — star after the last binding, alias hops, cycles",
 		for (const one of [before.fromImport, before.attribute]) expect(one.callees).toEqual(["o.py:f"]);
 	});
 
-	test("a conditional alias assignment has no position: a star that may bind the name leaves it unresolved", async () => {
+	test("a conditional alias assignment has no position: a star AFTER the last unconditional binding that may bind the name leaves it unresolved", async () => {
 		const shapes: Record<string, string> = {
 			"def f, star, if-arm f = g": "def g():\n    pass\ndef f():\n    pass\nfrom x import *\nif C:\n    f = g\n",
 			"import f, star, if-arm f = g": "def g():\n    pass\nfrom y import f\nfrom x import *\nif C:\n    f = g\n",
-			"star, def f, except-arm f = g":
-				"def g():\n    pass\nfrom x import *\ndef f():\n    pass\ntry:\n    pass\nexcept E:\n    f = g\n",
 		};
 		for (const [label, holder] of Object.entries(shapes)) {
 			const r = await both(holder, { "x.py": x, "y.py": x });
@@ -346,11 +344,40 @@ describe("GCLI-118 round 1 — star after the last binding, alias hops, cycles",
 				).toEqual([]);
 			}
 		}
+		// a star BEFORE the last unconditional def is overridden by it; the conditional alias stays an alternative
+		const overridden = await both(
+			"def g():\n    pass\nfrom x import *\ndef f():\n    pass\ntry:\n    pass\nexcept E:\n    f = g\n",
+			{ "x.py": x },
+		);
+		for (const one of [overridden.fromImport, overridden.attribute]) {
+			expect(one.callees.sort()).toEqual(["m.py:f", "m.py:g"]);
+			expect(one.sites.every((s) => s.multiplyBound === true)).toBe(true);
+		}
 		// twin: no star, the conditional alias stays an alternative (Q2's multiply-bound edge)
 		const noStar = await both("def g():\n    pass\ndef f():\n    pass\nif C:\n    f = g\n", {});
 		for (const one of [noStar.fromImport, noStar.attribute]) {
 			expect(one.callees.sort()).toEqual(["m.py:f", "m.py:g"]);
 		}
+		// an unpositioned alias with an external star BEFORE the unconditional def: the def overrides the star
+		const external = await both("from os import *\ndef g():\n    pass\ndef f():\n    pass\nif C:\n    f = g\n", {});
+		for (const one of [external.fromImport, external.attribute])
+			expect(one.callees.sort()).toEqual(["m.py:f", "m.py:g"]);
+	});
+
+	test("a star that cannot bind the name is skipped, not a tie or an unpositioned refusal (the `matters` guard)", async () => {
+		const z = "def g():\n    pass\n";
+		const sameLine = await both("from o import f; from z import *\n", { "z.py": z, "o.py": x });
+		for (const one of [sameLine.fromImport, sameLine.attribute]) expect(one.callees).toEqual(["o.py:f"]);
+		const alias = await both("def g():\n    pass\ndef f():\n    pass\nfrom z import *\nif C:\n    f = g\n", {
+			"z.py": z,
+		});
+		for (const one of [alias.fromImport, alias.attribute]) expect(one.callees.sort()).toEqual(["m.py:f", "m.py:g"]);
+	});
+
+	test("a same-line star before a LATER unconditional def is overridden by it, not a tie", async () => {
+		const r = await both("from o import f; from x import *\ndef f():\n    pass\n", { "x.py": x, "o.py": x });
+		// the star is no part of the answer (no tie, no refusal): the gate's own alternatives stand, as on dev
+		for (const one of [r.fromImport, r.attribute]) expect(one.callees.sort()).toEqual(["m.py:f", "o.py:f"]);
 	});
 
 	test("a conditional def or import AFTER a star is an alternative of the star's name, not the only edge (dev's from-import shape)", async () => {
@@ -370,6 +397,40 @@ describe("GCLI-118 round 1 — star after the last binding, alias hops, cycles",
 				).toBe(true);
 			}
 		}
+		const arms: Record<string, string> = {
+			"try body with an except arm": "from x import *\ntry:\n    def f():\n        pass\nexcept E:\n    pass\n",
+			"elif arm": "from x import *\nif C:\n    pass\nelif D:\n    def f():\n        pass\n",
+			"else arm": "from x import *\nif C:\n    pass\nelse:\n    def f():\n        pass\n",
+			"case clause": "from x import *\nmatch v:\n    case 1:\n        def f():\n            pass\n",
+			"finally inside an if":
+				"from x import *\nif C:\n    try:\n        pass\n    finally:\n        def f():\n            pass\n",
+			"for body": "from x import *\nfor i in v:\n    def f():\n        pass\n",
+			"while else": "from x import *\nwhile C:\n    pass\nelse:\n    def f():\n        pass\n",
+		};
+		for (const [label, holder] of Object.entries(arms)) {
+			const r = await both(holder, { "x.py": x });
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(one.callees.sort(), label).toEqual(["m.py:f", "x.py:f"]);
+				expect(
+					one.sites.every((s) => s.multiplyBound === true),
+					label,
+				).toBe(true);
+			}
+		}
+		// a with body runs, so its def overrides the star
+		const withBody = await both("from x import *\nwith v:\n    def f():\n        pass\n", { "x.py": x });
+		for (const one of [withBody.fromImport, withBody.attribute]) expect(one.callees).toEqual(["m.py:f"]);
+		// an @overload group is one binding: its collapsed stubs do not count as unpositioned bindings
+		const overload =
+			"from x import *\nfrom typing import overload\n@overload\ndef f(a: int): ...\n@overload\ndef f(a: str): ...\ndef f(a):\n    pass\n";
+		const overloaded = await both(`${overload}from os import *\n`.replace("from os import *\n", ""), { "x.py": x });
+		for (const one of [overloaded.fromImport, overloaded.attribute]) expect(one.callees).toEqual(["m.py:f"]);
+		// a star AFTER the group decides (x.f): the stubs are not unpositioned bindings that force a refusal
+		const afterGroup = await both(`${overload}from x import *\n`, { "x.py": x });
+		for (const one of [afterGroup.fromImport, afterGroup.attribute]) expect(one.callees).toEqual(["x.py:f"]);
+		const overloadedPartial = await both(`from nowhere import *\n${overload}`, { "x.py": x });
+		for (const one of [overloadedPartial.fromImport, overloadedPartial.attribute])
+			expect(one.callees).toEqual(["m.py:f"]);
 		// twins: an UNCONDITIONAL def after the star overrides it; a conditional def BEFORE the star is overridden
 		const overrides = await both("from x import *\ndef f():\n    pass\n", { "x.py": x });
 		for (const one of [overrides.fromImport, overrides.attribute]) expect(one.callees).toEqual(["m.py:f"]);

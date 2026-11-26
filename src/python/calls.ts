@@ -1402,7 +1402,7 @@ class FileWalker {
 			this.addBinding(frame.scope, name, {
 				kind: "def",
 				symbolId,
-				...(isConditionalStatement(node) ? { conditional: true as const } : {}),
+				...(maySkipStatement(node) ? { conditional: true as const } : {}),
 			});
 			// GCLI-101: a def after `global` or `nonlocal` in a class body binds outside the class,
 			// so it is no method of the class (the declaration must precede the def in Python).
@@ -1508,7 +1508,7 @@ class FileWalker {
 			this.addBinding(frame.scope, name, {
 				kind: "class",
 				symbolId,
-				...(isConditionalStatement(node) ? { conditional: true as const } : {}),
+				...(maySkipStatement(node) ? { conditional: true as const } : {}),
 			});
 		}
 
@@ -1800,6 +1800,47 @@ function isConditionalStatement(node: Node): boolean {
 				break;
 			case "finally_clause":
 				return false;
+			default:
+				current = current.parent;
+		}
+	}
+	return false;
+}
+
+/**
+ * GCLI-118: a def or class statement that may not run, so it is an ALTERNATIVE of its name and never overrides an
+ * earlier star import: any statement inside an `if`, `elif` or `else` arm, an `except` arm or the body of a `try`
+ * that has one, a `case` clause, a `for` or `while` body or else, or a `finally` nested in any of these (the walk
+ * passes through `finally`), up to its enclosing def, class or module. `with` bodies run. Wider than
+ * `isConditionalStatement`, which GCLI-116's assignment rules keep as they were.
+ */
+function maySkipStatement(node: Node): boolean {
+	let current: Node | null = node.parent;
+	while (current !== null) {
+		switch (current.type) {
+			case "function_definition":
+			case "class_definition":
+			case "module":
+				return false;
+			case "if_statement":
+			case "elif_clause":
+			case "else_clause":
+			case "except_clause":
+			case "except_group_clause":
+			case "case_clause":
+			case "for_statement":
+			case "while_statement":
+				return true;
+			case "try_statement":
+				if (
+					current.namedChildren.some(
+						(child) => child?.type === "except_clause" || child?.type === "except_group_clause",
+					)
+				) {
+					return true;
+				}
+				current = current.parent;
+				break;
 			default:
 				current = current.parent;
 		}
@@ -2509,9 +2550,12 @@ class Resolver {
 	 * when none does. Stars are walked last to first: a complete star that exports the name decides it (the star's
 	 * own binding of the name, never the earlier def), a complete one that does not is skipped, and a partial one
 	 * (unresolved, external, non-literal `__all__`) reached first leaves the name star-bound and unresolved. A star
-	 * that comes at or before the LAST positioned binding of the name is overridden by it and does not count (a
-	 * star between two bindings leaves the gate's alternatives as they were). Bindings with no position are
-	 * rebindings the gate has already refused.
+	 * that comes BEFORE the last unconditional binding of the name (a def, class or import that always runs) is
+	 * overridden by it. A conditional def, class or import after the deciding star is an alternative of the star's
+	 * name (Q2): the result is every alternative, or a refusal when one is not a symbol. A star on the same line as
+	 * a binding (an import has a line, no column), or with a binding that has no position (a conditional alias
+	 * assignment) at or after it, leaves the name unresolved rather than guessing. Other bindings with no position
+	 * (a del, an assignment) are rebindings the gate has already refused.
 	 */
 	private starOverride(path: string, name: string, bindings: readonly RawBinding[]): NameOutcome | null {
 		const stars = this.starBindingsByPath.get(path);
@@ -2526,7 +2570,9 @@ class Resolver {
 			let line: number | null = null;
 			let conditional = binding.conditional === true;
 			if (binding.kind === "def" || binding.kind === "class") {
-				line = binding.symbolId !== undefined ? (this.symbolsById.get(binding.symbolId)?.line ?? null) : null;
+				// an `@overload` stub has no symbol of its own (the group collapses into its implementation)
+				if (binding.symbolId === undefined || !this.symbolsById.has(binding.symbolId)) continue;
+				line = this.symbolsById.get(binding.symbolId)?.line ?? null;
 			} else if (binding.kind === "import") {
 				line = binding.importBinding?.line ?? null;
 				conditional = binding.importBinding?.condition != null;
@@ -2547,8 +2593,10 @@ class Resolver {
 			// A star on the same line as a binding cannot be ordered against it (an import has a line, no column),
 			// and a binding with no position (a conditional alias assignment) cannot be ordered against any star:
 			// either way a star that could bind the name leaves it unresolved rather than guessing.
+			// A star before the last unconditional binding is overridden by it, whatever else is unordered.
+			if (star.line < lastUnconditional) break;
 			if (matters && (lines.has(star.line) || unpositioned)) return { kind: "unresolved", reason: "star-bound" };
-			if (star.line <= lastUnconditional && !unpositioned) break;
+			if (star.line <= lastUnconditional) break;
 			if (complete && star.target !== null) {
 				if (!star.starNames.includes(name)) continue;
 				if (partial) return { kind: "unresolved", reason: "star-bound" };
