@@ -1648,6 +1648,12 @@ class Resolver {
 		return true;
 	}
 
+	/** D1: the class body binds `name` and no def of it (so `methods` has no entry for it). */
+	private bindsNameWithoutDef(classInfo: ClassInfo, name: string): boolean {
+		const bindings = classInfo.scope?.bindings.get(name);
+		return bindings?.some((binding) => binding.kind !== "def") === true;
+	}
+
 	/**
 	 * Rule 36(i)/43: the class scope rebinds the def's name by a later non-def
 	 * binding, so an instance's attribute is not this def and a call to the name
@@ -2458,7 +2464,13 @@ class Resolver {
 				continue;
 			}
 			const ids = entry.info.methods.get(name);
-			if (ids === undefined || ids.length === 0) continue;
+			if (ids === undefined || ids.length === 0) {
+				// DEC-303 (a31) D1: a class-scope binding of the name that is not a def (assign,
+				// annotated, import, for, with, ...) is the class attribute, and it hides a
+				// base's def: the lookup ends here unresolved rather than reaching the base.
+				if (this.bindsNameWithoutDef(entry.info, name)) return { bin: "receiver", reason: "needs-inference" };
+				continue;
+			}
 			const symbols: PythonSymbol[] = [];
 			for (const id of ids) {
 				const symbol = this.symbolsById.get(id);

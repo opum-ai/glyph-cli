@@ -2740,3 +2740,128 @@ describe("class decorators — refused unless on the non-replacing list", () => 
 		expect(linesTo(result, symbolId(result, "C.m", "app.py"))).toEqual([7]);
 	});
 });
+
+// GCLI-100 (D1, DEC-303 (a31)): a class-scope binding of the name that is not a def hides a
+// base's def, so the lookup ends unresolved instead of reaching the base.
+describe("D1 — a class-scope non-def binding hides a base's def", () => {
+	const base = "class B:\n    def m(self):\n        pass\n\n    def __call__(self):\n        pass\n\n";
+
+	function lineOf(source: string, needle: string): number {
+		const index = source.split("\n").findIndex((line) => line.includes(needle));
+		if (index < 0) throw new Error(`no line with ${needle}`);
+		return index + 1;
+	}
+
+	/** The four lookup shapes against `class C(B)` whose body is `body` with NAME replaced. */
+	async function shapes(body: string, name: "m" | "__call__", mid = "") {
+		const stmt = body.replaceAll("NAME", name);
+		const indented = stmt
+			.trimEnd()
+			.split("\n")
+			.map((line) => `    ${line}`)
+			.join("\n");
+		const parent = mid === "" ? "B" : "M";
+		const head = `${base}${mid}class C(${parent}):\n${indented}\n\n`;
+		const at = (result: PythonCallsResult) => linesTo(result, symbolId(result, `B.${name}`, "app.py"));
+		const out: Record<string, { got: number[]; line: number }> = {};
+		const tails: Record<string, string> =
+			name === "m" ? { e1: "C().m()", six: "x = C()\nx.m()", cls: "C.m()" } : { n3: "x = C()\nx()" };
+		for (const [key, tail] of Object.entries(tails)) {
+			const source = `${head}${tail}\n`;
+			const result = await analyze([py("app.py", source)]);
+			out[key] = { got: at(result), line: source.split("\n").length - 1 };
+		}
+		const call = name === "m" ? "self.m()" : "self.__call__()";
+		const selfSource = `${head}    def go(self):\n        ${call}\n`;
+		const selfResult = await analyze([py("app.py", selfSource)]);
+		out.self = { got: at(selfResult), line: lineOf(selfSource, "self.") };
+		return out;
+	}
+
+	const hiding: Record<string, string> = {
+		assign: "NAME = None",
+		"assign with a value from a call": "NAME = make()",
+		"annotated with a value": "NAME: object = None",
+		"tuple target": "NAME, other = pair()",
+		walrus: "(NAME := make())",
+		import: "from other import NAME",
+		for: "for NAME in items:\n    pass",
+		with: "with ctx() as NAME:\n    pass",
+		"nested class": "class NAME:\n    pass",
+		"augmented assignment": "NAME += 1",
+	};
+
+	test("negative: every kind of class-scope binding of the name ends the lookup unresolved", async () => {
+		for (const [kind, body] of Object.entries(hiding)) {
+			for (const name of ["m", "__call__"] as const) {
+				for (const [shape, { got }] of Object.entries(await shapes(body, name))) {
+					expect(got, `${kind} / ${name} / ${shape}`).toEqual([]);
+				}
+			}
+		}
+	});
+
+	// Conservative over-inclusions: each of these the walker records as a class-scope binding although
+	// Python does not leave the name bound (or binds it elsewhere), so the lookup is refused. Each
+	// loses an edge and none invents one. They pin the current behaviour, not a goal.
+	test("conservative: forms the walker counts as a class binding although Python does not keep one", async () => {
+		const overIncluded: Record<string, string> = {
+			// `except E as NAME` ends with an implicit `del NAME`, and the clause may never run
+			"except as": "try:\n    pass\nexcept Exception as NAME:\n    pass",
+			// a comprehension target lives in the comprehension's own scope in Python 3
+			"comprehension target": "_unused = [NAME for NAME in items]",
+			// a global declaration sends the assignment to the module
+			"global then assign": "global NAME\nNAME = None",
+			// `del NAME` is not tracked, so the earlier assignment still counts
+			"assign then del": "NAME = None\ndel NAME",
+		};
+		for (const [kind, body] of Object.entries(overIncluded)) {
+			for (const name of ["m", "__call__"] as const) {
+				for (const [shape, { got }] of Object.entries(await shapes(body, name))) {
+					expect(got, `${kind} / ${name} / ${shape}`).toEqual([]);
+				}
+			}
+		}
+	});
+
+	test("positive twins: an unrelated binding, or no binding, still reaches the base", async () => {
+		for (const body of ["other = None", "pass", "from other import NAME2", "def NAME(self):\n    pass"]) {
+			for (const name of ["m", "__call__"] as const) {
+				const results = await shapes(body, name);
+				for (const [shape, { got, line }] of Object.entries(results)) {
+					// a def of the same name in C is C's own method, not B's: the edge goes there
+					if (body.startsWith("def NAME")) expect(got, `${body} / ${name} / ${shape}`).toEqual([]);
+					else expect(got, `${body} / ${name} / ${shape}`).toEqual([line]);
+				}
+			}
+		}
+	});
+
+	test("a binding in a middle class hides the base for the subclass below it", async () => {
+		const mid = "class M(B):\n    m = None\n    __call__ = None\n\n";
+		for (const name of ["m", "__call__"] as const) {
+			for (const [shape, { got }] of Object.entries(await shapes("pass", name, mid))) {
+				expect(got, `${name} / ${shape}`).toEqual([]);
+			}
+		}
+	});
+
+	test("super() stops at a class that binds the name without a def, and reaches the base past one that does not", async () => {
+		const sup = (mid: string) => `${base}class M(B):\n${mid}\nclass C(M):\n    def m(self):\n        super().m()\n`;
+		const hidden = await analyze([py("app.py", sup("    m = None\n"))]);
+		expect(linesTo(hidden, symbolId(hidden, "B.m", "app.py"))).toEqual([]);
+		const open = await analyze([py("app.py", sup("    other = None\n"))]);
+		expect(linesTo(open, symbolId(open, "B.m", "app.py"))).toHaveLength(1);
+	});
+
+	test("the binding hides only its own name and only below the class that holds it", async () => {
+		// B2 binds m but not __call__: __call__ still reaches B; the sibling D(B) is unaffected
+		const source = `${base}class B2(B):\n    m = None\n\nclass D(B):\n    pass\n\nx = D()\nx.m()\nx()\ny = B2()\ny()\n`;
+		const result = await analyze([py("app.py", source)]);
+		expect(linesTo(result, symbolId(result, "B.m", "app.py"))).toEqual([lineOf(source, "x.m()")]);
+		expect(linesTo(result, symbolId(result, "B.__call__", "app.py"))).toEqual([
+			lineOf(source, "x()"),
+			lineOf(source, "y()"),
+		]);
+	});
+});
