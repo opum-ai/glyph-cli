@@ -2936,6 +2936,28 @@ describe("D2 — nonlocal two levels down, global in a class body, match capture
 		);
 	});
 
+	test("(2) a def after a class-body global or nonlocal is no method of the class", async () => {
+		const base = "class B:\n    def m(self):\n        pass\n\n";
+		const edge = async (source: string, id = "B.m"): Promise<number[]> => {
+			const result = await analyze([py("app.py", source)]);
+			return linesTo(result, symbolId(result, id, "app.py"));
+		};
+		const callLine = (source: string): number[] => [
+			source.split("\n").findIndex((line) => line.trim() === "K().m()") + 1,
+		];
+		const g = (decl: string) => `${base}class K(B):\n${decl}    def m(self):\n        pass\n\nK().m()\n`;
+		// m binds in the module, so K has no m of its own and K().m() is B.m
+		const globalSource = g("    global m\n");
+		expect(await edge(globalSource), "global then def").toEqual(callLine(globalSource));
+		const nonlocalSource =
+			"def f():\n    m = None\n    class B:\n        def m(self):\n            pass\n\n    class K(B):\n        nonlocal m\n        def m(self):\n            pass\n\n    K().m()\n";
+		expect(await edge(nonlocalSource, "f.B.m"), "nonlocal then def").toEqual(callLine(nonlocalSource));
+		// twin: no declaration, K.m is K's own method, so B.m gets no edge
+		expect(await edge(g("")), "twin: no declaration").toEqual([]);
+		// twin: the declaration names another name
+		expect(await edge(g("    global other\n")), "twin: another name").toEqual([]);
+	});
+
 	test("(3) a match capture pattern binds the name", async () => {
 		const matching = (cases: string, where: "module" | "function" = "module") =>
 			where === "module"

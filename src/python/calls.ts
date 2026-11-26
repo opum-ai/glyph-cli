@@ -1190,7 +1190,14 @@ class FileWalker {
 		const qualname = name !== null ? [...frame.scopeNames, name].join(".") : frame.scope.qualname;
 		if (name !== null && symbolId !== null) {
 			this.addBinding(frame.scope, name, { kind: "def", symbolId });
-			if (frame.scope.kind === "class" && frame.scope.classInfo !== null) {
+			// GCLI-101: a def after `global` or `nonlocal` in a class body binds outside the class,
+			// so it is no method of the class (the declaration must precede the def in Python).
+			if (
+				frame.scope.kind === "class" &&
+				frame.scope.classInfo !== null &&
+				!frame.scope.globalNames.has(name) &&
+				!frame.scope.nonlocalNames.has(name)
+			) {
 				const classInfo = frame.scope.classInfo;
 				const ids = classInfo.methods.get(name);
 				if (ids === undefined) classInfo.methods.set(name, [symbolId]);
