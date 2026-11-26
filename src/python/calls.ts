@@ -161,6 +161,8 @@ type BindingRhs =
 	| { kind: "attr"; callee: CalleeDesc }
 	/** LIT: the right-hand side is a literal or comprehension of one builtin type. */
 	| { kind: "literal"; type: string }
+	/** TS (DEC-303 (a22) item 3): the right-hand side is `type(x)` (`viaType`) or `x.__class__` for a bare name `x`. */
+	| { kind: "classof"; receiver: string; viaType: boolean }
 	| { kind: "other" };
 
 /** A source position (one-based) for rule 38's order-aware class-body imports. */
@@ -945,6 +947,27 @@ function literalType(node: Node): string | null {
 	}
 }
 
+/** TS: `type(x)` with one positional bare-name argument, or `x.__class__` on a bare name. */
+function classOfRhs(node: Node): BindingRhs | null {
+	if (node.type === "call") {
+		const fn = node.childForFieldName("function");
+		const args = node.childForFieldName("arguments");
+		if (fn === null || fn.type !== "identifier" || fn.text !== "type" || args === null) return null;
+		if (args.type !== "argument_list" || args.namedChildCount !== 1) return null;
+		const only = args.namedChildren[0];
+		if (only === null || only === undefined || only.type !== "identifier") return null;
+		return { kind: "classof", receiver: only.text, viaType: true };
+	}
+	if (node.type === "attribute") {
+		const object = node.childForFieldName("object");
+		const attribute = node.childForFieldName("attribute");
+		if (object === null || attribute === null) return null;
+		if (object.type !== "identifier" || attribute.text !== "__class__") return null;
+		return { kind: "classof", receiver: object.text, viaType: false };
+	}
+	return null;
+}
+
 function literalRhs(node: Node): BindingRhs {
 	const type = literalType(node);
 	return type === null ? { kind: "other" } : { kind: "literal", type };
@@ -1615,11 +1638,12 @@ class FileWalker {
 				? { kind: "other" }
 				: right.type === "identifier"
 					? { kind: "alias", name: right.text }
-					: right.type === "call"
-						? { kind: "call", callee: describeCallee(right.childForFieldName("function") ?? right) }
-						: right.type === "attribute"
-							? { kind: "attr", callee: describeCallee(right) }
-							: literalRhs(right);
+					: (classOfRhs(right) ??
+						(right.type === "call"
+							? { kind: "call", callee: describeCallee(right.childForFieldName("function") ?? right) }
+							: right.type === "attribute"
+								? { kind: "attr", callee: describeCallee(right) }
+								: literalRhs(right)));
 
 		if (left !== null && left.type === "identifier") {
 			this.addBinding(frame.scope, left.text, {
@@ -3131,6 +3155,11 @@ class Resolver {
 			const local = this.localConstructedClass(base.name, scope, site);
 			if (local !== null) return this.methodLookup(local, lastName, false, true);
 		}
+		// TS (DEC-303 (a22) item 3, (a23)): a local whose one binding is `type(self)` or `self.__class__`.
+		if (segments.length === 1) {
+			const own = this.localClassOfReceiver(base.name, scope, site);
+			if (own !== null) return this.methodLookup(own, lastName, false, true);
+		}
 		// M1 (DEC-303 (a22) item 3): an imported module-level instance of one in-repo class.
 		if (segments.length === 1) {
 			const instance = this.importedInstanceClass(base.name, scope, site);
@@ -3277,6 +3306,28 @@ class Resolver {
 			symbol = constructed;
 		}
 		return this.instanceClassOf(symbol);
+	}
+
+	/**
+	 * TS (DEC-303 (a22) item 3, (a23)): `name` is a LOCAL with exactly ONE binding (item 2's
+	 * enumeration), a plain unannotated assignment of `type(x)` or `x.__class__` where `x` is the
+	 * receiver parameter of an enclosing instance method (rule 26) and, for `type(x)`, `type` is the
+	 * unshadowed builtin. The local is then the receiver's class, so `name.meth()` is looked up as
+	 * `cls.meth()` is, on the enclosing class's MRO with the same polymorphic flag. A classmethod's
+	 * `type(cls)` is its metaclass and is refused.
+	 */
+	private localClassOfReceiver(name: string, scope: Scope, site: { line: number; column: number }): ClassInfo | null {
+		const found = this.lookupBindings(name, scope, site);
+		if (found === null || found.scope.kind !== "function") return null;
+		const bindings = this.enumerableBindings(name, scope, site);
+		if (bindings === null || bindings.length !== 1) return null;
+		const binding = bindings[0] as RawBinding;
+		if (binding.kind !== "assign" || binding.annotation) return null;
+		if (binding.rhs?.kind !== "classof") return null;
+		if (binding.rhs.viaType && !this.isUnshadowedBuiltin("type", found.scope)) return null;
+		const receiver = this.receiverOf(binding.rhs.receiver, found.scope);
+		if (receiver === null || receiver.kind !== "instance") return null;
+		return receiver.classInfo;
 	}
 
 	/**
