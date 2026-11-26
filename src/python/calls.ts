@@ -2573,8 +2573,14 @@ class Resolver {
 			let line: number | null = null;
 			let conditional = binding.conditional === true;
 			if (binding.kind === "def" || binding.kind === "class") {
-				// an `@overload` stub has no symbol of its own (the group collapses into its implementation)
-				if (binding.symbolId === undefined || !this.symbolsById.has(binding.symbolId)) continue;
+				if (binding.symbolId === undefined) continue;
+				// an `@overload` stub has no symbol of its own (the group collapses into its implementation). The
+				// stub still binds the name at run time, so it is skipped only where the implementation that
+				// replaced it is certainly the later binding; any other stub cannot be ordered against a star.
+				if (!this.symbolsById.has(binding.symbolId)) {
+					if (!this.collapsedStubPrecedesImplementation(path, name, binding, bindings)) unpositioned = true;
+					continue;
+				}
 				line = this.symbolsById.get(binding.symbolId)?.line ?? null;
 			} else if (binding.kind === "import") {
 				line = binding.importBinding?.line ?? null;
@@ -2626,6 +2632,27 @@ class Resolver {
 			partial = true;
 		}
 		return partial ? { kind: "unresolved", reason: "star-import" } : null;
+	}
+
+	/**
+	 * GCLI-118: a collapsed `@overload` stub binding of `name` comes before the implementation that kept its
+	 * group (by line) and that implementation runs wherever the stub does: the stub is unconditional or the
+	 * implementation is not conditional. Only then is the stub's own binding irrelevant to a star's order.
+	 */
+	private collapsedStubPrecedesImplementation(
+		path: string,
+		name: string,
+		stub: RawBinding,
+		bindings: readonly RawBinding[],
+	): boolean {
+		const parts = (stub.symbolId ?? "").split(":");
+		const stubLine = Number(parts[parts.length - 2]);
+		const kept = this.fileSymbols
+			.get(path)
+			?.find((symbol) => symbol.qualname === name && symbol.collapsedOverloadStubs?.includes(stubLine) === true);
+		if (kept === undefined || !(stubLine < kept.line)) return false;
+		const implementation = bindings.find((binding) => binding.symbolId === kept.id);
+		return stub.conditional === true || implementation?.conditional !== true;
 	}
 
 	private symbolInModule(path: string, name: string): PythonSymbol | null {

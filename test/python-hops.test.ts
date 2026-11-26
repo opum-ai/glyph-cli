@@ -495,8 +495,39 @@ describe("GCLI-118 round 1 — star after the last binding, alias hops, cycles",
 		// an @overload group is one binding: its collapsed stubs do not count as unpositioned bindings
 		const overload =
 			"from x import *\nfrom typing import overload\n@overload\ndef f(a: int): ...\n@overload\ndef f(a: str): ...\ndef f(a):\n    pass\n";
-		const overloaded = await both(`${overload}from os import *\n`.replace("from os import *\n", ""), { "x.py": x });
+		const overloaded = await both(overload, { "x.py": x });
 		for (const one of [overloaded.fromImport, overloaded.attribute]) expect(one.callees).toEqual(["m.py:f"]);
+		// a collapsed stub is skipped only where the implementation is certainly the later binding: a stub AFTER the
+		// implementation (Python: f is the overload dummy), a conditional stub after the star, and unconditional
+		// stubs before a CONDITIONAL implementation each leave the name unresolved, never one unflagged edge
+		const stubShapes: Record<string, string> = {
+			"stub after the implementation and the star":
+				"from typing import overload\ndef f(a):\n    pass\nfrom x import *\n@overload\ndef f(a: int): ...\n",
+			"conditional stub after the star":
+				"from typing import overload\ndef f(a):\n    pass\nfrom x import *\nif C:\n    @overload\n    def f(a: int): ...\n",
+			"unconditional stubs before a conditional implementation":
+				"from typing import overload\nfrom x import *\n@overload\ndef f(a: int): ...\n@overload\ndef f(a: str): ...\nif C:\n    def f(a): ...\n",
+		};
+		for (const [label, holder] of Object.entries(stubShapes)) {
+			const r = await both(holder, { "x.py": x });
+			for (const one of [r.fromImport, r.attribute]) {
+				expect(one.callees, label).not.toContain("x.py:f");
+				expect(
+					one.sites.map((s) => s.calleeId),
+					label,
+				).toEqual([]);
+			}
+		}
+		// stubs and implementation inside the same arm: the stub is before the implementation that runs wherever it
+		// does, so the group is the implementation, an alternative of the star's name
+		const sameArm = await both(
+			"from typing import overload\nfrom x import *\nif C:\n    @overload\n    def f(a: int): ...\n    def f(a):\n        pass\n",
+			{ "x.py": x },
+		);
+		for (const one of [sameArm.fromImport, sameArm.attribute]) {
+			expect(one.callees.sort()).toEqual(["m.py:f", "x.py:f"]);
+			expect(one.sites.every((s) => s.multiplyBound === true)).toBe(true);
+		}
 		// a star AFTER the group decides (x.f): the stubs are not unpositioned bindings that force a refusal
 		const afterGroup = await both(`${overload}from x import *\n`, { "x.py": x });
 		for (const one of [afterGroup.fromImport, afterGroup.attribute]) expect(one.callees).toEqual(["x.py:f"]);
