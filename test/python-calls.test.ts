@@ -4960,7 +4960,7 @@ describe("GCLI-115 — a del target is a binding", () => {
 				[py("m.py", "if X:\n    class T:\n        pass\nelse:\n    class T:\n        pass\n")],
 			);
 			await expectDelta(
-				`import m\nclass S(m.T):\n    pass\ns = S()\nCALL\n`,
+				"import m\nclass S(m.T):\n    pass\ns = S()\nCALL\n",
 				"s.write()",
 				REFUSED_REBOUND_BASE,
 				"multiply base through a module attribute",
