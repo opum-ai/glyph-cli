@@ -951,3 +951,74 @@ describe("GCLI-127 — a may-skip star with an earlier star that could bind the 
 		}
 	});
 });
+
+// GCLI-127 Opus round 1 (6d7e0f63): the refusal needs a DIFFERENT earlier binding. An earlier star that binds the very
+// same symbol leaves one possible binding, so the deciding star keeps its edge; the reason and the bins are pinned.
+describe("GCLI-127 round 1 — same-symbol stars keep deciding, the refusal is star-bound in the receiver bin", () => {
+	const f = "def f():\n    pass\n";
+	const attrFiles = (holder: string, others: Record<string, string>) => [
+		...Object.entries(others).map(([path, source]) => py(path, source)),
+		py("m.py", holder),
+		py("app.py", "import m\nm.f()\n"),
+	];
+
+	test("the refusal is unresolved star-bound in one bin, and the bins add up", async () => {
+		const result = await analyze(attrFiles("from a import *\nif C:\n    from b import *\n", { "a.py": f, "b.py": f }));
+		expect(result.sites.filter((s) => s.file === "app.py" && s.calleeId !== null)).toEqual([]);
+		const reasons = [...result.unresolvedNameReasons, ...result.unresolvedReceiverReasons];
+		expect(reasons.map((r) => r.reason)).toContain("star-bound");
+		const without = await analyze(
+			attrFiles("from a import *\nif C:\n    from b import *\n", { "a.py": f, "b.py": f }).map((file) =>
+				file.path === "app.py" ? py("app.py", "import m\npass\n") : file,
+			),
+		);
+		const delta = {
+			inRepo: result.callBins.resolvedInRepo - without.callBins.resolvedInRepo,
+			external: result.callBins.resolvedExternal - without.callBins.resolvedExternal,
+			receiver: result.callBins.receiverNeedsInference - without.callBins.receiverNeedsInference,
+			nameNotBound: result.callBins.nameNotBound - without.callBins.nameNotBound,
+		};
+		expect(delta.inRepo).toBe(0);
+		expect(delta.external).toBe(0);
+		expect(delta.receiver + delta.nameNotBound).toBe(1);
+	});
+
+	test("an earlier star that binds the SAME symbol (the same file, or a re-export of it) leaves one binding: b.f, bare and attribute", async () => {
+		const shapes: Record<string, [string, Record<string, string>]> = {
+			"A: the same star twice": ["from b import *\nif C:\n    from b import *\n", { "b.py": f }],
+			"B: a re-export": ["from y import *\nif C:\n    from b import *\n", { "b.py": f, "y.py": "from b import f\n" }],
+			"star in a try with an except pass": [
+				"from b import *\ntry:\n    from c import *\nexcept ImportError:\n    pass\n",
+				{ "b.py": f, "c.py": "from b import *\n" },
+			],
+		};
+		for (const [label, [holder, others]] of Object.entries(shapes)) {
+			const attribute = await probe("import m\nCALL\n", "m.f()", { "m.py": holder, ...others });
+			expect(attribute.callees, label).toEqual(["b.py:f"]);
+			expect(attribute.delta, label).toEqual(RESOLVED);
+			// the bare form agrees: no def or import of f in m, so the star-bound symbol is read from S3's target
+			const bare = await probe("from m import f\nCALL\n", "f()", { "m.py": holder, ...others });
+			expect(bare.callees, label).toEqual(["b.py:f"]);
+		}
+	});
+
+	test("the package case: from .core import * then try: from .extras import * (extras re-exports core) binds core.f", async () => {
+		const others = {
+			"pkg/__init__.py": "",
+			"pkg/core.py": f,
+			"pkg/extras.py": "from .core import *\n",
+		};
+		const holder = "from .core import *\ntry:\n    from .extras import *\nexcept ImportError:\n    pass\n";
+		const attribute = await probe("import pkg.m\nCALL\n", "pkg.m.f()", { ...others, "pkg/m.py": holder });
+		expect(attribute.callees).toEqual(["pkg/core.py:f"]);
+	});
+
+	test("a star in a try body that has only a finally always runs: the earlier star's name still decides alone", async () => {
+		const others = { "a.py": f, "b.py": f };
+		const one = await probe("import m\nCALL\n", "m.f()", {
+			"m.py": "from a import *\ntry:\n    from b import *\nfinally:\n    pass\n",
+			...others,
+		});
+		expect(one.callees).toEqual(["b.py:f"]);
+	});
+});
