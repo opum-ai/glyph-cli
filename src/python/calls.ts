@@ -269,7 +269,12 @@ interface BaseRef {
 }
 
 type MroEntry =
-	| { kind: "class"; info: ClassInfo; key: string }
+	/**
+	 * `gated`: the base's own name is rebound by a recorded attribute write (DEC-303 (a86) item 1), so the MRO
+	 * here is dev's write-blind MRO but no lookup may reach this class or pass it: the runtime base may be another
+	 * object. The entry is present so write-blind relationships (descendants, ancestor writes) stay dev's.
+	 */
+	| { kind: "class"; info: ClassInfo; key: string; gated?: true }
 	/** `rebound`: the base is an in-repo name that is rebound, not an external base (DEC-303 (a47) item 2 (i)). */
 	| { kind: "opaque"; name: string; key: string; rebound?: true };
 
@@ -3416,8 +3421,14 @@ class Resolver {
 				}
 				if (base.kind === "symbol" && base.symbol.kind === "class" && desc.segments.length === 1) {
 					// GCLI-155 (#14, (a80) item 3 N4): a class-level write of the attribute (`C.m = other`) rebinds
-					// what `C.m` names, so a decorator `@C.m` does not reach the def.
-					if (this.classLevelWrites.get(base.symbol.id)?.has(desc.segments[0] as string) === true) return null;
+					// what `C.m` names, so a decorator `@C.m` does not reach the def. DEC-303 (a86) item 1: the gate
+					// is off inside `withoutAttributeGate`, so a base position or the write collection still resolves.
+					if (
+						this.attributeGateBypass === 0 &&
+						this.classLevelWrites.get(base.symbol.id)?.has(desc.segments[0] as string) === true
+					) {
+						return null;
+					}
 					const wanted = `${base.symbol.qualname}.${desc.segments[0]}`;
 					const symbols = this.fileSymbols.get(base.symbol.file) ?? [];
 					for (const symbol of symbols) if (symbol.qualname === wanted) return symbol;
@@ -3516,19 +3527,27 @@ class Resolver {
 	// --- inheritance -------------------------------------------------------
 
 	/**
-	 * GCLI-155 (DEC-303 (a80) item 1, #7): a base whose name is rebound by an attribute write is not the class
-	 * the name names; it is an opaque, rebound base, so a member lookup through it refuses (`rebound-base`).
-	 * `baseAlternatives` reads the base WRITE-BLIND, so a written base name still makes the class a possible
-	 * descendant of the class it names and dev's polymorphic flags and `self.__class__` readings do not change.
+	 * DEC-303 (a86) item 1: the MRO is built WITHOUT regard to writes, as on dev, so ancestor writes, descendants
+	 * and polymorphic flags stay dev's. A base whose name a recorded write rebinds is marked `gated` in the MRO and
+	 * refused at lookup time, never dropped from the MRO (which would fall through to the next base).
 	 */
-	private resolveBaseClass(classInfo: ClassInfo, base: BaseRef, writeBlind = false): ClassInfo | null {
+	private resolveBaseClass(classInfo: ClassInfo, base: BaseRef): ClassInfo | null {
 		if (base.callee === null) return null;
-		const callee = base.callee as CalleeDesc;
-		const symbol = writeBlind
-			? this.withoutAttributeGate(() => this.resolveCalleeToSymbol(callee, classInfo.parentScope, 0))
-			: this.resolveCalleeToSymbol(callee, classInfo.parentScope, 0);
+		const symbol = this.withoutAttributeGate(() =>
+			this.resolveCalleeToSymbol(base.callee as CalleeDesc, classInfo.parentScope, 0),
+		);
 		if (symbol === null || symbol.kind !== "class") return null;
 		return this.classById.get(symbol.id) ?? null;
+	}
+
+	/**
+	 * DEC-303 (a86) item 1: the base resolved with the attribute-write gates ON. A null here, where the write-blind
+	 * `resolveBaseClass` resolved a class, means a recorded write rebinds the base's name.
+	 */
+	private baseGated(classInfo: ClassInfo, base: BaseRef): boolean {
+		if (base.callee === null) return false;
+		const symbol = this.resolveCalleeToSymbol(base.callee as CalleeDesc, classInfo.parentScope, 0);
+		return symbol === null || symbol.kind !== "class";
 	}
 
 	/**
@@ -3557,22 +3576,21 @@ class Resolver {
 	 * as a subclass of each one and the polymorphic flag does not drop because the base became multiply.
 	 */
 	private baseAlternatives(classInfo: ClassInfo, base: BaseRef): ClassInfo[] {
-		// GCLI-155 (#7): the descendant relationship is read write-blind, so a base name an attribute write rebinds
-		// keeps the class a possible descendant of the class it names (dev's answer), while the class's own MRO
-		// (`computeMro`) sees the base as opaque and refuses to credit it with a method.
-		const single = this.resolveBaseClass(classInfo, base, true);
+		// GCLI-155 (a86): the base is read write-blind, so a base name a write rebinds still makes the class a
+		// possible descendant of the class it names (dev's answer); the gated marking refuses lookups, not relations.
+		const single = this.resolveBaseClass(classInfo, base);
 		if (single !== null) return [single];
 		const callee = base.callee;
 		if (callee === null) return [];
 		let symbols: readonly PythonSymbol[] = [];
 		if (callee.kind === "name") {
-			const outcome = this.withoutAttributeGate(() => this.resolveBareName(callee.name, classInfo.parentScope, 0));
+			const outcome = this.resolveBareName(callee.name, classInfo.parentScope, 0);
 			if (outcome.kind === "multiply") symbols = outcome.symbols;
 		} else if (callee.kind === "attr" && callee.base.kind === "name") {
 			const head = this.resolveBareName(callee.base.name, classInfo.parentScope, 0);
 			const path = head.kind === "module" ? head.path : null;
 			if (path !== null) {
-				const outcome = this.withoutAttributeGate(() => this.resolveModuleChain(path, callee.segments, 0));
+				const outcome = this.resolveModuleChain(path, callee.segments, 0);
 				if (outcome.kind === "multiply") symbols = outcome.symbols;
 			}
 		}
@@ -3592,6 +3610,9 @@ class Resolver {
 		try {
 			const sequences: MroEntry[][] = [];
 			const tail: MroEntry[] = [];
+			// DEC-303 (a86) item 1: the keys a recorded write gates. A gated base keeps its place in the write-blind
+			// C3, and every class its own MRO contributes is marked too, because reaching them crosses the gated base.
+			const gated = new Set<string>();
 			for (let index = 0; index < classInfo.bases.length; index++) {
 				const baseRef = classInfo.bases[index] as BaseRef;
 				const baseClass = this.resolveBaseClass(classInfo, baseRef);
@@ -3602,8 +3623,10 @@ class Resolver {
 						return classInfo.mro;
 					}
 					sequences.push(baseMro.entries);
-					const entry: MroEntry = { kind: "class", info: baseClass, key: baseClass.id };
-					tail.push(entry);
+					if (this.baseGated(classInfo, baseRef)) {
+						for (const entry of baseMro.entries) if (entry.kind === "class") gated.add(entry.key);
+					}
+					tail.push({ kind: "class", info: baseClass, key: baseClass.id });
 				} else {
 					const entry: MroEntry = {
 						kind: "opaque",
@@ -3616,12 +3639,20 @@ class Resolver {
 				}
 			}
 			sequences.push(tail);
+			// C3 keeps the base's own MRO entries, which are shared objects, so the marking is applied to the merged
+			// result, never to the per-base entry (a marked entry would lose to the unmarked shared one).
 			const merged = c3merge(sequences);
 			if (merged === null) {
 				classInfo.mro = { ok: false };
 				return classInfo.mro;
 			}
-			classInfo.mro = { ok: true, entries: [{ kind: "class", info: classInfo, key: classInfo.id }, ...merged] };
+			const entries = merged.map(
+				(entry): MroEntry =>
+					entry.kind === "class" && gated.has(entry.key)
+						? { kind: "class", info: entry.info, key: entry.key, gated: true }
+						: entry,
+			);
+			classInfo.mro = { ok: true, entries: [{ kind: "class", info: classInfo, key: classInfo.id }, ...entries] };
 			return classInfo.mro;
 		} finally {
 			this.computingMro.delete(classInfo);
@@ -3631,6 +3662,8 @@ class Resolver {
 	private firstMethodEntry(mro: MroResult, name: string): PythonSymbol[] | null {
 		if (!mro.ok) return null;
 		for (const entry of mro.entries) {
+			// DEC-303 (a86) item 1: a def reached through a gated base is not known to run, so the search stops here.
+			if (entry.kind === "class" && entry.gated === true) return null;
 			if (entry.kind !== "class") continue;
 			const ids = entry.info.methods.get(name);
 			if (ids === undefined || ids.length === 0) continue;
@@ -3739,6 +3772,9 @@ class Resolver {
 		let sawRebound = false;
 		for (let index = start; index < mro.entries.length; index++) {
 			const entry = mro.entries[index] as MroEntry;
+			// DEC-303 (a86) item 1: the path to the hit crosses a base whose name a recorded write rebinds, so the
+			// runtime base may be another object: the call refuses here rather than falling through to a later base.
+			if (entry.kind === "class" && entry.gated === true) return { bin: "receiver", reason: "needs-inference" };
 			if (entry.kind === "opaque") {
 				sawOpaque = true;
 				if (entry.rebound === true) sawRebound = true;
@@ -4101,13 +4137,17 @@ class Resolver {
 	private collectAttributeWrites(): void {
 		if (this.attributeWritesCollected) return;
 		this.attributeWritesCollected = true;
-		for (const write of this.rawAttributeWrites) {
-			if (write.setattr === true) {
-				const use: UsePosition = { line: write.line, column: write.column };
-				if (!this.isUnshadowedBuiltin("setattr", write.scope, use)) continue;
+		// DEC-303 (a86) item 1, (a84) F3: the write sets are collected with ALL THREE attribute-write gates off, so
+		// no write is dropped because another write happened to be collected first (order- or file-name-dependent).
+		this.withoutAttributeGate(() => {
+			for (const write of this.rawAttributeWrites) {
+				if (write.setattr === true) {
+					const use: UsePosition = { line: write.line, column: write.column };
+					if (!this.isUnshadowedBuiltin("setattr", write.scope, use)) continue;
+				}
+				this.recordAttributeWrite(write);
 			}
-			this.recordAttributeWrite(write);
-		}
+		});
 	}
 
 	private recordAttributeWrite(write: RawAttributeWrite): void {
@@ -4648,6 +4688,9 @@ class Resolver {
 		if (this.hasReplacingDecorator(classInfo)) return null;
 		if (this.firstMethodEntry(mro, "__new__") !== null || this.effectiveMetaclass(classInfo)) return null;
 		for (const entry of mro.entries) {
+			// DEC-303 (a86) item 1: a gated base may be another object, whose `__new__` or metaclass cannot be read,
+			// so a constructed receiver fails closed exactly as it does past an opaque entry.
+			if (entry.kind === "class" && entry.gated === true) return null;
 			if (entry.kind === "opaque" && !this.isBuiltinClassBase(entry)) return null;
 		}
 		return classInfo;
