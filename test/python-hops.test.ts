@@ -3080,9 +3080,10 @@ describe("GCLI-154 (a84) — remaining item-2 shapes and controls", () => {
 		expect(cs).not.toContain("app.py:C.m");
 	});
 
-	test("cls.__class__.m: recorded class-level on C — measured over-refusal (accepted by DEC-303 (a84); fix in GCLI-156)", async () => {
+	test("cls.__class__.m: recorded class-level on C — measured over-refusal (accepted by DEC-303 (a84); carried to GCLI-164)", async () => {
 		// At runtime `cls.__class__` is the metaclass, so this should not refuse D's super().m(); it does, as a
-		// removal-only over-refusal. Pinned here and carried to GCLI-156.
+		// removal-only over-refusal. Pinned here and carried to GCLI-164 (it was neither fixed in GCLI-156 nor
+		// carried to GCLI-163/165; #248 round 1 N-f).
 		const r = await analyze([
 			py(
 				"app.py",
@@ -3949,6 +3950,63 @@ describe("GCLI-156 — a write on an in-repo descendant (DEC-303 (a88), shape #6
 		expect(r.callees).toEqual(["call:app.py:A.m"]);
 		// `super()` itself is a builtin call and counts external; the method call is the in-repo edge.
 		expect(r.bins).toEqual({ resolvedInRepo: 1, resolvedExternal: 1, receiverNeedsInference: 0, nameNotBound: 0 });
+	});
+
+	test("#6 (a83 item 2): a neighbour read and both receiver constructions are unchanged across the write", async () => {
+		// F3's pattern: the fixture must read a NEIGHBOUR on the same receiver and construct the receivers, before and
+		// after the write. The write changes only B.m; `n` and both constructions agree on both sides.
+		const body = (write: boolean) =>
+			`class B:\n    def m(self):\n        return 1\n    def n(self):\n        return 2\n    def call(self):\n        self.m()\n        self.n()\n\ndef before():\n    b = B()\n    b.n()\n\nclass C(B):\n    def setup(self):\n${write ? "        self.m = lambda: 2\n" : "        pass\n"}\ndef after():\n    c = C()\n    c.n()\n`;
+		const written = await observe({ "app.py": body(true) });
+		const twin = await observe({ "app.py": body(false) });
+		expect(written.callees).toEqual([
+			"call:app.py:B.n",
+			"call:app.py:B.n",
+			"call:app.py:B.n",
+			"new:app.py:B",
+			"new:app.py:C",
+		]);
+		expect(twin.callees).toEqual([
+			"call:app.py:B.m",
+			"call:app.py:B.n",
+			"call:app.py:B.n",
+			"call:app.py:B.n",
+			"new:app.py:B",
+			"new:app.py:C",
+		]);
+		expect(written.bins).toEqual({
+			resolvedInRepo: 5,
+			resolvedExternal: 0,
+			receiverNeedsInference: 1,
+			nameNotBound: 0,
+		});
+		expect(twin.bins).toEqual({ resolvedInRepo: 6, resolvedExternal: 0, receiverNeedsInference: 0, nameNotBound: 0 });
+	});
+
+	test("#6 N-d: a write on an opaque base's name is the conservative bin change, named here (dict base)", async () => {
+		// dev: external/external-base. head: receiver/needs-inference. A C instance really does have a second
+		// binding, so this is the conservative direction, not 3b1ace3's.
+		const files = (write: boolean) => ({
+			"app.py": `class B(dict):\n    def call(self):\n        self.keys()\n\nclass C(B):\n    def setup(self):\n${write ? "        self.keys = 2\n" : "        self.other = 2\n"}`,
+		});
+		const written = await observe(files(true));
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+		const twin = await observe(files(false));
+		expect(twin.callees).toEqual([]);
+		expect(twin.bins).toEqual({ resolvedInRepo: 0, resolvedExternal: 1, receiverNeedsInference: 0, nameNotBound: 0 });
+	});
+
+	test("#6 N-d: the same bin change over an opaque external base", async () => {
+		const files = (write: boolean) => ({
+			"app.py": `from ext import Base\nclass B(Base):\n    def call(self):\n        self.keys()\n\nclass C(B):\n    def setup(self):\n${write ? "        self.keys = 2\n" : "        self.other = 2\n"}`,
+		});
+		const written = await observe(files(true));
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+		const twin = await observe(files(false));
+		expect(twin.callees).toEqual([]);
+		expect(twin.bins).toEqual({ resolvedInRepo: 0, resolvedExternal: 1, receiverNeedsInference: 0, nameNotBound: 0 });
 	});
 });
 
