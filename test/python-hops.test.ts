@@ -3402,9 +3402,12 @@ describe("GCLI-155 — read-side attribute-write consumers", () => {
 		});
 	});
 
-	test("F1c (GCLI-161): the BARE-NAME variant of the written base is dev-equal, external with and without the write", async () => {
-		// `from m import B; class K(B)` measured on dev d58878f, on 034a898 and on this head: all three answer external
-		// either way, so this variant is a CONTROL, not a red-before — the write does not reach it on dev.
+	test("F1c (GCLI-161, #245 N3): the BARE-NAME variant of the written base is a known dev-equal GAP, external with and without the write", async () => {
+		// A KNOWN GAP, not a control: `from m import B; class K(B)` measured on dev d58878f, on 034a898 and on this
+		// head all answer external either way, so the write does not reach the bare-name read on dev and this build
+		// does not change that. It is pinned as a gap with its own follow-up task (GCLI-165), which also carries the
+		// `from m import m2` residual where m2 is not a module file: there the from-import carries a non-module name
+		// and the reader answers it the way dev does, not the way a written module attribute would.
 		const files = (write: boolean) => ({
 			"m.py": "from ext import B\n",
 			"y.py": "class L:\n    def g(self):\n        pass\n",
