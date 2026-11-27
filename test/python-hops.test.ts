@@ -3977,31 +3977,10 @@ describe("GCLI-156 — a write on an in-repo descendant (DEC-303 (a88), shape #6
 		expect(own.bins).toEqual(REFUSED);
 	});
 
-	// GCLI-171 (DEC-303 (a97)): only a receiver that may hold a descendant consults the #6 loop, so the exact-class
-	// receivers that dev refused (a fresh construction, an `x = C()` local, the class object) resolve across a
-	// descendant write, while self, an annotated local, a parameter and `type(self)` still refuse.
-	const exact = (call: string, write: boolean) =>
-		`class C:\n    def m(self):\n        return 1\n\nclass D(C):\n    pass\n${write ? "\nD.m = None\n" : ""}\ndef f():\n${call}`;
+	// GCLI-171 lands the MIXIN half only: the #6 loop runs for every receiver, as on dev, so these refusals are
+	// unchanged. The narrowing half (DEC-303 (a97), blocked in round 2) is a named item on GCLI-172.
 	const mayDescend = (body: string, write: boolean) =>
 		`class C:\n    def m(self):\n        return 1\n\nclass D(C):\n    pass\n${write ? "\nD.m = None\n" : ""}\n${body}`;
-
-	test("GCLI-171 over-refusal: an exact constructed local, the class object and a fresh construction resolve", async () => {
-		// Each shape is refused on dev only by the #6 loop; the descendant write is present throughout.
-		const local = await observe({ "app.py": exact("    x = C()\n    x.m()\n", true) });
-		expect(local.callees).toEqual(["call:app.py:C.m", "new:app.py:C"]);
-		expect(local.bins.resolvedInRepo).toBe(2);
-		const klass = await observe({ "app.py": exact("    C.m()\n", true) });
-		expect(klass.callees).toEqual(["call:app.py:C.m"]);
-		expect(klass.bins).toEqual(RESOLVED);
-		const fresh = await observe({ "app.py": exact("    C().m()\n", true) });
-		expect(fresh.callees).toEqual(["call:app.py:C.m", "new:app.py:C"]);
-		expect(fresh.bins.resolvedInRepo).toBe(2);
-		// the no-write controls resolve the same way, so the change is the write's absence alone
-		expect((await observe({ "app.py": exact("    x = C()\n    x.m()\n", false) })).callees).toEqual([
-			"call:app.py:C.m",
-			"new:app.py:C",
-		]);
-	});
 
 	test("GCLI-171 round 1: provably inexact 6d receivers still refuse (__new__, module rebinding, M1 rebinding)", async () => {
 		// (i) C.__new__ returns a descendant, so `x = C()` may be that descendant; D.m makes C.m the wrong edge.
@@ -4027,32 +4006,6 @@ describe("GCLI-156 — a write on an in-repo descendant (DEC-303 (a88), shape #6
 		});
 		expect(imported.callees).toEqual(["new:app.py:C", "new:app.py:D"]);
 		expect(imported.bins.receiverNeedsInference).toBe(1);
-	});
-
-	test("GCLI-171 round 1: an R4 multi-binding local and an unwritten M1 instance stay exact", async () => {
-		const r4 = await observe({
-			"app.py":
-				"class C:\n    def m(self):\n        return 1\n\nclass D(C):\n    pass\n\nD.m = None\n\ndef f(c):\n    if c:\n        x = C()\n    else:\n        x = C()\n    x.m()\n",
-		});
-		expect(r4.callees).toEqual(["call:app.py:C.m", "new:app.py:C", "new:app.py:C"]);
-		expect(r4.bins).toEqual({
-			resolvedInRepo: 3,
-			resolvedExternal: 0,
-			receiverNeedsInference: 0,
-			nameNotBound: 0,
-		});
-		// M1: `from app import x` with no `app.x = ...` anywhere keeps the fresh instance, so the loop does not run.
-		const m1 = await observe({
-			"app.py": "class C:\n    def m(self):\n        return 1\n\nclass D(C):\n    pass\n\nD.m = None\nx = C()\n",
-			"c.py": "from app import x\n\ndef f():\n    x.m()\n",
-		});
-		expect(m1.callees).toEqual(["call:app.py:C.m", "new:app.py:C"]);
-		expect(m1.bins).toEqual({
-			resolvedInRepo: 2,
-			resolvedExternal: 0,
-			receiverNeedsInference: 0,
-			nameNotBound: 0,
-		});
 	});
 
 	test("GCLI-171 refused twins: self, annotated local, parameter and type(self) still refuse", async () => {
