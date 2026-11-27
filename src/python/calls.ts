@@ -3591,32 +3591,43 @@ class Resolver {
 		return false;
 	}
 
-	private knownClassOf(name: string, scope: Scope, use?: UsePosition): ClassInfo | null {
+	/**
+	 * Rule 6d: the class behind a name that is a known-class binding, with whether the name is an INSTANCE of it.
+	 * A class imported (`from m import C`) is the class object, so a class-level receiver; every other arm — a
+	 * constructed local (`x = C()`), an annotation (`x: C`) — names an instance of the class, so a call on it is
+	 * instance dispatch. GCLI-163 threads `instance` into `methodLookup`'s `__class__`-write guard, which must not
+	 * refuse the class-level twin `C.m(...)`.
+	 */
+	private knownClassOf(name: string, scope: Scope, use?: UsePosition): { info: ClassInfo; instance: boolean } | null {
 		const found = this.lookupBindings(name, scope, use);
 		if (found === null || found.classBodyShadowed === true || found.bindings.length !== 1) return null;
 		const binding = found.bindings[0] as RawBinding;
 		if (binding.kind === "import" && binding.importBinding) {
 			const outcome = this.resolveImportBinding(binding.importBinding);
 			if (outcome.kind === "symbol" && outcome.symbol.kind === "class") {
-				return this.classById.get(outcome.symbol.id) ?? null;
+				const info = this.classById.get(outcome.symbol.id) ?? null;
+				return info === null ? null : { info, instance: false };
 			}
 			return null;
 		}
 		if (binding.kind === "assign") {
 			if (binding.annotation && binding.annotationScope) {
-				return this.resolveAnnotationClass(binding.annotation, binding.annotationScope);
+				const info = this.resolveAnnotationClass(binding.annotation, binding.annotationScope);
+				return info === null ? null : { info, instance: true };
 			}
 			if (binding.rhs !== undefined && binding.rhs.kind === "call") {
 				const symbol = this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0);
 				const constructed = symbol !== null && symbol.kind === "class" ? (this.classById.get(symbol.id) ?? null) : null;
 				// (a31) Q2: a decorated class may have been replaced, so `x = Cls(); x.m()` is refused.
-				return constructed !== null && this.hasReplacingDecorator(constructed) ? null : constructed;
+				if (constructed === null || this.hasReplacingDecorator(constructed)) return null;
+				return { info: constructed, instance: true };
 			}
 			return null;
 		}
 		// K1: the annotation of `*args: T` or `**kw: T` types the ELEMENTS, not the tuple or dict.
 		if (binding.kind === "param" && binding.splat === undefined && binding.annotation && binding.annotationScope) {
-			return this.resolveAnnotationClass(binding.annotation, binding.annotationScope);
+			const info = this.resolveAnnotationClass(binding.annotation, binding.annotationScope);
+			return info === null ? null : { info, instance: true };
 		}
 		return null;
 	}
@@ -3904,9 +3915,18 @@ class Resolver {
 		name: string,
 		fromSuper: boolean,
 		polymorphicCheck: boolean,
+		instanceReceiver = false,
 	): CallResolution {
 		const mro = this.computeMro(receiver);
 		if (!mro.ok) return { bin: "receiver", reason: "mro-failed" };
+		// GCLI-163 (DEC-303 (a88) item 2, shape #17/N7): an `__init__` that writes `self.__class__ = Other` changes
+		// the runtime class of an instance AFTER construction, so a method call on an OUTSIDE receiver
+		// (`x = C(); x.m()` in another module) is not the only binding the class's def is — the class the write names
+		// is another one the call can reach. Only INSTANCE dispatch is affected: a class-level call (`C.m(...)`) names
+		// the function on the class, which an instance's `__class__` write never changes, so it stays resolving.
+		if (instanceReceiver && this.classAttributeWritten(receiver, "__class__")) {
+			return { bin: "receiver", reason: "needs-inference" };
+		}
 		let start = 0;
 		if (fromSuper) {
 			const index = mro.entries.findIndex((entry) => entry.kind === "class" && entry.info === receiver);
@@ -4196,19 +4216,19 @@ class Resolver {
 		// external module or name is external; a value computed from one is not.
 		if (this.isExternalImportReceiver(base.name, scope, site)) return { bin: "external", reason: "external" };
 		// Rule 6d: a known-class binding.
-		const known = this.knownClassOf(base.name, scope, site);
-		if (known !== null) {
+		const knownClass = this.knownClassOf(base.name, scope, site);
+		if (knownClass !== null) {
 			if (segments.length > 1) return { bin: "receiver", reason: "needs-inference" };
 			// GCLI-140 (DEC-303 (a25) item 1, the x.m bullet): a write to x.m on the local makes x.m() no single binding.
 			if (this.localAttributeWritten(base.name, scope, lastName, site)) {
 				return { bin: "receiver", reason: "needs-inference" };
 			}
-			return this.methodLookup(known, lastName, false, true);
+			return this.methodLookup(knownClass.info, lastName, false, true, knownClass.instance);
 		}
 		// R4 (DEC-303 (a22) item 3): a local whose every binding is `Cls(...)` of one class.
 		if (segments.length === 1) {
 			const local = this.localConstructedClass(base.name, scope, site, lastName);
-			if (local !== null) return this.methodLookup(local, lastName, false, true);
+			if (local !== null) return this.methodLookup(local, lastName, false, true, true);
 		}
 		// TS (DEC-303 (a22) item 3, (a23)): a local whose one binding is `type(self)` or `self.__class__`.
 		if (segments.length === 1) {
@@ -4224,7 +4244,7 @@ class Resolver {
 				if (this.localAttributeWritten(base.name, scope, lastName, site)) {
 					return { bin: "receiver", reason: "needs-inference" };
 				}
-				return this.methodLookup(instance, lastName, false, true);
+				return this.methodLookup(instance, lastName, false, true, true);
 			}
 		}
 		// K1 (DEC-303 (a22) item 3): `*args` is a tuple and `**kwargs` a dict, so a method
@@ -4869,7 +4889,7 @@ class Resolver {
 		}
 		const classInfo = this.instanceClassOf(symbol);
 		if (classInfo === null) return unresolved;
-		return this.methodLookup(classInfo, segments[0] as string, false, true);
+		return this.methodLookup(classInfo, segments[0] as string, false, true, true);
 	}
 
 	/**

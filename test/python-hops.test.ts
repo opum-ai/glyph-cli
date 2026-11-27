@@ -4201,3 +4201,117 @@ describe("GCLI-164 — #4 re-dispatch (class-body lazy) and N8 diamond super", (
 		expect(r.callees).toEqual([]);
 	});
 });
+
+// GCLI-163 (DEC-303 (a88) item 2): #17 (N7) — an `__init__` that writes `self.__class__ = Other` changes the runtime
+// class of the instance AFTER construction, so an OUTSIDE receiver's method call (`x = C(); x.m()` in another module)
+// is not the only binding the class's def is: the class the write names is a second one the call can reach.
+// `methodLookup` now refuses that call on INSTANCE dispatch only (`instanceReceiver`), threaded from the call sites
+// that resolve an INSTANCE to a class (the 6d/R4 constructed local, the E1 constructed receiver, the imported
+// instance). A class-level call (`C.m(...)`) names the function on the class, which an instance's `__class__` write
+// never changes, and keeps resolving. Only an in-repo edge is removed (removal-only, fail-closed).
+describe("GCLI-163 — a cross-module __class__ write leaves an outside receiver resolving (DEC-303 (a88), shape #17/N7)", () => {
+	const other = "class Other:\n    def m(self):\n        return 2\n    def n(self):\n        return 3\n";
+	const writeC =
+		"class C:\n    def __init__(self):\n        self.__class__ = Other\n    def m(self):\n        return 1\n    def n(self):\n        return 1\n";
+	const plainC =
+		"class C:\n    def __init__(self):\n        pass\n    def m(self):\n        return 1\n    def n(self):\n        return 1\n";
+	const mWrite = other + writeC;
+	const mPlain = other + plainC;
+	const observe = async (files: Record<string, string>) => {
+		const r = await analyze(Object.entries(files).map(([path, source]) => py(path, source)));
+		const byId = new Map(r.symbols.map((x) => [x.id, x]));
+		const callees = r.sites
+			.map((s) => {
+				const c = s.calleeId === null ? undefined : byId.get(s.calleeId);
+				return `${s.kind}:${c?.file}:${c?.qualname}`;
+			})
+			.sort();
+		return { callees, bins: r.callBins };
+	};
+	const REFUSED_ONE = { resolvedInRepo: 1, resolvedExternal: 0, receiverNeedsInference: 1, nameNotBound: 0 };
+
+	test("#17 cross module: x.m() refuses and the receiver keeps its construction edges; the write-absent twin resolves to C.m", async () => {
+		const written = await observe({ "m.py": mWrite, "app.py": "from m import C\nx = C()\nx.m()\n" });
+		// the written attribute (m) is gone; the receiver itself (the C() construction) is unchanged.
+		expect(written.callees).toEqual(["new:m.py:C", "new:m.py:C.__init__"]);
+		expect(written.bins).toEqual(REFUSED_ONE);
+		const twin = await observe({ "m.py": mPlain, "app.py": "from m import C\nx = C()\nx.m()\n" });
+		expect(twin.callees).toContain("call:m.py:C.m");
+		expect(twin.bins).toEqual({ resolvedInRepo: 2, resolvedExternal: 0, receiverNeedsInference: 0, nameNotBound: 0 });
+	});
+
+	test("#17 neighbour x.n() on the same instance refuses too: the write changes the whole type, not one attribute", async () => {
+		// Unlike a class-level `C.m = other` (a83 item 2), where a neighbour attribute still resolves, `__class__`
+		// changes the runtime class, so EVERY method on the instance is ambiguous, not only the one Other also names.
+		const written = await observe({ "m.py": mWrite, "app.py": "from m import C\nx = C()\nx.n()\n" });
+		expect(written.callees).toEqual(["new:m.py:C", "new:m.py:C.__init__"]);
+		expect(written.bins).toEqual(REFUSED_ONE);
+		const twin = await observe({ "m.py": mPlain, "app.py": "from m import C\nx = C()\nx.n()\n" });
+		expect(twin.callees).toContain("call:m.py:C.n");
+	});
+
+	test("#17 same module: x.m() after the write refuses; the twin resolves", async () => {
+		const written = await observe({
+			"app.py": `class Other:\n    def m(self):\n        return 2\n${writeC}x = C()\nx.m()\n`,
+		});
+		expect(written.callees).toEqual(["new:app.py:C", "new:app.py:C.__init__"]);
+		expect(written.bins).toEqual(REFUSED_ONE);
+		const twin = await observe({
+			"app.py": `class Other:\n    def m(self):\n        return 2\n${plainC}x = C()\nx.m()\n`,
+		});
+		expect(twin.callees).toContain("call:app.py:C.m");
+	});
+
+	test("#17 dotted constructor m.C().m() refuses", async () => {
+		const written = await observe({ "m.py": mWrite, "app.py": "import m\nm.C().m()\n" });
+		expect(written.callees).toEqual(["new:m.py:C", "new:m.py:C.__init__"]);
+		expect(written.bins).toEqual(REFUSED_ONE);
+	});
+
+	test("#17 imported instance: from m import inst; inst.m() refuses", async () => {
+		const written = await observe({ "m.py": `${mWrite}inst = C()\n`, "app.py": "from m import inst\ninst.m()\n" });
+		expect(written.callees).toEqual(["new:m.py:C", "new:m.py:C.__init__"]);
+		expect(written.bins).toEqual(REFUSED_ONE);
+	});
+
+	test("#17 descendant D(C): an instance of a subclass that INHERITS the write refuses", async () => {
+		const written = await observe({
+			"m.py": mWrite,
+			"app.py": "from m import C\nclass D(C):\n    pass\nx = D()\nx.m()\n",
+		});
+		expect(written.callees).toEqual(["new:app.py:D", "new:m.py:C.__init__"]);
+		expect(written.bins).toEqual(REFUSED_ONE);
+	});
+
+	test("#17 class-level twin: C.m(C()) is NOT refused (an instance's __class__ write never changes C.m)", async () => {
+		const resolved = await observe({ "m.py": mWrite, "app.py": "from m import C\nC.m(C())\n" });
+		expect(resolved.callees).toContain("call:m.py:C.m");
+		expect(resolved.bins).toEqual({
+			resolvedInRepo: 2,
+			resolvedExternal: 0,
+			receiverNeedsInference: 0,
+			nameNotBound: 0,
+		});
+	});
+
+	test("#17 twin: an unrelated class's instance and a class with no write keep their edges", async () => {
+		const unrelated = await observe({
+			"app.py": `class Other:\n    def m(self):\n        return 2\n${writeC}class U:\n    def u(self):\n        return 4\nu = U()\nu.u()\n`,
+		});
+		expect(unrelated.callees).toContain("call:app.py:U.u");
+		expect(unrelated.bins.receiverNeedsInference).toBe(0);
+		const noWrite = await observe({ "m.py": mPlain, "app.py": "from m import C\nx = C()\nx.m()\n" });
+		expect(noWrite.callees).toContain("call:m.py:C.m");
+	});
+
+	test("#17 before and after the write: the write set is collected before resolution, so both sides refuse and both constructions keep their edges", async () => {
+		// `early`'s calls textually PRECEDE the __init__ that writes; `late`'s follow it. Collection is file-wide, so
+		// both x.m() and x.n() refuse on both sides; the two C() constructions keep their edges (a83 item 2 read).
+		const app =
+			"class Other:\n    def m(self):\n        return 2\n    def n(self):\n        return 3\nclass C:\n    def early(self):\n        x = C()\n        x.m()\n        x.n()\n    def __init__(self):\n        self.__class__ = Other\n    def m(self):\n        return 1\n    def n(self):\n        return 1\n    def late(self):\n        x = C()\n        x.m()\n        x.n()\n";
+		const r = await observe({ "app.py": app });
+		expect(r.callees.filter((c) => c.endsWith(":C.m") || c.endsWith(":C.n"))).toEqual([]);
+		expect(r.callees.filter((c) => c === "new:app.py:C").length).toBe(2);
+		expect(r.bins).toEqual({ resolvedInRepo: 2, resolvedExternal: 0, receiverNeedsInference: 4, nameNotBound: 0 });
+	});
+});
