@@ -4968,7 +4968,11 @@ class Resolver {
 		if (binding.kind !== "assign" || binding.rhs === undefined || binding.rhs.kind !== "call") return null;
 		const classInfo = this.instanceClassOf(this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0));
 		if (classInfo === null) return null;
-		const resolved = this.methodLookup(classInfo, "__call__", false, true);
+		// GCLI-163 round 1 (DEC-303 (a88) item 2, B1): `x = C(); x()` dispatches through type(x).__call__, which is
+		// INSTANCE dispatch exactly as `x.m()` is, so a `self.__class__` write on C leaves it no single binding. Passing
+		// `instanceReceiver` true makes the guard refuse here; the `bin !== "inRepo"` test below then returns null and
+		// the site falls to `resolveBareName`, moving resolvedInRepo to a name bin — removal only, no created edge.
+		const resolved = this.methodLookup(classInfo, "__call__", false, true, true);
 		return resolved.bin === "inRepo" ? resolved : null;
 	}
 

@@ -4315,3 +4315,99 @@ describe("GCLI-163 — a cross-module __class__ write leaves an outside receiver
 		expect(r.bins).toEqual({ resolvedInRepo: 2, resolvedExternal: 0, receiverNeedsInference: 4, nameNotBound: 0 });
 	});
 });
+
+// GCLI-163 round 1 (DEC-303 (a88) item 2): two blocking carries. B1 — `x = C(); x()` dispatches through
+// type(x).__call__, which is instance dispatch, so it must share the `__class__`-write guard. B2 — the guard is
+// threaded from several distinct call sites; each of R4, the annotated-assign arm and the parameter-annotation arm
+// had no fixture reaching it, so add one (red on base, red under a flip of that ONE site) plus the missing no-write
+// twins for the dotted, imported-instance and descendant shapes.
+describe("GCLI-163 round 1 — B1 __call__ and the per-site fixtures", () => {
+	const other =
+		"class Other:\n    def m(self):\n        return 2\n    def n(self):\n        return 3\n    def __call__(self):\n        return 9\n";
+	const writeC =
+		"class C:\n    def __init__(self):\n        self.__class__ = Other\n    def m(self):\n        return 1\n    def n(self):\n        return 1\n    def __call__(self):\n        return 1\n";
+	const plainC =
+		"class C:\n    def __init__(self):\n        pass\n    def m(self):\n        return 1\n    def n(self):\n        return 1\n    def __call__(self):\n        return 1\n";
+	const observe = async (files: Record<string, string>) => {
+		const r = await analyze(Object.entries(files).map(([path, source]) => py(path, source)));
+		const byId = new Map(r.symbols.map((x) => [x.id, x]));
+		const callees = r.sites
+			.map((s) => {
+				const c = s.calleeId === null ? undefined : byId.get(s.calleeId);
+				return `${s.kind}:${c?.file}:${c?.qualname}`;
+			})
+			.sort();
+		return { callees, bins: r.callBins };
+	};
+
+	test("B1: x = C(); x() refuses through the __class__ write (name bin, no created edge); the twin resolves to __call__", async () => {
+		// Static `x()` is instance dispatch (type(x).__call__), so the guard applies. The refused site drops to a NAME
+		// bin (resolveInstanceCall returns null, resolveBareName runs) — no edge is created, only the C.__call__ edge
+		// is removed.
+		const written = await observe({ "m.py": other + writeC, "app.py": "from m import C\nx = C()\nx()\n" });
+		expect(written.callees).toEqual(["new:m.py:C", "new:m.py:C.__init__"]);
+		expect(written.bins).toEqual({
+			resolvedInRepo: 1,
+			resolvedExternal: 0,
+			receiverNeedsInference: 0,
+			nameNotBound: 1,
+		});
+		const twin = await observe({ "m.py": other + plainC, "app.py": "from m import C\nx = C()\nx()\n" });
+		expect(twin.callees).toContain("call:m.py:C.__call__");
+		expect(twin.bins).toEqual({ resolvedInRepo: 2, resolvedExternal: 0, receiverNeedsInference: 0, nameNotBound: 0 });
+	});
+
+	test("B2 R4: two constructed bindings in a function make x.m() refuse (R4 site); the twin resolves", async () => {
+		const written = await observe({ "app.py": `${other}${writeC}def f():\n    x = C()\n    x = C()\n    x.m()\n` });
+		expect(written.callees).toEqual(["new:app.py:C", "new:app.py:C", "new:app.py:C.__init__", "new:app.py:C.__init__"]);
+		expect(written.bins).toEqual({
+			resolvedInRepo: 2,
+			resolvedExternal: 0,
+			receiverNeedsInference: 1,
+			nameNotBound: 0,
+		});
+		const twin = await observe({ "app.py": `${other}${plainC}def f():\n    x = C()\n    x = C()\n    x.m()\n` });
+		expect(twin.callees).toContain("call:app.py:C.m");
+	});
+
+	test("B2 annotated assign: x: C = C(); x.m() refuses (annotated-assign site); the twin resolves", async () => {
+		const written = await observe({ "app.py": `${other}${writeC}x: C = C()\nx.m()\n` });
+		expect(written.callees).toEqual(["new:app.py:C", "new:app.py:C.__init__"]);
+		expect(written.bins).toEqual({
+			resolvedInRepo: 1,
+			resolvedExternal: 0,
+			receiverNeedsInference: 1,
+			nameNotBound: 0,
+		});
+		const twin = await observe({ "app.py": `${other}${plainC}x: C = C()\nx.m()\n` });
+		expect(twin.callees).toContain("call:app.py:C.m");
+	});
+
+	test("B2 parameter annotation: def f(x: C); x.m() refuses (param-annotation site); the twin resolves", async () => {
+		const written = await observe({ "app.py": `${other}${writeC}def f(x: C):\n    x.m()\n` });
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual({
+			resolvedInRepo: 0,
+			resolvedExternal: 0,
+			receiverNeedsInference: 1,
+			nameNotBound: 0,
+		});
+		const twin = await observe({ "app.py": `${other}${plainC}def f(x: C):\n    x.m()\n` });
+		expect(twin.callees).toEqual(["call:app.py:C.m"]);
+	});
+
+	test("twins: the dotted, imported-instance and descendant shapes resolve when C does NOT write __class__", async () => {
+		const dotted = await observe({ "m.py": other + plainC, "app.py": "import m\nm.C().m()\n" });
+		expect(dotted.callees).toContain("call:m.py:C.m");
+		const imported = await observe({
+			"m.py": `${other}${plainC}inst = C()\n`,
+			"app.py": "from m import inst\ninst.m()\n",
+		});
+		expect(imported.callees).toContain("call:m.py:C.m");
+		const descendant = await observe({
+			"m.py": other + plainC,
+			"app.py": "from m import C\nclass D(C):\n    pass\nx = D()\nx.m()\n",
+		});
+		expect(descendant.callees).toContain("call:m.py:C.m");
+	});
+});
