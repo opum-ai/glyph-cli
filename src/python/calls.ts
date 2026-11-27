@@ -1948,8 +1948,9 @@ class FileWalker {
 			// A tuple target binds run-time values; a subscript/attribute binds no name.
 			this.addTargetBindingsAsRebound(frame.scope, left);
 		}
-		// GCLI-140 (DEC-303 (a25)): an attribute target is a binding of that attribute.
-		this.recordAttributeTargets(frame.scope, left);
+		// GCLI-140 (DEC-303 (a25)): an attribute target is a binding of that attribute. A bare annotation
+		// (`self.m: int`, no value) binds nothing (PEP 526), as the name rules already hold.
+		if (right !== null) this.recordAttributeTargets(frame.scope, left);
 		// Walk the target (calls in a subscript index) and the right-hand side.
 		if (left !== null) this.pushOuter(stack, left, frame);
 		if (right !== null) this.pushOuter(stack, right, frame);
@@ -2294,6 +2295,8 @@ class Resolver {
 	/** GCLI-140 (DEC-303 (a25)): the recorded attribute writes, and their classification by target. */
 	private readonly rawAttributeWrites: readonly RawAttributeWrite[];
 	private readonly classAttrWrites = new Map<string, Set<string>>();
+	/** GCLI-140 (DEC-303 (a79) Q-A): the class-level subset (`Cls.m`, `cls.m`, a literal setattr on the class), which alone refuses a super lookup. */
+	private readonly classLevelWrites = new Map<string, Set<string>>();
 	private readonly moduleAttrWrites = new Map<string, Set<string>>();
 	private readonly localAttrWrites = new Map<number, Map<string, Set<string>>>();
 	private attributeWritesCollected = false;
@@ -3192,13 +3195,6 @@ class Resolver {
 		const key = `${path}\u0000${name}`;
 		if (visited.has(key)) return { kind: "unresolved", reason: "import-cycle" };
 		visited.add(key);
-		// GCLI-140 (DEC-303 (a25) item 1, the mod.f bullet): a write to mod.f anywhere in the analysed modules is another binding
-		// of that attribute, so the read through the module never resolves to the def.
-		// UNTESTED (DEC-303 (a78) Q2): no fixture drives this guard — every input the corpus reaches is already
-		// refused by the chain check or the moduleBindingGate check — and no mutant turns it red. It can only
-		// refuse (it returns an unresolved outcome and builds no edge); it is kept for the recursive hop path in
-		// this method.
-		if (this.moduleAttributeWritten(path, name)) return { kind: "unresolved", reason: "rebound" };
 		const gate = this.moduleBindingGate(path, name);
 		if (gate !== null) {
 			if (gate.kind === "symbol" || gate.kind === "multiply" || gate.kind === "unresolved") return gate;
@@ -3694,20 +3690,21 @@ class Resolver {
 	): CallResolution {
 		const mro = this.computeMro(receiver);
 		if (!mro.ok) return { bin: "receiver", reason: "mro-failed" };
-		// GCLI-140 (DEC-303 (a25) item 1, the self.m/cls.m/Cls.m bullet): a write to the attribute (self.m, cls.m, Cls.m, or setattr with a literal
-		// name) is another binding of it, so a call through the class or an instance never resolves to the def;
-		// subclasses inherit it through the MRO. `super().m` reads past the instance and is unaffected.
-		if (!fromSuper) {
-			for (const entry of mro.entries) {
-				if (entry.kind === "class" && this.classAttrWrites.get(entry.info.id)?.has(name) === true) {
-					return { bin: "receiver", reason: "needs-inference" };
-				}
-			}
-		}
 		let start = 0;
 		if (fromSuper) {
 			const index = mro.entries.findIndex((entry) => entry.kind === "class" && entry.info === receiver);
 			start = index < 0 ? 1 : index + 1;
+		}
+		// GCLI-140 (DEC-303 (a25) item 1, the self.m/cls.m/Cls.m bullet; (a79) Q-A): a recorded write of the
+		// attribute on the MRO is another binding of it, so a call through the class or an instance never resolves to
+		// the def, and subclasses inherit it. `super().m()` reads the class MRO after the current class, never the
+		// instance dict, so only a class-level write (`C.m`, `cls.m`, a literal setattr on the class) refuses it.
+		const writes = fromSuper ? this.classLevelWrites : this.classAttrWrites;
+		for (let index = start; index < mro.entries.length; index++) {
+			const entry = mro.entries[index] as MroEntry;
+			if (entry.kind === "class" && writes.get(entry.info.id)?.has(name) === true) {
+				return { bin: "receiver", reason: "needs-inference" };
+			}
 		}
 		let sawOpaque = false;
 		let sawRebound = false;
@@ -3937,6 +3934,11 @@ class Resolver {
 		const receiver = this.receiverOf(base.name, scope);
 		if (receiver !== null) {
 			if (segments.length > 1) return { bin: "receiver", reason: "needs-inference" };
+			// GCLI-140 (DEC-303 (a25) item 1, the self.__class__ bullet): a write to self.__class__ anywhere in the
+			// class leaves every self receiver in it unresolved, a direct self.m() included.
+			if (receiver.kind === "instance" && this.classAttributeWritten(receiver.classInfo, "__class__")) {
+				return { bin: "receiver", reason: "needs-inference" };
+			}
 			return this.methodLookup(receiver.classInfo, lastName, false, true);
 		}
 		// Rule 24: an attribute call on a name bound directly by an import of an
@@ -4064,7 +4066,8 @@ class Resolver {
 			// on the enclosing class; `receiverOf` also covers a nested def that inherits the receiver.
 			const receiver = this.receiverOf(base.name, write.scope);
 			if (receiver !== null) {
-				this.addClassAttrWrite(receiver.classInfo.id, write.attr);
+				// (a79) Q-A: a classmethod's `cls.m` is a CLASS-level write; a plain method's `self.m` is not.
+				this.addClassAttrWrite(receiver.classInfo.id, write.attr, receiver.kind === "class");
 				return;
 			}
 			const found = this.lookupBindings(base.name, write.scope, use);
@@ -4083,7 +4086,7 @@ class Resolver {
 			// `Cls.m = v` for an in-repo class name, module-level or in a function.
 			const classSymbol = this.classSymbolOfName(base.name, found.scope, { line: 0, column: 0 });
 			if (classSymbol !== null) {
-				this.addClassAttrWrite(classSymbol.id, write.attr);
+				this.addClassAttrWrite(classSymbol.id, write.attr, true);
 				return;
 			}
 			this.addLocalAttrWrite(found.scope.uid, base.name, write.attr);
@@ -4098,10 +4101,14 @@ class Resolver {
 		}
 	}
 
-	private addClassAttrWrite(classId: string, attr: string): void {
+	private addClassAttrWrite(classId: string, attr: string, classLevel: boolean): void {
 		const set = this.classAttrWrites.get(classId);
 		if (set === undefined) this.classAttrWrites.set(classId, new Set([attr]));
 		else set.add(attr);
+		if (!classLevel) return;
+		const level = this.classLevelWrites.get(classId);
+		if (level === undefined) this.classLevelWrites.set(classId, new Set([attr]));
+		else level.add(attr);
 	}
 
 	private addModuleAttrWrite(path: string, attr: string): void {
@@ -4387,6 +4394,9 @@ class Resolver {
 		if (imported.kind !== "module" || imported.path === null) return null;
 		const moduleScope = this.moduleScopesByPath.get(imported.path);
 		if (moduleScope === undefined) return null;
+		// GCLI-140 (DEC-303 (a25) item 1, the mod.f bullet): a write to the module's attribute is another binding,
+		// so the alias `h = m.f` never resolves to the def.
+		if (this.moduleAttributeWritten(imported.path, attr)) return { bin: "name", reason: "rebound" };
 		const defined = this.enumerableBindings(attr, moduleScope, here);
 		if (defined === null || defined.length !== 1) return null;
 		const definition = defined[0] as RawBinding;

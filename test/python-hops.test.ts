@@ -2477,4 +2477,100 @@ describe("GCLI-140 — an attribute write is a binding of that attribute", () =>
 		const mod = await probe("import m\nm.g = other\ndef other():\n    pass\nCALL\n", "m.f()", { "m.py": m });
 		expect(mod.callees).toContain("m.py:f");
 	});
+
+	// GCLI-140 round 1, F1: the self.__class__ bullet covers every self receiver in the class, a direct self.m() too.
+	test("a self.__class__ write leaves a direct self.m() unresolved; the twin resolves", async () => {
+		const declared = "class Other:\n    pass\n";
+		const refused = await probe(
+			`${cls}${declared}class D(C):\n    def go(self):\n        self.__class__ = Other\n    def use(self):\n        CALL\n`,
+			"self.m()",
+		);
+		expect(ms(refused)).toEqual([]);
+		expect(refused.delta).toEqual(REFUSED);
+		const twin = await probe(
+			`${cls}${declared}class D(C):\n    def go(self):\n        pass\n    def use(self):\n        CALL\n`,
+			"self.m()",
+		);
+		expect(ms(twin)).toEqual(["app.py:C.m"]);
+	});
+
+	// GCLI-140 round 1, F2: the alias read of a written module attribute is the same second binding.
+	test("an alias h = m.f never resolves through a written module attribute; the twin resolves", async () => {
+		const app = (write: string) => `import m\n${write}def other():\n    pass\ndef g():\n    h = m.f\n    CALL\n`;
+		const refused = await probe(app("m.f = other\n"), "h()", { "m.py": m });
+		expect(refused.callees.filter((c) => c?.endsWith(":f"))).toEqual([]);
+		expect(refused.delta).toEqual(NOTHING);
+		const twin = await probe(app(""), "h()", { "m.py": m });
+		expect(twin.callees).toContain("m.py:f");
+	});
+
+	// GCLI-140 round 1, R5: a bare attribute annotation binds nothing (PEP 526); an annotated assignment does.
+	test("a bare attribute annotation is not a write; an annotated assignment is", async () => {
+		const bare = `${cls}${other}class D(C):\n    def go(self):\n        self.m: int\n    def use(self):\n        CALL\n`;
+		const resolved = await probe(bare, "self.m()");
+		expect(ms(resolved)).toEqual(["app.py:C.m"]);
+		expect(resolved.delta).toEqual(RESOLVED);
+		const withValue = `${cls}${other}class D(C):\n    def go(self):\n        self.m: int = other\n    def use(self):\n        CALL\n`;
+		const refused = await probe(withValue, "self.m()");
+		expect(ms(refused)).toEqual([]);
+		expect(refused.delta).toEqual(REFUSED);
+	});
+
+	// GCLI-140 round 1, R6/F8: every binding position that can target an attribute is a write.
+	const binder = (label: string, body: string): void => {
+		test(`${label}: the write is a binding, self.m() refuses; the twin resolves`, async () => {
+			const app = (inner: string) =>
+				`${cls}${other}class D(C):\n    def go(self):\n${inner}    def use(self):\n        CALL\n`;
+			const refused = await probe(app(body), "self.m()");
+			expect(ms(refused)).toEqual([]);
+			expect(refused.delta).toEqual(REFUSED);
+			const twin = await probe(app("        pass\n"), "self.m()");
+			expect(ms(twin)).toEqual(["app.py:C.m"]);
+		});
+	};
+	binder("for target", "        for self.m in [other]:\n            pass\n");
+	binder("with-as target", "        with ctx() as self.m:\n            pass\n");
+	binder("comprehension target", "        [0 for self.m in [other]]\n");
+	binder("augmented assignment", "        self.m += other\n");
+	binder("tuple target", "        self.n, self.m = other, other\n");
+	binder("chained assignment", "        a = self.m = other\n");
+	binder("write in a nested def", "        def inner():\n            self.m = other\n");
+	binder("setattr in a lambda", '        (lambda: setattr(self, "m", other))()\n');
+
+	// GCLI-140 round 1, (a79) Q-A: super().m() reads the class MRO after the current class, never the instance
+	// dict, so a class-level write refuses it and an instance write does not.
+	test("a class-level write refuses super().m(); an instance-write twin still resolves", async () => {
+		const base = "class C:\n    def m(self):\n        pass\n";
+		const other = "def other(self):\n    pass\n";
+		// The inner `super()` call itself is a builtin external call in the with-source only, so the refused delta
+		// carries external 1 beside the receiver refusal.
+		const SUPER_REFUSED: Delta = { inRepo: 0, external: 1, receiver: 1, nameNotBound: 0 };
+		const classLevel = `${base}${other}C.m = other\nclass D(C):\n    def m(self):\n        CALL\n`;
+		const direct = await probe(classLevel, "super().m()");
+		expect(ms(direct)).toEqual([]);
+		expect(direct.delta).toEqual(SUPER_REFUSED);
+		const classmethod = `${base}${other}class E(C):\n    @classmethod\n    def go(cls):\n        cls.m = other\nclass D(E):\n    def m(self):\n        CALL\n`;
+		const viaCls = await probe(classmethod, "super().m()");
+		expect(ms(viaCls)).toEqual([]);
+		expect(viaCls.delta).toEqual(SUPER_REFUSED);
+		const viaSetattr = `${base}${other}setattr(C, "m", other)\nclass D(C):\n    def m(self):\n        CALL\n`;
+		const onClass = await probe(viaSetattr, "super().m()");
+		expect(ms(onClass)).toEqual([]);
+		expect(onClass.delta).toEqual(SUPER_REFUSED);
+		const instance = `${base}${other}class E(C):\n    def go(self):\n        self.m = other\nclass D(E):\n    def m(self):\n        CALL\n`;
+		const resolved = await probe(instance, "super().m()");
+		expect(ms(resolved)).toEqual(["app.py:C.m"]);
+		expect(resolved.delta).toEqual({ inRepo: 1, external: 1, receiver: 0, nameNotBound: 0 });
+	});
+
+	// GCLI-140 round 1, (a79) Q-B: the importer's from-import call is refused (the defining module's own bare
+	// call is the follow-up, GCLI-151).
+	test("an importer's from m import f; f() refuses when m.f is written; the twin resolves", async () => {
+		const app = (write: string) => `import m\n${write}def other():\n    pass\nfrom m import f\nCALL\n`;
+		const refused = await probe(app("m.f = other\n"), "f()", { "m.py": m });
+		expect(refused.callees.filter((c) => c?.endsWith(":f"))).toEqual([]);
+		expect(refused.delta).toEqual(NOTHING);
+		const twin = await probe(app(""), "f()", { "m.py": m });
+		expect(twin.callees).toContain("m.py:f");
+	});
 });

@@ -25,9 +25,11 @@ import { grammarVersion } from "./parse.ts";
  * (DEC-303 (a18)): the marker directories also enter the key, but a marker-less
  * repository still needs the new key rather than a stale pre-S8a answer. Bumped to
  * 3 for GCLI-89: an attribute or subscript assignment target no longer rebinds its
- * base name (DEC-303 (a23) item 1), which changes which calls resolve.
+ * base name (DEC-303 (a23) item 1), which changes which calls resolve. Bumped to 4
+ * for GCLI-140: an attribute write is a binding of that attribute (DEC-303 (a25)),
+ * which refuses calls that resolved before.
  */
-export const PYTHON_ANALYZER_VERSION = "3";
+export const PYTHON_ANALYZER_VERSION = "4";
 
 /** The S5 per-site flags, carried in the cached index and never in an envelope (rule 17). */
 interface SiteFlags {
