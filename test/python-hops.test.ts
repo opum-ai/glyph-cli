@@ -2000,3 +2000,43 @@ describe("GCLI-144 — a class-body read of a name the class body binds skips en
 		});
 	});
 });
+
+// GCLI-147 (DEC-303 (a75) item 2): pins the `lazyDiffers && bindings.length > 0` condition in `lookupBindings`
+// (GCLI-144). When Rule 38 dropped EVERY class binding of the name, the lookup leaves the class and a name bound
+// nowhere further out stays unbound (a builtin or a star-supplied name); without `bindings.length > 0` it would
+// return a flagged empty result and refuse instead. These are GCLI-146's behaviour cases: DEC-303 (a76) folds N1a
+// and N1b into GCLI-146, which turns them from "unchanged from dev" into REFUSED, so GCLI-146 updates the
+// expectations below (the comments say which), they are not a claim that dev's answer is right.
+describe("GCLI-147 — the lazy-read condition GCLI-144 left untested", () => {
+	const mod = (name: string) => `def ${name}(o=None):\n    pass\n`;
+
+	test("N1a: a lazy alias reading len, the class importing len later, is binned external as on dev (GCLI-146 will refuse it)", async () => {
+		const r = await probe("class Outer:\n    type A = CALL\n    from m import len\n", "len([])", {
+			"m.py": mod("len"),
+		});
+		// Unchanged from dev and pre-existing: dev claims the builtin although Python reads m.len. GCLI-146: REFUSED.
+		expect(r.delta).toEqual({ inRepo: 0, external: 1, receiver: 0, nameNotBound: 0 });
+		expect(r.callees).toEqual([]);
+	});
+
+	test("N1b: a lazy alias reading a star-supplied f, the class importing f later, keeps s.f as on dev (GCLI-146 will refuse it)", async () => {
+		const r = await probe("from s import *\nclass Outer:\n    type A = CALL\n    from m import f\n", "f()", {
+			"s.py": mod("f"),
+			"m.py": mod("f"),
+		});
+		// Unchanged from dev and pre-existing: dev resolves the star's f although Python reads m.f. GCLI-146: REFUSED.
+		expect(r.delta).toEqual(RESOLVED);
+		expect(r.callees).toEqual(["s.py:f"]);
+	});
+
+	test("N2: a decorator read of a name the class imports later gets no edge to the enclosing function's def", async () => {
+		const r = await probe(
+			"def outer():\n    def staticmethod(f):\n        return f\n    class Outer:\n        @staticmethod\n        def m(self):\n            self.n()\n        def n(self):\n            pass\n        from m import X as staticmethod\n",
+			"pass",
+			{ "m.py": "class X:\n    pass\n" },
+		);
+		// Python reads the builtin staticmethod; origin/dev before GCLI-144 had an edge to outer.staticmethod.
+		expect(r.callees).not.toContain("app.py:outer.staticmethod");
+		expect(r.callees).toContain("app.py:outer.Outer.n");
+	});
+});
