@@ -269,7 +269,12 @@ interface BaseRef {
 }
 
 type MroEntry =
-	| { kind: "class"; info: ClassInfo; key: string }
+	/**
+	 * `gated`: the base's own name is rebound by a recorded attribute write (DEC-303 (a86) item 1), so the MRO
+	 * here is dev's write-blind MRO but no lookup may reach this class or pass it: the runtime base may be another
+	 * object. The entry is present so write-blind relationships (descendants, ancestor writes) stay dev's.
+	 */
+	| { kind: "class"; info: ClassInfo; key: string; gated?: true }
 	/** `rebound`: the base is an in-repo name that is rebound, not an external base (DEC-303 (a47) item 2 (i)). */
 	| { kind: "opaque"; name: string; key: string; rebound?: true };
 
@@ -2636,6 +2641,14 @@ class Resolver {
 		if (found === null) return this.resolveUnbound(name, scope, use, starCtx);
 		// GCLI-144 (DEC-303 (a73)): the class body binds this name after the read; an enclosing function's binding is not it.
 		if (found.classBodyShadowed === true) return { kind: "unresolved", reason: "rebound" };
+		// GCLI-155 (DEC-303 (a79) Q-B, (a80) item 3 N2): a read that lands on a MODULE's own bindings reads that
+		// module's globals, and a write to the module's attribute from any analysed module (`m.f = other`, or the
+		// attribute the star import `from s import *` re-exports) is another binding of the name. This is the
+		// defining module's own bare call and the star importer's bare call; the from-import reader is gated through
+		// `moduleBindingGate` and a class body's lazy read is not this path (its bindings are the class's).
+		if (found.scope.kind === "module" && this.moduleAttributeWritten(found.scope.file, name)) {
+			return { kind: "unresolved", reason: "rebound" };
+		}
 		// N1 (GCLI-118): a comprehension's iteration target lives in the comprehension's own scope, so at module
 		// level it is no binding of the module name for a read outside that comprehension. A read with no known
 		// position, or inside the comprehension, keeps it (the conservative reading).
@@ -3407,6 +3420,15 @@ class Resolver {
 					return outcome.kind === "symbol" ? outcome.symbol : null;
 				}
 				if (base.kind === "symbol" && base.symbol.kind === "class" && desc.segments.length === 1) {
+					// GCLI-155 (#14, (a80) item 3 N4): a class-level write of the attribute (`C.m = other`) rebinds
+					// what `C.m` names, so a decorator `@C.m` does not reach the def. DEC-303 (a86) item 1: the gate
+					// is off inside `withoutAttributeGate`, so a base position or the write collection still resolves.
+					if (
+						this.attributeGateBypass === 0 &&
+						this.classLevelWrites.get(base.symbol.id)?.has(desc.segments[0] as string) === true
+					) {
+						return null;
+					}
 					const wanted = `${base.symbol.qualname}.${desc.segments[0]}`;
 					const symbols = this.fileSymbols.get(base.symbol.file) ?? [];
 					for (const symbol of symbols) if (symbol.qualname === wanted) return symbol;
@@ -3504,6 +3526,11 @@ class Resolver {
 
 	// --- inheritance -------------------------------------------------------
 
+	/**
+	 * DEC-303 (a86) item 1: the MRO is built WITHOUT regard to writes, as on dev, so ancestor writes, descendants
+	 * and polymorphic flags stay dev's. A base whose name a recorded write rebinds is marked `gated` in the MRO and
+	 * refused at lookup time, never dropped from the MRO (which would fall through to the next base).
+	 */
 	private resolveBaseClass(classInfo: ClassInfo, base: BaseRef): ClassInfo | null {
 		if (base.callee === null) return null;
 		const symbol = this.withoutAttributeGate(() =>
@@ -3511,6 +3538,16 @@ class Resolver {
 		);
 		if (symbol === null || symbol.kind !== "class") return null;
 		return this.classById.get(symbol.id) ?? null;
+	}
+
+	/**
+	 * DEC-303 (a86) item 1: the base resolved with the attribute-write gates ON. A null here, where the write-blind
+	 * `resolveBaseClass` resolved a class, means a recorded write rebinds the base's name ((a80) B1, shape #7).
+	 */
+	private baseGated(classInfo: ClassInfo, base: BaseRef): boolean {
+		if (base.callee === null) return false;
+		const symbol = this.resolveCalleeToSymbol(base.callee as CalleeDesc, classInfo.parentScope, 0);
+		return symbol === null || symbol.kind !== "class";
 	}
 
 	/**
@@ -3539,6 +3576,16 @@ class Resolver {
 	 * as a subclass of each one and the polymorphic flag does not drop because the base became multiply.
 	 */
 	private baseAlternatives(classInfo: ClassInfo, base: BaseRef): ClassInfo[] {
+		// GCLI-155 (a86): the base is read write-blind, so a base name a write rebinds still makes the class a
+		// possible descendant of the class it names (dev's answer); the gated marking refuses lookups, not relations.
+		// GCLI-159 (a86) item 1: this is a base RELATION, so EVERY gate is off for the whole enumeration, not just
+		// for `resolveBaseClass`. #238 round 2 read the head name and the module chain here with the gates on, so a
+		// base bound twice at module scope whose name an importer writes came back `unresolved` instead of
+		// `multiply`: the class stopped being a descendant of either alternative and the lookup created an edge.
+		return this.withoutAttributeGate(() => this.baseAlternativesWriteBlind(classInfo, base));
+	}
+
+	private baseAlternativesWriteBlind(classInfo: ClassInfo, base: BaseRef): ClassInfo[] {
 		const single = this.resolveBaseClass(classInfo, base);
 		if (single !== null) return [single];
 		const callee = base.callee;
@@ -3549,8 +3596,9 @@ class Resolver {
 			if (outcome.kind === "multiply") symbols = outcome.symbols;
 		} else if (callee.kind === "attr" && callee.base.kind === "name") {
 			const head = this.resolveBareName(callee.base.name, classInfo.parentScope, 0);
-			if (head.kind === "module" && head.path !== null) {
-				const outcome = this.resolveModuleChain(head.path, callee.segments, 0);
+			const path = head.kind === "module" ? head.path : null;
+			if (path !== null) {
+				const outcome = this.resolveModuleChain(path, callee.segments, 0);
 				if (outcome.kind === "multiply") symbols = outcome.symbols;
 			}
 		}
@@ -3570,6 +3618,9 @@ class Resolver {
 		try {
 			const sequences: MroEntry[][] = [];
 			const tail: MroEntry[] = [];
+			// DEC-303 (a86) item 1: the keys a recorded write gates. A gated base keeps its place in the write-blind
+			// C3, and every class its own MRO contributes is marked too, because reaching them crosses the gated base.
+			const gated = new Set<string>();
 			for (let index = 0; index < classInfo.bases.length; index++) {
 				const baseRef = classInfo.bases[index] as BaseRef;
 				const baseClass = this.resolveBaseClass(classInfo, baseRef);
@@ -3580,8 +3631,10 @@ class Resolver {
 						return classInfo.mro;
 					}
 					sequences.push(baseMro.entries);
-					const entry: MroEntry = { kind: "class", info: baseClass, key: baseClass.id };
-					tail.push(entry);
+					if (this.baseGated(classInfo, baseRef)) {
+						for (const entry of baseMro.entries) if (entry.kind === "class") gated.add(entry.key);
+					}
+					tail.push({ kind: "class", info: baseClass, key: baseClass.id });
 				} else {
 					const entry: MroEntry = {
 						kind: "opaque",
@@ -3594,12 +3647,20 @@ class Resolver {
 				}
 			}
 			sequences.push(tail);
+			// C3 keeps the base's own MRO entries, which are shared objects, so the marking is applied to the merged
+			// result, never to the per-base entry (a marked entry would lose to the unmarked shared one).
 			const merged = c3merge(sequences);
 			if (merged === null) {
 				classInfo.mro = { ok: false };
 				return classInfo.mro;
 			}
-			classInfo.mro = { ok: true, entries: [{ kind: "class", info: classInfo, key: classInfo.id }, ...merged] };
+			const entries = merged.map(
+				(entry): MroEntry =>
+					entry.kind === "class" && gated.has(entry.key)
+						? { kind: "class", info: entry.info, key: entry.key, gated: true }
+						: entry,
+			);
+			classInfo.mro = { ok: true, entries: [{ kind: "class", info: classInfo, key: classInfo.id }, ...entries] };
 			return classInfo.mro;
 		} finally {
 			this.computingMro.delete(classInfo);
@@ -3609,6 +3670,8 @@ class Resolver {
 	private firstMethodEntry(mro: MroResult, name: string): PythonSymbol[] | null {
 		if (!mro.ok) return null;
 		for (const entry of mro.entries) {
+			// DEC-303 (a86) item 1: a def reached through a gated base is not known to run, so the search stops here.
+			if (entry.kind === "class" && entry.gated === true) return null;
 			if (entry.kind !== "class") continue;
 			const ids = entry.info.methods.get(name);
 			if (ids === undefined || ids.length === 0) continue;
@@ -3717,6 +3780,9 @@ class Resolver {
 		let sawRebound = false;
 		for (let index = start; index < mro.entries.length; index++) {
 			const entry = mro.entries[index] as MroEntry;
+			// DEC-303 (a86) item 1: the path to the hit crosses a base whose name a recorded write rebinds, so the
+			// runtime base may be another object: the call refuses here rather than falling through to a later base.
+			if (entry.kind === "class" && entry.gated === true) return { bin: "receiver", reason: "needs-inference" };
 			if (entry.kind === "opaque") {
 				sawOpaque = true;
 				if (entry.rebound === true) sawRebound = true;
@@ -3787,6 +3853,9 @@ class Resolver {
 			const init = this.firstMethodEntry(mro, "__init__");
 			if (this.firstMethodEntry(mro, "__new__") !== null) reasons.push("__new__");
 			if (this.effectiveMetaclass(classInfo)) reasons.push("metaclass");
+			// GCLI-155 (#16, (a80) item 3 N6): a class-level write of `__init__` before the MRO's supplying def
+			// (`C.__init__ = other`) is another binding of the constructor's method, so the init edge is refused.
+			// The class edge stands: `C()` still constructs C.
 			if (init !== null && !this.initReboundInMro(mro)) {
 				for (const symbol of init) {
 					edges.push(
@@ -4076,13 +4145,17 @@ class Resolver {
 	private collectAttributeWrites(): void {
 		if (this.attributeWritesCollected) return;
 		this.attributeWritesCollected = true;
-		for (const write of this.rawAttributeWrites) {
-			if (write.setattr === true) {
-				const use: UsePosition = { line: write.line, column: write.column };
-				if (!this.isUnshadowedBuiltin("setattr", write.scope, use)) continue;
+		// DEC-303 (a86) item 1, (a84) F3: the write sets are collected with ALL THREE attribute-write gates off, so
+		// no write is dropped because another write happened to be collected first (order- or file-name-dependent).
+		this.withoutAttributeGate(() => {
+			for (const write of this.rawAttributeWrites) {
+				if (write.setattr === true) {
+					const use: UsePosition = { line: write.line, column: write.column };
+					if (!this.isUnshadowedBuiltin("setattr", write.scope, use)) continue;
+				}
+				this.recordAttributeWrite(write);
 			}
-			this.recordAttributeWrite(write);
-		}
+		});
 	}
 
 	private recordAttributeWrite(write: RawAttributeWrite): void {
@@ -4450,6 +4523,9 @@ class Resolver {
 		}
 		const direct = this.directFromImport(binding);
 		if (direct === null) return null;
+		// GCLI-155 (#13, (a80) item 3 N3): a write to the source module's attribute rebinds the name the
+		// from-import binds, so the import names no one class symbol (`h = C.m`, the R4 local `x = C()`).
+		if (this.moduleAttributeWritten(direct.target, direct.name)) return null;
 		const sourceScope = this.moduleScopesByPath.get(direct.target);
 		if (sourceScope === undefined) return null;
 		const inner = this.enumerableBindings(direct.name, sourceScope, { line: 0, column: 0 });
@@ -4620,6 +4696,9 @@ class Resolver {
 		if (this.hasReplacingDecorator(classInfo)) return null;
 		if (this.firstMethodEntry(mro, "__new__") !== null || this.effectiveMetaclass(classInfo)) return null;
 		for (const entry of mro.entries) {
+			// DEC-303 (a86) item 1: a gated base may be another object, whose `__new__` or metaclass cannot be read,
+			// so a constructed receiver fails closed exactly as it does past an opaque entry.
+			if (entry.kind === "class" && entry.gated === true) return null;
 			if (entry.kind === "opaque" && !this.isBuiltinClassBase(entry)) return null;
 		}
 		return classInfo;
@@ -4765,6 +4844,9 @@ class Resolver {
 	}
 
 	resolveDecoratorSite(site: RawDecoratorSite): EdgeSpec | null {
+		// GCLI-155 (#14): decorators are resolved after the calls, so the write sets must be collected here when a
+		// module holds no call at all (the collection is idempotent and normally runs from `resolveCall`).
+		this.collectAttributeWrites();
 		const symbol = this.resolveCalleeToSymbol(site.callee, site.scope, 0, {
 			line: site.line,
 			column: site.column,
