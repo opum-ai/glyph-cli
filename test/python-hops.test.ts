@@ -1929,5 +1929,61 @@ describe("GCLI-144 — a class-body read of a name the class body binds skips en
 				});
 			}
 		});
+
+		// Opus round 1: a NON-generic alias value had no scope of its own on dev, so a comprehension target or a walrus in it
+		// was recorded on the class body. The lazy scope made only to mark the read must record them there too, or the
+		// class loses a binding and a read, or a method call through it, resolves where dev refused.
+		describe("bindings made inside a non-generic alias value stay on the class body, as on dev", () => {
+			const comp = "    type A = [x for x in ()]\n";
+			const walrus = "    type A = (x := 1)\n";
+
+			test("1: module x = C(), a comprehension target x in the alias: y = x.run() is refused (dev: receiver)", async () => {
+				for (const [label, alias] of [
+					["comprehension", comp],
+					["walrus", walrus],
+				] as const) {
+					const r = await probe(`${classes}x = C()\nclass Outer:\n${alias}    y = CALL\n`, "x.run()");
+					expect(r.delta, label).toEqual(REFUSED);
+					expect(runs(r), label).toEqual([]);
+				}
+			});
+
+			test("2: the same with x = C() inside def outer()", async () => {
+				for (const [label, alias] of [
+					["comprehension", comp],
+					["walrus", walrus],
+				] as const) {
+					const r = await probe(
+						`${classes}def outer():\n    x = C()\n    class Outer:\n${alias.replace("    type", "        type")}        y = CALL\n`,
+						"x.run()",
+					);
+					expect(r.delta, label).toEqual(REFUSED);
+					expect(runs(r), label).toEqual([]);
+				}
+			});
+
+			test("3: a method's self.helper() is refused when the alias binds the name helper on the class (dev: receiver)", async () => {
+				for (const [label, alias] of [
+					["comprehension", "    type A = [helper for helper in ()]\n"],
+					["walrus", "    type A = (helper := 1)\n"],
+				] as const) {
+					const r = await probe(
+						`class Outer:\n    def helper(self):\n        pass\n    def run(self):\n        CALL\n${alias}`,
+						"self.helper()",
+					);
+					expect(r.delta, label).toEqual(REFUSED);
+					expect(r.callees, label).toEqual([]);
+				}
+			});
+
+			test("twin: an alias that binds an unrelated name leaves self.helper() resolving", async () => {
+				const r = await probe(
+					"class Outer:\n    def helper(self):\n        pass\n    def run(self):\n        CALL\n    type A = [n for n in ()]\n",
+					"self.helper()",
+				);
+				expect(r.delta.inRepo).toBe(1);
+				expect(r.callees).toEqual(["app.py:Outer.helper"]);
+			});
+		});
 	});
 });

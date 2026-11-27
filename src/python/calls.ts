@@ -256,6 +256,11 @@ interface Scope {
 	 * a type-parameter scope (the class stays the first real scope) that also carries this mark.
 	 */
 	lazyAlias?: true;
+	/**
+	 * GCLI-144: a lazy scope made only to mark the read (a NON-generic alias value in a class body) records its
+	 * bindings, a comprehension target or a walrus, on the class body as dev did before the scope existed.
+	 */
+	bindsInto?: Scope;
 }
 
 interface BaseRef {
@@ -1273,8 +1278,11 @@ class FileWalker {
 					let typeScope = this.typeParameterScope(frame, node);
 					// GCLI-144: an alias value in a class body is lazy (Scope.lazyAlias), generic or not.
 					if (frame.scope.kind === "class") {
-						typeScope ??= this.newScope("function", frame.scope, frame.scope.qualname, null, null, [], null, null);
-						typeScope.typeParams = true;
+						if (typeScope === null) {
+							typeScope = this.newScope("function", frame.scope, frame.scope.qualname, null, null, [], null, null);
+							typeScope.typeParams = true;
+							typeScope.bindsInto = frame.scope;
+						}
 						typeScope.lazyAlias = true;
 					}
 					const value = node.childForFieldName("right") ?? node.namedChild(node.namedChildCount - 1);
@@ -1359,7 +1367,8 @@ class FileWalker {
 		return scope;
 	}
 
-	private addBinding(scope: Scope, name: string, binding: RawBinding): void {
+	private addBinding(target: Scope, name: string, binding: RawBinding): void {
+		const scope = target.bindsInto ?? target;
 		const list = scope.bindings.get(name);
 		if (list === undefined) scope.bindings.set(name, [binding]);
 		else list.push(binding);
