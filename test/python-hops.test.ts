@@ -2115,4 +2115,15 @@ describe("GCLI-146 — a lazy class-body read of a name the class binds refuses"
 		const r = await bound(`${cls}x = C()\ntype A[T: CALL] = int\n`);
 		expect(r.callees).toEqual(["C.run"]);
 	});
+
+	// Guard for the PEP 696 default (opum-doc, DEC-303 (a76) item 2), measured: this grammar does NOT drop the call. For
+	// `type A[T = x.run()] = int` the parser makes an ERROR node of `T` only, and `x.run()` is a normal `call` under a
+	// sibling `type` node of the `type_parameter`, so it is walked and recorded as a site (origin/dev: an eager read, the
+	// edge C.run). The left-side walk in the lazy scope covers it, so it is refused like a bound. If a grammar upgrade
+	// changes how a default parses, a red here goes to opum-doc and is not "fixed" by resolving the default.
+	test("guard: a PEP 696 default type A[T = x.run()] with a later class-body import of x is refused, no C.run (dev: C.run)", async () => {
+		const r = await bound(`${cls}x = C()\nclass Outer:\n    type A[T = CALL] = int\n${later}`);
+		expect(r.delta).toEqual(REFUSED);
+		expect(r.callees).toEqual([]);
+	});
 });
