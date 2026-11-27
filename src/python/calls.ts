@@ -3798,6 +3798,19 @@ class Resolver {
 				return { bin: "receiver", reason: "needs-inference" };
 			}
 		}
+		// GCLI-156 (DEC-303 (a88), shape #6): the loop above walks the receiver's own MRO, so a write on an
+		// in-repo DESCENDANT is invisible to it, and a call through this class can run on one of those instances.
+		// The descendant relation is already computed (`descendantsOf`), and refusing only removes an edge, so this
+		// is fail-closed: a written name on any descendant makes the def not the only binding the call can reach.
+		// `super()` reads the class level after `start` and never an instance dict, so a descendant write does not
+		// apply there and the check stays off that path.
+		if (!fromSuper) {
+			for (const descendant of this.descendantsOf(receiver)) {
+				if (this.classAttrWrites.get(descendant.id)?.has(name) === true) {
+					return { bin: "receiver", reason: "needs-inference" };
+				}
+			}
+		}
 		let sawOpaque = false;
 		let sawRebound = false;
 		for (let index = start; index < mro.entries.length; index++) {

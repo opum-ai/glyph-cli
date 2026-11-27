@@ -3873,3 +3873,78 @@ describe("GCLI-155 round 1 — class-attribute base, local receiver", () => {
 		expect(twin.callees).toEqual(["call:app.py:Outer.Inner.m", "new:app.py:D"]);
 	});
 });
+describe("GCLI-156 — a write on an in-repo descendant (DEC-303 (a88), shape #6)", () => {
+	// The MRO guard in `methodLookup` walks the RECEIVER's own MRO, so a write recorded on a descendant was invisible:
+	// `B.m` resolved from B's own `self.m()` even though a `C(B)` instance wrote `self.m`. The guard now propagates
+	// over `descendantsOf`, which is already computed, and only removes an edge (removal-only, fail-closed).
+	const observe = async (files: Record<string, string>) => {
+		const r = await analyze(Object.entries(files).map(([path, source]) => py(path, source)));
+		const byId = new Map(r.symbols.map((x) => [x.id, x]));
+		const callees = r.sites
+			.map((s) => {
+				const c = s.calleeId === null ? undefined : byId.get(s.calleeId);
+				return `${s.kind}:${c?.file}:${c?.qualname}`;
+			})
+			.sort();
+		return { callees, bins: r.callBins };
+	};
+	const REFUSED = { resolvedInRepo: 0, resolvedExternal: 0, receiverNeedsInference: 1, nameNotBound: 0 };
+	const RESOLVED = { resolvedInRepo: 1, resolvedExternal: 0, receiverNeedsInference: 0, nameNotBound: 0 };
+	const base = (tail: string) =>
+		`class B:\n    def m(self):\n        return 1\n    def call(self):\n        self.m()\n${tail}`;
+
+	test("#6 same module: a subclass instance write leaves the base call unresolved (dev: B.m)", async () => {
+		const written = await observe({
+			"app.py": base("\nclass C(B):\n    def setup(self):\n        self.m = lambda: 2\n"),
+		});
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+	});
+
+	test("#6 twin: a descendant that writes another attribute keeps the edge", async () => {
+		const twin = await observe({ "app.py": base("\nclass C(B):\n    def setup(self):\n        self.other = 2\n") });
+		expect(twin.callees).toEqual(["call:app.py:B.m"]);
+		expect(twin.bins).toEqual(RESOLVED);
+	});
+
+	test("#6 twin: no descendant, and an unrelated class's write, keep the edge", async () => {
+		expect(await observe({ "app.py": base("") })).toEqual({ callees: ["call:app.py:B.m"], bins: RESOLVED });
+		const unrelated = await observe({
+			"app.py": base("\nclass Z:\n    def setup(self):\n        self.m = lambda: 2\n"),
+		});
+		expect(unrelated).toEqual({ callees: ["call:app.py:B.m"], bins: RESOLVED });
+	});
+
+	test("#6 cross module: a descendant in another module's write refuses too", async () => {
+		const written = await observe({
+			"app.py": base(""),
+			"c.py": "from app import B\nclass C(B):\n    def setup(self):\n        self.m = 2\n",
+		});
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+	});
+
+	test("#6 two levels down: the descendant relation is transitive", async () => {
+		const written = await observe({
+			"app.py": base("\nclass C(B):\n    pass\n\nclass D(C):\n    def setup(self):\n        self.m = 3\n"),
+		});
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+	});
+
+	test("#6 class-level descendant write (C.m = other) refuses as well", async () => {
+		const written = await observe({ "app.py": base("\nclass C(B):\n    pass\nC.m = lambda self: 2\n") });
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+	});
+
+	test("#6 super() is not the instance dict: a descendant write keeps super().m() resolving (dev: A.m)", async () => {
+		const r = await observe({
+			"app.py":
+				"class A:\n    def m(self):\n        return 1\n\nclass B(A):\n    def m(self):\n        return super().m()\n\nclass C(B):\n    def setup(self):\n        self.m = 3\n",
+		});
+		expect(r.callees).toEqual(["call:app.py:A.m"]);
+		// `super()` itself is a builtin call and counts external; the method call is the in-repo edge.
+		expect(r.bins).toEqual({ resolvedInRepo: 1, resolvedExternal: 1, receiverNeedsInference: 0, nameNotBound: 0 });
+	});
+});
