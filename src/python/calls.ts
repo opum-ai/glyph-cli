@@ -2307,6 +2307,8 @@ class Resolver {
 	private readonly classLevelWrites = new Map<string, Set<string>>();
 	/** GCLI-140 (DEC-303 (a80)): the mod.f gate is off while a base or a two-argument super() first argument resolves. */
 	private attributeGateBypass = 0;
+	/** GCLI-161: the bare-name module-scope gate alone, for `baseIsRebound`'s write-blind head-name read. */
+	private bareModuleNameGateBypass = 0;
 	private readonly moduleAttrWrites = new Map<string, Set<string>>();
 	private readonly localAttrWrites = new Map<number, Map<string, Set<string>>>();
 	private attributeWritesCollected = false;
@@ -2646,7 +2648,11 @@ class Resolver {
 		// attribute the star import `from s import *` re-exports) is another binding of the name. This is the
 		// defining module's own bare call and the star importer's bare call; the from-import reader is gated through
 		// `moduleBindingGate` and a class body's lazy read is not this path (its bindings are the class's).
-		if (found.scope.kind === "module" && this.moduleAttributeWritten(found.scope.file, name)) {
+		if (
+			found.scope.kind === "module" &&
+			this.bareModuleNameGateBypass === 0 &&
+			this.moduleAttributeWritten(found.scope.file, name)
+		) {
 			return { kind: "unresolved", reason: "rebound" };
 		}
 		// N1 (GCLI-118): a comprehension's iteration target lives in the comprehension's own scope, so at module
@@ -3553,6 +3559,12 @@ class Resolver {
 	/**
 	 * GCLI-116 (DEC-303 (a47) item 2 (i)): a base that is an in-repo name whose resolution is `rebound` is not
 	 * an external base, so a method missing from the known MRO is not credited to it (the (a34) D1 pattern).
+	 * GCLI-159 (DEC-303 (a89) F1) / GCLI-161: this is a base RELATION reader like `baseAlternatives`. The round-1
+	 * finding was that reading the gates here turned a written head module name unresolved, binning the base
+	 * external. The round-2 finding was that bypassing the WHOLE gate family also disabled GCLI-140's
+	 * module-attribute gates, so a base rebound by `m.B = L` claimed to leave the repo. Measured third constraint:
+	 * the name arm must keep the gate, or `m.Base = other` with a bare `Base` base stops being rebound and R4 flips
+	 * to external. So exactly ONE read is bypassed — the attr arm's HEAD name — and everything else stays live.
 	 */
 	private baseIsRebound(classInfo: ClassInfo, base: BaseRef): boolean {
 		const callee = base.callee;
@@ -3562,7 +3574,9 @@ class Resolver {
 			return outcome.kind === "multiply" || (outcome.kind === "unresolved" && outcome.reason === "rebound");
 		}
 		if (callee.kind === "attr" && callee.base.kind === "name") {
-			const head = this.resolveBareName(callee.base.name, classInfo.parentScope, 0);
+			// The head NAME being written (`x.m = None`) does not change what `m.B` names, so this one read is blind.
+			const headRef = callee.base;
+			const head = this.withoutBareModuleNameGate(() => this.resolveBareName(headRef.name, classInfo.parentScope, 0));
 			if (head.kind !== "module" || head.path === null) return false;
 			const outcome = this.resolveModuleChain(head.path, callee.segments, 0);
 			return outcome.kind === "multiply" || (outcome.kind === "unresolved" && outcome.reason === "rebound");
@@ -3631,8 +3645,16 @@ class Resolver {
 						return classInfo.mro;
 					}
 					sequences.push(baseMro.entries);
+					// DEC-303 (a89) F2: a key gated in ANY base's own MRO is gated here too. Collecting only the keys
+					// of a base this class ITSELF finds gated made the result depend on base order: `c3merge` keeps
+					// whichever shared entry it reaches first, so `class E(Outer.F, D)` reached F's unmarked copy of
+					// the gated ancestor and resolved, while `class E(D, Outer.F)` reached D's marked one and refused.
 					if (this.baseGated(classInfo, baseRef)) {
 						for (const entry of baseMro.entries) if (entry.kind === "class") gated.add(entry.key);
+					} else {
+						for (const entry of baseMro.entries) {
+							if (entry.kind === "class" && entry.gated === true) gated.add(entry.key);
+						}
 					}
 					tail.push({ kind: "class", info: baseClass, key: baseClass.id });
 				} else {
@@ -4346,6 +4368,21 @@ class Resolver {
 			return work();
 		} finally {
 			this.attributeGateBypass--;
+		}
+	}
+
+	/**
+	 * GCLI-161 (DEC-303 (a89) item 1, round-2 finding): a base RELATION reader in `baseIsRebound` must not let the
+	 * bare-name module-scope gate turn a written head module name unresolved — that is the round-1 F1 shape. It must
+	 * NOT turn off GCLI-140's module-attribute gates, which are what make a base rebound by an importer's write
+	 * (`m.B = L`, the round-2 counterexample). So this bypasses the one gate and leaves `moduleAttributeWritten` live.
+	 */
+	private withoutBareModuleNameGate<T>(work: () => T): T {
+		this.bareModuleNameGateBypass++;
+		try {
+			return work();
+		} finally {
+			this.bareModuleNameGateBypass--;
 		}
 	}
 
