@@ -2248,16 +2248,15 @@ class Resolver {
 		let classBodyShadowed = false;
 		// GCLI-144: a read inside a lazy alias value in a class body sees the class's final bindings (see Scope.lazyAlias).
 		let lazyAlias = false;
+		// A lazy read that Rule 38 emptied: even a module-level result is wrong, since the read belongs to the class's final binding.
+		let lazyDropped = false;
 		while (current !== null) {
 			// A class body is not an enclosing scope for its methods (rule 3): only
 			// the starting scope may be a class body.
 			if (first || current.kind !== "class") {
 				let bindings: RawBinding[] | undefined = current.bindings.get(name);
 				if (bindings !== undefined && bindings.length > 0) {
-					// A lazy alias value reads the class's final binding, and Python would not read this one from an
-					// earlier position or an enclosing scope: any binding the class body holds is refused, not resolved.
-					if (first && current.kind === "class" && lazyAlias)
-						return { scope: current, bindings, classBodyShadowed: true };
+					const all = bindings;
 					// Rule 38: in the starting class body an import binds only for
 					// statements that follow it; an earlier use falls through to the
 					// enclosing binding. Function and module scope stay flow-insensitive.
@@ -2271,13 +2270,23 @@ class Resolver {
 								),
 						);
 					}
+					// GCLI-144 (DEC-303 (a74) item 2): a lazy alias value reads the class's FINAL bindings, so it differs from
+					// the eager read exactly when Rule 38 dropped a binding (a later import): that read is refused, whether
+					// bindings remain or the walk would leave the class. With nothing dropped it reads the same bindings
+					// as before and keeps the edge.
+					const lazyDiffers = first && current.kind === "class" && lazyAlias && bindings.length !== all.length;
+					if (lazyDiffers && bindings.length > 0) return { scope: current, bindings, classBodyShadowed: true };
 					if (bindings.length > 0) {
-						// Only a result in an enclosing function is wrong: from the module Python reads the same binding.
-						return classBodyShadowed && current.kind !== "module"
+						// Only a result in an enclosing function is wrong for an eager read (from the module Python reads
+						// the same binding); a lazy read never leaves the class, so any outer result is wrong for it.
+						return classBodyShadowed && (current.kind !== "module" || lazyDropped)
 							? { scope: current, bindings, classBodyShadowed: true }
 							: { scope: current, bindings };
 					}
-					if (first && current.kind === "class") classBodyShadowed = true;
+					if (first && current.kind === "class") {
+						classBodyShadowed = true;
+						lazyDropped = lazyAlias;
+					}
 				}
 			}
 			// GCLI-112: a type-parameter scope sits directly inside a class body for a generic declared there, and

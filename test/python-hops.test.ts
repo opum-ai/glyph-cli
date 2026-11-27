@@ -1661,8 +1661,9 @@ describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", (
 			`${item}class Outer:\n    class Item:\n        def save(self):\n            pass\n    type A[T] = CALL\n`,
 			"Item().save()",
 		);
-		// GCLI-144: an alias value is lazy, and any name the class body binds is refused there (dev resolved it).
-		expect(runs(alias)).toEqual([]);
+		// GCLI-144 (DEC-303 (a74) item 2): a lazy alias value reads the class's final bindings, and here nothing was
+		// dropped (a class def, no later import), so the correct edge stays.
+		expect(runs(alias)).toEqual(["app.py:Outer.Item.save"]);
 	});
 
 	test("the body of a generic method still skips the class body", async () => {
@@ -1911,16 +1912,28 @@ describe("GCLI-144 — a class-body read of a name the class body binds skips en
 			});
 
 			for (const [label, read] of Object.entries(lazy)) {
+				test(`${label}: an early import and a later one of different classes: refused (dev: the early import's edge)`, async () => {
+					const r = await probe(`${classes}class Outer:\n${later}${read}        from n import Y as x\n`, "x.run()", {
+						"m.py": mod,
+						"n.py": "class Y:\n    def run(self):\n        pass\n",
+					});
+					expect(r.delta, label).toEqual(REFUSED);
+					expect(runs(r), label).toEqual([]);
+				});
+			}
+
+			for (const [label, read] of Object.entries(lazy)) {
 				test(`module x = C(), no function: ${label} is refused, NOT C.run (dev: C.run)`, async () => {
 					const r = await probe(moduleApp(read), "x.run()", { "m.py": mod });
 					expect(r.delta, label).toEqual(REFUSED);
 					expect(runs(r), label).toEqual([]);
 				});
-				test(`${label}: a class-body binding BEFORE the alias is refused too (dev resolved m.X.run)`, async () => {
+				test(`${label}: a class-body import BEFORE the alias keeps its exact edge (nothing was dropped), m.X.run`, async () => {
 					const r = await probe(moduleApp(read, "").replace("class Outer:\n", `class Outer:\n${later}`), "x.run()", {
 						"m.py": mod,
 					});
-					expect(r.delta, label).toEqual(REFUSED);
+					expect(runs(r), label).toEqual(["m.py:X.run"]);
+					expect(r.delta.inRepo, label).toBe(1);
 				});
 				test(`${label}: no class-body binding of x resolves through the module (the twin)`, async () => {
 					const r = await probe(moduleApp(read, ""), "x.run()", { "m.py": mod });
