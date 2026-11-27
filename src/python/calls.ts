@@ -3565,6 +3565,10 @@ class Resolver {
 	 * module-attribute gates, so a base rebound by `m.B = L` claimed to leave the repo. Measured third constraint:
 	 * the name arm must keep the gate, or `m.Base = other` with a bare `Base` base stops being rebound and R4 flips
 	 * to external. So exactly ONE read is bypassed — the attr arm's HEAD name — and everything else stays live.
+	 * The bypass is a counter, not a single gate evaluation: the head read can resolve through the alias hop or a
+	 * star target, and `resolveStarBound` re-enters `resolveBareName` with the counter still set, so every module
+	 * scope that lookup passes through is read blind. What stays live is the name arm and GCLI-140's
+	 * `moduleAttributeWritten` gate on every read the head does not go through.
 	 */
 	private baseIsRebound(classInfo: ClassInfo, base: BaseRef): boolean {
 		const callee = base.callee;
@@ -4389,6 +4393,9 @@ class Resolver {
 	 * bare-name module-scope gate turn a written head module name unresolved — that is the round-1 F1 shape. It must
 	 * NOT turn off GCLI-140's module-attribute gates, which are what make a base rebound by an importer's write
 	 * (`m.B = L`, the round-2 counterexample). So this bypasses the one gate and leaves `moduleAttributeWritten` live.
+	 * The counter is dynamic, not one evaluation: the read it wraps may hop through an alias or a star target, and the
+	 * nested `resolveBareName` calls inside `resolveStarBound` see the same counter, so each module scope on that
+	 * path is read blind. Nothing outside the wrapped head read is.
 	 */
 	private withoutBareModuleNameGate<T>(work: () => T): T {
 		this.bareModuleNameGateBypass++;
