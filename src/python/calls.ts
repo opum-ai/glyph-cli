@@ -3932,6 +3932,11 @@ class Resolver {
 		if (instanceReceiver && this.classAttributeWritten(receiver, "__class__")) {
 			return { bin: "receiver", reason: "needs-inference" };
 		}
+		// GCLI-151 (DEC-303 (a88) note 4): the same guard, for a write recorded on a DESCENDANT rather than on the
+		// receiver's own MRO. An instance typed as this class may be one of a descendant that rebinds its class.
+		if (instanceReceiver && this.descendantClassWritten(receiver, "__class__")) {
+			return { bin: "receiver", reason: "needs-inference" };
+		}
 		let start = 0;
 		if (fromSuper) {
 			const index = mro.entries.findIndex((entry) => entry.kind === "class" && entry.info === receiver);
@@ -4212,7 +4217,13 @@ class Resolver {
 			if (segments.length > 1) return { bin: "receiver", reason: "needs-inference" };
 			// GCLI-140 (DEC-303 (a25) item 1, the self.__class__ bullet): a write to self.__class__ anywhere in the
 			// class leaves every self receiver in it unresolved, a direct self.m() included.
-			if (receiver.kind === "instance" && this.classAttributeWritten(receiver.classInfo, "__class__")) {
+			// GCLI-151 (DEC-303 (a88) note 4): a descendant's write is invisible to the MRO walk, and self may be
+			// an instance of an in-repo descendant, so it refuses too.
+			if (
+				receiver.kind === "instance" &&
+				(this.classAttributeWritten(receiver.classInfo, "__class__") ||
+					this.descendantClassWritten(receiver.classInfo, "__class__"))
+			) {
 				return { bin: "receiver", reason: "needs-inference" };
 			}
 			return this.methodLookup(receiver.classInfo, lastName, false, true);
@@ -4531,6 +4542,20 @@ class Resolver {
 		if (!mro.ok) return false;
 		for (const entry of mro.entries) {
 			if (entry.kind === "class" && this.classAttrWrites.get(entry.info.id)?.has(name) === true) return true;
+		}
+		return false;
+	}
+
+	/**
+	 * GCLI-151 (DEC-303 (a88) note 4): `classAttributeWritten` walks the receiver's MRO, so a write recorded on a
+	 * DESCENDANT is invisible to it. An instance typed as this class may be an instance of any in-repo descendant,
+	 * and a descendant's `self.__class__ = Other` changes the runtime class, so instance dispatch must consult the
+	 * descendants too. Removal-only: refusing drops an edge, never creates one. A descendant outside the analysed
+	 * modules stays the blind spot (a25) item 1's last bullet already accepts.
+	 */
+	private descendantClassWritten(classInfo: ClassInfo, name: string): boolean {
+		for (const descendant of this.descendantsOf(classInfo)) {
+			if (this.classAttrWrites.get(descendant.id)?.has(name) === true) return true;
 		}
 		return false;
 	}
