@@ -27,9 +27,11 @@ import { grammarVersion } from "./parse.ts";
  * 3 for GCLI-89: an attribute or subscript assignment target no longer rebinds its
  * base name (DEC-303 (a23) item 1), which changes which calls resolve. Bumped to 4
  * for GCLI-140: an attribute write is a binding of that attribute (DEC-303 (a25)),
- * which refuses calls that resolved before.
+ * which refuses calls that resolved before. Bumped to 5 for GCLI-151: a
+ * descendant's `__class__` write now refuses an instance receiver typed as its
+ * base (DEC-303 (a88) note 4), which refuses calls that resolved before.
  */
-export const PYTHON_ANALYZER_VERSION = "4";
+export const PYTHON_ANALYZER_VERSION = "5";
 
 /** The S5 per-site flags, carried in the cached index and never in an envelope (rule 17). */
 interface SiteFlags {
