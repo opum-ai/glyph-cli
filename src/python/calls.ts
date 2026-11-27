@@ -3787,7 +3787,7 @@ class Resolver {
 			const init = this.firstMethodEntry(mro, "__init__");
 			if (this.firstMethodEntry(mro, "__new__") !== null) reasons.push("__new__");
 			if (this.effectiveMetaclass(classInfo)) reasons.push("metaclass");
-			if (init !== null) {
+			if (init !== null && !this.initReboundInMro(mro)) {
 				for (const symbol of init) {
 					edges.push(
 						symbolEdge(symbol, "new", {
@@ -3817,6 +3817,19 @@ class Resolver {
 			polymorphic: options.polymorphic === true,
 			multiplyBound: options.multiplyBound === true,
 		};
+	}
+
+	/** GCLI-155 (#16): the MRO's supplying `__init__` def is preceded by a class-level write of the attribute. */
+	private initReboundInMro(mro: MroResult): boolean {
+		if (!mro.ok) return false;
+		for (const entry of mro.entries) {
+			if (entry.kind !== "class") continue;
+			if (this.classLevelWrites.get(entry.info.id)?.has("__init__") === true) return true;
+			// The first class on the MRO that defines `__init__` is the one `firstMethodEntry` reads; a write below
+			// it cannot shadow that def.
+			if (entry.info.methods.has("__init__")) return false;
+		}
+		return false;
 	}
 
 	// --- call resolution ---------------------------------------------------
@@ -3974,7 +3987,14 @@ class Resolver {
 		// M1 (DEC-303 (a22) item 3): an imported module-level instance of one in-repo class.
 		if (segments.length === 1) {
 			const instance = this.importedInstanceClass(base.name, scope, site);
-			if (instance !== null) return this.methodLookup(instance, lastName, false, true);
+			if (instance !== null) {
+				// GCLI-155 (#5): the importer's own `inst.m = other` binds the attribute on the instance the import
+				// names, so `inst.m()` has a second binding and does not resolve to the class's def.
+				if (this.localAttributeWritten(base.name, scope, lastName, site)) {
+					return { bin: "receiver", reason: "needs-inference" };
+				}
+				return this.methodLookup(instance, lastName, false, true);
+			}
 		}
 		// K1 (DEC-303 (a22) item 3): `*args` is a tuple and `**kwargs` a dict, so a method
 		// called on one is the builtin's. The name must have exactly one binding in
@@ -4729,12 +4749,15 @@ class Resolver {
 	private resolveSuper(base: BaseDesc & { kind: "super" }, segments: readonly string[], scope: Scope): CallResolution {
 		let enclosing = scope.kind === "function" ? scope.enclosingClass : null;
 		const firstArg = base.firstArg;
-		if (base.argCount === 2 && firstArg !== null) {
-			const symbol = this.withoutAttributeGate(() => this.resolveCalleeToSymbol(firstArg, scope, 0));
-			if (symbol !== null && symbol.kind === "class") {
-				const classInfo = this.classById.get(symbol.id);
-				if (classInfo !== undefined) enclosing = classInfo;
-			}
+		if (base.argCount === 2) {
+			// GCLI-155 (DEC-303 (a80) item 1 B1/B1b, #8 and #10): the two-argument form reads after the class the
+			// FIRST ARGUMENT names, so a written class name (`super(m.C, self)`, or the from-import twin) leaves it
+			// unresolved. An unresolved first argument is no evidence for the enclosing class: dev fell back to it
+			// and credited the next class after the method's own class with the call, a wrong edge of its own.
+			const symbol = firstArg === null ? null : this.resolveCalleeToSymbol(firstArg, scope, 0);
+			const classInfo = symbol !== null && symbol.kind === "class" ? (this.classById.get(symbol.id) ?? null) : null;
+			if (classInfo === null) return { bin: "receiver", reason: "needs-inference" };
+			enclosing = classInfo;
 		}
 		if (enclosing === null) return { bin: "receiver", reason: "needs-inference" };
 		if (segments.length !== 1) return { bin: "receiver", reason: "needs-inference" };
