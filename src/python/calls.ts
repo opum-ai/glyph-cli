@@ -198,6 +198,12 @@ interface RawBinding {
 	/** Rule 38: the statement's start, so a class-body import binds only later uses. */
 	position?: UsePosition;
 	/**
+	 * GCLI-154 (DEC-303 (a83) item 1): the rebound binding the `type(x).m = v` misparse re-dispatch keeps to
+	 * match dev. Marked so the write classification can still resolve `type(self)` for the recorded write, while
+	 * every READ sees the binding and behaves exactly as on dev.
+	 */
+	typeAliasMisparse?: true;
+	/**
 	 * A comprehension target: the walker records it in the enclosing function (the analyzer counts it, which
 	 * only makes a read refuse), but Python binds it in the comprehension's own scope, so it is not a binding
 	 * `nonlocal` can name and `applyScopeRedirects` does not stop at it.
@@ -1317,6 +1323,16 @@ class FileWalker {
 					const aliasLeft = node.childForFieldName("left");
 					const aliasInner = aliasLeft !== null && aliasLeft.type === "type" ? aliasLeft.namedChild(0) : aliasLeft;
 					if (aliasInner !== null && aliasInner.type === "attribute") {
+						// (a83) item 1: keep dev's rebound binding for the climbed target name so this path stays
+						// removal-only. It is marked so the write classification can still resolve `type(self)`; every
+						// READ sees it and refuses exactly as on dev, so no `self.n()`/`x.m()` edge is created.
+						let misparseName: Node | null = aliasLeft;
+						while (misparseName !== null && misparseName.type !== "identifier") {
+							misparseName = misparseName.namedChild(0);
+						}
+						if (misparseName !== null) {
+							this.addBinding(frame.scope, misparseName.text, { kind: "rebound", typeAliasMisparse: true });
+						}
 						const objectNode = aliasInner.childForFieldName("object");
 						const attrNode = aliasInner.childForFieldName("attribute");
 						const argNode =
@@ -2643,6 +2659,35 @@ class Resolver {
 					(found.bindings[0] as RawBinding).kind === "param"
 				) {
 					return { kind: receiver.kind, classInfo: receiver.classInfo };
+				}
+				return null;
+			}
+			current = current.parent;
+		}
+		return null;
+	}
+
+	/**
+	 * GCLI-154 (DEC-303 (a83) item 1): the receiver of `name`, ignoring the one rebound binding the `type(x).m = v`
+	 * misparse re-dispatch added for it. Used ONLY to record that write against the receiver's class; every READ
+	 * still goes through `receiverOf`, sees the binding and refuses as on dev.
+	 */
+	private receiverOfIgnoringMisparse(
+		name: string,
+		scope: Scope,
+	): { kind: "instance" | "class"; classInfo: ClassInfo } | null {
+		let current: Scope | null = scope;
+		while (current !== null) {
+			const receiver = this.methodReceiver(current);
+			if (receiver !== null && receiver.name === name) {
+				const found = this.lookupBindings(name, scope);
+				if (found !== null && found.scope === current) {
+					const bindings = found.bindings.filter(
+						(binding) => !(binding.kind === "rebound" && binding.typeAliasMisparse === true),
+					);
+					if (bindings.length === 1 && (bindings[0] as RawBinding).kind === "param") {
+						return { kind: receiver.kind, classInfo: receiver.classInfo };
+					}
 				}
 				return null;
 			}
@@ -4142,7 +4187,7 @@ class Resolver {
 			const aliases = this.aliasWriteTargets(base.name, write.scope, use);
 			if (aliases !== null) {
 				for (const target of aliases) {
-					if (target.kind === "class") this.addClassAttrWrite(target.classId, write.attr, true);
+					if (target.kind === "class") this.addClassAttrWrite(target.classId, write.attr, target.classLevel);
 					else this.addModuleAttrWrite(target.modulePath, write.attr);
 				}
 				return;
@@ -4174,9 +4219,16 @@ class Resolver {
 			if (symbol !== null && symbol.kind === "class") this.addClassAttrWrite(symbol.id, write.attr, true);
 			return;
 		}
-		// GCLI-154 (DEC-303 (a79) Q-C): `type(self).m = v` is a class-level write to the receiver's class.
-		if (base.kind === "dynamic" && base.typeInstance === true && base.typeArg?.kind === "name") {
-			const receiver = this.receiverOf(base.typeArg.name, write.scope);
+		// GCLI-154 (DEC-303 (a79) Q-C, (a83) item 1): `type(self).m = v` is a class-level write to the receiver's
+		// class. The misparse rebound binding is ignored here only (reads still see it), and the builtin `type` must
+		// be unshadowed (F5).
+		if (
+			base.kind === "dynamic" &&
+			base.typeInstance === true &&
+			base.typeArg?.kind === "name" &&
+			this.isUnshadowedBuiltin("type", write.scope)
+		) {
+			const receiver = this.receiverOfIgnoringMisparse(base.typeArg.name, write.scope);
 			if (receiver !== null && receiver.kind === "instance") {
 				this.addClassAttrWrite(receiver.classInfo.id, write.attr, true);
 			}
@@ -4194,12 +4246,19 @@ class Resolver {
 		name: string,
 		scope: Scope,
 		site: UsePosition,
-	): ({ kind: "class"; classId: string } | { kind: "module"; modulePath: string })[] | null {
+	): ({ kind: "class"; classId: string; classLevel: boolean } | { kind: "module"; modulePath: string })[] | null {
+		const found = this.lookupBindings(name, scope, site);
+		if (found === null) return null;
 		const bindings = this.enumerableBindings(name, scope, site);
 		if (bindings === null || bindings.length === 0) return null;
-		const targets = new Map<string, { kind: "class"; classId: string } | { kind: "module"; modulePath: string }>();
+		const targets = new Map<
+			string,
+			{ kind: "class"; classId: string; classLevel: boolean } | { kind: "module"; modulePath: string }
+		>();
 		for (const binding of bindings) {
-			const target = this.aliasBindingTarget(binding, scope);
+			// (a83) item 1 / F4: resolve the alias RHS in the scope the ALIAS is bound in (found.scope), not the
+			// scope of the write; `K = C` at module level then used in a function must still read the module's C.
+			const target = this.aliasBindingTarget(binding, found.scope);
 			if (target === null) return null;
 			targets.set(target.kind === "class" ? `c:${target.classId}` : `m:${target.modulePath}`, target);
 		}
@@ -4209,27 +4268,32 @@ class Resolver {
 	/** The one class or module a single alias binding names, or null when the binding cannot be enumerated. */
 	private aliasBindingTarget(
 		binding: RawBinding,
-		scope: Scope,
-	): { kind: "class"; classId: string } | { kind: "module"; modulePath: string } | null {
+		aliasScope: Scope,
+	): ({ kind: "class"; classId: string; classLevel: boolean } | { kind: "module"; modulePath: string }) | null {
 		if (binding.kind !== "assign" || binding.annotation) return null;
 		const rhs = binding.rhs;
 		if (rhs === undefined) return null;
-		const rhsScope = binding.origin ?? scope;
+		const rhsScope = binding.origin ?? aliasScope;
 		if ("classOf" in rhs && rhs.classOf !== undefined) {
-			// `k = type(self)` / `k = self.__class__`: the receiver's class.
+			// `k = type(self)` / `k = self.__class__`: the CLASS itself, so a class-level write.
 			if (rhs.classOf.viaType && !this.isUnshadowedBuiltin("type", rhsScope)) return null;
 			const receiver = this.receiverOf(rhs.classOf.receiver, rhsScope);
-			if (receiver !== null && receiver.kind === "instance") return { kind: "class", classId: receiver.classInfo.id };
+			if (receiver !== null && receiver.kind === "instance") {
+				return { kind: "class", classId: receiver.classInfo.id, classLevel: true };
+			}
 			return null;
 		}
 		if (rhs.kind !== "alias") return null;
-		// `k = cls`: a classmethod's receiver is the class.
 		const receiver = this.receiverOf(rhs.name, rhsScope);
-		if (receiver !== null) return { kind: "class", classId: receiver.classInfo.id };
+		// (a83) item 1 / F3, (a79) Q-A: `k = self` is an INSTANCE write (not class-level, so it does not refuse
+		// super().m()); `k = cls` is the class, so a class-level write.
+		if (receiver !== null) {
+			return { kind: "class", classId: receiver.classInfo.id, classLevel: receiver.kind === "class" };
+		}
 		const outcome = this.resolveBareName(rhs.name, rhsScope, 0);
 		// `K = C`: an in-repo class name.
 		if (outcome.kind === "symbol" && outcome.symbol.kind === "class") {
-			return { kind: "class", classId: outcome.symbol.id };
+			return { kind: "class", classId: outcome.symbol.id, classLevel: true };
 		}
 		// `n = m`: an imported module.
 		if (outcome.kind === "module" && outcome.path !== null) return { kind: "module", modulePath: outcome.path };
