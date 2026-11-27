@@ -1661,6 +1661,8 @@ describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", (
 			`${item}class Outer:\n    class Item:\n        def save(self):\n            pass\n    type A[T] = CALL\n`,
 			"Item().save()",
 		);
+		// GCLI-144 (DEC-303 (a74) item 2): a lazy alias value reads the class's final bindings, and here nothing was
+		// dropped (a class def, no later import), so the correct edge stays.
 		expect(runs(alias)).toEqual(["app.py:Outer.Item.save"]);
 	});
 
@@ -1739,5 +1741,262 @@ describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", (
 		);
 		expect(twin.delta.inRepo).toBe(1);
 		expect(runs(twin)).toEqual(["app.py:C.run"]);
+	});
+});
+
+// GCLI-144 (DEC-303 (a73)): a class-body read of a name the class body binds ANYWHERE is never resolved through an
+// enclosing function's binding. A class body reads such a name from the class, then the globals, then the builtins
+// (LOAD_NAME); `from m import X as x` after the read binds it in the class, so the read cannot reach `outer`'s `x`.
+describe("GCLI-144 — a class-body read of a name the class body binds skips enclosing functions", () => {
+	const cls = "class C:\n    def run(self):\n        pass\n";
+	const others = { "m.py": "class X:\n    def run(self):\n        pass\n" };
+	const REFUSED: Delta = { inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 };
+	const runs = (r: { callees: (string | null)[] }) => r.callees.filter((c) => c?.endsWith(".run"));
+	const reads: Record<string, string> = {
+		"eager read": "        y = CALL\n",
+		"lazy alias, type A": "        type A = CALL\n",
+		"lazy generic alias, type A[T]": "        type A[T] = CALL\n",
+	};
+	const app = (read: string, bindings: string, later = "        from m import X as x\n") =>
+		`${cls}def outer():\n${bindings}    class Outer:\n${read}${later}`;
+	const ONE = "    x = C()\n";
+	const TWO = "    x = C()\n    x = C()\n";
+
+	for (const [label, read] of Object.entries(reads)) {
+		test(`${label}, one binding of x in the enclosing function: no C.run edge`, async () => {
+			const r = await probe(app(read, ONE), "x.run()", others);
+			expect(r.delta, label).toEqual(REFUSED);
+			expect(runs(r), label).toEqual([]);
+		});
+		test(`${label}, two bindings (the twin): still refused`, async () => {
+			const r = await probe(app(read, TWO), "x.run()", others);
+			expect(r.delta, label).toEqual(REFUSED);
+			expect(runs(r), label).toEqual([]);
+		});
+		test(`${label}, no class-body binding (the twin): resolves through the enclosing function`, async () => {
+			const r = await probe(app(read, ONE, ""), "x.run()", others);
+			expect(r.delta.inRepo, label).toBe(1);
+			expect(runs(r), label).toEqual(["app.py:C.run"]);
+		});
+	}
+
+	test("a class-body binding BEFORE the read is the class's own and is not an enclosing read", async () => {
+		const r = await probe(
+			`${cls}def outer():\n    x = C()\n    class Outer:\n        from m import X as x\n        y = CALL\n`,
+			"x.run()",
+			others,
+		);
+		expect(runs(r)).toEqual(["m.py:X.run"]);
+	});
+
+	test("a module-level binding with no class-body binding is still read", async () => {
+		const r = await probe(`${cls}x = C()\ndef outer():\n    class Outer:\n        y = CALL\n`, "x.run()", others);
+		expect(runs(r)).toEqual(["app.py:C.run"]);
+	});
+
+	// DEC-303 (a73) item 2, "only REMOVE edges": a result found in an enclosing function is refused, never replaced by
+	// the globals' binding, so no case creates an edge or an external bin. Each case below is measured against dev.
+	describe("the outcome only removes edges", () => {
+		const mod = "class X:\n    def run(self):\n        pass\n";
+		const classes = `${cls}class D:\n    def run(self):\n        pass\n`;
+		const later = "        from m import X as x\n";
+		const NOT_BOUND: Delta = { inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 };
+
+		test("a: module x = D() and outer x = C() give no edge, NOT D.run (dev: C.run)", async () => {
+			const r = await probe(
+				`${classes}x = D()\ndef outer():\n    x = C()\n    class Outer:\n        y = CALL\n${later}`,
+				"x.run()",
+				{ "m.py": mod },
+			);
+			expect(r.delta).toEqual(REFUSED);
+			expect(runs(r)).toEqual([]);
+		});
+
+		test("b: no module x, outer x = C() gives no edge (dev: C.run)", async () => {
+			const r = await probe(
+				`${classes}def outer():\n    x = C()\n    class Outer:\n        y = CALL\n${later}`,
+				"x.run()",
+				{
+					"m.py": mod,
+				},
+			);
+			expect(r.delta).toEqual(REFUSED);
+			expect(runs(r)).toEqual([]);
+		});
+
+		test("c: module x = D() and no enclosing function binding is unchanged (D.run)", async () => {
+			const r = await probe(
+				`${classes}x = D()\ndef outer():\n    class Outer:\n        y = CALL\n${later}`,
+				"x.run()",
+				{
+					"m.py": mod,
+				},
+			);
+			expect(r.delta.inRepo).toBe(1);
+			expect(runs(r)).toEqual(["app.py:D.run"]);
+		});
+
+		test("d: an outer def len is refused, NOT the builtin (dev: outer.len)", async () => {
+			const r = await probe(
+				"def outer():\n    def len(o):\n        pass\n    class Outer:\n        y = CALL\n        from m import len\n",
+				"len([])",
+				{ "m.py": "def len(o):\n    pass\n" },
+			);
+			expect(r.delta).toEqual(NOT_BOUND);
+		});
+
+		test("e and f: a module def and an outer def of the name give no edge, NOT the module def (dev: the outer def)", async () => {
+			for (const name of ["len", "f"]) {
+				const r = await probe(
+					`def ${name}(o=None):\n    pass\ndef outer():\n    def ${name}(o=None):\n        pass\n    class Outer:\n        y = CALL\n        from m import X as ${name}\n`,
+					`${name}()`,
+					{ "m.py": mod },
+				);
+				expect(r.delta, name).toEqual(NOT_BOUND);
+			}
+		});
+
+		test("g: a method reads the name, methods skip the class body, unchanged (C.run)", async () => {
+			const r = await probe(
+				`${classes}def outer():\n    x = C()\n    class Outer:\n${later}        def meth(self):\n            CALL\n`,
+				"x.run()",
+				{ "m.py": mod },
+			);
+			expect(r.delta.inRepo).toBe(1);
+			expect(runs(r)).toEqual(["app.py:C.run"]);
+		});
+
+		test("h: a callable instance read before a class-body import gets no __call__ edge (dev: C.__call__)", async () => {
+			const r = await probe(
+				`class C:\n    def __call__(self):\n        pass\ndef outer():\n    x = C()\n    class Outer:\n        y = CALL\n${later}`,
+				"x()",
+				{ "m.py": mod },
+			);
+			expect(r.callees).not.toContain("app.py:C.__call__");
+			expect(r.delta.inRepo).toBe(0);
+		});
+
+		test("i: an external import receiver read before a class-body import is not claimed external (dev: external)", async () => {
+			const r = await probe(
+				`def outer():\n    import os as x\n    class Outer:\n        y = CALL\n${later}`,
+				"x.getcwd()",
+				{ "m.py": mod },
+			);
+			expect(r.delta).toEqual(REFUSED);
+		});
+
+		test("k: a decorated class whose decorator name is read before a class-body import gets no method edge (dev: In.m)", async () => {
+			const r = await probe(
+				"def outer():\n    from dataclasses import dataclass\n    class Outer:\n        @dataclass\n        class In:\n            def m(self):\n                pass\n        z = In()\n        CALL\n        from m import X as dataclass\n",
+				"z.m()",
+				{ "m.py": mod },
+			);
+			expect(r.callees).not.toContain("app.py:outer.Outer.In.m");
+			expect(r.delta.inRepo).toBe(0);
+		});
+
+		// A lazy alias value is evaluated after the class body has run, so it sees the class's FINAL binding (here the
+		// later import), never a module-level `x` (opum-doc, DEC-303 (a73) runtime basis). The eager read reads the globals.
+		describe("a lazy alias value in a class body", () => {
+			const moduleApp = (read: string, tail = later) => `${classes}x = C()\nclass Outer:\n${read}${tail}`;
+			const eager = "        y = CALL\n";
+			const lazy: Record<string, string> = {
+				"type A": "        type A = CALL\n",
+				"type A[T]": "        type A[T] = CALL\n",
+			};
+
+			test("module x = C(), no function: the eager read still resolves to C.run (correct at runtime, as dev)", async () => {
+				const r = await probe(moduleApp(eager), "x.run()", { "m.py": mod });
+				expect(r.delta.inRepo).toBe(1);
+				expect(runs(r)).toEqual(["app.py:C.run"]);
+			});
+
+			for (const [label, read] of Object.entries(lazy)) {
+				test(`${label}: an early import and a later one of different classes: refused (dev: the early import's edge)`, async () => {
+					const r = await probe(`${classes}class Outer:\n${later}${read}        from n import Y as x\n`, "x.run()", {
+						"m.py": mod,
+						"n.py": "class Y:\n    def run(self):\n        pass\n",
+					});
+					expect(r.delta, label).toEqual(REFUSED);
+					expect(runs(r), label).toEqual([]);
+				});
+			}
+
+			for (const [label, read] of Object.entries(lazy)) {
+				test(`module x = C(), no function: ${label} is refused, NOT C.run (dev: C.run)`, async () => {
+					const r = await probe(moduleApp(read), "x.run()", { "m.py": mod });
+					expect(r.delta, label).toEqual(REFUSED);
+					expect(runs(r), label).toEqual([]);
+				});
+				test(`${label}: a class-body import BEFORE the alias keeps its exact edge (nothing was dropped), m.X.run`, async () => {
+					const r = await probe(moduleApp(read, "").replace("class Outer:\n", `class Outer:\n${later}`), "x.run()", {
+						"m.py": mod,
+					});
+					expect(runs(r), label).toEqual(["m.py:X.run"]);
+					expect(r.delta.inRepo, label).toBe(1);
+				});
+				test(`${label}: no class-body binding of x resolves through the module (the twin)`, async () => {
+					const r = await probe(moduleApp(read, ""), "x.run()", { "m.py": mod });
+					expect(r.delta.inRepo, label).toBe(1);
+					expect(runs(r), label).toEqual(["app.py:C.run"]);
+				});
+			}
+		});
+
+		// Opus round 1: a NON-generic alias value had no scope of its own on dev, so a comprehension target or a walrus in it
+		// was recorded on the class body. The lazy scope made only to mark the read must record them there too, or the
+		// class loses a binding and a read, or a method call through it, resolves where dev refused.
+		describe("bindings made inside a non-generic alias value stay on the class body, as on dev", () => {
+			const comp = "    type A = [x for x in ()]\n";
+			const walrus = "    type A = (x := 1)\n";
+
+			test("1: module x = C(), a comprehension target x in the alias: y = x.run() is refused (dev: receiver)", async () => {
+				for (const [label, alias] of [
+					["comprehension", comp],
+					["walrus", walrus],
+				] as const) {
+					const r = await probe(`${classes}x = C()\nclass Outer:\n${alias}    y = CALL\n`, "x.run()");
+					expect(r.delta, label).toEqual(REFUSED);
+					expect(runs(r), label).toEqual([]);
+				}
+			});
+
+			test("2: the same with x = C() inside def outer()", async () => {
+				for (const [label, alias] of [
+					["comprehension", comp],
+					["walrus", walrus],
+				] as const) {
+					const r = await probe(
+						`${classes}def outer():\n    x = C()\n    class Outer:\n${alias.replace("    type", "        type")}        y = CALL\n`,
+						"x.run()",
+					);
+					expect(r.delta, label).toEqual(REFUSED);
+					expect(runs(r), label).toEqual([]);
+				}
+			});
+
+			test("3: a method's self.helper() is refused when the alias binds the name helper on the class (dev: receiver)", async () => {
+				for (const [label, alias] of [
+					["comprehension", "    type A = [helper for helper in ()]\n"],
+					["walrus", "    type A = (helper := 1)\n"],
+				] as const) {
+					const r = await probe(
+						`class Outer:\n    def helper(self):\n        pass\n    def run(self):\n        CALL\n${alias}`,
+						"self.helper()",
+					);
+					expect(r.delta, label).toEqual(REFUSED);
+					expect(r.callees, label).toEqual([]);
+				}
+			});
+
+			test("twin: an alias that binds an unrelated name leaves self.helper() resolving", async () => {
+				const r = await probe(
+					"class Outer:\n    def helper(self):\n        pass\n    def run(self):\n        CALL\n    type A = [n for n in ()]\n",
+					"self.helper()",
+				);
+				expect(r.delta.inRepo).toBe(1);
+				expect(r.callees).toEqual(["app.py:Outer.helper"]);
+			});
+		});
 	});
 });

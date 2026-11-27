@@ -250,6 +250,17 @@ interface Scope {
 	 * only the declared names, each as `rebound`, so a lookup of one refuses instead of reaching an enclosing binding.
 	 */
 	typeParams?: true;
+	/**
+	 * GCLI-144: the scope a `type` alias value inside a class body is read in. Python evaluates it lazily, after
+	 * the class body has run, so it sees the class's FINAL bindings, never an earlier or an enclosing one. It is
+	 * a type-parameter scope (the class stays the first real scope) that also carries this mark.
+	 */
+	lazyAlias?: true;
+	/**
+	 * GCLI-144: a lazy scope made only to mark the read (a NON-generic alias value in a class body) records its
+	 * bindings, a comprehension target or a walrus, on the class body as dev did before the scope existed.
+	 */
+	bindsInto?: Scope;
 }
 
 interface BaseRef {
@@ -1264,7 +1275,16 @@ class FileWalker {
 					if (name !== null) this.addBinding(frame.scope, name.text, { kind: "rebound" });
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					// GCLI-112: the value sees the alias's own type parameters.
-					const typeScope = this.typeParameterScope(frame, node);
+					let typeScope = this.typeParameterScope(frame, node);
+					// GCLI-144: an alias value in a class body is lazy (Scope.lazyAlias), generic or not.
+					if (frame.scope.kind === "class") {
+						if (typeScope === null) {
+							typeScope = this.newScope("function", frame.scope, frame.scope.qualname, null, null, [], null, null);
+							typeScope.typeParams = true;
+							typeScope.bindsInto = frame.scope;
+						}
+						typeScope.lazyAlias = true;
+					}
 					const value = node.childForFieldName("right") ?? node.namedChild(node.namedChildCount - 1);
 					if (typeScope !== null && value !== null) {
 						const pushed = stack.find((entry) => entry.node.id === value.id);
@@ -1347,7 +1367,8 @@ class FileWalker {
 		return scope;
 	}
 
-	private addBinding(scope: Scope, name: string, binding: RawBinding): void {
+	private addBinding(target: Scope, name: string, binding: RawBinding): void {
+		const scope = target.bindsInto ?? target;
 		const list = scope.bindings.get(name);
 		if (list === undefined) scope.bindings.set(name, [binding]);
 		else list.push(binding);
@@ -2218,15 +2239,24 @@ class Resolver {
 		name: string,
 		scope: Scope,
 		use?: UsePosition,
-	): { scope: Scope; bindings: RawBinding[] } | null {
+	): { scope: Scope; bindings: RawBinding[]; classBodyShadowed?: true } | null {
 		let current: Scope | null = scope;
 		let first = true;
+		// GCLI-144 (DEC-303 (a73)): the starting class body binds `name`, but only by a statement after this read
+		// (Rule 38 filtered it out). Python reads that name from the class, then the globals, never from an enclosing
+		// function, so a result found further out is flagged and every consumer that can yield an edge refuses it.
+		let classBodyShadowed = false;
+		// GCLI-144: a read inside a lazy alias value in a class body sees the class's final bindings (see Scope.lazyAlias).
+		let lazyAlias = false;
+		// A lazy read that Rule 38 emptied: even a module-level result is wrong, since the read belongs to the class's final binding.
+		let lazyDropped = false;
 		while (current !== null) {
 			// A class body is not an enclosing scope for its methods (rule 3): only
 			// the starting scope may be a class body.
 			if (first || current.kind !== "class") {
 				let bindings: RawBinding[] | undefined = current.bindings.get(name);
 				if (bindings !== undefined && bindings.length > 0) {
+					const all = bindings;
 					// Rule 38: in the starting class body an import binds only for
 					// statements that follow it; an earlier use falls through to the
 					// enclosing binding. Function and module scope stay flow-insensitive.
@@ -2240,11 +2270,28 @@ class Resolver {
 								),
 						);
 					}
-					if (bindings.length > 0) return { scope: current, bindings };
+					// GCLI-144 (DEC-303 (a74) item 2): a lazy alias value reads the class's FINAL bindings, so it differs from
+					// the eager read exactly when Rule 38 dropped a binding (a later import): that read is refused, whether
+					// bindings remain or the walk would leave the class. With nothing dropped it reads the same bindings
+					// as before and keeps the edge.
+					const lazyDiffers = first && current.kind === "class" && lazyAlias && bindings.length !== all.length;
+					if (lazyDiffers && bindings.length > 0) return { scope: current, bindings, classBodyShadowed: true };
+					if (bindings.length > 0) {
+						// Only a result in an enclosing function is wrong for an eager read (from the module Python reads
+						// the same binding); a lazy read never leaves the class, so any outer result is wrong for it.
+						return classBodyShadowed && (current.kind !== "module" || lazyDropped)
+							? { scope: current, bindings, classBodyShadowed: true }
+							: { scope: current, bindings };
+					}
+					if (first && current.kind === "class") {
+						classBodyShadowed = true;
+						lazyDropped = lazyAlias;
+					}
 				}
 			}
 			// GCLI-112: a type-parameter scope sits directly inside a class body for a generic declared there, and
 			// Python reads the class's names from that annotation scope, so the class is still the first real scope.
+			if (first && current.lazyAlias === true) lazyAlias = true;
 			first = first && current.typeParams === true;
 			current = current.parent;
 		}
@@ -2441,7 +2488,7 @@ class Resolver {
 	 */
 	private isExternalImportReceiver(name: string, scope: Scope, use?: UsePosition): boolean {
 		const found = this.lookupBindings(name, scope, use);
-		if (found === null) return false;
+		if (found === null || found.classBodyShadowed === true) return false;
 		return found.bindings.every(
 			(binding) =>
 				binding.kind === "import" && binding.importBinding != null && binding.importBinding.outcome === "external",
@@ -2457,6 +2504,8 @@ class Resolver {
 	): NameOutcome {
 		const found = this.lookupBindings(name, scope, use);
 		if (found === null) return this.resolveUnbound(name, scope, use, starCtx);
+		// GCLI-144 (DEC-303 (a73)): the class body binds this name after the read; an enclosing function's binding is not it.
+		if (found.classBodyShadowed === true) return { kind: "unresolved", reason: "rebound" };
 		// N1 (GCLI-118): a comprehension's iteration target lives in the comprehension's own scope, so at module
 		// level it is no binding of the module name for a read outside that comprehension. A read with no known
 		// position, or inside the comprehension, keeps it (the conservative reading).
@@ -3258,7 +3307,7 @@ class Resolver {
 				return true;
 			}
 			const found = this.lookupBindings(bindingName, classInfo.parentScope, use);
-			if (found === null || found.bindings.length !== 1) return true;
+			if (found === null || found.classBodyShadowed === true || found.bindings.length !== 1) return true;
 			const binding = found.bindings[0] as RawBinding;
 			const imported = binding.kind === "import" ? binding.importBinding : null;
 			if (imported === null || imported === undefined || imported.kind !== wantKind) return true;
@@ -3289,7 +3338,7 @@ class Resolver {
 
 	private knownClassOf(name: string, scope: Scope, use?: UsePosition): ClassInfo | null {
 		const found = this.lookupBindings(name, scope, use);
-		if (found === null || found.bindings.length !== 1) return null;
+		if (found === null || found.classBodyShadowed === true || found.bindings.length !== 1) return null;
 		const binding = found.bindings[0] as RawBinding;
 		if (binding.kind === "import" && binding.importBinding) {
 			const outcome = this.resolveImportBinding(binding.importBinding);
@@ -4200,7 +4249,7 @@ class Resolver {
 		site: { file: string; line: number; column: number },
 	): CallResolution | null {
 		const found = this.lookupBindings(name, scope, site);
-		if (found === null || found.bindings.length !== 1) return null;
+		if (found === null || found.classBodyShadowed === true || found.bindings.length !== 1) return null;
 		const binding = found.bindings[0] as RawBinding;
 		if (binding.kind !== "assign" || binding.rhs === undefined || binding.rhs.kind !== "call") return null;
 		const classInfo = this.instanceClassOf(this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0));
