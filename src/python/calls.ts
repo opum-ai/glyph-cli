@@ -3656,13 +3656,10 @@ class Resolver {
 				return info === null ? null : { info, instance: true, annotated: true };
 			}
 			if (binding.rhs !== undefined && binding.rhs.kind === "call") {
-				// (a31) Q2: a decorated class may have been replaced, so `x = Cls(); x.m()` is refused. GCLI-169 / N5
-				// (DEC-303 (a94) item 3): `Cls(...)` is an instance of `Cls` only when the construction is known to
-				// return one, so the arm reads `instanceClassOf` like E1, R4 and N3 already do — a `__new__` anywhere in
-				// the MRO may return a descendant (whose `__init__` can rewrite `self.__class__`), and a metaclass or an
-				// opaque base can change what the call returns. Removal only: every refusal drops a site.
-				const constructed = this.instanceClassOf(this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0));
-				if (constructed === null) return null;
+				const symbol = this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0);
+				const constructed = symbol !== null && symbol.kind === "class" ? (this.classById.get(symbol.id) ?? null) : null;
+				// (a31) Q2: a decorated class may have been replaced, so `x = Cls(); x.m()` is refused.
+				if (constructed === null || this.hasReplacingDecorator(constructed)) return null;
 				return { info: constructed, instance: true, annotated: false };
 			}
 			return null;

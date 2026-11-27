@@ -623,30 +623,6 @@ describe("rule 6 — attribute call receivers", () => {
 		});
 	});
 
-	// GCLI-169 / N5 (DEC-303 (a94) item 3): the 6d constructed arm reads `instanceClassOf` like E1, R4 and N3, so a
-	// class whose `__new__` may return a descendant (that can rewrite `self.__class__`) is not a known instance.
-	describe("rule 6d — a construction whose class has __new__ (GCLI-169 N5)", () => {
-		const body = (withNew: boolean, write: boolean) =>
-			`class Other:\n    def m(self):\n        pass\n\nclass C:\n${withNew ? "    def __new__(cls):\n        return D()\n" : ""}    def m(self):\n        pass\n\nclass D(C):\n    def __init__(self):\n${write ? "        self.__class__ = Other\n" : "        pass\n"}\n`;
-
-		test("N5: a with-write descendant behind __new__ leaves x = C(); x.m() unresolved", async () => {
-			const result = await one(`${body(true, true)}\ndef f():\n    x = C()\n    x.m()\n`);
-			expect(linesTo(result, symbolId(result, "C.m"))).toEqual([]);
-			expect(result.callBins.receiverNeedsInference).toBe(1);
-		});
-
-		test("the no-__new__ control still resolves C.m, its descendant's write notwithstanding", async () => {
-			const result = await one(`${body(false, true)}\ndef f():\n    x = C()\n    x.m()\n`);
-			expect(linesTo(result, symbolId(result, "C.m"))).toEqual([16]);
-		});
-
-		test("the no-write twin is refused too: instanceClassOf cannot read what __new__ returns", async () => {
-			const result = await one(`${body(true, false)}\ndef f():\n    x = C()\n    x.m()\n`);
-			expect(linesTo(result, symbolId(result, "C.m"))).toEqual([]);
-			expect(result.callBins.receiverNeedsInference).toBe(1);
-		});
-	});
-
 	test("rule 6f / rule 29c: a call result and a builtin value need inference; a literal receiver is external", async () => {
 		const result = await one(
 			"def make():\n    return None\ndef f(items):\n    make().m()\n    'x'.join([])\n    items.append(1)\n",
@@ -5058,11 +5034,7 @@ describe("GCLI-115 — a del target is a binding", () => {
 		});
 
 		test("a method reached through a REBOUND in-repo base is not credited to an external base ((a47) item 2 (i))", async () => {
-			// GCLI-169 / N5: the constructed receiver `s = S()` now refuses before the base is read (the arm consults
-			// `instanceClassOf`, and a rebound or multiply base leaves the MRO opaque), so the base-credit ruling is
-			// exercised through an annotated receiver, which reaches the same `methodLookup`. The constructed form's
-			// refusal is pinned at the end of this test.
-			const own = "class S(T):\n    pass\ndef f(s: S):\n    CALL\n";
+			const own = "class S(T):\n    pass\ns = S()\nCALL\n";
 			// cross-module: m.T is rebound (a call value), so S's base may define write; it is not external
 			await expectDelta(
 				`from m import T\n${own}`,
@@ -5072,7 +5044,7 @@ describe("GCLI-115 — a del target is a binding", () => {
 				[py("m.py", "class T:\n    pass\nT = make()\n")],
 			);
 			await expectDelta(
-				"import m\nclass S(m.T):\n    pass\ndef f(s: S):\n    CALL\n",
+				"import m\nclass S(m.T):\n    pass\ns = S()\nCALL\n",
 				"s.write()",
 				REFUSED_REBOUND_BASE,
 				"rebound base through a module attribute",
@@ -5094,25 +5066,15 @@ describe("GCLI-115 — a del target is a binding", () => {
 				[py("m.py", "if X:\n    class T:\n        pass\nelse:\n    class T:\n        pass\n")],
 			);
 			await expectDelta(
-				"import m\nclass S(m.T):\n    pass\ndef f(s: S):\n    CALL\n",
+				"import m\nclass S(m.T):\n    pass\ns = S()\nCALL\n",
 				"s.write()",
 				REFUSED_REBOUND_BASE,
 				"multiply base through a module attribute",
 				[py("m.py", "if X:\n    class T:\n        pass\nelse:\n    class T:\n        pass\n")],
 			);
-			// GCLI-169 / N5: the constructed form this test used to use refuses at the receiver now, before any base
-			// is credited, so it draws no edge either — the same conclusion by a different reason.
+			// control: a genuinely external base stays external (the method is found only in it)
 			await expectDelta(
-				"from m import T\nclass S(T):\n    pass\ns = S()\nCALL\n",
-				"s.write()",
-				REFUSED_RECEIVER,
-				"constructed receiver over a rebound base (GCLI-169 N5)",
-				[py("m.py", "class T:\n    pass\nT = make()\n")],
-			);
-			// control: a genuinely external base stays external (the method is found only in it). Annotated for the
-			// same N5 reason as above; the constructed form now lands in the receiver bin instead.
-			await expectDelta(
-				"import ext\nclass S(ext.Base):\n    pass\ndef f(s: S):\n    CALL\n",
+				"import ext\nclass S(ext.Base):\n    pass\ns = S()\nCALL\n",
 				"s.write()",
 				BUILTIN,
 				"external base",
@@ -5215,14 +5177,11 @@ describe("GCLI-115 — a del target is a binding", () => {
 				["multiply", "if X:\n    class T:\n        pass\nelse:\n    class T:\n        pass\n"],
 				["rebound", "class T:\n    pass\nT = make()\n"],
 			] as const) {
-				// GCLI-169 / N5: the receiver is annotated rather than constructed — `s = S()` now refuses at
-				// `instanceClassOf`, since a multiply or rebound base leaves S's MRO opaque — so the base-credit
-				// assertion reaches `methodLookup` the same way.
 				const result = await analyze([
 					py("m.py", tsource),
 					py(
 						"app.py",
-						"from m import T\nclass U:\n    def write(self):\n        pass\nclass S(T, U):\n    pass\ndef f(s: S):\n    s.write()\n",
+						"from m import T\nclass U:\n    def write(self):\n        pass\nclass S(T, U):\n    pass\ns = S()\ns.write()\n",
 					),
 				]);
 				const uWrite = symbolId(result, "U.write");
