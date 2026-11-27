@@ -1290,6 +1290,21 @@ class FileWalker {
 						const pushed = stack.find((entry) => entry.node.id === value.id);
 						if (pushed !== undefined) pushed.scope = typeScope;
 					}
+					// GCLI-146 (DEC-303 (a76)): a class-body alias's type parameter bound, constraint and default are lazy
+					// too, so the left side (which holds the type parameters) is read in a lazy scope. Binders inside it (a
+					// comprehension target) stay on the class body, as on dev, where this side was walked in the class
+					// scope: a generic alias gets a child scope of its type-parameter scope that records them there.
+					const left = node.childForFieldName("left");
+					if (typeScope?.lazyAlias === true && left !== null) {
+						let leftScope: Scope = typeScope;
+						if (typeScope.bindsInto === undefined) {
+							leftScope = this.newScope("function", typeScope, frame.scope.qualname, null, null, [], null, null);
+							leftScope.typeParams = true;
+							leftScope.bindsInto = frame.scope;
+						}
+						const pushedLeft = stack.find((entry) => entry.node.id === left.id);
+						if (pushedLeft !== undefined) pushedLeft.scope = leftScope;
+					}
 					continue;
 				}
 				case "named_expression":
@@ -2250,6 +2265,9 @@ class Resolver {
 		let lazyAlias = false;
 		// A lazy read that Rule 38 emptied: even a module-level result is wrong, since the read belongs to the class's final binding.
 		let lazyDropped = false;
+		// GCLI-146 (DEC-303 (a76)): a lazy read whose class bindings Rule 38 ALL dropped, and which finds nothing further
+		// out, is not unbound (a builtin or a star-supplied name): the class binds it, so it is refused, not claimed.
+		let lazyEmpty: { scope: Scope; bindings: RawBinding[]; classBodyShadowed: true } | null = null;
 		while (current !== null) {
 			// A class body is not an enclosing scope for its methods (rule 3): only
 			// the starting scope may be a class body.
@@ -2286,6 +2304,7 @@ class Resolver {
 					if (first && current.kind === "class") {
 						classBodyShadowed = true;
 						lazyDropped = lazyAlias;
+						if (lazyAlias) lazyEmpty = { scope: current, bindings: [], classBodyShadowed: true };
 					}
 				}
 			}
@@ -2295,7 +2314,7 @@ class Resolver {
 			first = first && current.typeParams === true;
 			current = current.parent;
 		}
-		return null;
+		return lazyEmpty;
 	}
 
 	/**

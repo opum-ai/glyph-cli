@@ -2001,32 +2001,29 @@ describe("GCLI-144 — a class-body read of a name the class body binds skips en
 	});
 });
 
-// GCLI-147 (DEC-303 (a75) item 2): pins the `lazyDiffers && bindings.length > 0` condition in `lookupBindings`
-// (GCLI-144). When Rule 38 dropped EVERY class binding of the name, the lookup leaves the class and a name bound
-// nowhere further out stays unbound (a builtin or a star-supplied name); without `bindings.length > 0` it would
-// return a flagged empty result and refuse instead. These are GCLI-146's behaviour cases: DEC-303 (a76) folds N1a
-// and N1b into GCLI-146, which turns them from "unchanged from dev" into REFUSED, so GCLI-146 updates the
-// expectations below (the comments say which), they are not a claim that dev's answer is right.
+// GCLI-147 (DEC-303 (a75) item 2) pinned the lookup's behaviour when Rule 38 dropped EVERY class binding of a lazy
+// read and nothing is bound further out. GCLI-146 (DEC-303 (a76)) folds N1a and N1b in: that read is refused (a
+// flagged empty result, `lazyEmpty` in `lookupBindings`), no longer the null that claimed a builtin or a star name.
+// The expectations below were "unchanged from dev" under GCLI-147 and are REFUSED now.
 describe("GCLI-147 — the lazy-read condition GCLI-144 left untested", () => {
 	const mod = (name: string) => `def ${name}(o=None):\n    pass\n`;
+	const NOT_BOUND: Delta = { inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 };
 
-	test("N1a: a lazy alias reading len, the class importing len later, is binned external as on dev (GCLI-146 will refuse it)", async () => {
+	test("N1a: a lazy alias reading len, the class importing len later, is refused, not claimed as the builtin (dev: external 1)", async () => {
 		const r = await probe("class Outer:\n    type A = CALL\n    from m import len\n", "len([])", {
 			"m.py": mod("len"),
 		});
-		// Unchanged from dev and pre-existing: dev claims the builtin although Python reads m.len. GCLI-146: REFUSED.
-		expect(r.delta).toEqual({ inRepo: 0, external: 1, receiver: 0, nameNotBound: 0 });
+		expect(r.delta).toEqual(NOT_BOUND);
 		expect(r.callees).toEqual([]);
 	});
 
-	test("N1b: a lazy alias reading a star-supplied f, the class importing f later, keeps s.f as on dev (GCLI-146 will refuse it)", async () => {
+	test("N1b: a lazy alias reading a star-supplied f, the class importing f later, is refused (dev: the edge to s.py:f)", async () => {
 		const r = await probe("from s import *\nclass Outer:\n    type A = CALL\n    from m import f\n", "f()", {
 			"s.py": mod("f"),
 			"m.py": mod("f"),
 		});
-		// Unchanged from dev and pre-existing: dev resolves the star's f although Python reads m.f. GCLI-146: REFUSED.
-		expect(r.delta).toEqual(RESOLVED);
-		expect(r.callees).toEqual(["s.py:f"]);
+		expect(r.delta).toEqual(NOT_BOUND);
+		expect(r.callees).toEqual([]);
 	});
 
 	test("N2: a decorator read of a name the class imports later gets no edge to the enclosing function's def", async () => {
@@ -2038,5 +2035,175 @@ describe("GCLI-147 — the lazy-read condition GCLI-144 left untested", () => {
 		// Python reads the builtin staticmethod; origin/dev before GCLI-144 had an edge to outer.staticmethod.
 		expect(r.callees).not.toContain("app.py:outer.staticmethod");
 		expect(r.callees).toContain("app.py:outer.Outer.n");
+	});
+});
+
+// GCLI-146 (DEC-303 (a76)): a LAZY class-body read (an alias value, or an alias type parameter's bound or constraint) of a
+// name the class body binds ANYWHERE never resolves through an enclosing scope, a star import or a builtin; it REFUSES
+// and does not resolve to the class binding (that would create edges). The bound forms were read eagerly on dev.
+// A PEP 696 default `[T = x.run()]` is covered too: this grammar makes an ERROR node of `T` only and walks `x.run()`
+// as a normal call (see the guard fixture below).
+describe("GCLI-146 — a lazy class-body read of a name the class binds refuses", () => {
+	const cls = "class C:\n    def run(self):\n        pass\n";
+	const others = { "m.py": "class X:\n    def run(self):\n        pass\n" };
+	const later = "    from m import X as x\n";
+	const REFUSED: Delta = { inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 };
+
+	/** Delta of `x.run()` against `int` in the same position (`pass` is no expression in a bound). */
+	async function bound(app: string) {
+		const run = async (expr: string, extra: Record<string, string> = others) => {
+			const r = await analyze([
+				...Object.entries(extra).map(([path, source]) => py(path, source)),
+				py("app.py", app.replace("CALL", expr)),
+			]);
+			return r;
+		};
+		const withCall = await run("x.run()");
+		const without = await run("int");
+		const callees = withCall.sites
+			.filter((s) => s.file === "app.py")
+			.map((s) => withCall.symbols.find((x) => x.id === s.calleeId)?.qualname)
+			.filter((q) => q?.endsWith(".run"));
+		return {
+			delta: {
+				inRepo: withCall.callBins.resolvedInRepo - without.callBins.resolvedInRepo,
+				external: withCall.callBins.resolvedExternal - without.callBins.resolvedExternal,
+				receiver: withCall.callBins.receiverNeedsInference - without.callBins.receiverNeedsInference,
+				nameNotBound: withCall.callBins.nameNotBound - without.callBins.nameNotBound,
+			} as Delta,
+			callees,
+		};
+	}
+
+	const forms: Record<string, string> = {
+		bound: "    type A[T: CALL] = int\n",
+		constraint: "    type A[T: (CALL, int)] = int\n",
+	};
+
+	for (const [label, alias] of Object.entries(forms)) {
+		test(`${label}, module x = C(), a later class-body import of x: refused (dev: C.run)`, async () => {
+			const r = await bound(`${cls}x = C()\nclass Outer:\n${alias}${later}`);
+			expect(r.delta, label).toEqual(REFUSED);
+			expect(r.callees, label).toEqual([]);
+		});
+		test(`${label}, x = C() in an enclosing function: refused (dev: C.run)`, async () => {
+			const r = await bound(
+				`${cls}def outer():\n    x = C()\n    class Outer:\n${alias.replace(/^/gm, "    ")}${later.replace(/^/gm, "    ")}`,
+			);
+			expect(r.delta, label).toEqual(REFUSED);
+			expect(r.callees, label).toEqual([]);
+		});
+		test(`${label}, no class-body binding of x (the twin): resolves through the module`, async () => {
+			const r = await bound(`${cls}x = C()\nclass Outer:\n${alias}`);
+			expect(r.delta.inRepo, label).toBe(1);
+			expect(r.callees, label).toEqual(["C.run"]);
+		});
+		test(`${label}, a class-body import BEFORE the alias keeps its exact edge (nothing dropped), m.X.run`, async () => {
+			const r = await bound(`${cls}x = C()\nclass Outer:\n${later}${alias}`);
+			expect(r.callees, label).toEqual(["X.run"]);
+		});
+	}
+
+	test("a bound of a def or a class is not walked: no edge either way, unchanged (GCLI-145)", async () => {
+		for (const member of ["    def f[T: CALL](self):\n        pass\n", "    class K[T: CALL]:\n        pass\n"]) {
+			const r = await bound(`${cls}x = C()\nclass Outer:\n${member}${later}`);
+			expect(r.callees, member).toEqual([]);
+		}
+	});
+
+	test("a module-level alias bound is outside a class body and keeps its edge (module x = C())", async () => {
+		const r = await bound(`${cls}x = C()\ntype A[T: CALL] = int\n`);
+		expect(r.callees).toEqual(["C.run"]);
+	});
+
+	// Guard for the PEP 696 default (opum-doc, DEC-303 (a76) item 2), measured: this grammar does NOT drop the call. For
+	// `type A[T = x.run()] = int` the parser makes an ERROR node of `T` only, and `x.run()` is a normal `call` under a
+	// sibling `type` node of the `type_parameter`, so it is walked and recorded as a site (origin/dev: an eager read, the
+	// edge C.run). The left-side walk in the lazy scope covers it, so it is refused like a bound. If a grammar upgrade
+	// changes how a default parses, a red here goes to opum-doc and is not "fixed" by resolving the default.
+	test("guard: a PEP 696 default type A[T = x.run()] with a later class-body import of x is refused, no C.run (dev: C.run)", async () => {
+		const r = await bound(`${cls}x = C()\nclass Outer:\n    type A[T = CALL] = int\n${later}`);
+		expect(r.delta).toEqual(REFUSED);
+		expect(r.callees).toEqual([]);
+	});
+
+	// Binders inside a generic alias's bound, constraint or default (a comprehension target) stay on the class body,
+	// as on dev, where that side was walked in the class scope: moving them to the type-parameter scope would let a
+	// class read or a method call resolve where dev refused or claimed nothing (Opus round 1, A, B and C).
+	describe("binders inside a generic alias's bound stay on the class body, as on dev", () => {
+		const observe = async (source: string) => {
+			const r = await analyze([py("m.py", "def len(o=None):\n    pass\n"), py("app.py", source)]);
+			const edges = r.sites
+				.filter((site) => site.file === "app.py")
+				.map((site) => r.symbols.find((x) => x.id === site.calleeId)?.qualname)
+				.filter((q): q is string => q !== undefined);
+			const b = r.callBins;
+			return {
+				edges,
+				bins: {
+					inRepo: b.resolvedInRepo,
+					external: b.resolvedExternal,
+					receiver: b.receiverNeedsInference,
+					nameNotBound: b.nameNotBound,
+				},
+			};
+		};
+		const comps: Record<string, string> = {
+			"list in a bound": "T: [NAME for NAME in ()]",
+			"list in a constraint": "T: ([NAME for NAME in ()], int)",
+			"set in a bound": "T: {NAME for NAME in ()}",
+			"dict in a bound": "T: {NAME: 1 for NAME in ()}",
+			"generator in a bound": "T: (NAME for NAME in ())",
+		};
+
+		for (const [label, form] of Object.entries(comps)) {
+			test(`C, ${label}: a class read of g is not resolved to the module g (dev: no edge)`, async () => {
+				const r = await observe(
+					`def g():\n    pass\nclass Outer:\n    type A[${form.replaceAll("NAME", "g")}] = int\n    y = g()\n`,
+				);
+				expect(r.edges, label).toEqual([]);
+				expect(r.bins.nameNotBound, label).toBe(1);
+			});
+			test(`B, ${label}: self.helper() is not resolved when the bound binds helper (dev: receiver)`, async () => {
+				const r = await observe(
+					`class Outer:\n    def helper(self):\n        pass\n    def run(self):\n        self.helper()\n    type A[${form.replaceAll("NAME", "helper")}] = int\n`,
+				);
+				expect(r.edges, label).toEqual([]);
+				expect(r.bins.receiver, label).toBe(1);
+			});
+		}
+
+		test("A: a bound that binds len leaves a class read of len([]) unclaimed, not the builtin (dev: nameNotBound)", async () => {
+			const r = await observe("class Outer:\n    type A[T: [len for len in ()]] = int\n    y = len([])\n");
+			expect(r.bins).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 });
+		});
+
+		test("a default is unchanged from dev (the edge to g), a binder in a default is not moved either", async () => {
+			const r = await observe("def g():\n    pass\nclass Outer:\n    type A[T = [g for g in ()]] = int\n    y = g()\n");
+			expect(r.edges).toEqual(["g"]);
+		});
+
+		test("twin: a bound that binds an unrelated name leaves the class read of g resolving", async () => {
+			const r = await observe("def g():\n    pass\nclass Outer:\n    type A[T: [n for n in ()]] = int\n    y = g()\n");
+			expect(r.edges).toEqual(["g"]);
+		});
+
+		test("outside a class body the alias keeps its type-parameter scope: a def's alias binder is not on the def (no edge)", async () => {
+			const r = await observe("def g():\n    pass\ndef f():\n    type A[T: [g for g in ()]] = int\n    g()\n");
+			expect(r.edges).toEqual([]);
+			expect(r.bins.nameNotBound).toBe(1);
+		});
+
+		test("a module-level alias is outside a class body: its bound is read in the enclosing scope, unchanged from dev", async () => {
+			// Pre-existing and not GCLI-146's rule (dev resolves the module T although the bound's T is the type parameter).
+			// It pins that only a CLASS-BODY alias gets the lazy left-side walk.
+			const r = await observe("def T():\n    pass\ntype A[T: T()] = int\n");
+			expect(r.edges).toEqual(["T"]);
+		});
+
+		test("the eager twin keeps the builtin claim: y = len([]) then a later import of len is external, as on dev", async () => {
+			const r = await observe("class Outer:\n    y = len([])\n    from m import len\n");
+			expect(r.bins).toEqual({ inRepo: 0, external: 1, receiver: 0, nameNotBound: 0 });
+		});
 	});
 });
