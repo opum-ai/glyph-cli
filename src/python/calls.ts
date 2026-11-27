@@ -145,7 +145,9 @@ export interface PythonCallsResult {
 type CalleeDesc =
 	| { kind: "name"; name: string }
 	| { kind: "attr"; base: BaseDesc; segments: string[] }
-	| { kind: "dynamic"; typeInstance?: boolean };
+	// GCLI-154 (DEC-303 (a79) Q-C): `typeArg` keeps `type(self)`'s argument so a `type(self).m = v` write
+	// can be classified as a class-level write to the receiver's class. Every existing reader ignores it.
+	| { kind: "dynamic"; typeInstance?: boolean; typeArg?: CalleeDesc };
 
 type BaseDesc =
 	| { kind: "name"; name: string }
@@ -727,7 +729,21 @@ function describeCallee(node: Node): CalleeDesc {
 	if (node.type === "call") {
 		// Rule 8: `type(self)(...)` is an unresolved receiver, not a bare dynamic callee.
 		const fn = node.childForFieldName("function");
-		if (fn !== null && fn.type === "identifier" && fn.text === "type") return { kind: "dynamic", typeInstance: true };
+		if (fn !== null && fn.type === "identifier" && fn.text === "type") {
+			// GCLI-154 (DEC-303 (a79) Q-C): keep `type(...)`'s single argument so a `type(self).m = v` write
+			// can be classified against the receiver's class.
+			const args = node.childForFieldName("arguments");
+			let typeArg: CalleeDesc | undefined;
+			if (args !== null) {
+				const positional = args.namedChildren.filter(
+					(child) => child !== null && child.type !== "comment" && child.type !== "keyword_argument",
+				);
+				if (positional.length === 1) typeArg = describeCallee(positional[0] as Node);
+			}
+			return typeArg === undefined
+				? { kind: "dynamic", typeInstance: true }
+				: { kind: "dynamic", typeInstance: true, typeArg };
+		}
 		return { kind: "dynamic" };
 	}
 	if (node.type !== "attribute") return { kind: "dynamic" };
@@ -1274,6 +1290,9 @@ class FileWalker {
 					// GCLI-115 (DEC-303 (a40) item 1): a `del` target is a binding for scope purposes
 					// (Python language reference, Execution model, binding of names).
 					this.addDeleteBindings(frame.scope, node);
+					// GCLI-154 (DEC-303 (a80) item 3, N5): `del C.m` / `del self.m` is an attribute write, as
+					// GCLI-115 already counts `del` for names; record it through the same classifier.
+					for (const child of node.namedChildren) this.recordAttributeTargets(frame.scope, child);
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					continue;
 				case "for_statement":
@@ -1291,6 +1310,30 @@ class FileWalker {
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					continue;
 				case "type_alias_statement": {
+					// GCLI-154 (DEC-303 (a79) Q-C): `type` is a soft keyword, and tree-sitter parses
+					// `type(self).m = v` as a type alias whose left wraps the attribute `(self).m`. A real PEP 695
+					// alias binds a NAME, so an attribute on the left is this assignment misparsed: record it as the
+					// attribute write `type(<arg>).<attr>`, and do not bind a spurious name.
+					const aliasLeft = node.childForFieldName("left");
+					const aliasInner = aliasLeft !== null && aliasLeft.type === "type" ? aliasLeft.namedChild(0) : aliasLeft;
+					if (aliasInner !== null && aliasInner.type === "attribute") {
+						const objectNode = aliasInner.childForFieldName("object");
+						const attrNode = aliasInner.childForFieldName("attribute");
+						const argNode =
+							objectNode !== null && objectNode.type === "parenthesized_expression" ? objectNode.namedChild(0) : null;
+						if (argNode !== null && argNode.type === "identifier" && attrNode !== null) {
+							this.attributeWrites.push({
+								file: this.file,
+								line: node.startPosition.row + 1,
+								column: node.startPosition.column + 1,
+								scope: frame.scope,
+								base: { kind: "dynamic", typeInstance: true, typeArg: { kind: "name", name: argNode.text } },
+								attr: attrNode.text,
+							});
+						}
+						this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
+						continue;
+					}
 					// GCLI-107: PEP 695 `type m = ...` binds `m` (the left is `type > identifier`,
 					// or `type > generic_type > identifier` when it takes type parameters).
 					let name: Node | null = node.childForFieldName("left");
@@ -4093,16 +4136,104 @@ class Resolver {
 				this.addClassAttrWrite(classSymbol.id, write.attr, true);
 				return;
 			}
+			// GCLI-154 (DEC-303 (a79) Q-C, (a82) item 2, N1): an alias whose bindings are all enumerable names the
+			// targets it may be bound to (`K = C; K.m`, `n = m; n.f`, `k = cls; k.m`, `k = type(self)` /
+			// `k = self.__class__; k.m`), and the write lands on EVERY one — each binding is a possible target.
+			const aliases = this.aliasWriteTargets(base.name, write.scope, use);
+			if (aliases !== null) {
+				for (const target of aliases) {
+					if (target.kind === "class") this.addClassAttrWrite(target.classId, write.attr, true);
+					else this.addModuleAttrWrite(target.modulePath, write.attr);
+				}
+				return;
+			}
 			this.addLocalAttrWrite(found.scope.uid, base.name, write.attr);
 			return;
 		}
 		if (base.kind === "attr" && base.base.kind === "name") {
+			// GCLI-154 (DEC-303 (a79) Q-C): `self.__class__.m = v` is a class-level write to the receiver's class.
+			if (base.segments.length === 1 && base.segments[0] === "__class__") {
+				const receiver = this.receiverOf(base.base.name, write.scope);
+				if (receiver !== null) {
+					this.addClassAttrWrite(receiver.classInfo.id, write.attr, true);
+					return;
+				}
+			}
 			// `pkg.mod.f = v`: the object names a module file when every segment before the attribute resolves.
 			const head = this.resolveBareName(base.base.name, write.scope, 0);
-			if (head.kind !== "module" || head.path === null) return;
-			const chain = this.resolveModuleChain(head.path, base.segments, 0);
-			if (chain.kind === "module") this.addModuleAttrWrite(chain.path, write.attr);
+			if (head.kind === "module" && head.path !== null) {
+				const chain = this.resolveModuleChain(head.path, base.segments, 0);
+				if (chain.kind === "module") {
+					this.addModuleAttrWrite(chain.path, write.attr);
+					return;
+				}
+			}
+			// GCLI-154 (DEC-303 (a79) Q-C): a dotted class target (`Outer.Inner.m`, `m.D.m`) writes the class the
+			// dotted path names; it is a class-level write only when the path resolves to an in-repo class symbol.
+			const symbol = this.resolveCalleeToSymbol(base, write.scope, 0);
+			if (symbol !== null && symbol.kind === "class") this.addClassAttrWrite(symbol.id, write.attr, true);
+			return;
 		}
+		// GCLI-154 (DEC-303 (a79) Q-C): `type(self).m = v` is a class-level write to the receiver's class.
+		if (base.kind === "dynamic" && base.typeInstance === true && base.typeArg?.kind === "name") {
+			const receiver = this.receiverOf(base.typeArg.name, write.scope);
+			if (receiver !== null && receiver.kind === "instance") {
+				this.addClassAttrWrite(receiver.classInfo.id, write.attr, true);
+			}
+		}
+	}
+
+	/**
+	 * GCLI-154 (DEC-303 (a79) Q-C, (a82) item 2, N1): a write through a bare name that is an alias of a class or
+	 * a module. The alias is followed when EVERY binding (item 2's enumeration) is an enumerable plain alias of a
+	 * class, module or receiver; the write is recorded on every class or module it may be bound to (`K = C; K = D;
+	 * K.m` refuses on both). An alias with a binding that cannot be enumerated is the named blind spot: it falls
+	 * through to the local write and is recorded for GCLI-156's measurement, not built here.
+	 */
+	private aliasWriteTargets(
+		name: string,
+		scope: Scope,
+		site: UsePosition,
+	): ({ kind: "class"; classId: string } | { kind: "module"; modulePath: string })[] | null {
+		const bindings = this.enumerableBindings(name, scope, site);
+		if (bindings === null || bindings.length === 0) return null;
+		const targets = new Map<string, { kind: "class"; classId: string } | { kind: "module"; modulePath: string }>();
+		for (const binding of bindings) {
+			const target = this.aliasBindingTarget(binding, scope);
+			if (target === null) return null;
+			targets.set(target.kind === "class" ? `c:${target.classId}` : `m:${target.modulePath}`, target);
+		}
+		return [...targets.values()];
+	}
+
+	/** The one class or module a single alias binding names, or null when the binding cannot be enumerated. */
+	private aliasBindingTarget(
+		binding: RawBinding,
+		scope: Scope,
+	): { kind: "class"; classId: string } | { kind: "module"; modulePath: string } | null {
+		if (binding.kind !== "assign" || binding.annotation) return null;
+		const rhs = binding.rhs;
+		if (rhs === undefined) return null;
+		const rhsScope = binding.origin ?? scope;
+		if ("classOf" in rhs && rhs.classOf !== undefined) {
+			// `k = type(self)` / `k = self.__class__`: the receiver's class.
+			if (rhs.classOf.viaType && !this.isUnshadowedBuiltin("type", rhsScope)) return null;
+			const receiver = this.receiverOf(rhs.classOf.receiver, rhsScope);
+			if (receiver !== null && receiver.kind === "instance") return { kind: "class", classId: receiver.classInfo.id };
+			return null;
+		}
+		if (rhs.kind !== "alias") return null;
+		// `k = cls`: a classmethod's receiver is the class.
+		const receiver = this.receiverOf(rhs.name, rhsScope);
+		if (receiver !== null) return { kind: "class", classId: receiver.classInfo.id };
+		const outcome = this.resolveBareName(rhs.name, rhsScope, 0);
+		// `K = C`: an in-repo class name.
+		if (outcome.kind === "symbol" && outcome.symbol.kind === "class") {
+			return { kind: "class", classId: outcome.symbol.id };
+		}
+		// `n = m`: an imported module.
+		if (outcome.kind === "module" && outcome.path !== null) return { kind: "module", modulePath: outcome.path };
+		return null;
 	}
 
 	private addClassAttrWrite(classId: string, attr: string, classLevel: boolean): void {
