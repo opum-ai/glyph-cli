@@ -3194,6 +3194,10 @@ class Resolver {
 		visited.add(key);
 		// GCLI-140 (DEC-303 (a25) item 1, the mod.f bullet): a write to mod.f anywhere in the analysed modules is another binding
 		// of that attribute, so the read through the module never resolves to the def.
+		// UNTESTED (DEC-303 (a78) Q2): no fixture drives this guard — every input the corpus reaches is already
+		// refused by the chain check or the moduleBindingGate check — and no mutant turns it red. It can only
+		// refuse (it returns an unresolved outcome and builds no edge); it is kept for the recursive hop path in
+		// this method.
 		if (this.moduleAttributeWritten(path, name)) return { kind: "unresolved", reason: "rebound" };
 		const gate = this.moduleBindingGate(path, name);
 		if (gate !== null) {
