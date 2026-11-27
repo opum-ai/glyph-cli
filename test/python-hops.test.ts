@@ -1741,3 +1741,58 @@ describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", (
 		expect(runs(twin)).toEqual(["app.py:C.run"]);
 	});
 });
+
+// GCLI-144 (DEC-303 (a73)): a class-body read of a name the class body binds ANYWHERE is never resolved through an
+// enclosing function's binding. A class body reads such a name from the class, then the globals, then the builtins
+// (LOAD_NAME); `from m import X as x` after the read binds it in the class, so the read cannot reach `outer`'s `x`.
+describe("GCLI-144 — a class-body read of a name the class body binds skips enclosing functions", () => {
+	const cls = "class C:\n    def run(self):\n        pass\n";
+	const others = { "m.py": "class X:\n    def run(self):\n        pass\n" };
+	const REFUSED: Delta = { inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 };
+	const runs = (r: { callees: (string | null)[] }) => r.callees.filter((c) => c?.endsWith(".run"));
+	const reads: Record<string, string> = {
+		"eager read": "        y = CALL\n",
+		"lazy alias, type A": "        type A = CALL\n",
+		"lazy generic alias, type A[T]": "        type A[T] = CALL\n",
+	};
+	const app = (read: string, bindings: string, later = "        from m import X as x\n") =>
+		`${cls}def outer():\n${bindings}    class Outer:\n${read}${later}`;
+	const ONE = "    x = C()\n";
+	const TWO = "    x = C()\n    x = C()\n";
+
+	for (const [label, read] of Object.entries(reads)) {
+		test(`${label}, one binding of x in the enclosing function: no C.run edge`, async () => {
+			const r = await probe(app(read, ONE), "x.run()", others);
+			expect(r.delta, label).toEqual(REFUSED);
+			expect(runs(r), label).toEqual([]);
+		});
+		test(`${label}, two bindings (the twin): still refused`, async () => {
+			const r = await probe(app(read, TWO), "x.run()", others);
+			expect(r.delta, label).toEqual(REFUSED);
+			expect(runs(r), label).toEqual([]);
+		});
+		test(`${label}, no class-body binding (the twin): resolves through the enclosing function`, async () => {
+			const r = await probe(app(read, ONE, ""), "x.run()", others);
+			expect(r.delta.inRepo, label).toBe(1);
+			expect(runs(r), label).toEqual(["app.py:C.run"]);
+		});
+	}
+
+	test("a class-body binding BEFORE the read is the class's own and is not an enclosing read", async () => {
+		const r = await probe(
+			`${cls}def outer():\n    x = C()\n    class Outer:\n        from m import X as x\n        y = CALL\n`,
+			"x.run()",
+			others,
+		);
+		expect(runs(r)).toEqual(["m.py:X.run"]);
+	});
+
+	test("a module-level binding is still read: the globals come after the class body", async () => {
+		const r = await probe(
+			`${cls}x = C()\ndef outer():\n    x = C()\n    class Outer:\n        y = CALL\n        from m import X as x\n`,
+			"x.run()",
+			others,
+		);
+		expect(runs(r)).toEqual(["app.py:C.run"]);
+	});
+});

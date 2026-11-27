@@ -2221,7 +2221,14 @@ class Resolver {
 	): { scope: Scope; bindings: RawBinding[] } | null {
 		let current: Scope | null = scope;
 		let first = true;
+		// GCLI-144 (DEC-303 (a73)): a name the starting class body binds, but only by a statement after this read, is
+		// read from the class, then the globals, then the builtins (LOAD_NAME), never from an enclosing function.
+		let skipFunctions = false;
 		while (current !== null) {
+			if (skipFunctions && (current.kind === "function" || current.kind === "lambda")) {
+				current = current.parent;
+				continue;
+			}
 			// A class body is not an enclosing scope for its methods (rule 3): only
 			// the starting scope may be a class body.
 			if (first || current.kind !== "class") {
@@ -2241,6 +2248,7 @@ class Resolver {
 						);
 					}
 					if (bindings.length > 0) return { scope: current, bindings };
+					if (first && current.kind === "class") skipFunctions = true;
 				}
 			}
 			// GCLI-112: a type-parameter scope sits directly inside a class body for a generic declared there, and
