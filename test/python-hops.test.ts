@@ -3360,6 +3360,67 @@ describe("GCLI-155 — read-side attribute-write consumers", () => {
 		expect((await attrArm(true)).edges).toEqual(["call m.py:7:9 -> m.py:B.m POLY", "new m.py:10:16 -> m.py:B POLY"]);
 	});
 
+	test("F1 (a89 round 1): a written head MODULE name keeps dev's rebound-base bin, not external", async () => {
+		// The round-1 finding: `baseIsRebound` is a second base-RELATION reader and read the gates, so the #1 gate at
+		// the head name turned `m` unresolved and the attr arm fell to false — the base was binned external where dev
+		// binned it receiver/rebound-base. No edge either side, so only the bin and the reason prove it.
+		const files = (write: boolean) => ({
+			"m.py": "try:\n    from ext import B\nexcept ImportError:\n    class B:\n        pass\n",
+			"x.py": "import m\nclass K(m.B):\n    def go(self):\n        self.g()\n",
+			"w.py": `import x\n${write ? "x.m = None\n" : ""}`,
+		});
+		const r = await analyze(Object.entries(files(true)).map(([path, source]) => py(path, source)));
+		expect(r.callBins).toEqual({ resolvedInRepo: 0, resolvedExternal: 0, receiverNeedsInference: 1, nameNotBound: 0 });
+		const reasons = r.unresolvedReceiverReasons.map((x) => x.reason).sort();
+		expect(reasons).toEqual(["rebound-base"]);
+		// The write is not what creates the bin: dev answers the twin the same way, and so does this build.
+		const twin = await analyze(Object.entries(files(false)).map(([path, source]) => py(path, source)));
+		expect(twin.callBins).toEqual(r.callBins);
+		expect(twin.unresolvedReceiverReasons).toEqual(r.unresolvedReceiverReasons);
+	});
+
+	test("F2 (a89 round 1): a gated ancestor marks the merged MRO whatever the base order", async () => {
+		// The round-1 finding: only keys gated in a base THIS class finds gated were marked, and c3merge keeps the
+		// first shared entry it reaches, so E(Outer.F, D) resolved and E(D, Outer.F) refused. The outcome is now the
+		// same in both orders — and it is a REMOVAL against dev, which emitted the edge in both.
+		const order = (bases: string) =>
+			`class Outer:\n    class Inner:\n        def m(self):\n            pass\n    class F(Inner):\n        pass\ndef other(self):\n    pass\nOuter.Inner = other\nclass D(Outer.Inner):\n    pass\nclass E(${bases}):\n    pass\nE().m()\n`;
+		const fFirst = await observe({ "app.py": order("Outer.F, D") });
+		const dFirst = await observe({ "app.py": order("D, Outer.F") });
+		expect(fFirst).toEqual(dFirst);
+		expect(fFirst.edges).toEqual(["new app.py:14:1 -> app.py:E"]);
+		expect(fFirst.bins).toEqual({ inRepo: 1, external: 0, receiver: 1, nameNotBound: 0 });
+		// Twin: with no write the same class resolves Inner.m in both orders, so the refusal is the gate's.
+		const twin = (bases: string) => ({
+			"app.py": `class Outer:\n    class Inner:\n        def m(self):\n            pass\n    class F(Inner):\n        pass\nclass D(Outer.Inner):\n    pass\nclass E(${bases}):\n    pass\nE().m()\n`,
+		});
+		const fTwin = await observe(twin("Outer.F, D"));
+		expect(fTwin).toEqual(await observe(twin("D, Outer.F")));
+		expect(fTwin.edges).toEqual(["call app.py:11:1 -> app.py:Outer.Inner.m", "new app.py:11:1 -> app.py:E"]);
+	});
+
+	test("F3 (a89 round 1, a83 item 2): the neighbour attribute and the module read before and after the write", async () => {
+		// The R1 fixture never read a neighbouring attribute of `m` or `m` itself across the write. Both orders must
+		// agree, and both must be dev's: the written name refuses, the neighbour resolves.
+		const files = (write: boolean) => ({
+			"m.py": "class B:\n    def m(self):\n        pass\n    def n(self):\n        pass\ndef nn():\n    pass\n",
+			"app.py": `import m\ndef before():\n    x = m.B()\n    x.n()\n    m.nn()\n${write ? "def other(self):\n    pass\nm.B = other\n" : ""}def after():\n    y = m.B()\n    y.n()\n    m.nn()\n`,
+		});
+		const written = await observe(files(true));
+		// One `m.nn()` edge from each side of the write, line 5 and line 12, and the same refusal on both sides.
+		expect(written.edges).toEqual(["call app.py:12:5 -> m.py:nn", "call app.py:5:5 -> m.py:nn"]);
+		expect(written.bins).toEqual({ inRepo: 2, external: 0, receiver: 2, nameNotBound: 2 });
+		const twin = await observe(files(false));
+		expect(twin.edges).toEqual([
+			"call app.py:4:5 -> m.py:B.n",
+			"call app.py:5:5 -> m.py:nn",
+			"call app.py:8:5 -> m.py:B.n",
+			"call app.py:9:5 -> m.py:nn",
+			"new app.py:3:9 -> m.py:B",
+			"new app.py:7:9 -> m.py:B",
+		]);
+	});
+
 	test("#16 N6: C.__init__ = other refuses the __init__ edge; the class construction edge stands", async () => {
 		const files = (write: boolean) => ({
 			"m.py": "class C:\n    def __init__(self):\n        pass\n    def m(self):\n        pass\n",

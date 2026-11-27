@@ -3553,8 +3553,15 @@ class Resolver {
 	/**
 	 * GCLI-116 (DEC-303 (a47) item 2 (i)): a base that is an in-repo name whose resolution is `rebound` is not
 	 * an external base, so a method missing from the known MRO is not credited to it (the (a34) D1 pattern).
+	 * GCLI-159 (DEC-303 (a89) F1): this is a base RELATION reader like `baseAlternatives`, so it reads write-blind
+	 * too. With the gates on, a written head module name turned `unresolved` at the #1 gate and the attr arm fell to
+	 * `false`, which binned the base external where dev binned it receiver/rebound-base.
 	 */
 	private baseIsRebound(classInfo: ClassInfo, base: BaseRef): boolean {
+		return this.withoutAttributeGate(() => this.baseIsReboundWriteBlind(classInfo, base));
+	}
+
+	private baseIsReboundWriteBlind(classInfo: ClassInfo, base: BaseRef): boolean {
 		const callee = base.callee;
 		if (callee === null) return false;
 		if (callee.kind === "name") {
@@ -3631,8 +3638,16 @@ class Resolver {
 						return classInfo.mro;
 					}
 					sequences.push(baseMro.entries);
+					// DEC-303 (a89) F2: a key gated in ANY base's own MRO is gated here too. Collecting only the keys
+					// of a base this class ITSELF finds gated made the result depend on base order: `c3merge` keeps
+					// whichever shared entry it reaches first, so `class E(Outer.F, D)` reached F's unmarked copy of
+					// the gated ancestor and resolved, while `class E(D, Outer.F)` reached D's marked one and refused.
 					if (this.baseGated(classInfo, baseRef)) {
 						for (const entry of baseMro.entries) if (entry.kind === "class") gated.add(entry.key);
+					} else {
+						for (const entry of baseMro.entries) {
+							if (entry.kind === "class" && entry.gated === true) gated.add(entry.key);
+						}
 					}
 					tail.push({ kind: "class", info: baseClass, key: baseClass.id });
 				} else {
