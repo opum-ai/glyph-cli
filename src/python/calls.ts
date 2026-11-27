@@ -355,6 +355,12 @@ interface RawAttributeWrite {
 	base: CalleeDesc;
 	attr: string;
 	setattr?: true;
+	/**
+	 * GCLI-164 (DEC-303 (a84) item 1): this write is the `type(x).m = v` MISPARSE push only. The narrower mark is
+	 * what keeps the new class-level branch to #4's claim: `setattr(type(self), "m", v)`, `del type(self).m` and the
+	 * other parse-dependent shapes reach the same classifier with a `type(<name>)` base and do NOT carry it.
+	 */
+	misparse?: true;
 }
 
 type EdgeSpec = {
@@ -1322,10 +1328,11 @@ class FileWalker {
 					// GCLI-164 (DEC-303 (a84) item 1, (a79) Q-C): `type` is a soft keyword, and tree-sitter parses
 					// `type(self).m = v` as a type alias whose left wraps the attribute. A real PEP 695 alias binds a
 					// NAME, so an attribute on the left is that assignment misparsed: record it as the attribute write
-					// `type(<arg>).<attr>` and do not bind a spurious alias name. Dev's climbed-name rebound binding is
-					// kept but marked, so reads see it and refuse exactly as on dev while the write classification can
-					// still resolve `type(self)`. The shared tail below is deliberately NOT skipped: it gives the value
-					// the same lazy class-body scope a real alias gets (GCLI-144/146), which is the F1 edge.
+					// `type(<arg>).<attr>` and keep dev's climbed-name rebound binding, marked, so reads see it and refuse
+					// exactly as on dev while the write classification can still resolve `type(self)` (it substitutes a
+					// real alias name only in the non-misparsed branch below). The shared tail below is deliberately NOT
+					// skipped: it gives the value the same lazy class-body scope a real alias gets (GCLI-144/146). The
+					// reported F1 helper edge did not reproduce on dev, on 98e09e7 or on this head; see the fixture.
 					const aliasLeft = node.childForFieldName("left");
 					const aliasInner = aliasLeft !== null && aliasLeft.type === "type" ? aliasLeft.namedChild(0) : aliasLeft;
 					const misparsed = aliasInner !== null && aliasInner.type === "attribute";
@@ -1349,6 +1356,7 @@ class FileWalker {
 								scope: frame.scope,
 								base: { kind: "dynamic", typeInstance: true, typeArg: { kind: "name", name: argNode.text } },
 								attr: attrNode.text,
+								misparse: true,
 							});
 						}
 					} else {
@@ -3650,9 +3658,10 @@ class Resolver {
 	 * to external. So exactly ONE read is bypassed — the attr arm's HEAD name — and everything else stays live.
 	 * The counter's reach is dynamic but what it disables is ONE gate: `resolveBareName`'s module-scope bare-name
 	 * branch (the `found.scope.kind === "module"` test below), which the star hop and the alias hop re-enter.
-	 * Inside the wrapped read the from-import reader (`moduleBindingGate`), `sourceChainOutcome` and
-	 * `resolveModuleChain` still consult `moduleAttributeWritten`, so a head bound by a from-import of a non-module
-	 * name is answered as dev answers it (the GCLI-165 residual), and the name arm keeps its gate.
+	 * Inside the wrapped read the from-import reader (`moduleBindingGate`) and `sourceChainOutcome` still consult
+	 * `moduleAttributeWritten`, so a head bound by a from-import of a non-module name is answered as dev answers it
+	 * (the GCLI-165 residual), and the name arm keeps its gate. `resolveModuleChain` is live too, but it is reached
+	 * after the wrapped read returns.
 	 */
 	private baseIsRebound(classInfo: ClassInfo, base: BaseRef): boolean {
 		const callee = base.callee;
@@ -3877,7 +3886,9 @@ class Resolver {
 			// A descendant whose MRO cannot be computed could order the class any way; fail closed.
 			if (!mro.ok) return true;
 			const at = mro.entries.findIndex((entry) => entry.kind === "class" && entry.info === receiver);
-			if (at < 0) continue;
+			// A descendant whose MRO cannot NAME the receiver as a class entry (it reaches it through an opaque or
+			// alternative base) could still order the classes after it differently: fail closed, as above.
+			if (at < 0) return true;
 			const tail = mro.entries.slice(at + 1).map((entry) => entry.key);
 			for (let cursor = 0; cursor < ownTail.length; cursor++) {
 				if (tail[cursor] !== ownTail[cursor]) return true;
@@ -4378,10 +4389,13 @@ class Resolver {
 			if (symbol !== null && symbol.kind === "class") this.addClassAttrWrite(symbol.id, write.attr, true);
 			return;
 		}
-		// GCLI-164 (DEC-303 (a84) item 1, (a83) item 1): `type(self).m = v` is a class-level write to the receiver's
-		// class. The misparse rebound binding is ignored here only (reads still see it), and the builtin `type` must
-		// be unshadowed.
+		// GCLI-164 (DEC-303 (a84) item 1, (a83) item 1): the `type(self).m = v` MISPARSE is a class-level write to
+		// the receiver's class. `misparse` is required so setattr(type(self), "m", v), del type(self).m and the other
+		// parse-dependent shapes that reach this classifier with a type(<name>) base stay outside #4's claim — they
+		// keep dev's answer (no write recorded). The misparse rebound binding is ignored here only (reads still see
+		// it), and the builtin `type` must be unshadowed.
 		if (
+			write.misparse === true &&
 			base.kind === "dynamic" &&
 			base.typeInstance === true &&
 			base.typeArg?.kind === "name" &&
@@ -4520,8 +4534,9 @@ class Resolver {
 	 * NOT turn off GCLI-140's module-attribute gates, which are what make a base rebound by an importer's write
 	 * (`m.B = L`, the round-2 counterexample). So this bypasses the one gate and leaves `moduleAttributeWritten` live.
 	 * The counter reaches every re-entry of the bare-name read (the star hop and the alias hop), but it disables
-	 * only the module-scope bare-name branch there. `moduleBindingGate`, `sourceChainOutcome` and
-	 * `resolveModuleChain` keep `moduleAttributeWritten` live inside the wrapped read.
+	 * only the module-scope bare-name branch there. `moduleBindingGate` and `sourceChainOutcome` keep
+	 * `moduleAttributeWritten` live inside the wrapped read; `resolveModuleChain` is reached from the base and
+	 * super paths AFTER the wrapped read returns, and it is always live.
 	 */
 	private withoutBareModuleNameGate<T>(work: () => T): T {
 		this.bareModuleNameGateBypass++;
