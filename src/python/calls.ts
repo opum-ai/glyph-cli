@@ -145,9 +145,7 @@ export interface PythonCallsResult {
 type CalleeDesc =
 	| { kind: "name"; name: string }
 	| { kind: "attr"; base: BaseDesc; segments: string[] }
-	// GCLI-154 (DEC-303 (a79) Q-C): `typeArg` keeps `type(self)`'s argument so a `type(self).m = v` write
-	// can be classified as a class-level write to the receiver's class. Every existing reader ignores it.
-	| { kind: "dynamic"; typeInstance?: boolean; typeArg?: CalleeDesc };
+	| { kind: "dynamic"; typeInstance?: boolean };
 
 type BaseDesc =
 	| { kind: "name"; name: string }
@@ -197,12 +195,6 @@ interface RawBinding {
 	annotationScope?: Scope | null;
 	/** Rule 38: the statement's start, so a class-body import binds only later uses. */
 	position?: UsePosition;
-	/**
-	 * GCLI-154 (DEC-303 (a83) item 1): the rebound binding the `type(x).m = v` misparse re-dispatch keeps to
-	 * match dev. Marked so the write classification can still resolve `type(self)` for the recorded write, while
-	 * every READ sees the binding and behaves exactly as on dev.
-	 */
-	typeAliasMisparse?: true;
 	/**
 	 * A comprehension target: the walker records it in the enclosing function (the analyzer counts it, which
 	 * only makes a read refuse), but Python binds it in the comprehension's own scope, so it is not a binding
@@ -735,21 +727,7 @@ function describeCallee(node: Node): CalleeDesc {
 	if (node.type === "call") {
 		// Rule 8: `type(self)(...)` is an unresolved receiver, not a bare dynamic callee.
 		const fn = node.childForFieldName("function");
-		if (fn !== null && fn.type === "identifier" && fn.text === "type") {
-			// GCLI-154 (DEC-303 (a79) Q-C): keep `type(...)`'s single argument so a `type(self).m = v` write
-			// can be classified against the receiver's class.
-			const args = node.childForFieldName("arguments");
-			let typeArg: CalleeDesc | undefined;
-			if (args !== null) {
-				const positional = args.namedChildren.filter(
-					(child) => child !== null && child.type !== "comment" && child.type !== "keyword_argument",
-				);
-				if (positional.length === 1) typeArg = describeCallee(positional[0] as Node);
-			}
-			return typeArg === undefined
-				? { kind: "dynamic", typeInstance: true }
-				: { kind: "dynamic", typeInstance: true, typeArg };
-		}
+		if (fn !== null && fn.type === "identifier" && fn.text === "type") return { kind: "dynamic", typeInstance: true };
 		return { kind: "dynamic" };
 	}
 	if (node.type !== "attribute") return { kind: "dynamic" };
@@ -1316,40 +1294,6 @@ class FileWalker {
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					continue;
 				case "type_alias_statement": {
-					// GCLI-154 (DEC-303 (a79) Q-C): `type` is a soft keyword, and tree-sitter parses
-					// `type(self).m = v` as a type alias whose left wraps the attribute `(self).m`. A real PEP 695
-					// alias binds a NAME, so an attribute on the left is this assignment misparsed: record it as the
-					// attribute write `type(<arg>).<attr>`, and do not bind a spurious name.
-					const aliasLeft = node.childForFieldName("left");
-					const aliasInner = aliasLeft !== null && aliasLeft.type === "type" ? aliasLeft.namedChild(0) : aliasLeft;
-					if (aliasInner !== null && aliasInner.type === "attribute") {
-						// (a83) item 1: keep dev's rebound binding for the climbed target name so this path stays
-						// removal-only. It is marked so the write classification can still resolve `type(self)`; every
-						// READ sees it and refuses exactly as on dev, so no `self.n()`/`x.m()` edge is created.
-						let misparseName: Node | null = aliasLeft;
-						while (misparseName !== null && misparseName.type !== "identifier") {
-							misparseName = misparseName.namedChild(0);
-						}
-						if (misparseName !== null) {
-							this.addBinding(frame.scope, misparseName.text, { kind: "rebound", typeAliasMisparse: true });
-						}
-						const objectNode = aliasInner.childForFieldName("object");
-						const attrNode = aliasInner.childForFieldName("attribute");
-						const argNode =
-							objectNode !== null && objectNode.type === "parenthesized_expression" ? objectNode.namedChild(0) : null;
-						if (argNode !== null && argNode.type === "identifier" && attrNode !== null) {
-							this.attributeWrites.push({
-								file: this.file,
-								line: node.startPosition.row + 1,
-								column: node.startPosition.column + 1,
-								scope: frame.scope,
-								base: { kind: "dynamic", typeInstance: true, typeArg: { kind: "name", name: argNode.text } },
-								attr: attrNode.text,
-							});
-						}
-						this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
-						continue;
-					}
 					// GCLI-107: PEP 695 `type m = ...` binds `m` (the left is `type > identifier`,
 					// or `type > generic_type > identifier` when it takes type parameters).
 					let name: Node | null = node.childForFieldName("left");
@@ -2659,35 +2603,6 @@ class Resolver {
 					(found.bindings[0] as RawBinding).kind === "param"
 				) {
 					return { kind: receiver.kind, classInfo: receiver.classInfo };
-				}
-				return null;
-			}
-			current = current.parent;
-		}
-		return null;
-	}
-
-	/**
-	 * GCLI-154 (DEC-303 (a83) item 1): the receiver of `name`, ignoring the one rebound binding the `type(x).m = v`
-	 * misparse re-dispatch added for it. Used ONLY to record that write against the receiver's class; every READ
-	 * still goes through `receiverOf`, sees the binding and refuses as on dev.
-	 */
-	private receiverOfIgnoringMisparse(
-		name: string,
-		scope: Scope,
-	): { kind: "instance" | "class"; classInfo: ClassInfo } | null {
-		let current: Scope | null = scope;
-		while (current !== null) {
-			const receiver = this.methodReceiver(current);
-			if (receiver !== null && receiver.name === name) {
-				const found = this.lookupBindings(name, scope);
-				if (found !== null && found.scope === current) {
-					const bindings = found.bindings.filter(
-						(binding) => !(binding.kind === "rebound" && binding.typeAliasMisparse === true),
-					);
-					if (bindings.length === 1 && (bindings[0] as RawBinding).kind === "param") {
-						return { kind: receiver.kind, classInfo: receiver.classInfo };
-					}
 				}
 				return null;
 			}
@@ -4218,20 +4133,6 @@ class Resolver {
 			const symbol = this.resolveCalleeToSymbol(base, write.scope, 0);
 			if (symbol !== null && symbol.kind === "class") this.addClassAttrWrite(symbol.id, write.attr, true);
 			return;
-		}
-		// GCLI-154 (DEC-303 (a79) Q-C, (a83) item 1): `type(self).m = v` is a class-level write to the receiver's
-		// class. The misparse rebound binding is ignored here only (reads still see it), and the builtin `type` must
-		// be unshadowed (F5).
-		if (
-			base.kind === "dynamic" &&
-			base.typeInstance === true &&
-			base.typeArg?.kind === "name" &&
-			this.isUnshadowedBuiltin("type", write.scope)
-		) {
-			const receiver = this.receiverOfIgnoringMisparse(base.typeArg.name, write.scope);
-			if (receiver !== null && receiver.kind === "instance") {
-				this.addClassAttrWrite(receiver.classInfo.id, write.attr, true);
-			}
 		}
 	}
 

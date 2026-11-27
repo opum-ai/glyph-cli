@@ -2681,6 +2681,13 @@ describe("GCLI-154 — binder-side attribute writes", () => {
 		const base = "class Outer:\n    class Inner:\n        def m(self):\n            pass\ndef other(self):\n    pass\n";
 		const refused = await probe(`${base}Outer.Inner.m = other\ninst = Outer.Inner()\nCALL\n`, "inst.m()");
 		expect(ms(refused)).toEqual([]);
+		const bins = await analyze([py("app.py", `${base}Outer.Inner.m = other\ninst = Outer.Inner()\ninst.m()\n`)]);
+		expect(bins.callBins).toEqual({
+			resolvedInRepo: 0,
+			resolvedExternal: 0,
+			receiverNeedsInference: 2,
+			nameNotBound: 0,
+		});
 		const twin = await probe(`${base}inst = Outer.Inner()\nCALL\n`, "inst.m()");
 		expect(ms(twin)).toEqual(["app.py:Outer.Inner.m"]);
 	});
@@ -2735,16 +2742,13 @@ describe("GCLI-154 — binder-side attribute writes", () => {
 		expect(r.callees).toEqual(["m.py:A.m"]);
 	});
 
-	test("#4 type(self).m = other refuses self.m(); the twin resolves", async () => {
+	test("#4 type(self).m = other is dev-equal (control): self.m() resolves", async () => {
+		// (a84) item 1: #4 (the type(x).m/type(self).m re-dispatch) is out of #236 and restored to dev; #4's
+		// fixtures assert dev's outcome — the write records nothing, so self.m() resolves.
 		const write =
 			"class C:\n    def m(self):\n        pass\n    def write(self):\n        type(self).m = other\n    def use(self):\n        CALL\ndef other(self):\n    pass\n";
-		const refused = await probe(write, "self.m()");
-		expect(ms(refused)).toEqual([]);
-		const twin = await probe(
-			"class C:\n    def m(self):\n        pass\n    def write(self):\n        pass\n    def use(self):\n        CALL\ndef other(self):\n    pass\n",
-			"self.m()",
-		);
-		expect(ms(twin)).toEqual(["app.py:C.m"]);
+		const r = await probe(write, "self.m()");
+		expect(ms(r)).toEqual(["app.py:C.m"]);
 	});
 
 	test("#4 type(self).m = other in a NESTED def is dev-equal (control): self.m() still resolves", async () => {
@@ -2768,21 +2772,27 @@ describe("GCLI-154 — binder-side attribute writes", () => {
 		expect(ms(twin)).toEqual(["app.py:C.m"]);
 	});
 
-	test("#4 an unrelated class keeps resolving, and a subclass inherits the refusal", async () => {
+	test("#4 an unrelated class and a subclass both resolve (dev-equal, control)", async () => {
+		// (a84): #4 is out; with no recorded write, both an unrelated class and a subclass resolve as on dev.
 		const write =
 			"class C:\n    def m(self):\n        pass\n    def write(self):\n        type(self).m = other\nclass U:\n    def m(self):\n        pass\n    def use(self):\n        CALL\ndef other(self):\n    pass\n";
-		const unrelated = await probe(write, "self.m()");
-		expect(ms(unrelated)).toEqual(["app.py:U.m"]);
+		expect(ms(await probe(write, "self.m()"))).toEqual(["app.py:U.m"]);
 		const subclass =
 			"class C:\n    def m(self):\n        pass\n    def write(self):\n        type(self).m = other\nclass S(C):\n    def use(self):\n        CALL\ndef other(self):\n    pass\n";
-		const refused = await probe(subclass, "self.m()");
-		expect(ms(refused)).toEqual([]);
+		expect(ms(await probe(subclass, "self.m()"))).toEqual(["app.py:C.m"]);
 	});
 
 	test("#11 K = C; K.m = other refuses C().m(); the twin resolves", async () => {
 		const write = "class C:\n    def m(self):\n        pass\nK = C\ndef other(self):\n    pass\nK.m = other\nCALL\n";
 		const refused = await probe(write, "C().m()");
 		expect(ms(refused)).toEqual([]);
+		const bins = await analyze([py("app.py", write.replace("CALL", "C().m()"))]);
+		expect(bins.callBins).toEqual({
+			resolvedInRepo: 1,
+			resolvedExternal: 0,
+			receiverNeedsInference: 1,
+			nameNotBound: 0,
+		});
 		const twin = await probe(
 			"class C:\n    def m(self):\n        pass\nK = C\ndef other(self):\n    pass\nCALL\n",
 			"C().m()",
@@ -2849,6 +2859,13 @@ describe("GCLI-154 — binder-side attribute writes", () => {
 	test("#15 del C.m refuses C().m(); the twin resolves", async () => {
 		const refused = await probe("class C:\n    def m(self):\n        pass\ndel C.m\nCALL\n", "C().m()");
 		expect(ms(refused)).toEqual([]);
+		const bins = await analyze([py("app.py", "class C:\n    def m(self):\n        pass\ndel C.m\nC().m()\n")]);
+		expect(bins.callBins).toEqual({
+			resolvedInRepo: 1,
+			resolvedExternal: 0,
+			receiverNeedsInference: 1,
+			nameNotBound: 0,
+		});
 		const twin = await probe("class C:\n    def m(self):\n        pass\nCALL\n", "C().m()");
 		expect(ms(twin)).toEqual(["app.py:C.m"]);
 	});
@@ -2914,12 +2931,13 @@ describe("GCLI-154 (a83) — removal-only and item-2 reads", () => {
 		expect(callees(r)).toContain("app.py:C.m");
 	});
 
-	test("item 2 #4: written attribute refused, neighbour resolves, another receiver's read", async () => {
+	test("item 2 #4 (dev-equal, control): written attribute resolves, neighbour resolves", async () => {
+		// (a84): #4 is out, so type(self).m records nothing: y.m() resolves before and after, as on dev.
 		const app = `class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\n    def use(self):\n        y = C()\n        y.m()\n        y.n()\n        type(self).m = other\n        y.m()\n        y.n()\n${other}`;
 		const r = await analyze([py("app.py", app)]);
 		const cs = callees(r);
 		expect(cs.filter((c) => c === "app.py:C.n").length).toBe(2);
-		expect(cs).not.toContain("app.py:C.m");
+		expect(cs.filter((c) => c === "app.py:C.m").length).toBe(2);
 	});
 
 	test("item 2 #2: written Outer.Inner.m refused, neighbour resolves, instance read", async () => {
@@ -2945,5 +2963,127 @@ describe("GCLI-154 (a83) — removal-only and item-2 reads", () => {
 		const cs = callees(r);
 		expect(cs.filter((c) => c === "app.py:C.n").length).toBe(2);
 		expect(cs).not.toContain("app.py:C.m");
+	});
+});
+
+// GCLI-154 (DEC-303 (a84) item 2): item-2 reads (written attribute, neighbour, receiver, before/after) for the
+// shapes that survive #4's removal, the cls.__class__.m over-refusal pin, and the observed-red subset control.
+describe("GCLI-154 (a84) — remaining item-2 shapes and controls", () => {
+	const other = "def other(self):\n    pass\n";
+	const callees = (r: PythonCallsResult): string[] =>
+		r.sites
+			.map((s) => {
+				const c = s.calleeId ? r.symbols.find((x) => x.id === s.calleeId) : undefined;
+				return c ? `${c.file}:${c.qualname}` : "";
+			})
+			.filter((c) => c !== "");
+
+	test("item 2 m.D.m: written refused, neighbour resolves", async () => {
+		const cs = callees(
+			await analyze([
+				py("m.py", "class D:\n    def m(self):\n        pass\n    def n(self):\n        pass\n"),
+				py("app.py", `import m\n${other}y = m.D()\ny.m()\ny.n()\nm.D.m = other\ny.m()\ny.n()\n`),
+			]),
+		);
+		expect(cs.filter((c) => c === "m.py:D.n").length).toBe(2);
+		expect(cs).not.toContain("m.py:D.m");
+	});
+
+	test("item 2 self.__class__.m: written refused, neighbour resolves", async () => {
+		const cs = callees(
+			await analyze([
+				py(
+					"app.py",
+					`class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\n    def use(self):\n        y = C()\n        y.m()\n        y.n()\n        self.__class__.m = other\n        y.m()\n        y.n()\n${other}`,
+				),
+			]),
+		);
+		expect(cs.filter((c) => c === "app.py:C.n").length).toBe(2);
+		expect(cs).not.toContain("app.py:C.m");
+	});
+
+	test("item 2 n = m: written refused, neighbour resolves", async () => {
+		const cs = callees(
+			await analyze([
+				py("m.py", "def f():\n    pass\ndef g():\n    pass\n"),
+				py("app.py", "import m\nn = m\ndef other():\n    pass\nm.f()\nm.g()\nn.f = other\nm.f()\nm.g()\n"),
+			]),
+		);
+		expect(cs.filter((c) => c === "m.py:g").length).toBe(2);
+		expect(cs).not.toContain("m.py:f");
+	});
+
+	test("item 2 k = cls: written refused, neighbour resolves", async () => {
+		const cs = callees(
+			await analyze([
+				py(
+					"app.py",
+					`class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\n    @classmethod\n    def use(cls):\n        y = C()\n        y.m()\n        y.n()\n        k = cls\n        k.m = other\n        y.m()\n        y.n()\n${other}`,
+				),
+			]),
+		);
+		expect(cs.filter((c) => c === "app.py:C.n").length).toBe(2);
+		expect(cs).not.toContain("app.py:C.m");
+	});
+
+	test("item 2 k = self: written refused, neighbour resolves", async () => {
+		const cs = callees(
+			await analyze([
+				py(
+					"app.py",
+					`class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\n    def use(self):\n        y = C()\n        y.m()\n        y.n()\n        k = self\n        k.m = other\n        y.m()\n        y.n()\n${other}`,
+				),
+			]),
+		);
+		expect(cs.filter((c) => c === "app.py:C.n").length).toBe(2);
+		expect(cs).not.toContain("app.py:C.m");
+	});
+
+	test("item 2 del self.m: written refused, neighbour resolves", async () => {
+		const cs = callees(
+			await analyze([
+				py(
+					"app.py",
+					"class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\n    def use(self):\n        y = C()\n        y.m()\n        y.n()\n        del self.m\n        y.m()\n        y.n()\n",
+				),
+			]),
+		);
+		expect(cs.filter((c) => c === "app.py:C.n").length).toBe(2);
+		expect(cs).not.toContain("app.py:C.m");
+	});
+
+	test("item 2 k = type(self): written refused, neighbour resolves", async () => {
+		const cs = callees(
+			await analyze([
+				py(
+					"app.py",
+					`class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\n    def use(self):\n        y = C()\n        y.m()\n        y.n()\n        k = type(self)\n        k.m = other\n        y.m()\n        y.n()\n${other}`,
+				),
+			]),
+		);
+		expect(cs.filter((c) => c === "app.py:C.n").length).toBe(2);
+		expect(cs).not.toContain("app.py:C.m");
+	});
+
+	test("cls.__class__.m: recorded class-level on C — measured over-refusal (accepted by DEC-303 (a84); fix in GCLI-156)", async () => {
+		// At runtime `cls.__class__` is the metaclass, so this should not refuse D's super().m(); it does, as a
+		// removal-only over-refusal. Pinned here and carried to GCLI-156.
+		const r = await analyze([
+			py(
+				"app.py",
+				`class C:\n    def m(self):\n        pass\n    @classmethod\n    def write(cls):\n        cls.__class__.m = other\nclass D(C):\n    def m(self):\n        super().m()\n${other}`,
+			),
+		]);
+		expect(r.sites).toEqual([]);
+	});
+
+	test("observed-red subset-check control: an injected created edge fails the subset check", async () => {
+		const r = await analyze([
+			py("app.py", `class C:\n    def m(self):\n        pass\n${other}K = C\nK.m = other\ny = C()\ny.m()\n`),
+		]);
+		const head = callees(r);
+		const isSubset = (sup: string[], sub: string[]) => sub.every((e) => sup.includes(e));
+		expect(isSubset([...head, "app.py:C.m"], head)).toBe(true);
+		expect(isSubset(head, [...head, "app.py:Injected.m"])).toBe(false);
 	});
 });
