@@ -145,7 +145,7 @@ export interface PythonCallsResult {
 type CalleeDesc =
 	| { kind: "name"; name: string }
 	| { kind: "attr"; base: BaseDesc; segments: string[] }
-	| { kind: "dynamic"; typeInstance?: boolean };
+	| { kind: "dynamic"; typeInstance?: boolean; typeArg?: CalleeDesc };
 
 type BaseDesc =
 	| { kind: "name"; name: string }
@@ -186,6 +186,12 @@ type AnnotationDesc =
 
 interface RawBinding {
 	kind: "def" | "class" | "import" | "localimport" | "param" | "assign" | "rebound";
+	/**
+	 * GCLI-164 (DEC-303 (a84) item 1, (a83) item 1): the rebound binding the `type(x).m = v` misparse branch adds
+	 * for the climbed target name, marked so the write classification can still resolve `type(self)` against the
+	 * receiver's class while every READ sees the binding and refuses exactly as on dev.
+	 */
+	typeAliasMisparse?: true;
 	/** K1: a `*args` parameter is a tuple and a `**kwargs` parameter a dict. */
 	splat?: "tuple" | "dict";
 	symbolId?: string;
@@ -349,6 +355,12 @@ interface RawAttributeWrite {
 	base: CalleeDesc;
 	attr: string;
 	setattr?: true;
+	/**
+	 * GCLI-164 (DEC-303 (a84) item 1): this write is the `type(x).m = v` MISPARSE push only. The narrower mark is
+	 * what keeps the new class-level branch to #4's claim: `setattr(type(self), "m", v)`, `del type(self).m` and the
+	 * other parse-dependent shapes reach the same classifier with a `type(<name>)` base and do NOT carry it.
+	 */
+	misparse?: true;
 }
 
 type EdgeSpec = {
@@ -732,7 +744,21 @@ function describeCallee(node: Node): CalleeDesc {
 	if (node.type === "call") {
 		// Rule 8: `type(self)(...)` is an unresolved receiver, not a bare dynamic callee.
 		const fn = node.childForFieldName("function");
-		if (fn !== null && fn.type === "identifier" && fn.text === "type") return { kind: "dynamic", typeInstance: true };
+		if (fn !== null && fn.type === "identifier" && fn.text === "type") {
+			// GCLI-164 (DEC-303 (a84) item 1): keep `type(...)`'s single argument so a `type(self).m = v` write can
+			// be classified against the receiver's class.
+			const args = node.childForFieldName("arguments");
+			let typeArg: CalleeDesc | undefined;
+			if (args !== null) {
+				const positional = args.namedChildren.filter(
+					(child) => child !== null && child.type !== "comment" && child.type !== "keyword_argument",
+				);
+				if (positional.length === 1) typeArg = describeCallee(positional[0] as Node);
+			}
+			return typeArg === undefined
+				? { kind: "dynamic", typeInstance: true }
+				: { kind: "dynamic", typeInstance: true, typeArg };
+		}
 		return { kind: "dynamic" };
 	}
 	if (node.type !== "attribute") return { kind: "dynamic" };
@@ -1299,11 +1325,47 @@ class FileWalker {
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					continue;
 				case "type_alias_statement": {
-					// GCLI-107: PEP 695 `type m = ...` binds `m` (the left is `type > identifier`,
-					// or `type > generic_type > identifier` when it takes type parameters).
-					let name: Node | null = node.childForFieldName("left");
-					while (name !== null && name.type !== "identifier") name = name.namedChild(0);
-					if (name !== null) this.addBinding(frame.scope, name.text, { kind: "rebound" });
+					// GCLI-164 (DEC-303 (a84) item 1, (a79) Q-C): `type` is a soft keyword, and tree-sitter parses
+					// `type(self).m = v` as a type alias whose left wraps the attribute. A real PEP 695 alias binds a
+					// NAME, so an attribute on the left is that assignment misparsed: record it as the attribute write
+					// `type(<arg>).<attr>` and keep dev's climbed-name rebound binding, marked, so reads see it and refuse
+					// exactly as on dev while the write classification can still resolve `type(self)` (it substitutes a
+					// real alias name only in the non-misparsed branch below). The shared tail below is deliberately NOT
+					// skipped: it gives the value the same lazy class-body scope a real alias gets (GCLI-144/146). The
+					// reported F1 helper edge did not reproduce on dev, on 98e09e7 or on this head; see the fixture.
+					const aliasLeft = node.childForFieldName("left");
+					const aliasInner = aliasLeft !== null && aliasLeft.type === "type" ? aliasLeft.namedChild(0) : aliasLeft;
+					const misparsed = aliasInner !== null && aliasInner.type === "attribute";
+					if (misparsed) {
+						let misparseName: Node | null = aliasLeft;
+						while (misparseName !== null && misparseName.type !== "identifier") {
+							misparseName = misparseName.namedChild(0);
+						}
+						if (misparseName !== null) {
+							this.addBinding(frame.scope, misparseName.text, { kind: "rebound", typeAliasMisparse: true });
+						}
+						const objectNode = aliasInner.childForFieldName("object");
+						const attrNode = aliasInner.childForFieldName("attribute");
+						const argNode =
+							objectNode !== null && objectNode.type === "parenthesized_expression" ? objectNode.namedChild(0) : null;
+						if (argNode !== null && argNode.type === "identifier" && attrNode !== null) {
+							this.attributeWrites.push({
+								file: this.file,
+								line: node.startPosition.row + 1,
+								column: node.startPosition.column + 1,
+								scope: frame.scope,
+								base: { kind: "dynamic", typeInstance: true, typeArg: { kind: "name", name: argNode.text } },
+								attr: attrNode.text,
+								misparse: true,
+							});
+						}
+					} else {
+						// GCLI-107: PEP 695 `type m = ...` binds `m` (the left is `type > identifier`,
+						// or `type > generic_type > identifier` when it takes type parameters).
+						let name: Node | null = node.childForFieldName("left");
+						while (name !== null && name.type !== "identifier") name = name.namedChild(0);
+						if (name !== null) this.addBinding(frame.scope, name.text, { kind: "rebound" });
+					}
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					// GCLI-112: the value sees the alias's own type parameters.
 					let typeScope = this.typeParameterScope(frame, node);
@@ -2592,6 +2654,35 @@ class Resolver {
 	}
 
 	/**
+	 * GCLI-164 (DEC-303 (a84) item 1, (a83) item 1): the receiver of `name`, ignoring the one rebound binding the
+	 * `type(x).m = v` misparse re-dispatch added for it. Used ONLY to record that write against the receiver's
+	 * class; every READ still goes through `receiverOf`, sees the binding and refuses as on dev.
+	 */
+	private receiverOfIgnoringMisparse(
+		name: string,
+		scope: Scope,
+	): { kind: "instance" | "class"; classInfo: ClassInfo } | null {
+		let current: Scope | null = scope;
+		while (current !== null) {
+			const receiver = this.methodReceiver(current);
+			if (receiver !== null && receiver.name === name) {
+				const found = this.lookupBindings(name, scope);
+				if (found !== null && found.scope === current) {
+					const bindings = found.bindings.filter(
+						(binding) => !(binding.kind === "rebound" && binding.typeAliasMisparse === true),
+					);
+					if (bindings.length === 1 && (bindings[0] as RawBinding).kind === "param") {
+						return { kind: receiver.kind, classInfo: receiver.classInfo };
+					}
+				}
+				return null;
+			}
+			current = current.parent;
+		}
+		return null;
+	}
+
+	/**
 	 * Rule 26: does `name` resolve, through LEGB, to the first parameter of an
 	 * enclosing method that is still receiving? A nested def, lambda or
 	 * comprehension inherits the enclosing method's receiver; a name rebound on the
@@ -3567,9 +3658,10 @@ class Resolver {
 	 * to external. So exactly ONE read is bypassed — the attr arm's HEAD name — and everything else stays live.
 	 * The counter's reach is dynamic but what it disables is ONE gate: `resolveBareName`'s module-scope bare-name
 	 * branch (the `found.scope.kind === "module"` test below), which the star hop and the alias hop re-enter.
-	 * Inside the wrapped read the from-import reader (`moduleBindingGate`), `sourceChainOutcome` and
-	 * `resolveModuleChain` still consult `moduleAttributeWritten`, so a head bound by a from-import of a non-module
-	 * name is answered as dev answers it (the GCLI-165 residual), and the name arm keeps its gate.
+	 * Inside the wrapped read the from-import reader (`moduleBindingGate`) and `sourceChainOutcome` still consult
+	 * `moduleAttributeWritten`, so a head bound by a from-import of a non-module name is answered as dev answers it
+	 * (the GCLI-165 residual), and the name arm keeps its gate. `resolveModuleChain` is live too, but it is reached
+	 * after the wrapped read returns.
 	 */
 	private baseIsRebound(classInfo: ClassInfo, base: BaseRef): boolean {
 		const callee = base.callee;
@@ -3777,6 +3869,34 @@ class Resolver {
 		return false;
 	}
 
+	/**
+	 * GCLI-164 (DEC-303 (a88), (a81) item 2 N8): `super()` resolves by the enclosing class's STATIC MRO, but a call
+	 * inside that class can run on an in-repo descendant whose own C3 orders the classes after it differently — the
+	 * diamond `D(B, C)` shape, where a D instance's `super()` after B reaches C, not the class B's static MRO names.
+	 * Resolve only when every in-repo descendant orders the same classes after this one; otherwise refuse
+	 * (removal-only, fail-closed). Runtime-MRO modelling was not taken; a coarser rule was allowed.
+	 */
+	private superOrderDiffers(receiver: ClassInfo, own: MroResult): boolean {
+		if (!own.ok) return false;
+		const index = own.entries.findIndex((entry) => entry.kind === "class" && entry.info === receiver);
+		if (index < 0) return false;
+		const ownTail = own.entries.slice(index + 1).map((entry) => entry.key);
+		for (const descendant of this.descendantsOf(receiver)) {
+			const mro = this.computeMro(descendant);
+			// A descendant whose MRO cannot be computed could order the class any way; fail closed.
+			if (!mro.ok) return true;
+			const at = mro.entries.findIndex((entry) => entry.kind === "class" && entry.info === receiver);
+			// A descendant whose MRO cannot NAME the receiver as a class entry (it reaches it through an opaque or
+			// alternative base) could still order the classes after it differently: fail closed, as above.
+			if (at < 0) return true;
+			const tail = mro.entries.slice(at + 1).map((entry) => entry.key);
+			for (let cursor = 0; cursor < ownTail.length; cursor++) {
+				if (tail[cursor] !== ownTail[cursor]) return true;
+			}
+		}
+		return false;
+	}
+
 	// --- method lookup -----------------------------------------------------
 
 	private methodLookup(
@@ -3791,6 +3911,8 @@ class Resolver {
 		if (fromSuper) {
 			const index = mro.entries.findIndex((entry) => entry.kind === "class" && entry.info === receiver);
 			start = index < 0 ? 1 : index + 1;
+			// GCLI-164 (DEC-303 (a88), N8): a descendant can order the classes after this one differently.
+			if (this.superOrderDiffers(receiver, mro)) return { bin: "receiver", reason: "needs-inference" };
 		}
 		// GCLI-140 (DEC-303 (a25) item 1, the self.m/cls.m/Cls.m bullet; (a79) Q-A): a recorded write of the
 		// attribute on the MRO is another binding of it, so a call through the class or an instance never resolves to
@@ -4267,6 +4389,23 @@ class Resolver {
 			if (symbol !== null && symbol.kind === "class") this.addClassAttrWrite(symbol.id, write.attr, true);
 			return;
 		}
+		// GCLI-164 (DEC-303 (a84) item 1, (a83) item 1): the `type(self).m = v` MISPARSE is a class-level write to
+		// the receiver's class. `misparse` is required so setattr(type(self), "m", v), del type(self).m and the other
+		// parse-dependent shapes that reach this classifier with a type(<name>) base stay outside #4's claim — they
+		// keep dev's answer (no write recorded). The misparse rebound binding is ignored here only (reads still see
+		// it), and the builtin `type` must be unshadowed.
+		if (
+			write.misparse === true &&
+			base.kind === "dynamic" &&
+			base.typeInstance === true &&
+			base.typeArg?.kind === "name" &&
+			this.isUnshadowedBuiltin("type", write.scope)
+		) {
+			const receiver = this.receiverOfIgnoringMisparse(base.typeArg.name, write.scope);
+			if (receiver !== null && receiver.kind === "instance") {
+				this.addClassAttrWrite(receiver.classInfo.id, write.attr, true);
+			}
+		}
 	}
 
 	/**
@@ -4395,8 +4534,9 @@ class Resolver {
 	 * NOT turn off GCLI-140's module-attribute gates, which are what make a base rebound by an importer's write
 	 * (`m.B = L`, the round-2 counterexample). So this bypasses the one gate and leaves `moduleAttributeWritten` live.
 	 * The counter reaches every re-entry of the bare-name read (the star hop and the alias hop), but it disables
-	 * only the module-scope bare-name branch there. `moduleBindingGate`, `sourceChainOutcome` and
-	 * `resolveModuleChain` keep `moduleAttributeWritten` live inside the wrapped read.
+	 * only the module-scope bare-name branch there. `moduleBindingGate` and `sourceChainOutcome` keep
+	 * `moduleAttributeWritten` live inside the wrapped read; `resolveModuleChain` is reached from the base and
+	 * super paths AFTER the wrapped read returns, and it is always live.
 	 */
 	private withoutBareModuleNameGate<T>(work: () => T): T {
 		this.bareModuleNameGateBypass++;

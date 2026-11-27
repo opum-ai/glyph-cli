@@ -2757,18 +2757,22 @@ describe("GCLI-154 — binder-side attribute writes", () => {
 		expect(twin.callees).toEqual(["m.py:A.m"]);
 	});
 
-	test("#4 type(self).m = other is dev-equal (control): self.m() resolves", async () => {
-		// (a84) item 1: #4 (the type(x).m/type(self).m re-dispatch) is out of #236 and restored to dev; #4's
-		// fixtures assert dev's outcome — the write records nothing, so self.m() resolves.
+	test("#4 type(self).m = other refuses self.m(); the twin resolves (red-before on dev)", async () => {
+		// (a84) item 1: #4 built here. tree-sitter parses `type(self).m = other` as a PEP 695 alias, and the
+		// re-dispatch records it as a class-level write on the receiver's class. Dev records nothing and resolves.
 		const write =
 			"class C:\n    def m(self):\n        pass\n    def write(self):\n        type(self).m = other\n    def use(self):\n        CALL\ndef other(self):\n    pass\n";
-		const r = await probe(write, "self.m()");
-		expect(ms(r)).toEqual(["app.py:C.m"]);
+		const refused = await probe(write, "self.m()");
+		expect(ms(refused)).toEqual([]);
+		const twin = await probe(write.replace("type(self).m = other", "pass"), "self.m()");
+		expect(ms(twin)).toEqual(["app.py:C.m"]);
 	});
 
-	test("#4 type(self).m = other in a NESTED def is dev-equal (control): self.m() still resolves", async () => {
+	test("#4 type(self).m = other in a NESTED def is dev-equal: a known BLIND SPOT, the read still resolves", async () => {
 		// (a83) item 1: dev's rebound binding is kept, so a type(self).m write inside a nested def is not attributed
-		// against the receiver; the read in another method resolves exactly as on dev (a control, not red-before).
+		// against the receiver; the read in another method resolves exactly as on dev. This is a dev-equal BLIND
+		// SPOT, not a correct answer: receiverOfIgnoringMisparse stops at the inner scope, whose only binding is the
+		// marked misparse one. Recorded for the follow-up, not fixed here (#250 round 1 non-blocking 5).
 		const write =
 			"class C:\n    def m(self):\n        pass\n    def write(self):\n        def inner():\n            type(self).m = other\n        inner()\n    def use(self):\n        CALL\ndef other(self):\n    pass\n";
 		const r = await probe(write, "self.m()");
@@ -2787,14 +2791,15 @@ describe("GCLI-154 — binder-side attribute writes", () => {
 		expect(ms(twin)).toEqual(["app.py:C.m"]);
 	});
 
-	test("#4 an unrelated class and a subclass both resolve (dev-equal, control)", async () => {
-		// (a84): #4 is out; with no recorded write, both an unrelated class and a subclass resolve as on dev.
+	test("#4 an unrelated class resolves; a subclass inheriting the written class refuses", async () => {
+		// (a84) item 1: the write lands on C only. U is unrelated and resolves; S(C) inherits the class-level write
+		// through the ancestor-write guard, so its self.m() refuses (a removal, never a created edge).
 		const write =
 			"class C:\n    def m(self):\n        pass\n    def write(self):\n        type(self).m = other\nclass U:\n    def m(self):\n        pass\n    def use(self):\n        CALL\ndef other(self):\n    pass\n";
 		expect(ms(await probe(write, "self.m()"))).toEqual(["app.py:U.m"]);
 		const subclass =
 			"class C:\n    def m(self):\n        pass\n    def write(self):\n        type(self).m = other\nclass S(C):\n    def use(self):\n        CALL\ndef other(self):\n    pass\n";
-		expect(ms(await probe(subclass, "self.m()"))).toEqual(["app.py:C.m"]);
+		expect(ms(await probe(subclass, "self.m()"))).toEqual([]);
 	});
 
 	test("#11 K = C; K.m = other refuses C().m(); the twin resolves", async () => {
@@ -2946,13 +2951,16 @@ describe("GCLI-154 (a83) — removal-only and item-2 reads", () => {
 		expect(callees(r)).toContain("app.py:C.m");
 	});
 
-	test("item 2 #4 (dev-equal, control): written attribute resolves, neighbour resolves", async () => {
-		// (a84): #4 is out, so type(self).m records nothing: y.m() resolves before and after, as on dev.
-		const app = `class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\n    def use(self):\n        y = C()\n        y.m()\n        y.n()\n        type(self).m = other\n        y.m()\n        y.n()\n${other}`;
+	test("item 2 #4: written attribute refused, neighbour resolves, constructions counted after the write", async () => {
+		// (a84) item 1: #4 is built, so type(self).m records a class-level write on C. The write set is collected
+		// before resolution, so every y.m() in the file refuses (before and after), while each y.n() resolves. A
+		// SECOND construction after the write keeps its own edge, which is the (a83) item 2 construction read.
+		const app = `class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\n    def use(self):\n        y = C()\n        y.m()\n        y.n()\n        type(self).m = other\n        z = C()\n        z.m()\n        z.n()\n${other}`;
 		const r = await analyze([py("app.py", app)]);
 		const cs = callees(r);
 		expect(cs.filter((c) => c === "app.py:C.n").length).toBe(2);
-		expect(cs.filter((c) => c === "app.py:C.m").length).toBe(2);
+		expect(cs.filter((c) => c === "app.py:C").length).toBe(2);
+		expect(cs).not.toContain("app.py:C.m");
 	});
 
 	test("item 2 #2: written Outer.Inner.m refused, neighbour resolves, instance read", async () => {
@@ -3080,10 +3088,10 @@ describe("GCLI-154 (a84) — remaining item-2 shapes and controls", () => {
 		expect(cs).not.toContain("app.py:C.m");
 	});
 
-	test("cls.__class__.m: recorded class-level on C — measured over-refusal (accepted by DEC-303 (a84); carried to GCLI-164)", async () => {
+	test("cls.__class__.m: recorded class-level on C — measured over-refusal (accepted by DEC-303 (a84); carried to GCLI-151)", async () => {
 		// At runtime `cls.__class__` is the metaclass, so this should not refuse D's super().m(); it does, as a
-		// removal-only over-refusal. Pinned here and carried to GCLI-164 (it was neither fixed in GCLI-156 nor
-		// carried to GCLI-163/165; #248 round 1 N-f).
+		// removal-only over-refusal. Pinned here and carried to GCLI-151 (it was neither fixed in GCLI-156 nor
+		// carried to GCLI-163/165; #248 round 1 N-f; GCLI-164 closed without it, re-carried after #250 round 1).
 		const r = await analyze([
 			py(
 				"app.py",
@@ -3890,7 +3898,11 @@ describe("GCLI-156 — a write on an in-repo descendant (DEC-303 (a88), shape #6
 				return `${s.kind}:${c?.file}:${c?.qualname}`;
 			})
 			.sort();
-		return { callees, bins: r.callBins };
+		return {
+			callees,
+			bins: r.callBins,
+			reasons: (r.unresolvedReceiverReasons ?? []).map((x) => `${x.reason}:${x.count}`),
+		};
 	};
 	const REFUSED = { resolvedInRepo: 0, resolvedExternal: 0, receiverNeedsInference: 1, nameNotBound: 0 };
 	const RESOLVED = { resolvedInRepo: 1, resolvedExternal: 0, receiverNeedsInference: 0, nameNotBound: 0 };
@@ -3912,11 +3924,15 @@ describe("GCLI-156 — a write on an in-repo descendant (DEC-303 (a88), shape #6
 	});
 
 	test("#6 twin: no descendant, and an unrelated class's write, keep the edge", async () => {
-		expect(await observe({ "app.py": base("") })).toEqual({ callees: ["call:app.py:B.m"], bins: RESOLVED });
+		expect(await observe({ "app.py": base("") })).toEqual({
+			callees: ["call:app.py:B.m"],
+			bins: RESOLVED,
+			reasons: [],
+		});
 		const unrelated = await observe({
 			"app.py": base("\nclass Z:\n    def setup(self):\n        self.m = lambda: 2\n"),
 		});
-		expect(unrelated).toEqual({ callees: ["call:app.py:B.m"], bins: RESOLVED });
+		expect(unrelated).toEqual({ callees: ["call:app.py:B.m"], bins: RESOLVED, reasons: [] });
 	});
 
 	test("#6 cross module: a descendant in another module's write refuses too", async () => {
@@ -3992,8 +4008,11 @@ describe("GCLI-156 — a write on an in-repo descendant (DEC-303 (a88), shape #6
 		const written = await observe(files(true));
 		expect(written.callees).toEqual([]);
 		expect(written.bins).toEqual(REFUSED);
+		// (a) from the #250 round-2 carries: the reason label is the claim, not only the bin.
+		expect(written.reasons).toEqual(["needs-inference:1"]);
 		const twin = await observe(files(false));
 		expect(twin.callees).toEqual([]);
+		expect(twin.reasons).toEqual([]);
 		expect(twin.bins).toEqual({ resolvedInRepo: 0, resolvedExternal: 1, receiverNeedsInference: 0, nameNotBound: 0 });
 	});
 
@@ -4004,8 +4023,10 @@ describe("GCLI-156 — a write on an in-repo descendant (DEC-303 (a88), shape #6
 		const written = await observe(files(true));
 		expect(written.callees).toEqual([]);
 		expect(written.bins).toEqual(REFUSED);
+		expect(written.reasons).toEqual(["needs-inference:1"]);
 		const twin = await observe(files(false));
 		expect(twin.callees).toEqual([]);
+		expect(twin.reasons).toEqual([]);
 		expect(twin.bins).toEqual({ resolvedInRepo: 0, resolvedExternal: 1, receiverNeedsInference: 0, nameNotBound: 0 });
 	});
 });
@@ -4045,5 +4066,138 @@ describe("#245 N1 — the reviewer's star-imported head shape, measured", () => 
 		});
 		expect(written.reasons).toEqual(["rebound-base:1"]);
 		expect(await observe(files(false))).toEqual(written);
+	});
+});
+
+describe("GCLI-164 — #4 re-dispatch (class-body lazy) and N8 diamond super", () => {
+	const observe = async (files: Record<string, string>) => {
+		const r = await analyze(Object.entries(files).map(([path, source]) => py(path, source)));
+		const byId = new Map(r.symbols.map((x) => [x.id, x]));
+		const callees = r.sites
+			.map((s) => {
+				const c = s.calleeId === null ? undefined : byId.get(s.calleeId);
+				return `${s.kind}:${c?.file}:${c?.qualname}`;
+			})
+			.sort();
+		return {
+			callees,
+			bins: r.callBins,
+			reasons: (r.unresolvedReceiverReasons ?? []).map((x) => `${x.reason}:${x.count}`),
+		};
+	};
+
+	test("#4 F1: class-body type(x).m = helper() reads its value exactly as dev does", async () => {
+		// Measured on dev 58255fc, on 98e09e7 (the removed re-dispatch) and on this head: all three agree on both
+		// shapes. A class-body import AFTER the write is refused (name-not-bound: the binding is later); a def AFTER
+		// the write resolves to it (C.helper). The re-dispatch records the write and leaves the value on the shared
+		// lazy class-body path, so this stays dev-equal. The reported F1 helper edge did not reproduce on any of the
+		// three implementations by either shape, so this fixture pins dev's answer and is not a red-before.
+		const lib = { "lib.py": "def helper():\n    pass\n" };
+		const importLater = await observe({
+			...lib,
+			"app.py": "class C:\n    type(x).m = helper()\n    from lib import helper\n",
+		});
+		expect(importLater.callees).toEqual([]);
+		expect(importLater.bins).toEqual({
+			resolvedInRepo: 0,
+			resolvedExternal: 0,
+			receiverNeedsInference: 0,
+			nameNotBound: 1,
+		});
+		const defLater = await observe({
+			"app.py": "class C:\n    type(x).m = helper()\n    def helper(self):\n        pass\n",
+		});
+		// A pinned dev-equal WRONG edge: the statement is an eager assignment, so `helper` is really unbound there and
+		// this edge is wrong on dev too. It is pinned so any future change to the class-body walk is visible.
+		expect(defLater.callees).toEqual(["call:app.py:C.helper"]);
+		const twin = await observe({
+			...lib,
+			"app.py": "class C:\n    type A = helper()\n    from lib import helper\n",
+		});
+		expect(twin).toEqual(importLater);
+	});
+
+	test("#4 a shadowed type(...) is an instance write on self, so no class write is recorded (dev-equal blind spot)", async () => {
+		const r = await observe({
+			"app.py":
+				"class C:\n    def m(self):\n        pass\n    def write(self):\n        def type(v):\n            return v\n        type(self).m = other\n    def use(self):\n        self.m()\ndef other(self):\n    pass\n",
+		});
+		expect(r.callees).toEqual(["call:app.py:C.m"]);
+	});
+
+	test("#4 B1: setattr/del/augmented and type(cls) stay outside the misparse branch (dev-equal)", async () => {
+		// The write branch now requires the `misparse` mark, so these parse-dependent shapes reach the classifier with
+		// a type(<name>) base and record nothing, exactly as on dev. Without the mark (the pre-round-1 head) each of
+		// them became a new class-level refusal.
+		const shapes: Record<string, string> = {
+			setattr:
+				'class C:\n    def m(self):\n        pass\n    def write(self):\n        setattr(type(self), "m", other)\n    def use(self):\n        self.m()\ndef other(self):\n    pass\n',
+			del: "class C:\n    def m(self):\n        pass\n    def write(self):\n        del type(self).m\n    def use(self):\n        self.m()\n",
+			augmented:
+				"class C:\n    def m(self):\n        pass\n    def write(self):\n        type(self).m += other\n    def use(self):\n        self.m()\ndef other(self):\n    pass\n",
+			metaclass:
+				"class C:\n    def m(self):\n        pass\n    @classmethod\n    def write(cls):\n        type(cls).m = other\n    def use(self):\n        self.m()\ndef other(self):\n    pass\n",
+		};
+		for (const [label, source] of Object.entries(shapes)) {
+			const r = await observe({ "app.py": source });
+			expect(r.callees, label).toContain("call:app.py:C.m");
+			expect(r.bins.receiverNeedsInference, label).toBe(0);
+		}
+	});
+
+	const diamond = (order: string) =>
+		`class A:\n    def m(self):\n        return 1\nclass B(A):\n    def m(self):\n        return super().m()\nclass C(A):\n    def m(self):\n        return 2\nclass D(${order}):\n    pass\n`;
+
+	test("N8: the diamond D(B, C) refuses B's super() (dev: A.m, a D instance reaches C.m)", async () => {
+		const written = await observe({ "app.py": diamond("B, C") });
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual({
+			resolvedInRepo: 0,
+			resolvedExternal: 1,
+			receiverNeedsInference: 1,
+			nameNotBound: 0,
+		});
+		expect(written.reasons).toEqual(["needs-inference:1"]);
+	});
+
+	test("N8: a neighbour super().n() refuses on the same diamond, and a D instance still gets B.m", async () => {
+		const r = await observe({
+			"app.py":
+				"class A:\n    def m(self):\n        return 1\n    def n(self):\n        return 2\nclass B(A):\n    def m(self):\n        return super().m()\n    def n(self):\n        return super().n()\nclass C(A):\n    def m(self):\n        return 3\n    def n(self):\n        return 4\nclass D(B, C):\n    def go(self):\n        self.m()\n",
+		});
+		// Both super() calls refuse under the order rule; D's own self.m() still resolves to B.m (a def edge).
+		expect(r.callees).toEqual(["call:app.py:B.m"]);
+		expect(r.reasons).toEqual(["needs-inference:2"]);
+	});
+
+	test("N8: D(C, B) keeps the edge — its MRO orders A after B exactly as B's own does", async () => {
+		const r = await observe({ "app.py": diamond("C, B") });
+		expect(r.callees).toEqual(["call:app.py:A.m"]);
+	});
+
+	test("N8 controls: a linear descendant, no descendant, and an unrelated class all resolve", async () => {
+		const linear = await observe({
+			"app.py":
+				"class A:\n    def m(self):\n        return 1\nclass B(A):\n    def m(self):\n        return super().m()\nclass D(B):\n    pass\n",
+		});
+		expect(linear.callees).toEqual(["call:app.py:A.m"]);
+		const none = await observe({
+			"app.py":
+				"class A:\n    def m(self):\n        return 1\nclass B(A):\n    def m(self):\n        return super().m()\n",
+		});
+		expect(none.callees).toEqual(["call:app.py:A.m"]);
+		const unrelated = await observe({
+			"app.py":
+				"class A:\n    def m(self):\n        return 1\nclass B(A):\n    def m(self):\n        return super().m()\nclass Z:\n    pass\n",
+		});
+		expect(unrelated.callees).toEqual(["call:app.py:A.m"]);
+	});
+
+	test("N8: the two-argument super(B, self) refuses on a reordering descendant too", async () => {
+		const r = await observe({
+			"app.py":
+				"class A:\n    def m(self):\n        return 1\nclass B(A):\n    def m(self):\n        return super(B, self).m()\nclass C(A):\n    def m(self):\n        return 2\nclass D(B, C):\n    pass\n",
+		});
+		expect(r.callees).toEqual([]);
 	});
 });
