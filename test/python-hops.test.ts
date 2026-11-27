@@ -4003,6 +4003,58 @@ describe("GCLI-156 — a write on an in-repo descendant (DEC-303 (a88), shape #6
 		]);
 	});
 
+	test("GCLI-171 round 1: provably inexact 6d receivers still refuse (__new__, module rebinding, M1 rebinding)", async () => {
+		// (i) C.__new__ returns a descendant, so `x = C()` may be that descendant; D.m makes C.m the wrong edge.
+		const viaNew = await observe({
+			"app.py":
+				"class C:\n    def __new__(cls):\n        return object.__new__(D)\n    def m(self):\n        return 1\n\nclass D(C):\n    pass\n\nD.m = None\n\ndef f():\n    x = C()\n    x.m()\n",
+		});
+		expect(viaNew.callees).toEqual(["new:app.py:C"]);
+		expect(viaNew.bins.receiverNeedsInference).toBe(1);
+		// (ii) a module-level `x = C()` is not provably the fresh instance: another module can rebind it.
+		const moduleLevel = await observe({
+			"app.py":
+				"class C:\n    def m(self):\n        return 1\n\nclass D(C):\n    pass\n\nD.m = None\nx = C()\n\ndef f():\n    x.m()\n",
+			"b.py": "import app\napp.x = app.D()\n",
+		});
+		expect(moduleLevel.callees).toEqual(["new:app.py:C", "new:app.py:D"]);
+		expect(moduleLevel.bins.receiverNeedsInference).toBe(1);
+		// the M1 form of the same rebinding: `from app import x` where app.x is written elsewhere.
+		const imported = await observe({
+			"app.py": "class C:\n    def m(self):\n        return 1\n\nclass D(C):\n    pass\n\nD.m = None\nx = C()\n",
+			"b.py": "import app\napp.x = app.D()\n",
+			"c.py": "from app import x\n\ndef f():\n    x.m()\n",
+		});
+		expect(imported.callees).toEqual(["new:app.py:C", "new:app.py:D"]);
+		expect(imported.bins.receiverNeedsInference).toBe(1);
+	});
+
+	test("GCLI-171 round 1: an R4 multi-binding local and an unwritten M1 instance stay exact", async () => {
+		const r4 = await observe({
+			"app.py":
+				"class C:\n    def m(self):\n        return 1\n\nclass D(C):\n    pass\n\nD.m = None\n\ndef f(c):\n    if c:\n        x = C()\n    else:\n        x = C()\n    x.m()\n",
+		});
+		expect(r4.callees).toEqual(["call:app.py:C.m", "new:app.py:C", "new:app.py:C"]);
+		expect(r4.bins).toEqual({
+			resolvedInRepo: 3,
+			resolvedExternal: 0,
+			receiverNeedsInference: 0,
+			nameNotBound: 0,
+		});
+		// M1: `from app import x` with no `app.x = ...` anywhere keeps the fresh instance, so the loop does not run.
+		const m1 = await observe({
+			"app.py": "class C:\n    def m(self):\n        return 1\n\nclass D(C):\n    pass\n\nD.m = None\nx = C()\n",
+			"c.py": "from app import x\n\ndef f():\n    x.m()\n",
+		});
+		expect(m1.callees).toEqual(["call:app.py:C.m", "new:app.py:C"]);
+		expect(m1.bins).toEqual({
+			resolvedInRepo: 2,
+			resolvedExternal: 0,
+			receiverNeedsInference: 0,
+			nameNotBound: 0,
+		});
+	});
+
 	test("GCLI-171 refused twins: self, annotated local, parameter and type(self) still refuse", async () => {
 		const annotated = await observe({
 			"app.py": mayDescend("def f():\n    y: C = None\n    y.m()\n", true),

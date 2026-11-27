@@ -3634,12 +3634,18 @@ class Resolver {
 	 * constructed local (`x = C()`), an annotation (`x: C`) — names an instance of the class, so a call on it is
 	 * instance dispatch. GCLI-163 threads `instance` into `methodLookup`'s `__class__`-write guard, which must not
 	 * refuse the class-level twin `C.m(...)`.
+	 *
+	 * GCLI-171 round 1 (DEC-303 (a97)): `exact` says the receiver is PROVABLY a fresh instance of this class, so the
+	 * #6 descendant loop need not run. The class object is exact; a constructed local is exact only when the binding
+	 * sits in a function (a module-level binding can be rebound from another module through `m.x = ...`) AND its
+	 * class passes `instanceClassOf` (no `__new__`, metaclass, opaque or gated base), which is what (i) requires: a
+	 * `__new__` may return a descendant that writes the method name. An annotation or parameter is never exact.
 	 */
 	private knownClassOf(
 		name: string,
 		scope: Scope,
 		use?: UsePosition,
-	): { info: ClassInfo; instance: boolean; annotated: boolean } | null {
+	): { info: ClassInfo; instance: boolean; annotated: boolean; exact: boolean } | null {
 		const found = this.lookupBindings(name, scope, use);
 		if (found === null || found.classBodyShadowed === true || found.bindings.length !== 1) return null;
 		const binding = found.bindings[0] as RawBinding;
@@ -3647,28 +3653,29 @@ class Resolver {
 			const outcome = this.resolveImportBinding(binding.importBinding);
 			if (outcome.kind === "symbol" && outcome.symbol.kind === "class") {
 				const info = this.classById.get(outcome.symbol.id) ?? null;
-				return info === null ? null : { info, instance: false, annotated: false };
+				return info === null ? null : { info, instance: false, annotated: false, exact: true };
 			}
 			return null;
 		}
 		if (binding.kind === "assign") {
 			if (binding.annotation && binding.annotationScope) {
 				const info = this.resolveAnnotationClass(binding.annotation, binding.annotationScope);
-				return info === null ? null : { info, instance: true, annotated: true };
+				return info === null ? null : { info, instance: true, annotated: true, exact: false };
 			}
 			if (binding.rhs !== undefined && binding.rhs.kind === "call") {
 				const symbol = this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0);
 				const constructed = symbol !== null && symbol.kind === "class" ? (this.classById.get(symbol.id) ?? null) : null;
 				// (a31) Q2: a decorated class may have been replaced, so `x = Cls(); x.m()` is refused.
 				if (constructed === null || this.hasReplacingDecorator(constructed)) return null;
-				return { info: constructed, instance: true, annotated: false };
+				const exact = found.scope.kind === "function" && this.instanceClassOf(symbol) !== null;
+				return { info: constructed, instance: true, annotated: false, exact };
 			}
 			return null;
 		}
 		// K1: the annotation of `*args: T` or `**kw: T` types the ELEMENTS, not the tuple or dict.
 		if (binding.kind === "param" && binding.splat === undefined && binding.annotation && binding.annotationScope) {
 			const info = this.resolveAnnotationClass(binding.annotation, binding.annotationScope);
-			return info === null ? null : { info, instance: true, annotated: true };
+			return info === null ? null : { info, instance: true, annotated: true, exact: false };
 		}
 		return null;
 	}
@@ -4289,7 +4296,7 @@ class Resolver {
 			if (knownClass.annotated && this.descendantClassWritten(knownClass.info, "__class__")) {
 				return { bin: "receiver", reason: "needs-inference" };
 			}
-			return this.methodLookup(knownClass.info, lastName, false, true, knownClass.instance, knownClass.annotated);
+			return this.methodLookup(knownClass.info, lastName, false, true, knownClass.instance, !knownClass.exact);
 		}
 		// R4 (DEC-303 (a22) item 3): a local whose every binding is `Cls(...)` of one class.
 		if (segments.length === 1) {
@@ -4310,7 +4317,7 @@ class Resolver {
 				if (this.localAttributeWritten(base.name, scope, lastName, site)) {
 					return { bin: "receiver", reason: "needs-inference" };
 				}
-				return this.methodLookup(instance, lastName, false, true, true);
+				return this.methodLookup(instance.info, lastName, false, true, true, instance.mayBeDescendant);
 			}
 		}
 		// K1 (DEC-303 (a22) item 3): `*args` is a tuple and `**kwargs` a dict, so a method
@@ -4692,7 +4699,11 @@ class Resolver {
 	 * (the import's source module is the defining file) and a bare-name constructor qualify. The
 	 * module-attribute form `m.inst.f()` is ruled OUT (DEC-303 (a37)).
 	 */
-	private importedInstanceClass(name: string, scope: Scope, site: { line: number; column: number }): ClassInfo | null {
+	private importedInstanceClass(
+		name: string,
+		scope: Scope,
+		site: { line: number; column: number },
+	): { info: ClassInfo; mayBeDescendant: boolean } | null {
 		const bindings = this.enumerableBindings(name, scope, site);
 		if (bindings === null || bindings.length !== 1) return null;
 		const direct = this.directFromImport(bindings[0] as RawBinding);
@@ -4707,7 +4718,11 @@ class Resolver {
 		// looked up by qualname with no binding count, so it stays unresolved here.
 		if (instance.rhs.callee.kind !== "name") return null;
 		const symbol = this.moduleClassSymbol(instance.rhs.callee.name, defining);
-		return this.instanceClassOf(symbol);
+		const info = this.instanceClassOf(symbol);
+		if (info === null) return null;
+		// GCLI-171 round 1 (DEC-303 (a97)): the defining module's attribute is provably still the fresh instance only
+		// when no analysed module writes it (`m.inst = ...`); otherwise the #6 loop must still run.
+		return { info, mayBeDescendant: this.moduleAttributeWritten(direct.target, direct.name) };
 	}
 
 	/**
