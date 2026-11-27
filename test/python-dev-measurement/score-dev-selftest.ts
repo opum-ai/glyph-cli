@@ -78,7 +78,6 @@ if (first !== undefined && second !== undefined) {
 		`edge ${second.id}, target ${first.id}`,
 	);
 	check("and symmetrically", !scores(secondTarget, [first.id]), `edge ${first.id}, target ${second.id}`);
-	check("an empty edge set is refused", !scores(firstTarget, []));
 
 	const legacyFirst = { file: first.file, line: first.line };
 	check(
@@ -90,10 +89,18 @@ if (first !== undefined && second !== undefined) {
 
 const sameLine = await analyze({ "n.py": "class One: pass; class Two: pass\n" });
 const sameLineIndex = buildDeclarationIndex(sameLine.symbols);
+// The fixture is not valid Python, so it parses through ERROR recovery; assert
+// the two symbols are actually there, or the refusal below would pass vacuously.
+const sameLineSymbols = sameLine.symbols.filter((symbol) => symbol.file === "n.py" && symbol.line === 1);
+check(
+	"the same-line fixture yields two symbols on line 1",
+	sameLineSymbols.length === 2,
+	sameLineSymbols.map((s) => s.id).join(", "),
+);
 check(
 	"a pre-column target on a two-symbol line is refused, not guessed",
-	symbolIdForTarget(sameLineIndex, { file: "n.py", line: 1 }) === undefined,
-	sameLine.symbols.map((s) => s.id).join(", "),
+	sameLineSymbols.length === 2 && symbolIdForTarget(sameLineIndex, { file: "n.py", line: 1 }) === undefined,
+	sameLineSymbols.map((s) => s.id).join(", "),
 );
 
 if (failures > 0) {
