@@ -517,6 +517,143 @@ describe("rule 6 — attribute call receivers", () => {
 		expect(result.callBins.receiverNeedsInference).toBe(1);
 	});
 
+	// GCLI-169 (DEC-303 (a93) item 1): imports of the SAME class are one binding, so an annotation naming a name
+	// imported twice still names the class. 5.7 is rich/rule.py (a relative import at the top and an absolute one in
+	// the `__main__` demo), 5.8 is rich/table.py (a TYPE_CHECKING import plus the `__main__` one, read through a
+	// closure). The refused twins pin the width: one alternative that is not the same in-repo class refuses.
+	describe("rule 6d — duplicate imports of one class (GCLI-169)", () => {
+		const consoleFile = py(
+			"rich/console.py",
+			"class Console:\n    def render_str(self, text, style=None):\n        pass\n",
+		);
+		const initFile = py("rich/__init__.py", "");
+		const duplicate = '\nif __name__ == "__main__":\n    from rich.console import Console\n';
+
+		test("5.7: a relative import and an absolute __main__ import are one binding", async () => {
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py(
+					"rich/rule.py",
+					`from .console import Console\n\nclass Rule:\n    def __rich_console__(self, console: Console, options):\n        console.render_str("x", style="rule.text")\n${duplicate}`,
+				),
+			]);
+			expect(linesTo(result, symbolId(result, "Console.render_str", "rich/console.py"))).toEqual([5]);
+			expect(result.callBins.receiverNeedsInference).toBe(0);
+		});
+
+		test("5.8: a closure read of a parameter annotated through a duplicate TYPE_CHECKING import", async () => {
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py(
+					"rich/table.py",
+					`from typing import TYPE_CHECKING\n\nif TYPE_CHECKING:\n    from .console import Console\n\nclass Table:\n    def __rich_console__(self, console: "Console", options):\n        def render_annotation(text):\n            console.render_str(text, style="x")\n        return render_annotation\n${duplicate}`,
+				),
+			]);
+			expect(linesTo(result, symbolId(result, "Console.render_str", "rich/console.py"))).toEqual([9]);
+		});
+
+		test("the single-import control resolves the same edge", async () => {
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py(
+					"rich/rule.py",
+					'from .console import Console\n\nclass Rule:\n    def __rich_console__(self, console: Console, options):\n        console.render_str("x", style="rule.text")\n',
+				),
+			]);
+			expect(linesTo(result, symbolId(result, "Console.render_str", "rich/console.py"))).toEqual([5]);
+		});
+
+		test("refused twin: two imports binding DIFFERENT classes", async () => {
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py("rich/other.py", "class Console:\n    def render_str(self, text, style=None):\n        pass\n"),
+				py(
+					"rich/rule.py",
+					'from .console import Console\nfrom .other import Console\n\ndef f(console: Console):\n    console.render_str("x")\n',
+				),
+			]);
+			expect(result.callBins.receiverNeedsInference).toBe(1);
+			expect(result.sites.every((site) => site.calleeId === null)).toBe(true);
+		});
+
+		test("refused twin: an import followed by a non-import rebinding", async () => {
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py(
+					"rich/rule.py",
+					'from .console import Console\n\nif __name__ == "__main__":\n    from rich.console import Console\n\nConsole = make()\n\ndef f(console: Console):\n    console.render_str("x")\n',
+				),
+			]);
+			expect(result.callBins.receiverNeedsInference).toBe(1);
+			expect(result.sites.every((site) => site.calleeId === null)).toBe(true);
+		});
+
+		test("refused twin: the same two imports plus a later class binding of the name", async () => {
+			// The per-binding guard: a `class Console:` after both imports is a third binding that is not an import.
+			// `resolveBareName` still reaches `multiply` here (a class binding is not dynamic), so this fixture is what
+			// reaches the guard; skipping the guard would resolve the annotation to the IMPORTED class, not this one.
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py(
+					"rich/rule.py",
+					'from .console import Console\n\nif __name__ == "__main__":\n    from rich.console import Console\n\nclass Console:\n    def render_str(self, text, style=None):\n        pass\n\ndef f(console: Console):\n    console.render_str("x")\n',
+				),
+			]);
+			expect(result.callBins.receiverNeedsInference).toBe(1);
+			expect(result.sites.every((site) => site.calleeId === null)).toBe(true);
+		});
+
+		test("refused twin: a conditional import of a DIFFERENT class", async () => {
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py("rich/other.py", "class Console:\n    def render_str(self, text, style=None):\n        pass\n"),
+				py(
+					"rich/rule.py",
+					'from typing import TYPE_CHECKING\n\nfrom .console import Console\n\nif TYPE_CHECKING:\n    from .other import Console\n\ndef f(console: Console):\n    console.render_str("x")\n',
+				),
+			]);
+			expect(result.callBins.receiverNeedsInference).toBe(1);
+			expect(result.sites.every((site) => site.calleeId === null)).toBe(true);
+		});
+
+		test("a function-local duplicate import resolves through the local-import path", async () => {
+			// AC 1's "in any scope": both bindings are function-local, so they come from `localImportResolver`, not the
+			// module walker, and the annotation names the class from the function's own scope.
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py(
+					"rich/rule.py",
+					'def f():\n    from .console import Console\n    from rich.console import Console\n    x: Console = None\n    x.render_str("y")\n',
+				),
+			]);
+			expect(linesTo(result, symbolId(result, "Console.render_str", "rich/console.py"))).toEqual([5]);
+			expect(result.callBins.receiverNeedsInference).toBe(0);
+		});
+
+		test("refused twin: the same class plus an alternative that resolves nowhere (an external import)", async () => {
+			// `resolveMultiply` drops the alternatives it cannot resolve, so its one-symbol result is not enough:
+			// every binding must resolve to the same in-repo class, and an external alternative is another binding.
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py(
+					"rich/rule.py",
+					'from .console import Console\n\ntry:\n    from ext import Console\nexcept ImportError:\n    pass\n\ndef f(console: Console):\n    console.render_str("x")\n',
+				),
+			]);
+			expect(result.callBins.receiverNeedsInference).toBe(1);
+			expect(result.sites.every((site) => site.calleeId === null)).toBe(true);
+		});
+	});
+
 	test("rule 6f / rule 29c: a call result and a builtin value need inference; a literal receiver is external", async () => {
 		const result = await one(
 			"def make():\n    return None\ndef f(items):\n    make().m()\n    'x'.join([])\n    items.append(1)\n",
