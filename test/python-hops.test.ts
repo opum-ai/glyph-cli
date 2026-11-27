@@ -2291,3 +2291,381 @@ describe("GCLI-146 — a lazy class-body read of a name the class binds refuses"
 		});
 	});
 });
+
+// GCLI-140 (DEC-303 (a25)): an attribute write is a binding of that attribute (the (a22) item 2 enumeration),
+// so a call that would resolve to the def refuses. Shapes: self.m and cls.m in a method, Cls.m anywhere in the
+// module, mod.f in the importer and in the defining module, self.__class__/type(self), x.m on a local bound by a
+// construction, and setattr with a literal name. Writes from outside the analysed modules and a non-literal
+// setattr name stay the accepted blind spot.
+describe("GCLI-140 — an attribute write is a binding of that attribute", () => {
+	const cls = "class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\n";
+	const other = "def other():\n    pass\n";
+	const REFUSED: Delta = { inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 };
+	const NOTHING = { inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 };
+	const ms = (r: { callees: (string | null)[] }) => r.callees.filter((c) => c?.endsWith(".m"));
+
+	test("self.m = other in a method: self.m() and a subclass's self.m() refuse; the twin resolves", async () => {
+		const writes = `${cls}${other}class D(C):\n    def go(self):\n        self.m = other\n    def use(self):\n        CALL\n`;
+		const refused = await probe(writes, "self.m()");
+		expect(ms(refused)).toEqual([]);
+		expect(refused.delta).toEqual(REFUSED);
+		const twin = await probe(
+			`${cls}${other}class D(C):\n    def go(self):\n        pass\n    def use(self):\n        CALL\n`,
+			"self.m()",
+		);
+		expect(ms(twin)).toEqual(["app.py:C.m"]);
+		expect(twin.delta).toEqual(RESOLVED);
+	});
+
+	test("cls.m = other in a classmethod: cls.m() refuses; the twin resolves", async () => {
+		const writes = `${cls}${other}class D(C):\n    @classmethod\n    def go(cls):\n        cls.m = other\n    @classmethod\n    def use(cls):\n        CALL\n`;
+		const refused = await probe(writes, "cls.m()");
+		expect(ms(refused)).toEqual([]);
+		expect(refused.delta).toEqual(REFUSED);
+		const twin = await probe(
+			`${cls}${other}class D(C):\n    @classmethod\n    def go(cls):\n        pass\n    @classmethod\n    def use(cls):\n        CALL\n`,
+			"cls.m()",
+		);
+		expect(ms(twin)).toEqual(["app.py:C.m"]);
+	});
+
+	test("D.m = other at module level: D.m(), an instance x.m() and a write from another class body refuse; twins resolve", async () => {
+		const writes = `${cls}${other}class D(C):\n    pass\nD.m = other\nx = D()\nCALL\n`;
+		const direct = await probe(writes, "D.m()");
+		expect(ms(direct)).toEqual([]);
+		expect(direct.delta).toEqual(REFUSED);
+		const instance = await probe(writes, "x.m()");
+		expect(ms(instance)).toEqual([]);
+		expect(instance.delta).toEqual(REFUSED);
+		const twin = await probe(`${cls}${other}class D(C):\n    pass\nCALL\n`, "D.m()");
+		expect(ms(twin)).toEqual(["app.py:C.m"]);
+		expect(twin.delta).toEqual(RESOLVED);
+		const fromClassBody = `${cls}${other}class D(C):\n    pass\nclass E:\n    D.m = other\nCALL\n`;
+		const body = await probe(fromClassBody, "D.m()");
+		expect(ms(body)).toEqual([]);
+		expect(body.delta).toEqual(REFUSED);
+	});
+
+	test("mod.f = other in an importer: mod.f() refuses; the twin resolves", async () => {
+		const others = { "m.py": m };
+		const refused = await probe("import m\nm.f = other\ndef other():\n    pass\nCALL\n", "m.f()", others);
+		expect(refused.callees.filter((c) => c?.endsWith(":f"))).toEqual([]);
+		expect(refused.delta).toEqual(NOTHING);
+		const twin = await probe("import m\nCALL\n", "m.f()", others);
+		expect(twin.callees).toContain("m.py:f");
+	});
+
+	test("mod.f = other inside the defining module: an importer's mod.f() refuses; the twin resolves", async () => {
+		const withWrite = `import m\nm.f = other\ndef other():\n    pass\n${m}`;
+		const refused = await probe("import m\nCALL\n", "m.f()", { "m.py": withWrite });
+		expect(refused.callees.filter((c) => c?.endsWith(":f"))).toEqual([]);
+		expect(refused.delta).toEqual(NOTHING);
+		const twin = await probe("import m\nCALL\n", "m.f()", { "m.py": m });
+		expect(twin.callees).toContain("m.py:f");
+	});
+
+	test("a write to the defining module behind a re-export hop refuses the hop's mod.f(); the twin resolves", async () => {
+		const others = { "m.py": "from n import f\n", "n.py": m };
+		const refused = await probe("import n\nn.f = other\ndef other():\n    pass\nimport m\nCALL\n", "m.f()", others);
+		expect(refused.callees.filter((c) => c?.endsWith(":f"))).toEqual([]);
+		expect(refused.delta).toEqual(NOTHING);
+		const twin = await probe("import m\nCALL\n", "m.f()", others);
+		expect(twin.callees).toContain("n.py:f");
+	});
+
+	test("a write to a module whose f comes from a star import refuses mod.f(); the twin resolves", async () => {
+		const others = { "m.py": "from s import *\n", "s.py": m };
+		const refused = await probe("import m\nm.f = other\ndef other():\n    pass\nCALL\n", "m.f()", others);
+		expect(refused.callees.filter((c) => c?.endsWith(":f"))).toEqual([]);
+		expect(refused.delta).toEqual(NOTHING);
+		const twin = await probe("import m\nCALL\n", "m.f()", others);
+		expect(twin.callees).toContain("s.py:f");
+	});
+
+	test("a write to a submodule attribute refuses the chain through it; the twin resolves", async () => {
+		const others = { "pkg/__init__.py": "", "pkg/sub.py": m };
+		const refused = await probe("import pkg\npkg.sub = other\ndef other():\n    pass\nCALL\n", "pkg.sub.f()", others);
+		expect(refused.callees.filter((c) => c?.endsWith(":f"))).toEqual([]);
+		expect(refused.delta).toEqual(NOTHING);
+		const twin = await probe("import pkg\nCALL\n", "pkg.sub.f()", others);
+		expect(twin.callees).toContain("pkg/sub.py:f");
+	});
+
+	test("self.__class__ = Other: k = self.__class__; k.m() and k = type(self); k.m() refuse; twins resolve", async () => {
+		const declared = "class Other:\n    pass\n";
+		const write =
+			"class D(C):\n    def go(self):\n        self.__class__ = Other\n    def use(self):\n        k = self.__class__\n        CALL\n";
+		const refused = await probe(`${cls}${declared}${write}`, "k.m()");
+		expect(ms(refused)).toEqual([]);
+		expect(refused.delta).toEqual(REFUSED);
+		const typed = `${cls}${declared}class D(C):\n    def go(self):\n        self.__class__ = Other\n    def use(self):\n        k = type(self)\n        CALL\n`;
+		const refusedType = await probe(typed, "k.m()");
+		expect(ms(refusedType)).toEqual([]);
+		expect(refusedType.delta).toEqual(REFUSED);
+		const twin = `${cls}${declared}class D(C):\n    def go(self):\n        pass\n    def use(self):\n        k = self.__class__\n        CALL\n`;
+		const resolved = await probe(twin, "k.m()");
+		expect(ms(resolved)).toEqual(["app.py:C.m"]);
+		expect(resolved.delta).toEqual(RESOLVED);
+	});
+
+	test("x.m = other on a local construction: x.m() refuses for the single-binding and the R4 shapes; twins resolve", async () => {
+		const single = `${cls}${other}def g():\n    x = C()\n    x.m = other\n    CALL\n`;
+		const refused = await probe(single, "x.m()");
+		expect(ms(refused)).toEqual([]);
+		expect(refused.delta).toEqual(REFUSED);
+		const singleTwin = `${cls}${other}def g():\n    x = C()\n    CALL\n`;
+		const twin = await probe(singleTwin, "x.m()");
+		expect(ms(twin)).toEqual(["app.py:C.m"]);
+		expect(twin.delta).toEqual(RESOLVED);
+		const r4 = `${cls}${other}def g():\n    x = C()\n    if flag:\n        x = C()\n    x.m = other\n    CALL\n`;
+		const multi = await probe(r4, "x.m()");
+		expect(ms(multi)).toEqual([]);
+		expect(multi.delta).toEqual(REFUSED);
+		const r4Twin = `${cls}${other}def g():\n    x = C()\n    if flag:\n        x = C()\n    CALL\n`;
+		const multiTwin = await probe(r4Twin, "x.m()");
+		expect(ms(multiTwin)).toEqual(["app.py:C.m"]);
+	});
+
+	test('setattr(x, "m", other) on a local and setattr(self, "m", v) in a method refuse; a non-literal name stays blind', async () => {
+		const local = `${cls}${other}def g():\n    x = C()\n    setattr(x, "m", other)\n    CALL\n`;
+		const refused = await probe(local, "x.m()");
+		expect(ms(refused)).toEqual([]);
+		expect(refused.delta).toEqual(REFUSED);
+		const blind = `${cls}${other}def g():\n    x = C()\n    setattr(x, name, other)\n    CALL\n`;
+		const literal = await probe(blind, "x.m()");
+		expect(ms(literal)).toEqual(["app.py:C.m"]);
+		expect(literal.delta).toEqual(RESOLVED);
+		const inMethod = `${cls}${other}class D(C):\n    def go(self):\n        setattr(self, "m", other)\n    def use(self):\n        CALL\n`;
+		const selfWrite = await probe(inMethod, "self.m()");
+		expect(ms(selfWrite)).toEqual([]);
+		expect(selfWrite.delta).toEqual(REFUSED);
+	});
+
+	test("a write on a base class's attribute refuses a subclass's self.m(); the twin resolves", async () => {
+		const writes = `${cls}${other}class D(C):\n    pass\nD.m = other\nclass E(D):\n    def use(self):\n        CALL\n`;
+		const refused = await probe(writes, "self.m()");
+		expect(ms(refused)).toEqual([]);
+		expect(refused.delta).toEqual(REFUSED);
+		const twin = await probe(
+			`${cls}${other}class D(C):\n    pass\nclass E(D):\n    def use(self):\n        CALL\n`,
+			"self.m()",
+		);
+		expect(ms(twin)).toEqual(["app.py:C.m"]);
+	});
+
+	test("a constructed call through a class with a written attribute refuses; the twin resolves", async () => {
+		const writes = `${cls}${other}class D(C):\n    pass\nD.m = other\nCALL\n`;
+		const refused = await probe(writes, "D().m()");
+		expect(ms(refused)).toEqual([]);
+		expect(refused.delta.receiver).toBe(1);
+		const twin = await probe(`${cls}${other}class D(C):\n    pass\nCALL\n`, "D().m()");
+		expect(ms(twin)).toEqual(["app.py:C.m"]);
+	});
+
+	test("a shadowed setattr is not the builtin, so it writes nothing and x.m() still resolves", async () => {
+		const shadowed = `${cls}${other}def g():\n    def setattr(o, n, v):\n        pass\n    x = C()\n    setattr(x, "m", other)\n    CALL\n`;
+		const resolved = await probe(shadowed, "x.m()");
+		expect(ms(resolved)).toEqual(["app.py:C.m"]);
+		expect(resolved.delta).toEqual(RESOLVED);
+	});
+
+	test("a write to a different attribute does not refuse: self.n = other leaves self.m() and m.f() alone", async () => {
+		const app = `${cls}${other}class D(C):\n    def go(self):\n        self.n = other\n    def use(self):\n        CALL\n`;
+		const resolved = await probe(app, "self.m()");
+		expect(ms(resolved)).toEqual(["app.py:C.m"]);
+		expect(resolved.delta).toEqual(RESOLVED);
+		const mod = await probe("import m\nm.g = other\ndef other():\n    pass\nCALL\n", "m.f()", { "m.py": m });
+		expect(mod.callees).toContain("m.py:f");
+	});
+
+	// GCLI-140 round 1, F1: the self.__class__ bullet covers every self receiver in the class, a direct self.m() too.
+	test("a self.__class__ write leaves a direct self.m() unresolved; the twin resolves", async () => {
+		const declared = "class Other:\n    pass\n";
+		const refused = await probe(
+			`${cls}${declared}class D(C):\n    def go(self):\n        self.__class__ = Other\n    def use(self):\n        CALL\n`,
+			"self.m()",
+		);
+		expect(ms(refused)).toEqual([]);
+		expect(refused.delta).toEqual(REFUSED);
+		const twin = await probe(
+			`${cls}${declared}class D(C):\n    def go(self):\n        pass\n    def use(self):\n        CALL\n`,
+			"self.m()",
+		);
+		expect(ms(twin)).toEqual(["app.py:C.m"]);
+	});
+
+	// GCLI-140 round 1, F2: the alias read of a written module attribute is the same second binding.
+	test("an alias h = m.f never resolves through a written module attribute; the twin resolves", async () => {
+		const app = (write: string) => `import m\n${write}def other():\n    pass\ndef g():\n    h = m.f\n    CALL\n`;
+		const refused = await probe(app("m.f = other\n"), "h()", { "m.py": m });
+		expect(refused.callees.filter((c) => c?.endsWith(":f"))).toEqual([]);
+		expect(refused.delta).toEqual(NOTHING);
+		const twin = await probe(app(""), "h()", { "m.py": m });
+		expect(twin.callees).toContain("m.py:f");
+	});
+
+	// GCLI-140 round 1, R5: a bare attribute annotation binds nothing (PEP 526); an annotated assignment does.
+	test("a bare attribute annotation is not a write; an annotated assignment is", async () => {
+		const bare = `${cls}${other}class D(C):\n    def go(self):\n        self.m: int\n    def use(self):\n        CALL\n`;
+		const resolved = await probe(bare, "self.m()");
+		expect(ms(resolved)).toEqual(["app.py:C.m"]);
+		expect(resolved.delta).toEqual(RESOLVED);
+		const withValue = `${cls}${other}class D(C):\n    def go(self):\n        self.m: int = other\n    def use(self):\n        CALL\n`;
+		const refused = await probe(withValue, "self.m()");
+		expect(ms(refused)).toEqual([]);
+		expect(refused.delta).toEqual(REFUSED);
+	});
+
+	// GCLI-140 round 1, R6/F8: every binding position that can target an attribute is a write.
+	const binder = (label: string, body: string): void => {
+		test(`${label}: the write is a binding, self.m() refuses; the twin resolves`, async () => {
+			const app = (inner: string) =>
+				`${cls}${other}class D(C):\n    def go(self):\n${inner}    def use(self):\n        CALL\n`;
+			const refused = await probe(app(body), "self.m()");
+			expect(ms(refused)).toEqual([]);
+			expect(refused.delta).toEqual(REFUSED);
+			const twin = await probe(app("        pass\n"), "self.m()");
+			expect(ms(twin)).toEqual(["app.py:C.m"]);
+		});
+	};
+	binder("for target", "        for self.m in [other]:\n            pass\n");
+	binder("with-as target", "        with ctx() as self.m:\n            pass\n");
+	binder("comprehension target", "        [0 for self.m in [other]]\n");
+	binder("augmented assignment", "        self.m += other\n");
+	binder("tuple target", "        self.n, self.m = other, other\n");
+	binder("chained assignment", "        a = self.m = other\n");
+	binder("write in a nested def", "        def inner():\n            self.m = other\n");
+	binder("setattr in a lambda", '        (lambda: setattr(self, "m", other))()\n');
+
+	// GCLI-140 round 1, (a79) Q-A: super().m() reads the class MRO after the current class, never the instance
+	// dict, so a class-level write refuses it and an instance write does not.
+	test("a class-level write refuses super().m(); an instance-write twin still resolves", async () => {
+		const base = "class C:\n    def m(self):\n        pass\n";
+		const other = "def other(self):\n    pass\n";
+		// The inner `super()` call itself is a builtin external call in the with-source only, so the refused delta
+		// carries external 1 beside the receiver refusal.
+		const SUPER_REFUSED: Delta = { inRepo: 0, external: 1, receiver: 1, nameNotBound: 0 };
+		const classLevel = `${base}${other}C.m = other\nclass D(C):\n    def m(self):\n        CALL\n`;
+		const direct = await probe(classLevel, "super().m()");
+		expect(ms(direct)).toEqual([]);
+		expect(direct.delta).toEqual(SUPER_REFUSED);
+		const classmethod = `${base}${other}class E(C):\n    @classmethod\n    def go(cls):\n        cls.m = other\nclass D(E):\n    def m(self):\n        CALL\n`;
+		const viaCls = await probe(classmethod, "super().m()");
+		expect(ms(viaCls)).toEqual([]);
+		expect(viaCls.delta).toEqual(SUPER_REFUSED);
+		const viaSetattr = `${base}${other}setattr(C, "m", other)\nclass D(C):\n    def m(self):\n        CALL\n`;
+		const onClass = await probe(viaSetattr, "super().m()");
+		expect(ms(onClass)).toEqual([]);
+		expect(onClass.delta).toEqual(SUPER_REFUSED);
+		const instance = `${base}${other}class E(C):\n    def go(self):\n        self.m = other\nclass D(E):\n    def m(self):\n        CALL\n`;
+		const resolved = await probe(instance, "super().m()");
+		expect(ms(resolved)).toEqual(["app.py:C.m"]);
+		expect(resolved.delta).toEqual({ inRepo: 1, external: 1, receiver: 0, nameNotBound: 0 });
+	});
+
+	// GCLI-140 round 1, (a79) Q-B: the importer's from-import call is refused (the defining module's own bare
+	// call is the follow-up, GCLI-151).
+	test("an importer's from m import f; f() refuses when m.f is written; the twin resolves", async () => {
+		const app = (write: string) => `import m\n${write}def other():\n    pass\nfrom m import f\nCALL\n`;
+		const refused = await probe(app("m.f = other\n"), "f()", { "m.py": m });
+		expect(refused.callees.filter((c) => c?.endsWith(":f"))).toEqual([]);
+		expect(refused.delta).toEqual(NOTHING);
+		const twin = await probe(app(""), "f()", { "m.py": m });
+		expect(twin.callees).toContain("m.py:f");
+	});
+
+	// GCLI-140 round 1, (a80): the mod.f gate is OFF in a base position and in a two-argument super() first
+	// argument, so those paths behave exactly as on dev. Each pins a KNOWN WRONG EDGE carried to GCLI-151.
+	const observe = async (files: Record<string, string>) => {
+		const r = await analyze(Object.entries(files).map(([path, source]) => py(path, source)));
+		const byId = new Map(r.symbols.map((x) => [x.id, x]));
+		const edges = r.sites
+			.map((s) => {
+				const c = s.calleeId === null ? undefined : byId.get(s.calleeId);
+				return `${s.kind} ${s.file}:${s.line}:${s.column} -> ${c?.file}:${c?.qualname}${s.polymorphic ? " POLY" : ""}${s.multiplyBound ? " MULTI" : ""}`;
+			})
+			.sort();
+		const b = r.callBins;
+		return {
+			edges,
+			bins: {
+				inRepo: b.resolvedInRepo,
+				external: b.resolvedExternal,
+				receiver: b.receiverNeedsInference,
+				nameNotBound: b.nameNotBound,
+			},
+			poly: r.polymorphicCount,
+		};
+	};
+	const mClass = "class A:\n    def m(self):\n        pass\nclass C(A):\n    pass\n";
+
+	test("(a80) a written class name in a super() first argument falls back as on dev (known wrong edge, GCLI-151)", async () => {
+		const app =
+			"import m\ndef other():\n    pass\nm.C = other\nclass B:\n    def m(self):\n        pass\nclass D(B):\n    def m(self):\n        super(m.C, self).m()\n";
+		const r = await observe({ "m.py": mClass, "app.py": app });
+		expect(r.edges).toEqual(["call app.py:10:9 -> m.py:A.m"]);
+		expect(r.bins).toEqual({ inRepo: 1, external: 1, receiver: 0, nameNotBound: 0 });
+	});
+
+	test("(a80) the from-import super() first argument falls back as on dev (known wrong edge, GCLI-151)", async () => {
+		const app =
+			"from m import C\nimport m\ndef other():\n    pass\nm.C = other\nclass B:\n    def m(self):\n        pass\nclass D(B):\n    def m(self):\n        super(C, self).m()\n";
+		const r = await observe({ "m.py": mClass, "app.py": app });
+		expect(r.edges).toEqual(["call app.py:11:9 -> m.py:A.m"]);
+		expect(r.bins).toEqual({ inRepo: 1, external: 1, receiver: 0, nameNotBound: 0 });
+	});
+
+	test("(a80) a written class name in a base position behaves as on dev (known wrong edge, GCLI-151)", async () => {
+		const mUse =
+			"class C:\n    def m(self):\n        pass\n    def use(self):\n        k = self.__class__\n        k.m()\n";
+		const direct = await observe({
+			"m.py": mUse,
+			"app.py": "import m\ndef other():\n    pass\nm.C = other\nclass D(m.C):\n    __class__ = None\n",
+		});
+		expect(direct.edges).toEqual([]);
+		expect(direct.bins).toEqual({ inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 });
+		const withMethod = await observe({
+			"m.py": mUse,
+			"app.py":
+				"import m\ndef other():\n    pass\nm.C = other\nclass D(m.C):\n    __class__ = None\n    def m(self):\n        pass\n",
+		});
+		expect(withMethod.edges).toEqual([]);
+		expect(withMethod.bins).toEqual({ inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 });
+		const selfRead = await observe({
+			"m.py": "class C:\n    def m(self):\n        pass\n    def use(self):\n        self.m()\n",
+			"app.py":
+				"import m\ndef other():\n    pass\nm.C = other\nclass D(m.C):\n    __class__ = None\n    def m(self):\n        pass\n",
+		});
+		// dev gives this edge with the polymorphic flag; the narrowing keeps both.
+		expect(selfRead.edges).toEqual(["call m.py:5:9 -> m.py:C.m POLY"]);
+		expect(selfRead.poly).toBe(1);
+	});
+
+	// (a80) item 5: the class-receiver half of F1, an unrelated class's __class__ write, a class's own write and
+	// its own super(), and the class-alias read.
+	test("a __class__ write does not refuse a cls.m() class receiver", async () => {
+		const app = `${cls}class Other:\n    pass\nclass D(C):\n    def go(self):\n        self.__class__ = Other\n    @classmethod\n    def use(cls):\n        cls.m()\n`;
+		const r = await observe({ "app.py": app });
+		expect(r.edges.map((e) => e.split(" -> ")[1])).toEqual(["app.py:C.m"]);
+	});
+
+	test("a __class__ write in another class leaves this class's self.m() resolving", async () => {
+		const app = `${cls}class Other:\n    pass\nclass E:\n    def go(self):\n        self.__class__ = Other\nclass D(C):\n    def use(self):\n        self.m()\n`;
+		const r = await observe({ "app.py": app });
+		expect(r.edges.map((e) => e.split(" -> ")[1])).toEqual(["app.py:C.m"]);
+	});
+
+	test("a class-level write on a class does not refuse its own super().m()", async () => {
+		const app =
+			"class C:\n    def m(self):\n        pass\ndef other(self):\n    pass\nclass D(C):\n    def m(self):\n        super().m()\nD.m = other\n";
+		const r = await observe({ "app.py": app });
+		expect(r.edges).toEqual(["call app.py:8:9 -> app.py:C.m"]);
+	});
+
+	test("the class-alias read h = D.m; h() is refused (the rule removes dev's edge)", async () => {
+		const app = `${cls}${other}class D(C):\n    pass\nD.m = other\ndef g():\n    h = D.m\n    h()\n`;
+		const r = await observe({ "app.py": app });
+		expect(r.edges.filter((e) => e.includes("C.m"))).toEqual([]);
+		expect(r.bins).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 });
+	});
+});
