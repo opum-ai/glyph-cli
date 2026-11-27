@@ -4416,9 +4416,10 @@ describe("GCLI-163 round 1 — B1 __call__ and the per-site fixtures", () => {
 // (`from .other.helper import helper`) but S3 collapses the from-import's target to that defining file. The
 // submodule test at resolveImportBinding read `isModuleFileForName(target, name)`, which is true for ANY target
 // file named name.py, so `from pkg.impl import helper` (pkg/impl.py re-exports from pkg/other/helper.py) was
-// misclassified as binding the MODULE pkg.helper — module-called — and lost resolution. The test now asks whether
-// the target is the SUBMODULE `name` of the module the import NAMES; when it is not (a collapsed re-export), the
-// import binds the re-exported attribute. This is resolve-more: it CREATES the intended hop edge, and only that.
+// misclassified as binding the MODULE pkg.helper — module-called — and lost resolution. The fix broadens
+// `isSameNameAttribute` to admit a plain module FILE source (never a package __init__, never a namespace
+// directory) that binds the name to a symbol (a def/class, directly or through a re-export), so the import binds
+// the re-exported attribute. This is resolve-more: it CREATES the intended hop edge, and only that.
 describe("GCLI-141 — NB-b, a re-export hop through a differently named module file (DEC-303 (a28))", () => {
 	const observe = async (files: Record<string, string>) => {
 		const r = await analyze(Object.entries(files).map(([path, source]) => py(path, source)));
@@ -4515,5 +4516,80 @@ describe("GCLI-141 — NB-b, a re-export hop through a differently named module 
 		expect(renamed.callees).toEqual(["call:pkg/other/himpl.py:helper"]);
 		const direct = await observe({ ...pkg, "app.py": "from pkg.other.helper import helper\nhelper()\n" });
 		expect(direct.callees).toEqual(["call:pkg/other/helper.py:helper"]);
+	});
+
+	test("refused twin (a): a package __init__ that re-exports the name leaves it module-called (A4 conservative boundary)", async () => {
+		// Python binds the FUNCTION here: pkg/impl/__init__.py re-exports the def, so `from pkg.impl import helper`
+		// names that function. Glyph refuses it because A4 does not admit a package __init__ as a same-name source —
+		// a conservative boundary that MISSES the edge rather than drawing a wrong one.
+		const refused = await observe({
+			"pkg/__init__.py": "",
+			"pkg/other/__init__.py": "",
+			"pkg/other/helper.py": "def helper():\n    pass\n",
+			"pkg/impl/__init__.py": "from ..other.helper import helper\n",
+			"app.py": "from pkg.impl import helper\nhelper()\n",
+		});
+		expect(refused.callees).toEqual([]);
+		expect(refused.bins).toEqual({
+			resolvedInRepo: 0,
+			resolvedExternal: 0,
+			receiverNeedsInference: 0,
+			nameNotBound: 1,
+		});
+	});
+
+	test("refused twin (b): a namespace directory whose same-named submodule defines the name stays module-called", async () => {
+		// pkg/ns/ has no __init__.py, so pkg.ns.helper is a real submodule; `from pkg.ns import helper` binds the
+		// MODULE (helper() = module-called), even though that module's file also defines a `helper` def.
+		const refused = await observe({
+			"pkg/__init__.py": "",
+			"pkg/ns/helper.py": "def helper():\n    pass\n",
+			"app.py": "from pkg.ns import helper\nhelper()\n",
+		});
+		expect(refused.callees).toEqual([]);
+		expect(refused.bins).toEqual({
+			resolvedInRepo: 0,
+			resolvedExternal: 0,
+			receiverNeedsInference: 0,
+			nameNotBound: 1,
+		});
+	});
+
+	test("a cycle of differently-named re-exports terminates unresolved (no edge)", async () => {
+		const r = await observe({
+			"pkg/__init__.py": "",
+			"pkg/helper.py": "def helper():\n    pass\n",
+			"pkg/a.py": "from .b import helper\n",
+			"pkg/b.py": "from .a import helper\n",
+			"app.py": "from pkg.a import helper\nhelper()\n",
+		});
+		expect(r.callees).toEqual([]);
+		expect(r.bins).toEqual({ resolvedInRepo: 0, resolvedExternal: 0, receiverNeedsInference: 0, nameNotBound: 1 });
+	});
+
+	test("adjacent A1: import pkg.helper; pkg.helper.helper() reaches the re-exported def through the attribute path", async () => {
+		// Python-correct: the module attribute pkg.helper.helper IS the re-exported function. Dev refused it (a missed
+		// edge); the broadened predicate now follows the same re-export through resolveModuleAttribute and resolves it
+		// (+1 created edge against dev, accepted under DEC-303 (a91) item 1).
+		const a1 = await observe({ ...chain, "app.py": "import pkg.helper\npkg.helper.helper()\n" });
+		expect(a1.callees).toEqual(["call:pkg/other/helper.py:helper"]);
+		expect(a1.bins).toEqual({ resolvedInRepo: 1, resolvedExternal: 0, receiverNeedsInference: 0, nameNotBound: 0 });
+	});
+
+	test("adjacent A2/A3: a from-import now binds the FUNCTION, so a .helper attribute on it refuses (dropping a wrong dev edge)", async () => {
+		// `from pkg.impl import helper` now binds the function (it named the module on dev); `helper.helper` on a function
+		// is wrong, so the call refuses where dev drew a wrong edge to the def (two removed edges, DEC-303 (a91) item 1).
+		const a2 = await observe({ ...chain, "app.py": "from pkg.impl import helper\nhelper.helper()\n" });
+		expect(a2.callees).toEqual([]);
+		expect(a2.bins).toEqual({ resolvedInRepo: 0, resolvedExternal: 0, receiverNeedsInference: 1, nameNotBound: 0 });
+		const a3 = await observe({ ...chain, "app.py": "from pkg.helper import helper\nhelper.helper()\n" });
+		expect(a3.callees).toEqual([]);
+		expect(a3.bins).toEqual({ resolvedInRepo: 0, resolvedExternal: 0, receiverNeedsInference: 1, nameNotBound: 0 });
+	});
+
+	test("adjacent A4 control: import pkg.impl; pkg.impl.helper() is unchanged (resolves on both dev and head)", async () => {
+		const a4 = await observe({ ...chain, "app.py": "import pkg.impl\npkg.impl.helper()\n" });
+		expect(a4.callees).toEqual(["call:pkg/other/helper.py:helper"]);
+		expect(a4.bins).toEqual({ resolvedInRepo: 1, resolvedExternal: 0, receiverNeedsInference: 0, nameNotBound: 0 });
 	});
 });
