@@ -3565,6 +3565,11 @@ class Resolver {
 	 * module-attribute gates, so a base rebound by `m.B = L` claimed to leave the repo. Measured third constraint:
 	 * the name arm must keep the gate, or `m.Base = other` with a bare `Base` base stops being rebound and R4 flips
 	 * to external. So exactly ONE read is bypassed — the attr arm's HEAD name — and everything else stays live.
+	 * The counter's reach is dynamic but what it disables is ONE gate: `resolveBareName`'s module-scope bare-name
+	 * branch (the `found.scope.kind === "module"` test below), which the star hop and the alias hop re-enter.
+	 * Inside the wrapped read the from-import reader (`moduleBindingGate`), `sourceChainOutcome` and
+	 * `resolveModuleChain` still consult `moduleAttributeWritten`, so a head bound by a from-import of a non-module
+	 * name is answered as dev answers it (the GCLI-165 residual), and the name arm keeps its gate.
 	 */
 	private baseIsRebound(classInfo: ClassInfo, base: BaseRef): boolean {
 		const callee = base.callee;
@@ -3796,6 +3801,19 @@ class Resolver {
 			const entry = mro.entries[index] as MroEntry;
 			if (entry.kind === "class" && writes.get(entry.info.id)?.has(name) === true) {
 				return { bin: "receiver", reason: "needs-inference" };
+			}
+		}
+		// GCLI-156 (DEC-303 (a88), shape #6): the loop above walks the receiver's own MRO, so a write on an
+		// in-repo DESCENDANT is invisible to it, and a call through this class can run on one of those instances.
+		// The descendant relation is already computed (`descendantsOf`), and refusing only removes an edge, so this
+		// is fail-closed: a written name on any descendant makes the def not the only binding the call can reach.
+		// `super()` reads the class level after `start` and never an instance dict, so a descendant write does not
+		// apply there and the check stays off that path.
+		if (!fromSuper) {
+			for (const descendant of this.descendantsOf(receiver)) {
+				if (this.classAttrWrites.get(descendant.id)?.has(name) === true) {
+					return { bin: "receiver", reason: "needs-inference" };
+				}
 			}
 		}
 		let sawOpaque = false;
@@ -4376,6 +4394,9 @@ class Resolver {
 	 * bare-name module-scope gate turn a written head module name unresolved — that is the round-1 F1 shape. It must
 	 * NOT turn off GCLI-140's module-attribute gates, which are what make a base rebound by an importer's write
 	 * (`m.B = L`, the round-2 counterexample). So this bypasses the one gate and leaves `moduleAttributeWritten` live.
+	 * The counter reaches every re-entry of the bare-name read (the star hop and the alias hop), but it disables
+	 * only the module-scope bare-name branch there. `moduleBindingGate`, `sourceChainOutcome` and
+	 * `resolveModuleChain` keep `moduleAttributeWritten` live inside the wrapped read.
 	 */
 	private withoutBareModuleNameGate<T>(work: () => T): T {
 		this.bareModuleNameGateBypass++;

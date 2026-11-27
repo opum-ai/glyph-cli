@@ -3080,9 +3080,10 @@ describe("GCLI-154 (a84) — remaining item-2 shapes and controls", () => {
 		expect(cs).not.toContain("app.py:C.m");
 	});
 
-	test("cls.__class__.m: recorded class-level on C — measured over-refusal (accepted by DEC-303 (a84); fix in GCLI-156)", async () => {
+	test("cls.__class__.m: recorded class-level on C — measured over-refusal (accepted by DEC-303 (a84); carried to GCLI-164)", async () => {
 		// At runtime `cls.__class__` is the metaclass, so this should not refuse D's super().m(); it does, as a
-		// removal-only over-refusal. Pinned here and carried to GCLI-156.
+		// removal-only over-refusal. Pinned here and carried to GCLI-164 (it was neither fixed in GCLI-156 nor
+		// carried to GCLI-163/165; #248 round 1 N-f).
 		const r = await analyze([
 			py(
 				"app.py",
@@ -3402,9 +3403,12 @@ describe("GCLI-155 — read-side attribute-write consumers", () => {
 		});
 	});
 
-	test("F1c (GCLI-161): the BARE-NAME variant of the written base is dev-equal, external with and without the write", async () => {
-		// `from m import B; class K(B)` measured on dev d58878f, on 034a898 and on this head: all three answer external
-		// either way, so this variant is a CONTROL, not a red-before — the write does not reach it on dev.
+	test("F1c (GCLI-161, #245 N3): the BARE-NAME variant of the written base is a known dev-equal GAP, external with and without the write", async () => {
+		// A KNOWN GAP, not a control: `from m import B; class K(B)` measured on dev d58878f, on 034a898 and on this
+		// head all answer external either way, so the write does not reach the bare-name read on dev and this build
+		// does not change that. It is pinned as a gap with its own follow-up task (GCLI-165), which also carries the
+		// `from m import m2` residual where m2 is not a module file: there the from-import carries a non-module name
+		// and the reader answers it the way dev does, not the way a written module attribute would.
 		const files = (write: boolean) => ({
 			"m.py": "from ext import B\n",
 			"y.py": "class L:\n    def g(self):\n        pass\n",
@@ -3871,5 +3875,175 @@ describe("GCLI-155 round 1 — class-attribute base, local receiver", () => {
 		});
 		const twin = await observe(app(false));
 		expect(twin.callees).toEqual(["call:app.py:Outer.Inner.m", "new:app.py:D"]);
+	});
+});
+describe("GCLI-156 — a write on an in-repo descendant (DEC-303 (a88), shape #6)", () => {
+	// The MRO guard in `methodLookup` walks the RECEIVER's own MRO, so a write recorded on a descendant was invisible:
+	// `B.m` resolved from B's own `self.m()` even though a `C(B)` instance wrote `self.m`. The guard now propagates
+	// over `descendantsOf`, which is already computed, and only removes an edge (removal-only, fail-closed).
+	const observe = async (files: Record<string, string>) => {
+		const r = await analyze(Object.entries(files).map(([path, source]) => py(path, source)));
+		const byId = new Map(r.symbols.map((x) => [x.id, x]));
+		const callees = r.sites
+			.map((s) => {
+				const c = s.calleeId === null ? undefined : byId.get(s.calleeId);
+				return `${s.kind}:${c?.file}:${c?.qualname}`;
+			})
+			.sort();
+		return { callees, bins: r.callBins };
+	};
+	const REFUSED = { resolvedInRepo: 0, resolvedExternal: 0, receiverNeedsInference: 1, nameNotBound: 0 };
+	const RESOLVED = { resolvedInRepo: 1, resolvedExternal: 0, receiverNeedsInference: 0, nameNotBound: 0 };
+	const base = (tail: string) =>
+		`class B:\n    def m(self):\n        return 1\n    def call(self):\n        self.m()\n${tail}`;
+
+	test("#6 same module: a subclass instance write leaves the base call unresolved (dev: B.m)", async () => {
+		const written = await observe({
+			"app.py": base("\nclass C(B):\n    def setup(self):\n        self.m = lambda: 2\n"),
+		});
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+	});
+
+	test("#6 twin: a descendant that writes another attribute keeps the edge", async () => {
+		const twin = await observe({ "app.py": base("\nclass C(B):\n    def setup(self):\n        self.other = 2\n") });
+		expect(twin.callees).toEqual(["call:app.py:B.m"]);
+		expect(twin.bins).toEqual(RESOLVED);
+	});
+
+	test("#6 twin: no descendant, and an unrelated class's write, keep the edge", async () => {
+		expect(await observe({ "app.py": base("") })).toEqual({ callees: ["call:app.py:B.m"], bins: RESOLVED });
+		const unrelated = await observe({
+			"app.py": base("\nclass Z:\n    def setup(self):\n        self.m = lambda: 2\n"),
+		});
+		expect(unrelated).toEqual({ callees: ["call:app.py:B.m"], bins: RESOLVED });
+	});
+
+	test("#6 cross module: a descendant in another module's write refuses too", async () => {
+		const written = await observe({
+			"app.py": base(""),
+			"c.py": "from app import B\nclass C(B):\n    def setup(self):\n        self.m = 2\n",
+		});
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+	});
+
+	test("#6 two levels down: the descendant relation is transitive", async () => {
+		const written = await observe({
+			"app.py": base("\nclass C(B):\n    pass\n\nclass D(C):\n    def setup(self):\n        self.m = 3\n"),
+		});
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+	});
+
+	test("#6 class-level descendant write (C.m = other) refuses as well", async () => {
+		const written = await observe({ "app.py": base("\nclass C(B):\n    pass\nC.m = lambda self: 2\n") });
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+	});
+
+	test("#6 super() is not the instance dict: a descendant write keeps super().m() resolving (dev: A.m)", async () => {
+		const r = await observe({
+			"app.py":
+				"class A:\n    def m(self):\n        return 1\n\nclass B(A):\n    def m(self):\n        return super().m()\n\nclass C(B):\n    def setup(self):\n        self.m = 3\n",
+		});
+		expect(r.callees).toEqual(["call:app.py:A.m"]);
+		// `super()` itself is a builtin call and counts external; the method call is the in-repo edge.
+		expect(r.bins).toEqual({ resolvedInRepo: 1, resolvedExternal: 1, receiverNeedsInference: 0, nameNotBound: 0 });
+	});
+
+	test("#6 (a83 item 2): a neighbour read and both receiver constructions are unchanged across the write", async () => {
+		// F3's pattern: the fixture must read a NEIGHBOUR on the same receiver and construct the receivers, before and
+		// after the write. The write changes only B.m; `n` and both constructions agree on both sides.
+		const body = (write: boolean) =>
+			`class B:\n    def m(self):\n        return 1\n    def n(self):\n        return 2\n    def call(self):\n        self.m()\n        self.n()\n\ndef before():\n    b = B()\n    b.n()\n\nclass C(B):\n    def setup(self):\n${write ? "        self.m = lambda: 2\n" : "        pass\n"}\ndef after():\n    c = C()\n    c.n()\n`;
+		const written = await observe({ "app.py": body(true) });
+		const twin = await observe({ "app.py": body(false) });
+		expect(written.callees).toEqual([
+			"call:app.py:B.n",
+			"call:app.py:B.n",
+			"call:app.py:B.n",
+			"new:app.py:B",
+			"new:app.py:C",
+		]);
+		expect(twin.callees).toEqual([
+			"call:app.py:B.m",
+			"call:app.py:B.n",
+			"call:app.py:B.n",
+			"call:app.py:B.n",
+			"new:app.py:B",
+			"new:app.py:C",
+		]);
+		expect(written.bins).toEqual({
+			resolvedInRepo: 5,
+			resolvedExternal: 0,
+			receiverNeedsInference: 1,
+			nameNotBound: 0,
+		});
+		expect(twin.bins).toEqual({ resolvedInRepo: 6, resolvedExternal: 0, receiverNeedsInference: 0, nameNotBound: 0 });
+	});
+
+	test("#6 N-d: a write on an opaque base's name is the conservative bin change, named here (dict base)", async () => {
+		// dev: external/external-base. head: receiver/needs-inference. A C instance really does have a second
+		// binding, so this is the conservative direction, not 3b1ace3's.
+		const files = (write: boolean) => ({
+			"app.py": `class B(dict):\n    def call(self):\n        self.keys()\n\nclass C(B):\n    def setup(self):\n${write ? "        self.keys = 2\n" : "        self.other = 2\n"}`,
+		});
+		const written = await observe(files(true));
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+		const twin = await observe(files(false));
+		expect(twin.callees).toEqual([]);
+		expect(twin.bins).toEqual({ resolvedInRepo: 0, resolvedExternal: 1, receiverNeedsInference: 0, nameNotBound: 0 });
+	});
+
+	test("#6 N-d: the same bin change over an opaque external base", async () => {
+		const files = (write: boolean) => ({
+			"app.py": `from ext import Base\nclass B(Base):\n    def call(self):\n        self.keys()\n\nclass C(B):\n    def setup(self):\n${write ? "        self.keys = 2\n" : "        self.other = 2\n"}`,
+		});
+		const written = await observe(files(true));
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+		const twin = await observe(files(false));
+		expect(twin.callees).toEqual([]);
+		expect(twin.bins).toEqual({ resolvedInRepo: 0, resolvedExternal: 1, receiverNeedsInference: 0, nameNotBound: 0 });
+	});
+});
+
+describe("#245 N1 — the reviewer's star-imported head shape, measured", () => {
+	// The reviewer predicted dev external-base -> head receiver/rebound-base for this shape (s.py `import m`; x.py
+	// `from s import *` then `class K(m.B)` with m.B multiply-bound; w.py `s.m = None`), from reading the code without
+	// a shell. Measured on dev 58255fc and on this head, BOTH sides answer receiver/needs-inference with reason
+	// rebound-base, with and without the write, so the shape is dev-equal. It is pinned as a measured fixture and is
+	// NOT a red-before; N1 closes on that measurement, not on a divergence.
+	const files = (write: boolean) => ({
+		"m.py": "try:\n    from ext import B\nexcept ImportError:\n    from ext2 import B\n",
+		"s.py": "import m\n",
+		"x.py": "from s import *\nclass K(m.B):\n    def go(self):\n        self.g()\n",
+		"w.py": `import s\n${write ? "s.m = None\n" : ""}`,
+	});
+	const observe = async (source: Record<string, string>) => {
+		const r = await analyze(Object.entries(source).map(([path, text]) => py(path, text)));
+		return {
+			bins: r.callBins,
+			reasons: (r.unresolvedReceiverReasons ?? []).map((x) => `${x.reason}:${x.count}`),
+			edges: r.sites
+				.filter((s) => s.calleeId !== null)
+				.map((s) => r.symbols.find((x) => x.id === s.calleeId)?.qualname)
+				.filter((q): q is string => q !== undefined),
+		};
+	};
+
+	test("N1: the star-imported head is dev-equal, receiver/rebound-base with and without the write", async () => {
+		const written = await observe(files(true));
+		expect(written.edges).toEqual([]);
+		expect(written.bins).toEqual({
+			resolvedInRepo: 0,
+			resolvedExternal: 0,
+			receiverNeedsInference: 1,
+			nameNotBound: 0,
+		});
+		expect(written.reasons).toEqual(["rebound-base:1"]);
+		expect(await observe(files(false))).toEqual(written);
 	});
 });
