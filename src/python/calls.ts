@@ -2297,6 +2297,8 @@ class Resolver {
 	private readonly classAttrWrites = new Map<string, Set<string>>();
 	/** GCLI-140 (DEC-303 (a79) Q-A): the class-level subset (`Cls.m`, `cls.m`, a literal setattr on the class), which alone refuses a super lookup. */
 	private readonly classLevelWrites = new Map<string, Set<string>>();
+	/** GCLI-140 (DEC-303 (a80)): the mod.f gate is off while a base or a two-argument super() first argument resolves. */
+	private attributeGateBypass = 0;
 	private readonly moduleAttrWrites = new Map<string, Set<string>>();
 	private readonly localAttrWrites = new Map<number, Map<string, Set<string>>>();
 	private attributeWritesCollected = false;
@@ -3501,7 +3503,9 @@ class Resolver {
 
 	private resolveBaseClass(classInfo: ClassInfo, base: BaseRef): ClassInfo | null {
 		if (base.callee === null) return null;
-		const symbol = this.resolveCalleeToSymbol(base.callee, classInfo.parentScope, 0);
+		const symbol = this.withoutAttributeGate(() =>
+			this.resolveCalleeToSymbol(base.callee as CalleeDesc, classInfo.parentScope, 0),
+		);
 		if (symbol === null || symbol.kind !== "class") return null;
 		return this.classById.get(symbol.id) ?? null;
 	}
@@ -4140,7 +4144,20 @@ class Resolver {
 
 	/** GCLI-140 (a25) item 1, the mod.f bullet: the module file's attribute is written somewhere in the analysed modules. */
 	private moduleAttributeWritten(path: string, name: string): boolean {
+		// GCLI-140 (DEC-303 (a80)): a written class name is still the class a base or a two-argument super() first
+		// argument names, so those two positions behave exactly as on dev.
+		if (this.attributeGateBypass > 0) return false;
 		return this.moduleAttrWrites.get(path)?.has(name) === true;
+	}
+
+	/** GCLI-140 (DEC-303 (a80)): run base-position and super-first-argument resolution with the mod.f gate off. */
+	private withoutAttributeGate<T>(work: () => T): T {
+		this.attributeGateBypass++;
+		try {
+			return work();
+		} finally {
+			this.attributeGateBypass--;
+		}
 	}
 
 	/** GCLI-140 (a25) item 1, the x.m bullet: the local `name` has an attribute write of `attr` on the scope that binds it. */
@@ -4615,8 +4632,9 @@ class Resolver {
 
 	private resolveSuper(base: BaseDesc & { kind: "super" }, segments: readonly string[], scope: Scope): CallResolution {
 		let enclosing = scope.kind === "function" ? scope.enclosingClass : null;
-		if (base.argCount === 2 && base.firstArg !== null) {
-			const symbol = this.resolveCalleeToSymbol(base.firstArg, scope, 0);
+		const firstArg = base.firstArg;
+		if (base.argCount === 2 && firstArg !== null) {
+			const symbol = this.withoutAttributeGate(() => this.resolveCalleeToSymbol(firstArg, scope, 0));
 			if (symbol !== null && symbol.kind === "class") {
 				const classInfo = this.classById.get(symbol.id);
 				if (classInfo !== undefined) enclosing = classInfo;

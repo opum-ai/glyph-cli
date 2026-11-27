@@ -2573,4 +2573,99 @@ describe("GCLI-140 — an attribute write is a binding of that attribute", () =>
 		const twin = await probe(app(""), "f()", { "m.py": m });
 		expect(twin.callees).toContain("m.py:f");
 	});
+
+	// GCLI-140 round 1, (a80): the mod.f gate is OFF in a base position and in a two-argument super() first
+	// argument, so those paths behave exactly as on dev. Each pins a KNOWN WRONG EDGE carried to GCLI-151.
+	const observe = async (files: Record<string, string>) => {
+		const r = await analyze(Object.entries(files).map(([path, source]) => py(path, source)));
+		const byId = new Map(r.symbols.map((x) => [x.id, x]));
+		const edges = r.sites
+			.map((s) => {
+				const c = s.calleeId === null ? undefined : byId.get(s.calleeId);
+				return `${s.kind} ${s.file}:${s.line}:${s.column} -> ${c?.file}:${c?.qualname}${s.polymorphic ? " POLY" : ""}${s.multiplyBound ? " MULTI" : ""}`;
+			})
+			.sort();
+		const b = r.callBins;
+		return {
+			edges,
+			bins: {
+				inRepo: b.resolvedInRepo,
+				external: b.resolvedExternal,
+				receiver: b.receiverNeedsInference,
+				nameNotBound: b.nameNotBound,
+			},
+			poly: r.polymorphicCount,
+		};
+	};
+	const mClass = "class A:\n    def m(self):\n        pass\nclass C(A):\n    pass\n";
+
+	test("(a80) a written class name in a super() first argument falls back as on dev (known wrong edge, GCLI-151)", async () => {
+		const app =
+			"import m\ndef other():\n    pass\nm.C = other\nclass B:\n    def m(self):\n        pass\nclass D(B):\n    def m(self):\n        super(m.C, self).m()\n";
+		const r = await observe({ "m.py": mClass, "app.py": app });
+		expect(r.edges).toEqual(["call app.py:10:9 -> m.py:A.m"]);
+		expect(r.bins).toEqual({ inRepo: 1, external: 1, receiver: 0, nameNotBound: 0 });
+	});
+
+	test("(a80) the from-import super() first argument falls back as on dev (known wrong edge, GCLI-151)", async () => {
+		const app =
+			"from m import C\nimport m\ndef other():\n    pass\nm.C = other\nclass B:\n    def m(self):\n        pass\nclass D(B):\n    def m(self):\n        super(C, self).m()\n";
+		const r = await observe({ "m.py": mClass, "app.py": app });
+		expect(r.edges).toEqual(["call app.py:11:9 -> m.py:A.m"]);
+		expect(r.bins).toEqual({ inRepo: 1, external: 1, receiver: 0, nameNotBound: 0 });
+	});
+
+	test("(a80) a written class name in a base position behaves as on dev (known wrong edge, GCLI-151)", async () => {
+		const mUse =
+			"class C:\n    def m(self):\n        pass\n    def use(self):\n        k = self.__class__\n        k.m()\n";
+		const direct = await observe({
+			"m.py": mUse,
+			"app.py": "import m\ndef other():\n    pass\nm.C = other\nclass D(m.C):\n    __class__ = None\n",
+		});
+		expect(direct.edges).toEqual([]);
+		expect(direct.bins).toEqual({ inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 });
+		const withMethod = await observe({
+			"m.py": mUse,
+			"app.py":
+				"import m\ndef other():\n    pass\nm.C = other\nclass D(m.C):\n    __class__ = None\n    def m(self):\n        pass\n",
+		});
+		expect(withMethod.edges).toEqual([]);
+		expect(withMethod.bins).toEqual({ inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 });
+		const selfRead = await observe({
+			"m.py": "class C:\n    def m(self):\n        pass\n    def use(self):\n        self.m()\n",
+			"app.py":
+				"import m\ndef other():\n    pass\nm.C = other\nclass D(m.C):\n    __class__ = None\n    def m(self):\n        pass\n",
+		});
+		// dev gives this edge with the polymorphic flag; the narrowing keeps both.
+		expect(selfRead.edges).toEqual(["call m.py:5:9 -> m.py:C.m POLY"]);
+		expect(selfRead.poly).toBe(1);
+	});
+
+	// (a80) item 5: the class-receiver half of F1, an unrelated class's __class__ write, a class's own write and
+	// its own super(), and the class-alias read.
+	test("a __class__ write does not refuse a cls.m() class receiver", async () => {
+		const app = `${cls}class Other:\n    pass\nclass D(C):\n    def go(self):\n        self.__class__ = Other\n    @classmethod\n    def use(cls):\n        cls.m()\n`;
+		const r = await observe({ "app.py": app });
+		expect(r.edges.map((e) => e.split(" -> ")[1])).toEqual(["app.py:C.m"]);
+	});
+
+	test("a __class__ write in another class leaves this class's self.m() resolving", async () => {
+		const app = `${cls}class Other:\n    pass\nclass E:\n    def go(self):\n        self.__class__ = Other\nclass D(C):\n    def use(self):\n        self.m()\n`;
+		const r = await observe({ "app.py": app });
+		expect(r.edges.map((e) => e.split(" -> ")[1])).toEqual(["app.py:C.m"]);
+	});
+
+	test("a class-level write on a class does not refuse its own super().m()", async () => {
+		const app =
+			"class C:\n    def m(self):\n        pass\ndef other(self):\n    pass\nclass D(C):\n    def m(self):\n        super().m()\nD.m = other\n";
+		const r = await observe({ "app.py": app });
+		expect(r.edges).toEqual(["call app.py:8:9 -> app.py:C.m"]);
+	});
+
+	test("the class-alias read h = D.m; h() is refused (the rule removes dev's edge)", async () => {
+		const app = `${cls}${other}class D(C):\n    pass\nD.m = other\ndef g():\n    h = D.m\n    h()\n`;
+		const r = await observe({ "app.py": app });
+		expect(r.edges.filter((e) => e.includes("C.m"))).toEqual([]);
+		expect(r.bins).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 });
+	});
 });
