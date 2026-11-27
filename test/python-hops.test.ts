@@ -1661,7 +1661,8 @@ describe("GCLI-112 — a PEP 695 type parameter shadows an enclosing binding", (
 			`${item}class Outer:\n    class Item:\n        def save(self):\n            pass\n    type A[T] = CALL\n`,
 			"Item().save()",
 		);
-		expect(runs(alias)).toEqual(["app.py:Outer.Item.save"]);
+		// GCLI-144: an alias value is lazy, and any name the class body binds is refused there (dev resolved it).
+		expect(runs(alias)).toEqual([]);
 	});
 
 	test("the body of a generic method still skips the class body", async () => {
@@ -1891,6 +1892,42 @@ describe("GCLI-144 — a class-body read of a name the class body binds skips en
 			);
 			expect(r.callees).not.toContain("app.py:outer.Outer.In.m");
 			expect(r.delta.inRepo).toBe(0);
+		});
+
+		// A lazy alias value is evaluated after the class body has run, so it sees the class's FINAL binding (here the
+		// later import), never a module-level `x` (opum-doc, DEC-303 (a73) runtime basis). The eager read reads the globals.
+		describe("a lazy alias value in a class body", () => {
+			const moduleApp = (read: string, tail = later) => `${classes}x = C()\nclass Outer:\n${read}${tail}`;
+			const eager = "        y = CALL\n";
+			const lazy: Record<string, string> = {
+				"type A": "        type A = CALL\n",
+				"type A[T]": "        type A[T] = CALL\n",
+			};
+
+			test("module x = C(), no function: the eager read still resolves to C.run (correct at runtime, as dev)", async () => {
+				const r = await probe(moduleApp(eager), "x.run()", { "m.py": mod });
+				expect(r.delta.inRepo).toBe(1);
+				expect(runs(r)).toEqual(["app.py:C.run"]);
+			});
+
+			for (const [label, read] of Object.entries(lazy)) {
+				test(`module x = C(), no function: ${label} is refused, NOT C.run (dev: C.run)`, async () => {
+					const r = await probe(moduleApp(read), "x.run()", { "m.py": mod });
+					expect(r.delta, label).toEqual(REFUSED);
+					expect(runs(r), label).toEqual([]);
+				});
+				test(`${label}: a class-body binding BEFORE the alias is refused too (dev resolved m.X.run)`, async () => {
+					const r = await probe(moduleApp(read, "").replace("class Outer:\n", `class Outer:\n${later}`), "x.run()", {
+						"m.py": mod,
+					});
+					expect(r.delta, label).toEqual(REFUSED);
+				});
+				test(`${label}: no class-body binding of x resolves through the module (the twin)`, async () => {
+					const r = await probe(moduleApp(read, ""), "x.run()", { "m.py": mod });
+					expect(r.delta.inRepo, label).toBe(1);
+					expect(runs(r), label).toEqual(["app.py:C.run"]);
+				});
+			}
 		});
 	});
 });

@@ -250,6 +250,12 @@ interface Scope {
 	 * only the declared names, each as `rebound`, so a lookup of one refuses instead of reaching an enclosing binding.
 	 */
 	typeParams?: true;
+	/**
+	 * GCLI-144: the scope a `type` alias value inside a class body is read in. Python evaluates it lazily, after
+	 * the class body has run, so it sees the class's FINAL bindings, never an earlier or an enclosing one. It is
+	 * a type-parameter scope (the class stays the first real scope) that also carries this mark.
+	 */
+	lazyAlias?: true;
 }
 
 interface BaseRef {
@@ -1264,7 +1270,13 @@ class FileWalker {
 					if (name !== null) this.addBinding(frame.scope, name.text, { kind: "rebound" });
 					this.pushChildren(stack, node, frame.scope, frame.callerId, frame.scopeNames, false);
 					// GCLI-112: the value sees the alias's own type parameters.
-					const typeScope = this.typeParameterScope(frame, node);
+					let typeScope = this.typeParameterScope(frame, node);
+					// GCLI-144: an alias value in a class body is lazy (Scope.lazyAlias), generic or not.
+					if (frame.scope.kind === "class") {
+						typeScope ??= this.newScope("function", frame.scope, frame.scope.qualname, null, null, [], null, null);
+						typeScope.typeParams = true;
+						typeScope.lazyAlias = true;
+					}
 					const value = node.childForFieldName("right") ?? node.namedChild(node.namedChildCount - 1);
 					if (typeScope !== null && value !== null) {
 						const pushed = stack.find((entry) => entry.node.id === value.id);
@@ -2225,12 +2237,18 @@ class Resolver {
 		// (Rule 38 filtered it out). Python reads that name from the class, then the globals, never from an enclosing
 		// function, so a result found further out is flagged and every consumer that can yield an edge refuses it.
 		let classBodyShadowed = false;
+		// GCLI-144: a read inside a lazy alias value in a class body sees the class's final bindings (see Scope.lazyAlias).
+		let lazyAlias = false;
 		while (current !== null) {
 			// A class body is not an enclosing scope for its methods (rule 3): only
 			// the starting scope may be a class body.
 			if (first || current.kind !== "class") {
 				let bindings: RawBinding[] | undefined = current.bindings.get(name);
 				if (bindings !== undefined && bindings.length > 0) {
+					// A lazy alias value reads the class's final binding, and Python would not read this one from an
+					// earlier position or an enclosing scope: any binding the class body holds is refused, not resolved.
+					if (first && current.kind === "class" && lazyAlias)
+						return { scope: current, bindings, classBodyShadowed: true };
 					// Rule 38: in the starting class body an import binds only for
 					// statements that follow it; an earlier use falls through to the
 					// enclosing binding. Function and module scope stay flow-insensitive.
@@ -2255,6 +2273,7 @@ class Resolver {
 			}
 			// GCLI-112: a type-parameter scope sits directly inside a class body for a generic declared there, and
 			// Python reads the class's names from that annotation scope, so the class is still the first real scope.
+			if (first && current.lazyAlias === true) lazyAlias = true;
 			first = first && current.typeParams === true;
 			current = current.parent;
 		}
