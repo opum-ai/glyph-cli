@@ -2,6 +2,7 @@
  {
   "file": "rich/traceback.py",
   "line": 220,
+  "column": 7,
   "kind": "class",
   "name": "_SyntaxError",
   "qual": "_SyntaxError",
@@ -30,6 +31,7 @@
  {
   "file": "rich/__main__.py",
   "line": 18,
+  "column": 7,
   "kind": "class",
   "name": "ColorBox",
   "qual": "ColorBox",
@@ -58,6 +60,7 @@
  {
   "file": "rich/pretty.py",
   "line": 545,
+  "column": 5,
   "kind": "def",
   "name": "_is_namedtuple",
   "qual": "_is_namedtuple",
@@ -80,6 +83,7 @@
  {
   "file": "rich/_win32_console.py",
   "line": 252,
+  "column": 5,
   "kind": "def",
   "name": "SetConsoleCursorPosition",
   "qual": "SetConsoleCursorPosition",
@@ -132,6 +136,7 @@
  {
   "file": "rich/bar.py",
   "line": 15,
+  "column": 7,
   "kind": "class",
   "name": "Bar",
   "qual": "Bar",
@@ -154,6 +159,7 @@
  {
   "file": "rich/console.py",
   "line": 1403,
+  "column": 9,
   "kind": "def",
   "name": "render_str",
   "qual": "Console.render_str",
@@ -218,6 +224,7 @@
  {
   "file": "rich/text.py",
   "line": 621,
+  "column": 9,
   "kind": "def",
   "name": "highlight_words",
   "qual": "Text.highlight_words",
@@ -246,6 +253,7 @@
  {
   "file": "rich/progress.py",
   "line": 243,
+  "column": 9,
   "kind": "def",
   "name": "readinto",
   "qual": "_Reader.readinto",
@@ -262,6 +270,7 @@
  {
   "file": "rich/logging.py",
   "line": 123,
+  "column": 9,
   "kind": "def",
   "name": "get_level_text",
   "qual": "RichHandler.get_level_text",
@@ -278,6 +287,7 @@
  {
   "file": "rich/diagnose.py",
   "line": 10,
+  "column": 5,
   "kind": "def",
   "name": "report",
   "qual": "report",
@@ -306,6 +316,7 @@
  {
   "file": "rich/table.py",
   "line": 745,
+  "column": 9,
   "kind": "def",
   "name": "_render",
   "qual": "Table._render",
@@ -358,6 +369,7 @@
  {
   "file": "rich/console.py",
   "line": 783,
+  "column": 9,
   "kind": "def",
   "name": "_detect_color_system",
   "qual": "Console._detect_color_system",
@@ -374,6 +386,7 @@
  {
   "file": "rich/console.py",
   "line": 337,
+  "column": 7,
   "kind": "class",
   "name": "ThemeContext",
   "qual": "ThemeContext",
@@ -408,6 +421,7 @@
  {
   "file": "rich/_fileno.py",
   "line": 6,
+  "column": 5,
   "kind": "def",
   "name": "get_fileno",
   "qual": "get_fileno",
@@ -424,6 +438,7 @@
  {
   "file": "rich/pretty.py",
   "line": 564,
+  "column": 5,
   "kind": "def",
   "name": "traverse",
   "qual": "traverse",
@@ -446,6 +461,7 @@
  {
   "file": "rich/progress.py",
   "line": 1545,
+  "column": 9,
   "kind": "def",
   "name": "get_renderable",
   "qual": "Progress.get_renderable",
@@ -522,6 +538,7 @@
  {
   "file": "rich/columns.py",
   "line": 16,
+  "column": 7,
   "kind": "class",
   "name": "Columns",
   "qual": "Columns",
@@ -562,6 +579,7 @@
  {
   "file": "rich/repr.py",
   "line": 28,
+  "column": 9,
   "kind": "def",
   "name": "do_replace",
   "qual": "auto.do_replace",
@@ -596,6 +614,7 @@
  {
   "file": "rich/_win32_console.py",
   "line": 444,
+  "column": 9,
   "kind": "def",
   "name": "move_cursor_to",
   "qual": "LegacyWindowsTerm.move_cursor_to",
@@ -618,6 +637,7 @@
  {
   "file": "rich/layout.py",
   "line": 41,
+  "column": 7,
   "kind": "class",
   "name": "_Placeholder",
   "qual": "_Placeholder",
@@ -634,6 +654,7 @@
  {
   "file": "rich/file_proxy.py",
   "line": 50,
+  "column": 9,
   "kind": "def",
   "name": "flush",
   "qual": "FileProxy.flush",
@@ -680,6 +701,7 @@
  {
   "file": "rich/syntax.py",
   "line": 589,
+  "column": 9,
   "kind": "def",
   "name": "_get_number_styles",
   "qual": "Syntax._get_number_styles",
@@ -696,6 +718,7 @@
  {
   "file": "rich/pretty.py",
   "line": 214,
+  "column": 15,
   "kind": "class",
   "name": "RichFormatter",
   "qual": "install.display_hook.RichFormatter",
@@ -712,6 +735,7 @@
  {
   "file": "rich/live_render.py",
   "line": 13,
+  "column": 7,
   "kind": "class",
   "name": "LiveRender",
   "qual": "LiveRender",
@@ -728,6 +752,7 @@
  {
   "file": "rich/color.py",
   "line": 288,
+  "column": 7,
   "kind": "class",
   "name": "ColorParseError",
   "qual": "ColorParseError",
@@ -774,6 +799,7 @@
  {
   "file": "rich/control.py",
   "line": 69,
+  "column": 9,
   "kind": "def",
   "name": "bell",
   "qual": "Control.bell",
@@ -814,6 +840,7 @@
  {
   "file": "rich/control.py",
   "line": 195,
+  "column": 5,
   "kind": "def",
   "name": "escape_control_codes",
   "qual": "escape_control_codes",
@@ -830,6 +857,7 @@
  {
   "file": "rich/_null_file.py",
   "line": 5,
+  "column": 7,
   "kind": "class",
   "name": "NullFile",
   "qual": "NullFile",
@@ -852,6 +880,7 @@
  {
   "file": "rich/ansi.py",
   "line": 126,
+  "column": 9,
   "kind": "def",
   "name": "decode",
   "qual": "AnsiDecoder.decode",
@@ -880,6 +909,7 @@
  {
   "file": "rich/traceback.py",
   "line": 72,
+  "column": 5,
   "kind": "def",
   "name": "install",
   "qual": "install",
@@ -920,6 +950,7 @@
  {
   "file": "rich/_win32_console.py",
   "line": 559,
+  "column": 9,
   "kind": "def",
   "name": "set_title",
   "qual": "LegacyWindowsTerm.set_title",
@@ -942,6 +973,7 @@
  {
   "file": "rich/measure.py",
   "line": 125,
+  "column": 5,
   "kind": "def",
   "name": "measure_renderables",
   "qual": "measure_renderables",
@@ -964,6 +996,7 @@
  {
   "file": "rich/markdown.py",
   "line": 29,
+  "column": 9,
   "kind": "def",
   "name": "create",
   "qual": "MarkdownElement.create",
@@ -1052,6 +1085,7 @@
  {
   "file": "rich/highlighter.py",
   "line": 80,
+  "column": 7,
   "kind": "class",
   "name": "ReprHighlighter",
   "qual": "ReprHighlighter",
@@ -1134,6 +1168,7 @@
  {
   "file": "rich/segment.py",
   "line": 538,
+  "column": 9,
   "kind": "def",
   "name": "simplify",
   "qual": "Segment.simplify",
@@ -1162,6 +1197,7 @@
  {
   "file": "rich/_null_file.py",
   "line": 62,
+  "column": 9,
   "kind": "def",
   "name": "flush",
   "qual": "NullFile.flush",
@@ -1208,6 +1244,7 @@
  {
   "file": "rich/_ratio.py",
   "line": 107,
+  "column": 5,
   "kind": "def",
   "name": "ratio_distribute",
   "qual": "ratio_distribute",
@@ -1230,6 +1267,7 @@
  {
   "file": "rich/segment.py",
   "line": 413,
+  "column": 9,
   "kind": "def",
   "name": "set_shape",
   "qual": "Segment.set_shape",
@@ -1258,6 +1296,7 @@
  {
   "file": "rich/scope.py",
   "line": 81,
+  "column": 9,
   "kind": "def",
   "name": "test",
   "qual": "render_scope.test",
@@ -1298,6 +1337,7 @@
  {
   "file": "rich/progress_bar.py",
   "line": 18,
+  "column": 7,
   "kind": "class",
   "name": "ProgressBar",
   "qual": "ProgressBar",
@@ -1326,6 +1366,7 @@
  {
   "file": "rich/scope.py",
   "line": 14,
+  "column": 5,
   "kind": "def",
   "name": "render_scope",
   "qual": "render_scope",
@@ -1354,6 +1395,7 @@
  {
   "file": "rich/text.py",
   "line": 847,
+  "column": 9,
   "kind": "def",
   "name": "truncate",
   "qual": "Text.truncate",
@@ -1442,6 +1484,7 @@
  {
   "file": "rich/markdown.py",
   "line": 333,
+  "column": 9,
   "kind": "def",
   "name": "on_text",
   "qual": "TableDataElement.on_text",
@@ -1536,6 +1579,7 @@
  {
   "file": "rich/_ratio.py",
   "line": 147,
+  "column": 11,
   "kind": "class",
   "name": "E",
   "qual": "ratio_distribute.E",
@@ -1552,6 +1596,7 @@
  {
   "file": "rich/console.py",
   "line": 214,
+  "column": 9,
   "kind": "def",
   "name": "reset_height",
   "qual": "ConsoleOptions.reset_height",
@@ -1568,6 +1613,7 @@
  {
   "file": "rich/segment.py",
   "line": 565,
+  "column": 9,
   "kind": "def",
   "name": "strip_links",
   "qual": "Segment.strip_links",
@@ -1584,6 +1630,7 @@
  {
   "file": "rich/syntax.py",
   "line": 179,
+  "column": 9,
   "kind": "def",
   "name": "get_style_for_token",
   "qual": "ANSISyntaxTheme.get_style_for_token",
@@ -1648,6 +1695,7 @@
  {
   "file": "rich/_inspect.py",
   "line": 82,
+  "column": 9,
   "kind": "def",
   "name": "_get_signature",
   "qual": "Inspect._get_signature",
@@ -1670,6 +1718,7 @@
  {
   "file": "rich/_win32_console.py",
   "line": 526,
+  "column": 9,
   "kind": "def",
   "name": "move_cursor_to_column",
   "qual": "LegacyWindowsTerm.move_cursor_to_column",
@@ -1698,6 +1747,7 @@
  {
   "file": "rich/cells.py",
   "line": 235,
+  "column": 5,
   "kind": "def",
   "name": "_split_text",
   "qual": "_split_text",
@@ -1720,6 +1770,7 @@
  {
   "file": "rich/text.py",
   "line": 471,
+  "column": 9,
   "kind": "def",
   "name": "stylize_before",
   "qual": "Text.stylize_before",
@@ -1748,6 +1799,7 @@
  {
   "file": "rich/color.py",
   "line": 513,
+  "column": 9,
   "kind": "def",
   "name": "downgrade",
   "qual": "Color.downgrade",
@@ -1782,6 +1834,7 @@
  {
   "file": "rich/markdown.py",
   "line": 200,
+  "column": 9,
   "kind": "def",
   "name": "on_child_close",
   "qual": "BlockQuote.on_child_close",
@@ -1846,6 +1899,7 @@
  {
   "file": "rich/progress.py",
   "line": 1230,
+  "column": 9,
   "kind": "def",
   "name": "wrap_file",
   "qual": "Progress.wrap_file",
@@ -1868,6 +1922,7 @@
  {
   "file": "rich/errors.py",
   "line": 25,
+  "column": 7,
   "kind": "class",
   "name": "MarkupError",
   "qual": "MarkupError",
@@ -1908,6 +1963,7 @@
  {
   "file": "rich/text.py",
   "line": 76,
+  "column": 9,
   "kind": "def",
   "name": "right_crop",
   "qual": "Span.right_crop",
@@ -1942,6 +1998,7 @@
  {
   "file": "rich/prompt.py",
   "line": 80,
+  "column": 9,
   "kind": "def",
   "name": "ask",
   "qual": "PromptBase.ask",
@@ -2030,6 +2087,7 @@
  {
   "file": "rich/prompt.py",
   "line": 96,
+  "column": 9,
   "kind": "def",
   "name": "ask",
   "qual": "PromptBase.ask",
@@ -2118,6 +2176,7 @@
  {
   "file": "rich/prompt.py",
   "line": 110,
+  "column": 9,
   "kind": "def",
   "name": "ask",
   "qual": "PromptBase.ask",
@@ -2206,6 +2265,7 @@
  {
   "file": "rich/_null_file.py",
   "line": 36,
+  "column": 9,
   "kind": "def",
   "name": "writable",
   "qual": "NullFile.writable",
@@ -2222,6 +2282,7 @@
  {
   "file": "rich/console.py",
   "line": 864,
+  "column": 9,
   "kind": "def",
   "name": "end_capture",
   "qual": "Console.end_capture",
@@ -2244,6 +2305,7 @@
  {
   "file": "rich/markdown.py",
   "line": 490,
+  "column": 9,
   "kind": "def",
   "name": "on_text",
   "qual": "MarkdownContext.on_text",
@@ -2338,6 +2400,7 @@
  {
   "file": "rich/progress.py",
   "line": 274,
+  "column": 9,
   "kind": "def",
   "name": "writelines",
   "qual": "_Reader.writelines",
@@ -2360,6 +2423,7 @@
  {
   "file": "rich/traceback.py",
   "line": 740,
+  "column": 9,
   "kind": "def",
   "name": "_guess_lexer",
   "qual": "Traceback._guess_lexer",
@@ -2376,6 +2440,7 @@
  {
   "file": "rich/segment.py",
   "line": 507,
+  "column": 9,
   "kind": "def",
   "name": "align_middle",
   "qual": "Segment.align_middle",
@@ -2392,6 +2457,7 @@
  {
   "file": "rich/text.py",
   "line": 560,
+  "column": 9,
   "kind": "def",
   "name": "extend_style",
   "qual": "Text.extend_style",
@@ -2408,6 +2474,7 @@
  {
   "file": "rich/live.py",
   "line": 41,
+  "column": 7,
   "kind": "class",
   "name": "Live",
   "qual": "Live",
@@ -2502,6 +2569,7 @@
  {
   "file": "rich/live.py",
   "line": 205,
+  "column": 9,
   "kind": "def",
   "name": "_disable_redirect_io",
   "qual": "Live._disable_redirect_io",
@@ -2518,6 +2586,7 @@
  {
   "file": "rich/traceback.py",
   "line": 756,
+  "column": 9,
   "kind": "def",
   "name": "_render_stack",
   "qual": "Traceback._render_stack",
@@ -2534,6 +2603,7 @@
  {
   "file": "rich/progress.py",
   "line": 1185,
+  "column": 9,
   "kind": "def",
   "name": "track",
   "qual": "Progress.track",
@@ -2598,6 +2668,7 @@
  {
   "file": "rich/errors.py",
   "line": 9,
+  "column": 7,
   "kind": "class",
   "name": "StyleSyntaxError",
   "qual": "StyleSyntaxError",
@@ -2656,6 +2727,7 @@
  {
   "file": "rich/protocol.py",
   "line": 9,
+  "column": 5,
   "kind": "def",
   "name": "is_renderable",
   "qual": "is_renderable",
@@ -2678,6 +2750,7 @@
  {
   "file": "rich/console.py",
   "line": 304,
+  "column": 7,
   "kind": "class",
   "name": "Capture",
   "qual": "Capture",
@@ -2724,6 +2797,7 @@
  {
   "file": "rich/progress.py",
   "line": 299,
+  "column": 5,
   "kind": "def",
   "name": "wrap_file",
   "qual": "wrap_file",
@@ -2746,6 +2820,7 @@
  {
   "file": "rich/highlighter.py",
   "line": 106,
+  "column": 7,
   "kind": "class",
   "name": "JSONHighlighter",
   "qual": "JSONHighlighter",
@@ -2768,6 +2843,7 @@
  {
   "file": "rich/control.py",
   "line": 155,
+  "column": 9,
   "kind": "def",
   "name": "alt_screen",
   "qual": "Control.alt_screen",
@@ -2784,6 +2860,7 @@
  {
   "file": "rich/pretty.py",
   "line": 617,
+  "column": 13,
   "kind": "def",
   "name": "iter_rich_args",
   "qual": "traverse._traverse.iter_rich_args",
@@ -2800,6 +2877,7 @@
  {
   "file": "rich/_win32_console.py",
   "line": 57,
+  "column": 7,
   "kind": "class",
   "name": "CONSOLE_SCREEN_BUFFER_INFO",
   "qual": "CONSOLE_SCREEN_BUFFER_INFO",
@@ -2834,6 +2912,7 @@
  {
   "file": "rich/syntax.py",
   "line": 118,
+  "column": 9,
   "kind": "def",
   "name": "get_style_for_token",
   "qual": "SyntaxTheme.get_style_for_token",
@@ -2898,6 +2977,7 @@
  {
   "file": "rich/console.py",
   "line": 1494,
+  "column": 9,
   "kind": "def",
   "name": "_collect_renderables",
   "qual": "Console._collect_renderables",
@@ -2920,6 +3000,7 @@
  {
   "file": "rich/console.py",
   "line": 201,
+  "column": 9,
   "kind": "def",
   "name": "update_height",
   "qual": "ConsoleOptions.update_height",
@@ -2936,6 +3017,7 @@
  {
   "file": "rich/console.py",
   "line": 97,
+  "column": 7,
   "kind": "class",
   "name": "ConsoleDimensions",
   "qual": "ConsoleDimensions",
@@ -2982,6 +3064,7 @@
  {
   "file": "rich/_log_render.py",
   "line": 13,
+  "column": 7,
   "kind": "class",
   "name": "LogRender",
   "qual": "LogRender",
@@ -3004,6 +3087,7 @@
  {
   "file": "rich/_ratio.py",
   "line": 75,
+  "column": 5,
   "kind": "def",
   "name": "ratio_reduce",
   "qual": "ratio_reduce",
@@ -3026,6 +3110,7 @@
  {
   "file": "rich/filesize.py",
   "line": 52,
+  "column": 5,
   "kind": "def",
   "name": "decimal",
   "qual": "decimal",
@@ -3078,6 +3163,7 @@
  {
   "file": "rich/layout.py",
   "line": 184,
+  "column": 9,
   "kind": "def",
   "name": "map",
   "qual": "Layout.map",
@@ -3130,6 +3216,7 @@
  {
   "file": "rich/console.py",
   "line": 1086,
+  "column": 9,
   "kind": "def",
   "name": "bell",
   "qual": "Console.bell",
@@ -3170,6 +3257,7 @@
  {
   "file": "rich/_pick.py",
   "line": 1,
+  "column": 5,
   "kind": "def",
   "name": "pick_bool",
   "qual": "pick_bool",
@@ -3204,6 +3292,7 @@
  {
   "file": "rich/segment.py",
   "line": 263,
+  "column": 9,
   "kind": "def",
   "name": "split_lines_terminator",
   "qual": "Segment.split_lines_terminator",
@@ -3220,6 +3309,7 @@
  {
   "file": "rich/logging.py",
   "line": 190,
+  "column": 9,
   "kind": "def",
   "name": "render_message",
   "qual": "RichHandler.render_message",
@@ -3236,6 +3326,7 @@
  {
   "file": "rich/measure.py",
   "line": 34,
+  "column": 9,
   "kind": "def",
   "name": "with_maximum",
   "qual": "Measurement.with_maximum",
@@ -3276,6 +3367,7 @@
  {
   "file": "rich/theme.py",
   "line": 92,
+  "column": 9,
   "kind": "def",
   "name": "push_theme",
   "qual": "ThemeStack.push_theme",
@@ -3304,6 +3396,7 @@
  {
   "file": "rich/pretty.py",
   "line": 147,
+  "column": 5,
   "kind": "def",
   "name": "_safe_isinstance",
   "qual": "_safe_isinstance",
@@ -3392,6 +3485,7 @@
  {
   "file": "rich/layout.py",
   "line": 37,
+  "column": 7,
   "kind": "class",
   "name": "NoSplitter",
   "qual": "NoSplitter",
@@ -3408,6 +3502,7 @@
  {
   "file": "rich/progress_bar.py",
   "line": 126,
+  "column": 9,
   "kind": "def",
   "name": "_render_pulse",
   "qual": "ProgressBar._render_pulse",
@@ -3424,6 +3519,7 @@
  {
   "file": "rich/pager.py",
   "line": 17,
+  "column": 7,
   "kind": "class",
   "name": "SystemPager",
   "qual": "SystemPager",
@@ -3446,6 +3542,7 @@
  {
   "file": "rich/console.py",
   "line": 1752,
+  "column": 9,
   "kind": "def",
   "name": "print_json",
   "qual": "Console.print_json",
@@ -3486,6 +3583,7 @@
  {
   "file": "rich/layout.py",
   "line": 116,
+  "column": 9,
   "kind": "def",
   "name": "get_tree_icon",
   "qual": "ColumnSplitter.get_tree_icon",
@@ -3514,6 +3612,7 @@
  {
   "file": "rich/progress.py",
   "line": 510,
+  "column": 9,
   "kind": "def",
   "name": "get_table_column",
   "qual": "ProgressColumn.get_table_column",
@@ -3530,6 +3629,7 @@
  {
   "file": "rich/traceback.py",
   "line": 760,
+  "column": 13,
   "kind": "def",
   "name": "render_locals",
   "qual": "Traceback._render_stack.render_locals",
@@ -3552,6 +3652,7 @@
  {
   "file": "rich/markdown.py",
   "line": 380,
+  "column": 9,
   "kind": "def",
   "name": "on_child_close",
   "qual": "ListItem.on_child_close",
@@ -3616,6 +3717,7 @@
  {
   "file": "rich/console.py",
   "line": 542,
+  "column": 9,
   "kind": "def",
   "name": "process_renderables",
   "qual": "RenderHook.process_renderables",
@@ -3644,6 +3746,7 @@
  {
   "file": "rich/console.py",
   "line": 2024,
+  "column": 9,
   "kind": "def",
   "name": "on_broken_pipe",
   "qual": "Console.on_broken_pipe",
@@ -3660,6 +3763,7 @@
  {
   "file": "rich/_win32_console.py",
   "line": 29,
+  "column": 7,
   "kind": "class",
   "name": "LegacyWindowsError",
   "qual": "LegacyWindowsError",
@@ -3694,6 +3798,7 @@
  {
   "file": "rich/_inspect.py",
   "line": 249,
+  "column": 5,
   "kind": "def",
   "name": "get_object_types_mro_as_strings",
   "qual": "get_object_types_mro_as_strings",
@@ -3710,6 +3815,7 @@
  {
   "file": "rich/pretty.py",
   "line": 382,
+  "column": 5,
   "kind": "def",
   "name": "is_expandable",
   "qual": "is_expandable",
@@ -3738,6 +3844,7 @@
  {
   "file": "rich/pretty.py",
   "line": 478,
+  "column": 7,
   "kind": "class",
   "name": "_Line",
   "qual": "_Line",
@@ -3790,6 +3897,7 @@
  {
   "file": "rich/traceback.py",
   "line": 246,
+  "column": 7,
   "kind": "class",
   "name": "PathHighlighter",
   "qual": "PathHighlighter",
@@ -3812,6 +3920,7 @@
  {
   "file": "rich/console.py",
   "line": 2315,
+  "column": 9,
   "kind": "def",
   "name": "save_html",
   "qual": "Console.save_html",
@@ -3834,6 +3943,7 @@
  {
   "file": "rich/table.py",
   "line": 632,
+  "column": 13,
   "kind": "def",
   "name": "get_padding",
   "qual": "Table._get_cells.get_padding",
@@ -3850,6 +3960,7 @@
  {
   "file": "rich/console.py",
   "line": 570,
+  "column": 5,
   "kind": "def",
   "name": "detect_legacy_windows",
   "qual": "detect_legacy_windows",
@@ -3866,6 +3977,7 @@
  {
   "file": "rich/text.py",
   "line": 905,
+  "column": 9,
   "kind": "def",
   "name": "pad_left",
   "qual": "Text.pad_left",
@@ -3942,6 +4054,7 @@
  {
   "file": "rich/table.py",
   "line": 430,
+  "column": 13,
   "kind": "def",
   "name": "add_cell",
   "qual": "Table.add_row.add_cell",
@@ -3970,6 +4083,7 @@
  {
   "file": "rich/__init__.py",
   "line": 23,
+  "column": 5,
   "kind": "def",
   "name": "get_console",
   "qual": "get_console",
@@ -4064,6 +4178,7 @@
  {
   "file": "rich/status.py",
   "line": 10,
+  "column": 7,
   "kind": "class",
   "name": "Status",
   "qual": "Status",
@@ -4104,6 +4219,7 @@
  {
   "file": "rich/box.py",
   "line": 163,
+  "column": 9,
   "kind": "def",
   "name": "get_bottom",
   "qual": "Box.get_bottom",
@@ -4126,6 +4242,7 @@
  {
   "file": "rich/styled.py",
   "line": 11,
+  "column": 7,
   "kind": "class",
   "name": "Styled",
   "qual": "Styled",
@@ -4166,6 +4283,7 @@
  {
   "file": "rich/measure.py",
   "line": 46,
+  "column": 9,
   "kind": "def",
   "name": "with_minimum",
   "qual": "Measurement.with_minimum",
@@ -4182,6 +4300,7 @@
  {
   "file": "rich/console.py",
   "line": 816,
+  "column": 9,
   "kind": "def",
   "name": "set_live",
   "qual": "Console.set_live",
@@ -4198,6 +4317,7 @@
  {
   "file": "rich/markup.py",
   "line": 73,
+  "column": 5,
   "kind": "def",
   "name": "_parse",
   "qual": "_parse",
@@ -4214,6 +4334,7 @@
  {
   "file": "rich/box.py",
   "line": 84,
+  "column": 9,
   "kind": "def",
   "name": "get_plain_headed_box",
   "qual": "Box.get_plain_headed_box",
@@ -4230,6 +4351,7 @@
  {
   "file": "rich/progress.py",
   "line": 253,
+  "column": 9,
   "kind": "def",
   "name": "readlines",
   "qual": "_Reader.readlines",
@@ -4252,6 +4374,7 @@
  {
   "file": "rich/markdown.py",
   "line": 238,
+  "column": 9,
   "kind": "def",
   "name": "on_child_close",
   "qual": "TableElement.on_child_close",
@@ -4316,6 +4439,7 @@
  {
   "file": "rich/progress.py",
   "line": 278,
+  "column": 7,
   "kind": "class",
   "name": "_ReadContext",
   "qual": "_ReadContext",
@@ -4338,6 +4462,7 @@
  {
   "file": "rich/repr.py",
   "line": 112,
+  "column": 11,
   "kind": "class",
   "name": "Foo",
   "qual": "rich_repr.Foo",
@@ -4372,6 +4497,7 @@
  {
   "file": "rich/console.py",
   "line": 1195,
+  "column": 9,
   "kind": "def",
   "name": "set_alt_screen",
   "qual": "Console.set_alt_screen",
@@ -4406,6 +4532,7 @@
  {
   "file": "rich/progress.py",
   "line": 232,
+  "column": 9,
   "kind": "def",
   "name": "seekable",
   "qual": "_Reader.seekable",
@@ -4428,6 +4555,7 @@
  {
   "file": "rich/markdown.py",
   "line": 146,
+  "column": 9,
   "kind": "def",
   "name": "create",
   "qual": "Heading.create",
@@ -4516,6 +4644,7 @@
  {
   "file": "rich/prompt.py",
   "line": 192,
+  "column": 9,
   "kind": "def",
   "name": "get_input",
   "qual": "PromptBase.get_input",
@@ -4532,6 +4661,7 @@
  {
   "file": "rich/progress.py",
   "line": 229,
+  "column": 9,
   "kind": "def",
   "name": "readable",
   "qual": "_Reader.readable",
@@ -4578,6 +4708,7 @@
  {
   "file": "rich/__main__.py",
   "line": 39,
+  "column": 5,
   "kind": "def",
   "name": "make_test_card",
   "qual": "make_test_card",
@@ -4612,6 +4743,7 @@
  {
   "file": "rich/text.py",
   "line": 320,
+  "column": 9,
   "kind": "def",
   "name": "styled",
   "qual": "Text.styled",
@@ -4652,6 +4784,7 @@
  {
   "file": "rich/text.py",
   "line": 497,
+  "column": 9,
   "kind": "def",
   "name": "apply_meta",
   "qual": "Text.apply_meta",
@@ -4668,6 +4801,7 @@
  {
   "file": "rich/progress.py",
   "line": 248,
+  "column": 9,
   "kind": "def",
   "name": "readline",
   "qual": "_Reader.readline",
@@ -4702,6 +4836,7 @@
  {
   "file": "rich/live_render.py",
   "line": 43,
+  "column": 9,
   "kind": "def",
   "name": "set_renderable",
   "qual": "LiveRender.set_renderable",
@@ -4718,6 +4853,7 @@
  {
   "file": "rich/text.py",
   "line": 994,
+  "column": 9,
   "kind": "def",
   "name": "append_text",
   "qual": "Text.append_text",
@@ -4770,6 +4906,7 @@
  {
   "file": "rich/table.py",
   "line": 300,
+  "column": 9,
   "kind": "def",
   "name": "get_row_style",
   "qual": "Table.get_row_style",
@@ -4792,6 +4929,7 @@
  {
   "file": "rich/live_render.py",
   "line": 72,
+  "column": 9,
   "kind": "def",
   "name": "restore_cursor",
   "qual": "LiveRender.restore_cursor",
@@ -4808,6 +4946,7 @@
  {
   "file": "rich/_null_file.py",
   "line": 21,
+  "column": 9,
   "kind": "def",
   "name": "readlines",
   "qual": "NullFile.readlines",
@@ -4830,6 +4969,7 @@
  {
   "file": "rich/table.py",
   "line": 513,
+  "column": 9,
   "kind": "def",
   "name": "_calculate_column_widths",
   "qual": "Table._calculate_column_widths",
@@ -4852,6 +4992,7 @@
  {
   "file": "rich/pretty.py",
   "line": 155,
+  "column": 5,
   "kind": "def",
   "name": "install",
   "qual": "install",
@@ -4892,6 +5033,7 @@
  {
   "file": "rich/repr.py",
   "line": 93,
+  "column": 5,
   "kind": "def",
   "name": "rich_repr",
   "qual": "rich_repr",
@@ -4938,6 +5080,7 @@
  {
   "file": "rich/repr.py",
   "line": 97,
+  "column": 5,
   "kind": "def",
   "name": "rich_repr",
   "qual": "rich_repr",
@@ -4984,6 +5127,7 @@
  {
   "file": "rich/repr.py",
   "line": 100,
+  "column": 5,
   "kind": "def",
   "name": "rich_repr",
   "qual": "rich_repr",
@@ -5030,6 +5174,7 @@
  {
   "file": "rich/progress.py",
   "line": 97,
+  "column": 5,
   "kind": "def",
   "name": "track",
   "qual": "track",
@@ -5094,6 +5239,7 @@
  {
   "file": "rich/live.py",
   "line": 278,
+  "column": 9,
   "kind": "def",
   "name": "process_renderables",
   "qual": "Live.process_renderables",
@@ -5122,6 +5268,7 @@
  {
   "file": "rich/traceback.py",
   "line": 164,
+  "column": 13,
   "kind": "def",
   "name": "ipy_display_traceback",
   "qual": "install.ipy_excepthook_closure.ipy_display_traceback",
@@ -5144,6 +5291,7 @@
  {
   "file": "rich/console.py",
   "line": 1225,
+  "column": 9,
   "kind": "def",
   "name": "set_window_title",
   "qual": "Console.set_window_title",
@@ -5160,6 +5308,7 @@
  {
   "file": "rich/json.py",
   "line": 54,
+  "column": 9,
   "kind": "def",
   "name": "from_data",
   "qual": "JSON.from_data",
@@ -5176,6 +5325,7 @@
  {
   "file": "rich/cells.py",
   "line": 161,
+  "column": 5,
   "kind": "def",
   "name": "split_graphemes",
   "qual": "split_graphemes",
@@ -5198,6 +5348,7 @@
  {
   "file": "rich/console.py",
   "line": 2238,
+  "column": 9,
   "kind": "def",
   "name": "export_html",
   "qual": "Console.export_html",
@@ -5226,6 +5377,7 @@
  {
   "file": "rich/_win32_console.py",
   "line": 484,
+  "column": 9,
   "kind": "def",
   "name": "erase_start_of_line",
   "qual": "LegacyWindowsTerm.erase_start_of_line",
@@ -5248,6 +5400,7 @@
  {
   "file": "rich/jupyter.py",
   "line": 41,
+  "column": 9,
   "kind": "def",
   "name": "_repr_mimebundle_",
   "qual": "JupyterMixin._repr_mimebundle_",
@@ -5264,6 +5417,7 @@
  {
   "file": "rich/console.py",
   "line": 886,
+  "column": 9,
   "kind": "def",
   "name": "pop_theme",
   "qual": "Console.pop_theme",
@@ -5292,6 +5446,7 @@
  {
   "file": "rich/progress.py",
   "line": 858,
+  "column": 7,
   "kind": "class",
   "name": "DownloadColumn",
   "qual": "DownloadColumn",
@@ -5314,6 +5469,7 @@
  {
   "file": "rich/filesize.py",
   "line": 18,
+  "column": 5,
   "kind": "def",
   "name": "_to_str",
   "qual": "_to_str",
@@ -5330,6 +5486,7 @@
  {
   "file": "rich/markdown.py",
   "line": 344,
+  "column": 9,
   "kind": "def",
   "name": "create",
   "qual": "ListElement.create",
@@ -5418,6 +5575,7 @@
  {
   "file": "rich/scope.py",
   "line": 45,
+  "column": 9,
   "kind": "def",
   "name": "sort_items",
   "qual": "render_scope.sort_items",
@@ -5446,6 +5604,7 @@
  {
   "file": "rich/console.py",
   "line": 875,
+  "column": 9,
   "kind": "def",
   "name": "push_theme",
   "qual": "Console.push_theme",
@@ -5474,6 +5633,7 @@
  {
   "file": "rich/_unicode_data/__init__.py",
   "line": 25,
+  "column": 5,
   "kind": "def",
   "name": "_parse_version",
   "qual": "_parse_version",
@@ -5502,6 +5662,7 @@
  {
   "file": "rich/text.py",
   "line": 805,
+  "column": 9,
   "kind": "def",
   "name": "expand_tabs",
   "qual": "Text.expand_tabs",
@@ -5542,6 +5703,7 @@
  {
   "file": "rich/_inspect.py",
   "line": 240,
+  "column": 5,
   "kind": "def",
   "name": "get_object_types_mro",
   "qual": "get_object_types_mro",
@@ -5558,6 +5720,7 @@
  {
   "file": "rich/table.py",
   "line": 690,
+  "column": 9,
   "kind": "def",
   "name": "_get_padding_width",
   "qual": "Table._get_padding_width",
@@ -5580,6 +5743,7 @@
  {
   "file": "rich/status.py",
   "line": 88,
+  "column": 9,
   "kind": "def",
   "name": "stop",
   "qual": "Status.stop",
@@ -5668,6 +5832,7 @@
  {
   "file": "rich/traceback.py",
   "line": 154,
+  "column": 9,
   "kind": "def",
   "name": "ipy_excepthook_closure",
   "qual": "install.ipy_excepthook_closure",
@@ -5684,6 +5849,7 @@
  {
   "file": "rich/control.py",
   "line": 181,
+  "column": 5,
   "kind": "def",
   "name": "strip_control_codes",
   "qual": "strip_control_codes",
@@ -5718,6 +5884,7 @@
  {
   "file": "rich/syntax.py",
   "line": 563,
+  "column": 9,
   "kind": "def",
   "name": "_get_line_numbers_color",
   "qual": "Syntax._get_line_numbers_color",
@@ -5740,6 +5907,7 @@
  {
   "file": "rich/live.py",
   "line": 34,
+  "column": 9,
   "kind": "def",
   "name": "run",
   "qual": "_RefreshThread.run",
@@ -5768,6 +5936,7 @@
  {
   "file": "rich/_win32_console.py",
   "line": 228,
+  "column": 5,
   "kind": "def",
   "name": "GetConsoleScreenBufferInfo",
   "qual": "GetConsoleScreenBufferInfo",
@@ -5802,6 +5971,7 @@
  {
   "file": "rich/traceback.py",
   "line": 341,
+  "column": 9,
   "kind": "def",
   "name": "from_exception",
   "qual": "Traceback.from_exception",
@@ -5824,6 +5994,7 @@
  {
   "file": "rich/text.py",
   "line": 778,
+  "column": 13,
   "kind": "def",
   "name": "iter_text",
   "qual": "Text.join.iter_text",
@@ -5840,6 +6011,7 @@
  {
   "file": "rich/live.py",
   "line": 22,
+  "column": 7,
   "kind": "class",
   "name": "_RefreshThread",
   "qual": "_RefreshThread",
@@ -5862,6 +6034,7 @@
  {
   "file": "rich/tree.py",
   "line": 14,
+  "column": 7,
   "kind": "class",
   "name": "Tree",
   "qual": "Tree",
@@ -5932,6 +6105,7 @@
  {
   "file": "rich/pretty.py",
   "line": 585,
+  "column": 9,
   "kind": "def",
   "name": "to_repr",
   "qual": "traverse.to_repr",
@@ -5960,6 +6134,7 @@
  {
   "file": "rich/box.py",
   "line": 114,
+  "column": 9,
   "kind": "def",
   "name": "get_row",
   "qual": "Box.get_row",
@@ -5994,6 +6169,7 @@
  {
   "file": "rich/_null_file.py",
   "line": 24,
+  "column": 9,
   "kind": "def",
   "name": "seek",
   "qual": "NullFile.seek",
@@ -6016,6 +6192,7 @@
  {
   "file": "rich/progress.py",
   "line": 1007,
+  "column": 9,
   "kind": "def",
   "name": "percentage",
   "qual": "Task.percentage",
@@ -6092,6 +6269,7 @@
  {
   "file": "rich/segment.py",
   "line": 294,
+  "column": 9,
   "kind": "def",
   "name": "split_and_crop_lines",
   "qual": "Segment.split_and_crop_lines",
@@ -6126,6 +6304,7 @@
  {
   "file": "rich/control.py",
   "line": 150,
+  "column": 9,
   "kind": "def",
   "name": "show_cursor",
   "qual": "Control.show_cursor",
@@ -6202,6 +6381,7 @@
  {
   "file": "rich/syntax.py",
   "line": 144,
+  "column": 9,
   "kind": "def",
   "name": "get_style_for_token",
   "qual": "PygmentsSyntaxTheme.get_style_for_token",
@@ -6266,6 +6446,7 @@
  {
   "file": "rich/markdown.py",
   "line": 62,
+  "column": 9,
   "kind": "def",
   "name": "on_child_close",
   "qual": "MarkdownElement.on_child_close",
@@ -6330,6 +6511,7 @@
  {
   "file": "rich/_win32_console.py",
   "line": 78,
+  "column": 5,
   "kind": "def",
   "name": "GetStdHandle",
   "qual": "GetStdHandle",
@@ -6370,6 +6552,7 @@
  {
   "file": "rich/cells.py",
   "line": 326,
+  "column": 5,
   "kind": "def",
   "name": "chop_cells",
   "qual": "chop_cells",
@@ -6392,6 +6575,7 @@
  {
   "file": "rich/console.py",
   "line": 2126,
+  "column": 9,
   "kind": "def",
   "name": "_render_buffer",
   "qual": "Console._render_buffer",
@@ -6438,6 +6622,7 @@
  {
   "file": "rich/console.py",
   "line": 286,
+  "column": 7,
   "kind": "class",
   "name": "ScreenUpdate",
   "qual": "ScreenUpdate",
@@ -6454,6 +6639,7 @@
  {
   "file": "rich/pretty.py",
   "line": 430,
+  "column": 9,
   "kind": "def",
   "name": "check_length",
   "qual": "Node.check_length",
@@ -6482,6 +6668,7 @@
  {
   "file": "rich/_ratio.py",
   "line": 14,
+  "column": 5,
   "kind": "def",
   "name": "ratio_resolve",
   "qual": "ratio_resolve",
@@ -6510,6 +6697,7 @@
  {
   "file": "rich/_win32_console.py",
   "line": 503,
+  "column": 9,
   "kind": "def",
   "name": "move_cursor_down",
   "qual": "LegacyWindowsTerm.move_cursor_down",
@@ -6538,6 +6726,7 @@
  {
   "file": "rich/layout.py",
   "line": 96,
+  "column": 9,
   "kind": "def",
   "name": "get_tree_icon",
   "qual": "RowSplitter.get_tree_icon",
@@ -6566,6 +6755,7 @@
  {
   "file": "rich/markup.py",
   "line": 146,
+  "column": 9,
   "kind": "def",
   "name": "pop_style",
   "qual": "render.pop_style",
@@ -6582,6 +6772,7 @@
  {
   "file": "rich/box.py",
   "line": 66,
+  "column": 9,
   "kind": "def",
   "name": "substitute",
   "qual": "Box.substitute",
@@ -6604,6 +6795,7 @@
  {
   "file": "rich/progress.py",
   "line": 765,
+  "column": 7,
   "kind": "class",
   "name": "TimeRemainingColumn",
   "qual": "TimeRemainingColumn",
@@ -6644,6 +6836,7 @@
  {
   "file": "rich/console.py",
   "line": 270,
+  "column": 7,
   "kind": "class",
   "name": "CaptureError",
   "qual": "CaptureError",
@@ -6660,6 +6853,7 @@
  {
   "file": "rich/_win32_console.py",
   "line": 128,
+  "column": 5,
   "kind": "def",
   "name": "FillConsoleOutputCharacter",
   "qual": "FillConsoleOutputCharacter",
@@ -6688,6 +6882,7 @@
  {
   "file": "rich/cells.py",
   "line": 82,
+  "column": 5,
   "kind": "def",
   "name": "cached_cell_len",
   "qual": "cached_cell_len",
@@ -6716,6 +6911,7 @@
  {
   "file": "rich/_wrap.py",
   "line": 26,
+  "column": 5,
   "kind": "def",
   "name": "divide_line",
   "qual": "divide_line",
@@ -6732,6 +6928,7 @@
  {
   "file": "rich/_win32_console.py",
   "line": 568,
+  "column": 9,
   "kind": "def",
   "name": "_get_cursor_size",
   "qual": "LegacyWindowsTerm._get_cursor_size",
@@ -6754,6 +6951,7 @@
  {
   "file": "rich/theme.py",
   "line": 81,
+  "column": 7,
   "kind": "class",
   "name": "ThemeStack",
   "qual": "ThemeStack",
@@ -6782,6 +6980,7 @@
  {
   "file": "rich/table.py",
   "line": 706,
+  "column": 9,
   "kind": "def",
   "name": "_measure_column",
   "qual": "Table._measure_column",
@@ -6816,6 +7015,7 @@
  {
   "file": "rich/_win32_console.py",
   "line": 204,
+  "column": 5,
   "kind": "def",
   "name": "SetConsoleTextAttribute",
   "qual": "SetConsoleTextAttribute",

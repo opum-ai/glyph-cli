@@ -19,7 +19,7 @@ for f in files:
         while stack and stack[-1][0] >= ind: stack.pop()
         qual = ".".join([s[1] for s in stack] + [m.group(3)])
         encl = stack[-1][1] if stack and stack[-1][2] == "class" else None
-        defs.append(dict(file=f, line=i, kind=kind, name=m.group(3), qual=qual, encl=encl))
+        defs.append(dict(file=f, line=i, column=m.start(3) + 1, kind=kind, name=m.group(3), qual=qual, encl=encl))
         stack.append((ind, m.group(3), kind))
 cands = [d for d in defs if not (d["name"].startswith("__") and d["name"].endswith("__"))]
 cands.sort(key=lambda d: hashlib.sha256((seed + d["file"] + ":" + d["qual"]).encode()).hexdigest())
