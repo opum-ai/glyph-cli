@@ -3957,6 +3957,7 @@ class Resolver {
 		fromSuper: boolean,
 		polymorphicCheck: boolean,
 		instanceReceiver = false,
+		mayBeDescendant = false,
 	): CallResolution {
 		const mro = this.computeMro(receiver);
 		if (!mro.ok) return { bin: "receiver", reason: "mro-failed" };
@@ -3992,7 +3993,11 @@ class Resolver {
 		// is fail-closed: a written name on any descendant makes the def not the only binding the call can reach.
 		// `super()` reads the class level after `start` and never an instance dict, so a descendant write does not
 		// apply there and the check stays off that path.
-		if (!fromSuper) {
+		// GCLI-171 (DEC-303 (a97)): only a receiver that MAY hold a descendant consults the #6 loop — a self receiver,
+		// an annotated or parameter receiver, and `type(self)` / `self.__class__`, the same receiver set (a94) item 1
+		// ruled for the `__class__` guard. A fresh construction, a constructor-bound or R4 local, an imported instance
+		// and the class object can never run a descendant's write, so the loop there only spent recall.
+		if (!fromSuper && mayBeDescendant) {
 			for (const descendant of this.descendantsOf(receiver)) {
 				// GCLI-171 (DEC-303 (a94) item 5, (2b)): the write may sit on the descendant's own MRO, a mixin
 				// included, so each descendant's MRO is walked as `descendantClassWritten` walks it. Reading only the
@@ -4265,7 +4270,7 @@ class Resolver {
 			) {
 				return { bin: "receiver", reason: "needs-inference" };
 			}
-			return this.methodLookup(receiver.classInfo, lastName, false, true);
+			return this.methodLookup(receiver.classInfo, lastName, false, true, false, true);
 		}
 		// Rule 24: an attribute call on a name bound directly by an import of an
 		// external module or name is external; a value computed from one is not.
@@ -4284,7 +4289,7 @@ class Resolver {
 			if (knownClass.annotated && this.descendantClassWritten(knownClass.info, "__class__")) {
 				return { bin: "receiver", reason: "needs-inference" };
 			}
-			return this.methodLookup(knownClass.info, lastName, false, true, knownClass.instance);
+			return this.methodLookup(knownClass.info, lastName, false, true, knownClass.instance, knownClass.annotated);
 		}
 		// R4 (DEC-303 (a22) item 3): a local whose every binding is `Cls(...)` of one class.
 		if (segments.length === 1) {
@@ -4294,7 +4299,7 @@ class Resolver {
 		// TS (DEC-303 (a22) item 3, (a23)): a local whose one binding is `type(self)` or `self.__class__`.
 		if (segments.length === 1) {
 			const own = this.localClassOfReceiver(base.name, scope, site);
-			if (own !== null) return this.methodLookup(own, lastName, false, true);
+			if (own !== null) return this.methodLookup(own, lastName, false, true, false, true);
 		}
 		// M1 (DEC-303 (a22) item 3): an imported module-level instance of one in-repo class.
 		if (segments.length === 1) {
