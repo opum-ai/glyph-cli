@@ -2636,6 +2636,14 @@ class Resolver {
 		if (found === null) return this.resolveUnbound(name, scope, use, starCtx);
 		// GCLI-144 (DEC-303 (a73)): the class body binds this name after the read; an enclosing function's binding is not it.
 		if (found.classBodyShadowed === true) return { kind: "unresolved", reason: "rebound" };
+		// GCLI-155 (DEC-303 (a79) Q-B, (a80) item 3 N2): a read that lands on a MODULE's own bindings reads that
+		// module's globals, and a write to the module's attribute from any analysed module (`m.f = other`, or the
+		// attribute the star import `from s import *` re-exports) is another binding of the name. This is the
+		// defining module's own bare call and the star importer's bare call; the from-import reader is gated through
+		// `moduleBindingGate` and a class body's lazy read is not this path (its bindings are the class's).
+		if (found.scope.kind === "module" && this.moduleAttributeWritten(found.scope.file, name)) {
+			return { kind: "unresolved", reason: "rebound" };
+		}
 		// N1 (GCLI-118): a comprehension's iteration target lives in the comprehension's own scope, so at module
 		// level it is no binding of the module name for a read outside that comprehension. A read with no known
 		// position, or inside the comprehension, keeps it (the conservative reading).
@@ -3407,6 +3415,9 @@ class Resolver {
 					return outcome.kind === "symbol" ? outcome.symbol : null;
 				}
 				if (base.kind === "symbol" && base.symbol.kind === "class" && desc.segments.length === 1) {
+					// GCLI-155 (#14, (a80) item 3 N4): a class-level write of the attribute (`C.m = other`) rebinds
+					// what `C.m` names, so a decorator `@C.m` does not reach the def.
+					if (this.classLevelWrites.get(base.symbol.id)?.has(desc.segments[0] as string) === true) return null;
 					const wanted = `${base.symbol.qualname}.${desc.segments[0]}`;
 					const symbols = this.fileSymbols.get(base.symbol.file) ?? [];
 					for (const symbol of symbols) if (symbol.qualname === wanted) return symbol;
@@ -3504,11 +3515,18 @@ class Resolver {
 
 	// --- inheritance -------------------------------------------------------
 
-	private resolveBaseClass(classInfo: ClassInfo, base: BaseRef): ClassInfo | null {
+	/**
+	 * GCLI-155 (DEC-303 (a80) item 1, #7): a base whose name is rebound by an attribute write is not the class
+	 * the name names; it is an opaque, rebound base, so a member lookup through it refuses (`rebound-base`).
+	 * `baseAlternatives` reads the base WRITE-BLIND, so a written base name still makes the class a possible
+	 * descendant of the class it names and dev's polymorphic flags and `self.__class__` readings do not change.
+	 */
+	private resolveBaseClass(classInfo: ClassInfo, base: BaseRef, writeBlind = false): ClassInfo | null {
 		if (base.callee === null) return null;
-		const symbol = this.withoutAttributeGate(() =>
-			this.resolveCalleeToSymbol(base.callee as CalleeDesc, classInfo.parentScope, 0),
-		);
+		const callee = base.callee as CalleeDesc;
+		const symbol = writeBlind
+			? this.withoutAttributeGate(() => this.resolveCalleeToSymbol(callee, classInfo.parentScope, 0))
+			: this.resolveCalleeToSymbol(callee, classInfo.parentScope, 0);
 		if (symbol === null || symbol.kind !== "class") return null;
 		return this.classById.get(symbol.id) ?? null;
 	}
@@ -3539,18 +3557,22 @@ class Resolver {
 	 * as a subclass of each one and the polymorphic flag does not drop because the base became multiply.
 	 */
 	private baseAlternatives(classInfo: ClassInfo, base: BaseRef): ClassInfo[] {
-		const single = this.resolveBaseClass(classInfo, base);
+		// GCLI-155 (#7): the descendant relationship is read write-blind, so a base name an attribute write rebinds
+		// keeps the class a possible descendant of the class it names (dev's answer), while the class's own MRO
+		// (`computeMro`) sees the base as opaque and refuses to credit it with a method.
+		const single = this.resolveBaseClass(classInfo, base, true);
 		if (single !== null) return [single];
 		const callee = base.callee;
 		if (callee === null) return [];
 		let symbols: readonly PythonSymbol[] = [];
 		if (callee.kind === "name") {
-			const outcome = this.resolveBareName(callee.name, classInfo.parentScope, 0);
+			const outcome = this.withoutAttributeGate(() => this.resolveBareName(callee.name, classInfo.parentScope, 0));
 			if (outcome.kind === "multiply") symbols = outcome.symbols;
 		} else if (callee.kind === "attr" && callee.base.kind === "name") {
 			const head = this.resolveBareName(callee.base.name, classInfo.parentScope, 0);
-			if (head.kind === "module" && head.path !== null) {
-				const outcome = this.resolveModuleChain(head.path, callee.segments, 0);
+			const path = head.kind === "module" ? head.path : null;
+			if (path !== null) {
+				const outcome = this.withoutAttributeGate(() => this.resolveModuleChain(path, callee.segments, 0));
 				if (outcome.kind === "multiply") symbols = outcome.symbols;
 			}
 		}
@@ -3787,7 +3809,10 @@ class Resolver {
 			const init = this.firstMethodEntry(mro, "__init__");
 			if (this.firstMethodEntry(mro, "__new__") !== null) reasons.push("__new__");
 			if (this.effectiveMetaclass(classInfo)) reasons.push("metaclass");
-			if (init !== null) {
+			// GCLI-155 (#16, (a80) item 3 N6): a class-level write of `__init__` before the MRO's supplying def
+			// (`C.__init__ = other`) is another binding of the constructor's method, so the init edge is refused.
+			// The class edge stands: `C()` still constructs C.
+			if (init !== null && !this.initReboundInMro(mro)) {
 				for (const symbol of init) {
 					edges.push(
 						symbolEdge(symbol, "new", {
@@ -3817,6 +3842,19 @@ class Resolver {
 			polymorphic: options.polymorphic === true,
 			multiplyBound: options.multiplyBound === true,
 		};
+	}
+
+	/** GCLI-155 (#16): the MRO's supplying `__init__` def is preceded by a class-level write of the attribute. */
+	private initReboundInMro(mro: MroResult): boolean {
+		if (!mro.ok) return false;
+		for (const entry of mro.entries) {
+			if (entry.kind !== "class") continue;
+			if (this.classLevelWrites.get(entry.info.id)?.has("__init__") === true) return true;
+			// The first class on the MRO that defines `__init__` is the one `firstMethodEntry` reads; a write below
+			// it cannot shadow that def.
+			if (entry.info.methods.has("__init__")) return false;
+		}
+		return false;
 	}
 
 	// --- call resolution ---------------------------------------------------
@@ -3974,7 +4012,14 @@ class Resolver {
 		// M1 (DEC-303 (a22) item 3): an imported module-level instance of one in-repo class.
 		if (segments.length === 1) {
 			const instance = this.importedInstanceClass(base.name, scope, site);
-			if (instance !== null) return this.methodLookup(instance, lastName, false, true);
+			if (instance !== null) {
+				// GCLI-155 (#5): the importer's own `inst.m = other` binds the attribute on the instance the import
+				// names, so `inst.m()` has a second binding and does not resolve to the class's def.
+				if (this.localAttributeWritten(base.name, scope, lastName, site)) {
+					return { bin: "receiver", reason: "needs-inference" };
+				}
+				return this.methodLookup(instance, lastName, false, true);
+			}
 		}
 		// K1 (DEC-303 (a22) item 3): `*args` is a tuple and `**kwargs` a dict, so a method
 		// called on one is the builtin's. The name must have exactly one binding in
@@ -4430,6 +4475,9 @@ class Resolver {
 		}
 		const direct = this.directFromImport(binding);
 		if (direct === null) return null;
+		// GCLI-155 (#13, (a80) item 3 N3): a write to the source module's attribute rebinds the name the
+		// from-import binds, so the import names no one class symbol (`h = C.m`, the R4 local `x = C()`).
+		if (this.moduleAttributeWritten(direct.target, direct.name)) return null;
 		const sourceScope = this.moduleScopesByPath.get(direct.target);
 		if (sourceScope === undefined) return null;
 		const inner = this.enumerableBindings(direct.name, sourceScope, { line: 0, column: 0 });
@@ -4729,12 +4777,15 @@ class Resolver {
 	private resolveSuper(base: BaseDesc & { kind: "super" }, segments: readonly string[], scope: Scope): CallResolution {
 		let enclosing = scope.kind === "function" ? scope.enclosingClass : null;
 		const firstArg = base.firstArg;
-		if (base.argCount === 2 && firstArg !== null) {
-			const symbol = this.withoutAttributeGate(() => this.resolveCalleeToSymbol(firstArg, scope, 0));
-			if (symbol !== null && symbol.kind === "class") {
-				const classInfo = this.classById.get(symbol.id);
-				if (classInfo !== undefined) enclosing = classInfo;
-			}
+		if (base.argCount === 2) {
+			// GCLI-155 (DEC-303 (a80) item 1 B1/B1b, #8 and #10): the two-argument form reads after the class the
+			// FIRST ARGUMENT names, so a written class name (`super(m.C, self)`, or the from-import twin) leaves it
+			// unresolved. An unresolved first argument is no evidence for the enclosing class: dev fell back to it
+			// and credited the next class after the method's own class with the call, a wrong edge of its own.
+			const symbol = firstArg === null ? null : this.resolveCalleeToSymbol(firstArg, scope, 0);
+			const classInfo = symbol !== null && symbol.kind === "class" ? (this.classById.get(symbol.id) ?? null) : null;
+			if (classInfo === null) return { bin: "receiver", reason: "needs-inference" };
+			enclosing = classInfo;
 		}
 		if (enclosing === null) return { bin: "receiver", reason: "needs-inference" };
 		if (segments.length !== 1) return { bin: "receiver", reason: "needs-inference" };
@@ -4742,6 +4793,9 @@ class Resolver {
 	}
 
 	resolveDecoratorSite(site: RawDecoratorSite): EdgeSpec | null {
+		// GCLI-155 (#14): decorators are resolved after the calls, so the write sets must be collected here when a
+		// module holds no call at all (the collection is idempotent and normally runs from `resolveCall`).
+		this.collectAttributeWrites();
 		const symbol = this.resolveCalleeToSymbol(site.callee, site.scope, 0, {
 			line: site.line,
 			column: site.column,

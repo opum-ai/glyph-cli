@@ -2574,8 +2574,11 @@ describe("GCLI-140 — an attribute write is a binding of that attribute", () =>
 		expect(twin.callees).toContain("m.py:f");
 	});
 
-	// GCLI-140 round 1, (a80): the mod.f gate is OFF in a base position and in a two-argument super() first
-	// argument, so those paths behave exactly as on dev. Each pins a KNOWN WRONG EDGE carried to GCLI-151.
+	// GCLI-140 round 1, (a80): the mod.f gate was OFF in a base position and in a two-argument super() first
+	// argument, so those paths behaved exactly as on dev. Each pinned a KNOWN WRONG EDGE carried to GCLI-151.
+	// GCLI-155 turned the gate on in both positions: the super() first-argument pins below now assert the refusal,
+	// and the base-position pin asserts that a written base stays opaque while the descendant relationship dev
+	// read survives (`baseAlternatives` reads the base write-blind), so `self.__class__` keeps dev's answer.
 	const observe = async (files: Record<string, string>) => {
 		const r = await analyze(Object.entries(files).map(([path, source]) => py(path, source)));
 		const byId = new Map(r.symbols.map((x) => [x.id, x]));
@@ -2599,23 +2602,23 @@ describe("GCLI-140 — an attribute write is a binding of that attribute", () =>
 	};
 	const mClass = "class A:\n    def m(self):\n        pass\nclass C(A):\n    pass\n";
 
-	test("(a80) a written class name in a super() first argument falls back as on dev (known wrong edge, GCLI-151)", async () => {
+	test("(a80 B1) a written class name in a super() first argument refuses (GCLI-155 #8)", async () => {
 		const app =
 			"import m\ndef other():\n    pass\nm.C = other\nclass B:\n    def m(self):\n        pass\nclass D(B):\n    def m(self):\n        super(m.C, self).m()\n";
 		const r = await observe({ "m.py": mClass, "app.py": app });
-		expect(r.edges).toEqual(["call app.py:10:9 -> m.py:A.m"]);
-		expect(r.bins).toEqual({ inRepo: 1, external: 1, receiver: 0, nameNotBound: 0 });
+		expect(r.edges).toEqual([]);
+		expect(r.bins).toEqual({ inRepo: 0, external: 1, receiver: 1, nameNotBound: 0 });
 	});
 
-	test("(a80) the from-import super() first argument falls back as on dev (known wrong edge, GCLI-151)", async () => {
+	test("(a80 B1b) the from-import super() first argument refuses (GCLI-155 #8b)", async () => {
 		const app =
 			"from m import C\nimport m\ndef other():\n    pass\nm.C = other\nclass B:\n    def m(self):\n        pass\nclass D(B):\n    def m(self):\n        super(C, self).m()\n";
 		const r = await observe({ "m.py": mClass, "app.py": app });
-		expect(r.edges).toEqual(["call app.py:11:9 -> m.py:A.m"]);
-		expect(r.bins).toEqual({ inRepo: 1, external: 1, receiver: 0, nameNotBound: 0 });
+		expect(r.edges).toEqual([]);
+		expect(r.bins).toEqual({ inRepo: 0, external: 1, receiver: 1, nameNotBound: 0 });
 	});
 
-	test("(a80) a written class name in a base position behaves as on dev (known wrong edge, GCLI-151)", async () => {
+	test("(a80 B1) a written class name in a base position stays opaque, and dev's descendant read survives", async () => {
 		const mUse =
 			"class C:\n    def m(self):\n        pass\n    def use(self):\n        k = self.__class__\n        k.m()\n";
 		const direct = await observe({
@@ -2719,27 +2722,39 @@ describe("GCLI-154 — binder-side attribute writes", () => {
 		expect(ms(twin)).toEqual(["m.py:C.m"]);
 	});
 
-	test("#3 write-blind control: m.C = other leaves the BASE position and X().m() as on dev", async () => {
+	test("#7 (GCLI-155): m.C = other leaves the BASE position opaque; X().m() refuses; the twin resolves", async () => {
 		const others = { "m.py": "class C:\n    def m(self):\n        pass\n" };
 		const base = await probe(
 			"import m\ndef other(self):\n    pass\nm.C = other\nclass X(m.C):\n    pass\nCALL\n",
 			"X().m()",
 			others,
 		);
-		expect(ms(base)).toEqual(["m.py:C.m"]);
+		expect(ms(base)).toEqual([]);
+		const twin = await probe(
+			"import m\ndef other(self):\n    pass\nclass X(m.C):\n    pass\nCALL\n",
+			"X().m()",
+			others,
+		);
+		expect(ms(twin)).toEqual(["m.py:C.m"]);
 	});
 
-	test("#3 write-blind control: m.C = other leaves the two-arg super() first argument as on dev", async () => {
+	test("#8 (GCLI-155): m.C = other refuses the two-arg super() first argument; the twin resolves", async () => {
 		const others = {
 			"m.py": "class A:\n    def m(self):\n        pass\nclass C(A):\n    def m(self):\n        pass\n",
 		};
-		// The first argument m.C is read write-blind (a80), so it is still class C and super() continues to A.m.
+		// The first argument m.C is written, so it names no class and there is no fallback to the enclosing class.
 		const r = await probe(
 			"import m\ndef other(self):\n    pass\nm.C = other\nclass B(m.A):\n    def m(self):\n        CALL\n",
 			"super(m.C, self).m()",
 			others,
 		);
-		expect(r.callees).toEqual(["m.py:A.m"]);
+		expect(r.callees).toEqual([]);
+		const twin = await probe(
+			"import m\ndef other(self):\n    pass\nclass B(m.A):\n    def m(self):\n        CALL\n",
+			"super(m.C, self).m()",
+			others,
+		);
+		expect(twin.callees).toEqual(["m.py:A.m"]);
 	});
 
 	test("#4 type(self).m = other is dev-equal (control): self.m() resolves", async () => {
@@ -3085,5 +3100,233 @@ describe("GCLI-154 (a84) — remaining item-2 shapes and controls", () => {
 		const isSubset = (sup: string[], sub: string[]) => sub.every((e) => sup.includes(e));
 		expect(isSubset([...head, "app.py:C.m"], head)).toBe(true);
 		expect(isSubset(head, [...head, "app.py:Injected.m"])).toBe(false);
+	});
+});
+
+// GCLI-155 (DEC-303 (a79) Q-B, (a80) items 1 and 3): the read-side one-path consumers. Every resolution path that
+// did not consult an already recorded attribute write now refuses: the defining module's own bare call (#1), an
+// imported instance's attribute call (#5), a written class name in a base position (#7) and in a two-argument
+// super() first argument (#8, #8b), the enclosing-class fallback for an unresolved super() first argument (#10),
+// the star importer's bare call (#12), classSymbolOfName's alias read and R4 local (#13), a class-attribute
+// decorator (#14) and the construction path's __init__ edge (#16). #9 is the (a80) B2 carry: the descendant
+// relationship a written base name keeps must not become a created `C.m` edge. Removal-only; the dev edges #10
+// removes are named in the PR.
+describe("GCLI-155 — read-side attribute-write consumers", () => {
+	const cls = "class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\n";
+	const other = "def other(self):\n    pass\n";
+	const observe = async (files: Record<string, string>) => {
+		const r = await analyze(Object.entries(files).map(([path, source]) => py(path, source)));
+		const byId = new Map(r.symbols.map((x) => [x.id, x]));
+		const edges = r.sites
+			.map((s) => {
+				const c = s.calleeId === null ? undefined : byId.get(s.calleeId);
+				return `${s.kind} ${s.file}:${s.line}:${s.column} -> ${c?.file}:${c?.qualname}${s.polymorphic ? " POLY" : ""}${s.multiplyBound ? " MULTI" : ""}`;
+			})
+			.sort();
+		const b = r.callBins;
+		return {
+			edges,
+			bins: {
+				inRepo: b.resolvedInRepo,
+				external: b.resolvedExternal,
+				receiver: b.receiverNeedsInference,
+				nameNotBound: b.nameNotBound,
+			},
+			poly: r.polymorphicCount,
+		};
+	};
+
+	test("#1 Q-B: the defining module's own bare f() refuses after an importer writes m.f; the twin resolves", async () => {
+		const mModule = "def f():\n    pass\ndef n():\n    pass\ndef use():\n    f()\n    n()\n";
+		const written = await observe({ "m.py": mModule, "app.py": `import m\n${other}m.f = other\n` });
+		// The written name refuses; the neighbour n() on the same module resolves.
+		expect(written.edges).toEqual(["call m.py:7:5 -> m.py:n"]);
+		expect(written.bins).toEqual({ inRepo: 1, external: 0, receiver: 0, nameNotBound: 1 });
+		const twin = await observe({ "m.py": mModule, "app.py": `import m\n${other}` });
+		expect(twin.edges).toEqual(["call m.py:6:5 -> m.py:f", "call m.py:7:5 -> m.py:n"]);
+	});
+
+	test("#1 class-body read: a written module name read from a class body refuses; the class's own binding stands", async () => {
+		const mModule = "def f():\n    pass\nclass K:\n    x = f()\n";
+		const written = await observe({ "m.py": mModule, "app.py": `import m\n${other}m.f = other\n` });
+		expect(written.edges).toEqual([]);
+		expect(written.bins).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 });
+		const twin = await observe({ "m.py": mModule, "app.py": `import m\n${other}` });
+		expect(twin.edges).toEqual(["call m.py:4:9 -> m.py:f"]);
+		// GCLI-144/146: a class body that BINDS the name reads its own binding, not the module's, so no gate fires
+		// and the write changes nothing in the class body's own resolution.
+		const own = async (write: boolean) =>
+			(
+				await observe({
+					"m.py": "def f():\n    pass\nclass K:\n    f = staticmethod(f)\n    x = f()\n",
+					"app.py": `import m\n${other}${write ? "m.f = other\n" : ""}`,
+				})
+			).bins;
+		expect(await own(true)).toEqual(await own(false));
+	});
+
+	test("#5: from m import inst; inst.m = other refuses inst.m(); the neighbour inst.n() resolves", async () => {
+		const files = (write: boolean) => ({
+			"m.py": `${cls}inst = C()\n`,
+			"app.py": `from m import inst\n${other}${write ? "inst.m = other\n" : ""}inst.m()\ninst.n()\n`,
+		});
+		const written = await observe(files(true));
+		expect(written.edges).toEqual(["call app.py:6:1 -> m.py:C.n", "new m.py:6:8 -> m.py:C"]);
+		expect(written.bins).toEqual({ inRepo: 2, external: 0, receiver: 1, nameNotBound: 0 });
+		const twin = await observe(files(false));
+		expect(twin.edges).toEqual([
+			"call app.py:4:1 -> m.py:C.m",
+			"call app.py:5:1 -> m.py:C.n",
+			"new m.py:6:8 -> m.py:C",
+		]);
+	});
+
+	test("#7: class X(m.C) after m.C = other refuses x.m() and x.n(); the twin resolves both", async () => {
+		const files = (write: boolean) => ({
+			"m.py": cls,
+			"app.py": `import m\n${other}${write ? "m.C = other\n" : ""}class X(m.C):\n    pass\nx = X()\nx.m()\nx.n()\n`,
+		});
+		// The base is opaque: the inherited m and its neighbour n both refuse; the class's own construction stands.
+		const written = await observe(files(true));
+		expect(written.edges).toEqual(["new app.py:7:5 -> app.py:X"]);
+		expect(written.bins).toEqual({ inRepo: 1, external: 0, receiver: 2, nameNotBound: 0 });
+		const twin = await observe(files(false));
+		expect(twin.edges).toEqual([
+			"call app.py:7:1 -> m.py:C.m",
+			"call app.py:8:1 -> m.py:C.n",
+			"new app.py:6:5 -> app.py:X",
+		]);
+	});
+
+	test("#8: super(m.C, self).m() refuses after m.C = other; the twin resolves A.m", async () => {
+		const mClass = "class A:\n    def m(self):\n        pass\nclass C(A):\n    def m(self):\n        pass\n";
+		const files = (write: boolean) => ({
+			"m.py": mClass,
+			"app.py": `import m\n${other}${write ? "m.C = other\n" : ""}class B(m.A):\n    def m(self):\n        super(m.C, self).m()\n`,
+		});
+		const written = await observe(files(true));
+		expect(written.edges).toEqual([]);
+		expect(written.bins).toEqual({ inRepo: 0, external: 1, receiver: 1, nameNotBound: 0 });
+		const twin = await observe(files(false));
+		expect(twin.edges).toEqual(["call app.py:6:9 -> m.py:A.m"]);
+	});
+
+	test("#8b: the from-import super(C, self).m() refuses after m.C = other; the twin resolves", async () => {
+		const mClass = "class A:\n    def m(self):\n        pass\nclass C(A):\n    def m(self):\n        pass\n";
+		const files = (write: boolean) => ({
+			"m.py": mClass,
+			"app.py": `from m import C\nimport m\n${other}${write ? "m.C = other\n" : ""}class B(m.A):\n    def m(self):\n        super(C, self).m()\n`,
+		});
+		const written = await observe(files(true));
+		expect(written.edges).toEqual([]);
+		expect(written.bins).toEqual({ inRepo: 0, external: 1, receiver: 1, nameNotBound: 0 });
+		const twin = await observe(files(false));
+		expect(twin.edges).toEqual(["call app.py:7:9 -> m.py:A.m"]);
+	});
+
+	test("#9 (a80 B2): a written base name keeps dev's descendant read, so self.__class__ stays refused", async () => {
+		const mUse =
+			"class C:\n    def m(self):\n        pass\n    def use(self):\n        k = self.__class__\n        k.m()\n        self.m()\n";
+		const app = (write: boolean) =>
+			`import m\n${other}${write ? "m.C = other\n" : ""}class D(m.C):\n    __class__ = None\n`;
+		// GCLI-155 #7 must not create `C.m` here: D stays a possible descendant of C (baseAlternatives reads the
+		// base write-blind), so self.__class__ is still refused; the same-class self.m() read still resolves.
+		const written = await observe({ "m.py": mUse, "app.py": app(true) });
+		expect(written.edges).toEqual(["call m.py:7:9 -> m.py:C.m"]);
+		expect(written.bins).toEqual({ inRepo: 1, external: 0, receiver: 1, nameNotBound: 0 });
+		const twin = await observe({ "m.py": mUse, "app.py": app(false) });
+		expect(twin.edges).toEqual(written.edges);
+	});
+
+	test("#10: an unresolved super() first argument refuses instead of falling back to the enclosing class", async () => {
+		const external = await observe({
+			"app.py":
+				"from ext import Base\nclass B:\n    def m(self):\n        pass\nclass D(B):\n    def m(self):\n        super(Base, self).m()\n",
+		});
+		expect(external.edges).toEqual([]);
+		expect(external.bins).toEqual({ inRepo: 0, external: 1, receiver: 1, nameNotBound: 0 });
+		const param = await observe({
+			"app.py":
+				"class B:\n    def m(self):\n        pass\nclass D(B):\n    def m(self, base):\n        super(base, self).m()\n",
+		});
+		expect(param.edges).toEqual([]);
+		expect(param.bins).toEqual({ inRepo: 0, external: 1, receiver: 1, nameNotBound: 0 });
+		// The resolving twin: a first argument that names an in-repo class reads after that class.
+		const twin = await observe({
+			"app.py":
+				"class B:\n    def m(self):\n        pass\nclass Base(B):\n    def m(self):\n        pass\nclass D(B):\n    def m(self):\n        super(Base, self).m()\n",
+		});
+		expect(twin.edges).toEqual(["call app.py:9:9 -> app.py:B.m"]);
+	});
+
+	test("#12 N2: a star importer's bare f() refuses after s.f is written; the neighbour g() resolves", async () => {
+		const s = "def f():\n    pass\ndef g():\n    pass\n";
+		const mModule = "from s import *\ndef h():\n    f()\n    g()\n";
+		const written = await observe({ "s.py": s, "m.py": mModule, "app.py": `import s\n${other}s.f = other\n` });
+		expect(written.edges).toEqual(["call m.py:4:5 -> s.py:g"]);
+		expect(written.bins).toEqual({ inRepo: 1, external: 0, receiver: 0, nameNotBound: 1 });
+		const twin = await observe({ "s.py": s, "m.py": mModule, "app.py": "import s\n" });
+		expect(twin.edges).toEqual(["call m.py:3:5 -> s.py:f", "call m.py:4:5 -> s.py:g"]);
+	});
+
+	test("#13 N3: the classSymbolOfName alias read and the R4 local refuse after m.C = other", async () => {
+		const app = (write: boolean) =>
+			`from m import C\nimport m\n${other}${write ? "m.C = other\n" : ""}def g():\n    h = C.m\n    h()\ndef k():\n    x = C()\n    x.m()\n    x.n()\n`;
+		// h = C.m and h() are refused by the name gate; the R4 local's x.m() and its neighbour x.n() are refused
+		// because the construction names no class symbol any more.
+		const written = await observe({ "m.py": cls, "app.py": app(true) });
+		expect(written.edges).toEqual([]);
+		expect(written.bins).toEqual({ inRepo: 0, external: 0, receiver: 2, nameNotBound: 2 });
+		const twin = await observe({ "m.py": cls, "app.py": app(false) });
+		expect(twin.edges).toEqual([
+			"call app.py:10:5 -> m.py:C.m",
+			"call app.py:11:5 -> m.py:C.n",
+			"call app.py:7:5 -> m.py:C.m",
+			"new app.py:9:9 -> m.py:C",
+		]);
+	});
+
+	test("#14 N4: a decorator @C.m refuses after C.m = other; the twin reaches the def", async () => {
+		// No call in this module: the decorator loop must collect the write sets itself.
+		const app = (write: boolean) =>
+			`class C:\n    def m(self, dec):\n        return dec\n${write ? "def other(dec):\n    return dec\nC.m = other\n" : ""}@C.m\ndef g():\n    pass\n`;
+		const written = await observe({ "app.py": app(true) });
+		expect(written.edges).toEqual([]);
+		expect(written.bins).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 0 });
+		const twin = await observe({ "app.py": app(false) });
+		expect(twin.edges).toEqual(["decorator app.py:4:2 -> app.py:C.m"]);
+	});
+
+	test("#16 N6: C.__init__ = other refuses the __init__ edge; the class construction edge stands", async () => {
+		const files = (write: boolean) => ({
+			"m.py": "class C:\n    def __init__(self):\n        pass\n    def m(self):\n        pass\n",
+			"app.py": `from m import C\n${other}${write ? "C.__init__ = other\n" : ""}x = C()\nx.m()\n`,
+		});
+		// The constructor's method edge is refused; `C()` still constructs C, and the neighbour read stands.
+		const written = await observe(files(true));
+		expect(written.edges).toEqual(["call app.py:6:1 -> m.py:C.m", "new app.py:5:5 -> m.py:C"]);
+		expect(written.bins).toEqual({ inRepo: 2, external: 0, receiver: 0, nameNotBound: 0 });
+		const twin = await observe(files(false));
+		expect(twin.edges).toEqual([
+			"call app.py:5:1 -> m.py:C.m",
+			"new app.py:4:5 -> m.py:C",
+			"new app.py:4:5 -> m.py:C.__init__",
+		]);
+	});
+
+	test("#16b: a class-level __init__ write on a local class refuses the __init__ edge too", async () => {
+		const r = await observe({
+			"app.py": `class C:\n    def __init__(self):\n        pass\n    def m(self):\n        pass\n${other}C.__init__ = other\nx = C()\nx.m()\n`,
+		});
+		expect(r.edges).toEqual(["call app.py:10:1 -> app.py:C.m", "new app.py:9:5 -> app.py:C"]);
+	});
+
+	test("#16 precision: a __init__ write on a base the MRO's own def precedes does not refuse the constructor", async () => {
+		const r = await observe({
+			"app.py":
+				"class A:\n    def __init__(self):\n        pass\nclass C(A):\n    def __init__(self):\n        pass\nclass App(C):\n    pass\ndef other(self):\n    pass\nA.__init__ = other\nx = App()\n",
+		});
+		// App's MRO reaches C's own def before A, so A's write is shadowed and the init edge to C.__init__ stands.
+		expect(r.edges).toEqual(["new app.py:12:5 -> app.py:App", "new app.py:12:5 -> app.py:C.__init__"]);
 	});
 });
