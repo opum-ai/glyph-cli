@@ -3952,6 +3952,31 @@ describe("GCLI-156 — a write on an in-repo descendant (DEC-303 (a88), shape #6
 		expect(written.bins).toEqual(REFUSED);
 	});
 
+	// GCLI-171 (DEC-303 (a94) item 5, (2b)): the loop read each descendant's OWN write set, so a write recorded on
+	// the descendant's MIXIN was invisible. The fixture pair is a write on `C(Mixin, B)`'s Mixin (refused now, it
+	// resolved before) and the same shape without the write (resolving twin). A write on C itself still refuses.
+	test("#6 (a94 item 5, 2b): a descendant's MIXIN write leaves the base call unresolved", async () => {
+		const written = await observe({
+			"app.py": base(
+				"\nclass Mixin:\n    def setup(self):\n        self.m = lambda: 2\n\nclass C(Mixin, B):\n    pass\n",
+			),
+		});
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+		const twin = await observe({
+			"app.py": base("\nclass Mixin:\n    def setup(self):\n        self.other = 2\n\nclass C(Mixin, B):\n    pass\n"),
+		});
+		expect(twin.callees).toEqual(["call:app.py:B.m"]);
+		expect(twin.bins).toEqual(RESOLVED);
+		const own = await observe({
+			"app.py": base(
+				"\nclass Mixin:\n    pass\n\nclass C(Mixin, B):\n    def setup(self):\n        self.m = lambda: 2\n",
+			),
+		});
+		expect(own.callees).toEqual([]);
+		expect(own.bins).toEqual(REFUSED);
+	});
+
 	test("#6 class-level descendant write (C.m = other) refuses as well", async () => {
 		const written = await observe({ "app.py": base("\nclass C(B):\n    pass\nC.m = lambda self: 2\n") });
 		expect(written.callees).toEqual([]);

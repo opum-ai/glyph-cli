@@ -3502,8 +3502,9 @@ class Resolver {
 	 * The width is the ruling's: relative and absolute spellings agree because both resolve to the class's own
 	 * declaration site, and a conditional import counts only when it names the same class (5.7's `__main__` and 5.8's
 	 * `TYPE_CHECKING` imports do). Anything else refuses: two imports binding DIFFERENT classes, an import followed by
-	 * a non-import rebinding (which `resolveBareName` answers as rebound, never multiply), and an import that resolves
-	 * to an unresolved, external or module target. A `multiply` whose symbols happen to collapse to one class is not
+	 * a dynamic non-import rebinding (which `resolveBareName` answers as rebound, never multiply), a `def` or `class`
+	 * rebound binding of the name (not dynamic, so it reaches multiply and is refused here per binding), and an import
+	 * that resolves to an unresolved, external or module target. A `multiply` whose symbols happen to collapse to one class is not
 	 * enough on its own: `resolveMultiply` drops the alternatives it could not resolve, and one of those could be the
 	 * binding a read sees.
 	 */
@@ -3993,8 +3994,16 @@ class Resolver {
 		// apply there and the check stays off that path.
 		if (!fromSuper) {
 			for (const descendant of this.descendantsOf(receiver)) {
-				if (this.classAttrWrites.get(descendant.id)?.has(name) === true) {
-					return { bin: "receiver", reason: "needs-inference" };
+				// GCLI-171 (DEC-303 (a94) item 5, (2b)): the write may sit on the descendant's own MRO, a mixin
+				// included, so each descendant's MRO is walked as `descendantClassWritten` walks it. Reading only the
+				// descendant's own write set missed `C(Mixin, B)` whose Mixin writes the attribute. A descendant whose
+				// MRO cannot be computed could carry any base: fail closed, as there too. Removal-only.
+				const descendantMro = this.computeMro(descendant);
+				if (!descendantMro.ok) return { bin: "receiver", reason: "needs-inference" };
+				for (const entry of descendantMro.entries) {
+					if (entry.kind === "class" && this.classAttrWrites.get(entry.info.id)?.has(name) === true) {
+						return { bin: "receiver", reason: "needs-inference" };
+					}
 				}
 			}
 		}
