@@ -2722,16 +2722,14 @@ describe("GCLI-154 — binder-side attribute writes", () => {
 		expect(ms(twin)).toEqual(["m.py:C.m"]);
 	});
 
-	test("#7 (GCLI-155, OUT of #238 and restored to dev): m.C = other leaves the base position resolving; X().m() gives C.m", async () => {
-		// DEC-303 (a86) item 2 fallback: #7 is out of #238 with its gated-MRO machinery, so the base position reads
-		// exactly as on dev; the fixture pins dev's outcome and turns red if the gate is re-enabled.
+	test("#7 (GCLI-155): m.C = other leaves the BASE position opaque; X().m() refuses; the twin resolves", async () => {
 		const others = { "m.py": "class C:\n    def m(self):\n        pass\n" };
 		const base = await probe(
 			"import m\ndef other(self):\n    pass\nm.C = other\nclass X(m.C):\n    pass\nCALL\n",
 			"X().m()",
 			others,
 		);
-		expect(ms(base)).toEqual(["m.py:C.m"]);
+		expect(ms(base)).toEqual([]);
 		const twin = await probe(
 			"import m\ndef other(self):\n    pass\nclass X(m.C):\n    pass\nCALL\n",
 			"X().m()",
@@ -3105,9 +3103,14 @@ describe("GCLI-154 (a84) — remaining item-2 shapes and controls", () => {
 	});
 });
 
-// GCLI-155 (DEC-303 (a79) Q-B, (a80) items 1 and 3): the read-side one-path consumers. #5, #8/#8b, #10 and #16 are
-// kept in #238. #1, #7, #12, #13 and #14 are OUT of #238 under the (a86) item 2 fallback (GCLI-159) and their
-// fixtures below pin dev's outcome. #9 is the (a80) B2 carry, a dev-passing control.
+// GCLI-155 (DEC-303 (a79) Q-B, (a80) items 1 and 3): the read-side one-path consumers. Every resolution path that
+// did not consult an already recorded attribute write now refuses: the defining module's own bare call (#1), an
+// imported instance's attribute call (#5), a written class name in a base position (#7) and in a two-argument
+// super() first argument (#8, #8b), the enclosing-class fallback for an unresolved super() first argument (#10),
+// the star importer's bare call (#12), classSymbolOfName's alias read and R4 local (#13), a class-attribute
+// decorator (#14) and the construction path's __init__ edge (#16). #9 is the (a80) B2 carry: the descendant
+// relationship a written base name keeps must not become a created `C.m` edge. Removal-only; the dev edges #10
+// removes are named in the PR.
 describe("GCLI-155 — read-side attribute-write consumers", () => {
 	const cls = "class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\n";
 	const other = "def other(self):\n    pass\n";
@@ -3133,23 +3136,21 @@ describe("GCLI-155 — read-side attribute-write consumers", () => {
 		};
 	};
 
-	test("#1 Q-B (OUT of #238, restored to dev): the defining module's own bare f() resolves after an importer writes m.f", async () => {
+	test("#1 Q-B: the defining module's own bare f() refuses after an importer writes m.f; the twin resolves", async () => {
 		const mModule = "def f():\n    pass\ndef n():\n    pass\ndef use():\n    f()\n    n()\n";
 		const written = await observe({ "m.py": mModule, "app.py": `import m\n${other}m.f = other\n` });
-		// DEC-303 (a86) item 2 fallback: #1's module-scope gate is out of #238; dev ignores the importer's write and
-		// resolves both the written name and its neighbour. The fixture pins dev's outcome.
-		expect(written.edges).toEqual(["call m.py:6:5 -> m.py:f", "call m.py:7:5 -> m.py:n"]);
-		expect(written.bins).toEqual({ inRepo: 2, external: 0, receiver: 0, nameNotBound: 0 });
+		// The written name refuses; the neighbour n() on the same module resolves.
+		expect(written.edges).toEqual(["call m.py:7:5 -> m.py:n"]);
+		expect(written.bins).toEqual({ inRepo: 1, external: 0, receiver: 0, nameNotBound: 1 });
 		const twin = await observe({ "m.py": mModule, "app.py": `import m\n${other}` });
 		expect(twin.edges).toEqual(["call m.py:6:5 -> m.py:f", "call m.py:7:5 -> m.py:n"]);
 	});
 
-	test("#1 class-body read (OUT of #238, restored to dev): a written module name read from a class body resolves", async () => {
+	test("#1 class-body read: a written module name read from a class body refuses; the class's own binding stands", async () => {
 		const mModule = "def f():\n    pass\nclass K:\n    x = f()\n";
 		const written = await observe({ "m.py": mModule, "app.py": `import m\n${other}m.f = other\n` });
-		// DEC-303 (a86) item 2 fallback: #1 is out of #238, so the class-body read resolves as on dev.
-		expect(written.edges).toEqual(["call m.py:4:9 -> m.py:f"]);
-		expect(written.bins).toEqual({ inRepo: 1, external: 0, receiver: 0, nameNotBound: 0 });
+		expect(written.edges).toEqual([]);
+		expect(written.bins).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 });
 		const twin = await observe({ "m.py": mModule, "app.py": `import m\n${other}` });
 		expect(twin.edges).toEqual(["call m.py:4:9 -> m.py:f"]);
 		// CONTROL (dev-passing): GCLI-144/146: a class body that BINDS the name reads its own binding, not the
@@ -3180,75 +3181,15 @@ describe("GCLI-155 — read-side attribute-write consumers", () => {
 		]);
 	});
 
-	test("R1 (a86 item 2, OUT of #238, dev outcome): a multiply-bound module-scope base with a write keeps dev's descendant read and POLY", async () => {
-		// DEC-303 (a86) item 2 fallback: the round-2 reviewer input R1. The #1/#12 module-scope gate is out of #238, so
-		// each variant reads exactly as dev: the base stays a normal base, D stays a descendant of B, k.m() is refused
-		// by D's __class__ binding, and self.m()/cls() keep POLY. The attr-arm control is dev-equal by construction.
-		const r2B = (i: string) =>
-			[
-				`${i}class B:`,
-				`${i}    def m(self):`,
-				`${i}        pass`,
-				`${i}    def use(self):`,
-				`${i}        k = self.__class__`,
-				`${i}        k.m()`,
-				`${i}        self.m()`,
-				`${i}    @classmethod`,
-				`${i}    def make(cls):`,
-				`${i}        return cls()`,
-			].join("\n");
-		const app = (write: boolean) => `import m\n${other}${write ? "m.B = other\n" : ""}`;
-		const tryFiles = {
-			"m.py": `try:\n    from ext import B\nexcept ImportError:\n${r2B("    ")}\nclass D(B):\n    __class__ = None\n    def m(self):\n        pass\n`,
-			"app.py": app(true),
-		};
-		const written = await observe(tryFiles);
-		expect(written.edges).toEqual(["call m.py:10:13 -> m.py:B.m POLY", "new m.py:13:20 -> m.py:B POLY"]);
-		expect(written.bins).toEqual({ inRepo: 2, external: 0, receiver: 1, nameNotBound: 0 });
-		expect(written.poly).toBe(2);
-		const ifFiles = {
-			"m.py": `import sys\nif sys.version_info:\n${r2B("    ")}\nelse:\n${r2B("    ")}\nclass D(B):\n    __class__ = None\n    def m(self):\n        pass\n`,
-			"app.py": app(true),
-		};
-		const ifWritten = await observe(ifFiles);
-		expect(ifWritten.edges).toEqual([
-			"call m.py:20:13 -> m.py:B.m POLY",
-			"call m.py:9:13 -> m.py:B.m POLY",
-			"new m.py:12:20 -> m.py:B POLY",
-			"new m.py:23:20 -> m.py:B POLY",
-		]);
-		expect(ifWritten.poly).toBe(4);
-		const starFiles = {
-			"m.py": `try:\n    from ext import B\nexcept ImportError:\n${r2B("    ")}\n`,
-			"n.py": "from m import *\nclass D(B):\n    __class__ = None\n    def m(self):\n        pass\n",
-			"app.py": app(true),
-		};
-		const star = await observe(starFiles);
-		expect(star.edges).toEqual(["call m.py:10:13 -> m.py:B.m POLY", "new m.py:13:20 -> m.py:B POLY"]);
-		expect(star.poly).toBe(2);
-		const control = await observe({
-			"m.py": `${r2B("")}\n`,
-			"app.py":
-				"import m\ndef other(self):\n    pass\nm.B = other\nclass D(m.B):\n    __class__ = None\n    def m(self):\n        pass\n",
-		});
-		expect(control.edges).toEqual(["call m.py:7:9 -> m.py:B.m POLY", "new m.py:10:16 -> m.py:B POLY"]);
-		expect(control.poly).toBe(2);
-	});
-
-	test("#7 (OUT of #238, restored to dev): class X(m.C) after m.C = other resolves x.m() and x.n()", async () => {
+	test("#7: class X(m.C) after m.C = other refuses x.m() and x.n(); the twin resolves both", async () => {
 		const files = (write: boolean) => ({
 			"m.py": cls,
 			"app.py": `import m\n${other}${write ? "m.C = other\n" : ""}class X(m.C):\n    pass\nx = X()\nx.m()\nx.n()\n`,
 		});
-		// DEC-303 (a86) item 2 fallback: #7's gated MRO is out of #238, so the written base stays an ordinary base
-		// and both inherited calls resolve, as on dev. The fixture pins dev's outcome.
+		// The base is opaque: the inherited m and its neighbour n both refuse; the class's own construction stands.
 		const written = await observe(files(true));
-		expect(written.edges).toEqual([
-			"call app.py:8:1 -> m.py:C.m",
-			"call app.py:9:1 -> m.py:C.n",
-			"new app.py:7:5 -> app.py:X",
-		]);
-		expect(written.bins).toEqual({ inRepo: 3, external: 0, receiver: 0, nameNotBound: 0 });
+		expect(written.edges).toEqual(["new app.py:7:5 -> app.py:X"]);
+		expect(written.bins).toEqual({ inRepo: 1, external: 0, receiver: 2, nameNotBound: 0 });
 		const twin = await observe(files(false));
 		expect(twin.edges).toEqual([
 			"call app.py:7:1 -> m.py:C.m",
@@ -3318,29 +3259,24 @@ describe("GCLI-155 — read-side attribute-write consumers", () => {
 		expect(twin.edges).toEqual(["call app.py:9:9 -> app.py:B.m"]);
 	});
 
-	test("#12 N2 (OUT of #238, restored to dev): a star importer's bare f() resolves after s.f is written", async () => {
+	test("#12 N2: a star importer's bare f() refuses after s.f is written; the neighbour g() resolves", async () => {
 		const s = "def f():\n    pass\ndef g():\n    pass\n";
 		const mModule = "from s import *\ndef h():\n    f()\n    g()\n";
 		const written = await observe({ "s.py": s, "m.py": mModule, "app.py": `import s\n${other}s.f = other\n` });
-		// DEC-303 (a86) item 2 fallback: #12's star-resolution gate is out of #238; dev resolves both.
-		expect(written.edges).toEqual(["call m.py:3:5 -> s.py:f", "call m.py:4:5 -> s.py:g"]);
-		expect(written.bins).toEqual({ inRepo: 2, external: 0, receiver: 0, nameNotBound: 0 });
+		expect(written.edges).toEqual(["call m.py:4:5 -> s.py:g"]);
+		expect(written.bins).toEqual({ inRepo: 1, external: 0, receiver: 0, nameNotBound: 1 });
 		const twin = await observe({ "s.py": s, "m.py": mModule, "app.py": "import s\n" });
 		expect(twin.edges).toEqual(["call m.py:3:5 -> s.py:f", "call m.py:4:5 -> s.py:g"]);
 	});
 
-	test("#13 N3 (OUT of #238, restored to dev): the classSymbolOfName alias read and the R4 local resolve after m.C = other", async () => {
+	test("#13 N3: the classSymbolOfName alias read and the R4 local refuse after m.C = other", async () => {
 		const app = (write: boolean) =>
 			`from m import C\nimport m\n${other}${write ? "m.C = other\n" : ""}def g():\n    h = C.m\n    h()\ndef k():\n    x = C()\n    x.m()\n    x.n()\n`;
-		// DEC-303 (a86) item 2 fallback: #13's classSymbolOfName gate is out of #238; dev resolves h = C.m and the
-		// R4 local's x.m()/x.n(), and refuses C() itself through the pre-existing moduleBindingGate.
+		// h = C.m and h() are refused by the name gate; the R4 local's x.m() and its neighbour x.n() are refused
+		// because the construction names no class symbol any more.
 		const written = await observe({ "m.py": cls, "app.py": app(true) });
-		expect(written.edges).toEqual([
-			"call app.py:11:5 -> m.py:C.m",
-			"call app.py:12:5 -> m.py:C.n",
-			"call app.py:8:5 -> m.py:C.m",
-		]);
-		expect(written.bins).toEqual({ inRepo: 3, external: 0, receiver: 0, nameNotBound: 1 });
+		expect(written.edges).toEqual([]);
+		expect(written.bins).toEqual({ inRepo: 0, external: 0, receiver: 2, nameNotBound: 2 });
 		const twin = await observe({ "m.py": cls, "app.py": app(false) });
 		expect(twin.edges).toEqual([
 			"call app.py:10:5 -> m.py:C.m",
@@ -3350,17 +3286,78 @@ describe("GCLI-155 — read-side attribute-write consumers", () => {
 		]);
 	});
 
-	test("#14 N4 (OUT of #238, restored to dev): a decorator @C.m reaches the def after C.m = other", async () => {
+	test("#14 N4: a decorator @C.m refuses after C.m = other; the twin reaches the def", async () => {
 		// No call in this module: the decorator loop must collect the write sets itself.
-		// DEC-303 (a86) item 2 fallback: #14's decorator gate and its collection call are out of #238; dev ignores
-		// the class-level write and reaches the def.
 		const app = (write: boolean) =>
 			`class C:\n    def m(self, dec):\n        return dec\n${write ? "def other(dec):\n    return dec\nC.m = other\n" : ""}@C.m\ndef g():\n    pass\n`;
 		const written = await observe({ "app.py": app(true) });
-		expect(written.edges).toEqual(["decorator app.py:7:2 -> app.py:C.m"]);
+		expect(written.edges).toEqual([]);
 		expect(written.bins).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 0 });
 		const twin = await observe({ "app.py": app(false) });
 		expect(twin.edges).toEqual(["decorator app.py:4:2 -> app.py:C.m"]);
+	});
+
+	test("R1 (a86 item 2 fallback, GCLI-159): a multiply-bound module-scope base with a write keeps dev's descendant read and POLY", async () => {
+		// The shape #238 round 2 blocked on: a base bound twice at module scope whose name an importer writes. The
+		// build must be removal-only BY CONSTRUCTION, so this fixture is GREEN ON DEV AND GREEN ON HEAD — it pins
+		// dev's exact outcome and turns red if any base RELATION reads a gate. Measured red on 2b3a2ba without the
+		// `baseAlternatives` bypass (mutant K5): a CREATED m.py:B.m edge and both POLY flags dropped.
+		const r2B = (i: string) =>
+			[
+				`${i}class B:`,
+				`${i}    def m(self):`,
+				`${i}        pass`,
+				`${i}    def use(self):`,
+				`${i}        k = self.__class__`,
+				`${i}        k.m()`,
+				`${i}        self.m()`,
+				`${i}    @classmethod`,
+				`${i}    def make(cls):`,
+				`${i}        return cls()`,
+			].join("\n");
+		const app = (write: boolean) => `import m\n${other}${write ? "m.B = other\n" : ""}`;
+		const tryFiles = (write: boolean) => ({
+			"m.py": `try:\n    from ext import B\nexcept ImportError:\n${r2B("    ")}\nclass D(B):\n    __class__ = None\n    def m(self):\n        pass\n`,
+			"app.py": app(write),
+		});
+		const written = await observe(tryFiles(true));
+		expect(written.edges).toEqual(["call m.py:10:13 -> m.py:B.m POLY", "new m.py:13:20 -> m.py:B POLY"]);
+		expect(written.bins).toEqual({ inRepo: 2, external: 0, receiver: 1, nameNotBound: 0 });
+		expect(written.poly).toBe(2);
+		// Without-write twin: the same source with no write reads identically, so the write adds and removes nothing.
+		expect(await observe(tryFiles(false))).toEqual(await observe(tryFiles(true)));
+		const ifFiles = (write: boolean) => ({
+			"m.py": `import sys\nif sys.version_info:\n${r2B("    ")}\nelse:\n${r2B("    ")}\nclass D(B):\n    __class__ = None\n    def m(self):\n        pass\n`,
+			"app.py": app(write),
+		});
+		const ifWritten = await observe(ifFiles(true));
+		expect(ifWritten.edges).toEqual([
+			"call m.py:20:13 -> m.py:B.m POLY",
+			"call m.py:9:13 -> m.py:B.m POLY",
+			"new m.py:12:20 -> m.py:B POLY",
+			"new m.py:23:20 -> m.py:B POLY",
+		]);
+		expect(ifWritten.poly).toBe(4);
+		expect(await observe(ifFiles(false))).toEqual(await observe(ifFiles(true)));
+		// Star importer: the variant that does NOT reach the module-scope gate, so the bypass must cover the
+		// star-resolution path too rather than only `resolveBareName`'s module branch.
+		const starFiles = (write: boolean) => ({
+			"m.py": `try:\n    from ext import B\nexcept ImportError:\n${r2B("    ")}\n`,
+			"n.py": "from m import *\nclass D(B):\n    __class__ = None\n    def m(self):\n        pass\n",
+			"app.py": app(write),
+		});
+		const star = await observe(starFiles(true));
+		expect(star.edges).toEqual(["call m.py:10:13 -> m.py:B.m POLY", "new m.py:13:20 -> m.py:B POLY"]);
+		expect(star.poly).toBe(2);
+		expect(await observe(starFiles(false))).toEqual(await observe(starFiles(true)));
+		// CONTROL (attr-arm): `class D(m.B)` is a different base shape and is dev-equal in both directions.
+		const attrArm = async (write: boolean) =>
+			await observe({
+				"m.py": `${r2B("")}\n`,
+				"app.py": `import m\n${other}${write ? "m.B = other\n" : ""}class D(m.B):\n    __class__ = None\n    def m(self):\n        pass\n`,
+			});
+		expect(await attrArm(true)).toEqual(await attrArm(false));
+		expect((await attrArm(true)).edges).toEqual(["call m.py:7:9 -> m.py:B.m POLY", "new m.py:10:16 -> m.py:B POLY"]);
 	});
 
 	test("#16 N6: C.__init__ = other refuses the __init__ edge; the class construction edge stands", async () => {
@@ -3397,12 +3394,13 @@ describe("GCLI-155 — read-side attribute-write consumers", () => {
 	});
 });
 
-// GCLI-155 round 1 (DEC-303 (a86) item 1): the created-edge inputs the Opus reviewer found at 4e7e18b. Under the
-// (a86) item 2 fallback the gated-MRO machinery is OUT of #238 (moved to GCLI-159) and restored to dev, so these
-// fixtures now pin dev's outcome: the write-blind MRO is dev's own MRO, no entry is marked, and ancestor writes and
-// descendant relationships read exactly as on dev. Each fixture keeps its resolving twin and turns red if the gated
-// marking is re-enabled.
-describe("GCLI-155 round 1 — gated-base inputs, dev outcome after the fallback (DEC-303 (a86))", () => {
+// GCLI-155 round 1 (DEC-303 (a86) item 1): the created-edge inputs the Opus reviewer found at 4e7e18b. The MRO is
+// built write-blind, exactly as on dev; a base whose name a recorded write rebinds stays in it, marked GATED, and
+// every lookup that reaches or crosses it refuses (never falls through to the next base); the write sets are
+// collected with all three gates off, so no write is dropped by order or file name. Each fixture created an
+// in-repo edge at 4e7e18b and refuses here, and each has its resolving twin. Comments record dev `1887cd0`'s full
+// callees and bins, measured by the round-2 subset run.
+describe("GCLI-155 round 1 — gated bases and write-collection order (DEC-303 (a86))", () => {
 	const observe = async (files: Record<string, string>) => {
 		const r = await analyze(Object.entries(files).map(([path, source]) => py(path, source)));
 		const byId = new Map(r.symbols.map((x) => [x.id, x]));
@@ -3424,24 +3422,17 @@ describe("GCLI-155 round 1 — gated-base inputs, dev outcome after the fallback
 		};
 	};
 
-	test("R1 (a84 F1, OUT of #238, dev outcome): a written base stays an ordinary base", async () => {
+	test("R1 (a84 F1): a written base never falls through to the next base", async () => {
 		const files = (write: boolean) => ({
 			"m.py": "class C:\n    def __init__(self):\n        pass\n    def f(self):\n        pass\n",
 			"app.py": `import m\nclass Mixin:\n    def __init__(self):\n        pass\n    def f(self):\n        pass\n${write ? "m.C = object\n" : ""}class D(m.C, Mixin):\n    def go(self):\n        self.f()\n        super(D, self).f()\nD().f()\nD()\n`,
 		});
-		// DEC-303 (a86) item 2 fallback: the gated MRO is out of #238, so this is dev's outcome — the three f calls
-		// reach m.py:C.f, the class edge repeats, and the __init__ edge stands.
+		// dev: call:m.py:C.f x3, new:app.py:D x2, new:m.py:C.__init__ x2; bins {5,1,0,0}. 4e7e18b: Mixin.f|extbase x2,
+		// Mixin.__init__ x2 CREATED. Here the three f calls refuse and only the class edge stands; the init edge is
+		// gone with the gated base.
 		const written = await observe(files(true));
-		expect(written.callees).toEqual([
-			"call:m.py:C.f",
-			"call:m.py:C.f",
-			"call:m.py:C.f",
-			"new:app.py:D",
-			"new:app.py:D",
-			"new:m.py:C.__init__",
-			"new:m.py:C.__init__",
-		]);
-		expect(written.bins).toEqual({ inRepo: 5, external: 1, receiver: 0, nameNotBound: 0 });
+		expect(written.callees).toEqual(["new:app.py:D", "new:app.py:D"]);
+		expect(written.bins).toEqual({ inRepo: 2, external: 1, receiver: 3, nameNotBound: 0 });
 		const twin = await observe(files(false));
 		expect(twin.callees).toEqual([
 			"call:m.py:C.f",
@@ -3454,15 +3445,15 @@ describe("GCLI-155 round 1 — gated-base inputs, dev outcome after the fallback
 		]);
 	});
 
-	test("R2 (a84 F2, OUT of #238, dev outcome): an ancestor's write is ignored by a written base (constructed receiver)", async () => {
+	test("R2 (a84 F2): an ancestor's write survives a written base (constructed receiver)", async () => {
 		const mModule = (write: boolean) =>
 			`class B:\n    def __init__(self):\n${write ? "        self.f = None\n" : "        pass\n"}`;
 		const xModule = (write: boolean) =>
 			`import m\n${write ? "m.B = object\n" : ""}class C(m.B):\n    def f(self):\n        pass\nC().f()\n`;
-		// DEC-303 (a86) item 2 fallback: dev's outcome — the ancestor's write is ignored, so C().f() resolves and the
-		// B.__init__ edge stands.
+		// dev: new:m.py:B.__init__, new:x.py:C, receiver 1 (C().f() refused by B's write). 4e7e18b: C.f CREATED and
+		// the B.__init__ edge lost. Here the refusal stands and only the init edge is gone.
 		const written = await observe({ "m.py": mModule(true), "x.py": xModule(true) });
-		expect(written.callees).toEqual(["new:m.py:B.__init__", "new:x.py:C"]);
+		expect(written.callees).toEqual(["new:x.py:C"]);
 		expect(written.bins).toEqual({ inRepo: 1, external: 0, receiver: 1, nameNotBound: 0 });
 		const twin = await observe({ "m.py": mModule(false), "x.py": xModule(false) });
 		expect(twin.callees).toEqual(["call:x.py:C.f", "new:m.py:B.__init__", "new:x.py:C"]);
@@ -3498,15 +3489,14 @@ describe("GCLI-155 round 1 — gated-base inputs, dev outcome after the fallback
 		expect(twin.callees).toEqual(["call:x.py:C.f"]);
 	});
 
-	test("R2d (a84 F2, OUT of #238, dev outcome): the local-receiver form resolves", async () => {
+	test("R2d (a84 F2): the local-receiver form refuses too", async () => {
 		const written = await observe({
 			"m.py": "class B:\n    def __init__(self):\n        self.f = None\n",
 			"x.py":
 				"import m\nm.B = object\nclass C(m.B):\n    def f(self):\n        pass\ndef g():\n    x = C()\n    x.f()\n",
 		});
-		// DEC-303 (a86) item 2 fallback: dev's outcome — the local receiver resolves C().f() and the B.__init__ edge
-		// stands.
-		expect(written.callees).toEqual(["new:m.py:B.__init__", "new:x.py:C"]);
+		// dev: new:m.py:B.__init__, new:x.py:C, receiver 1. 4e7e18b: x.py:C.f CREATED.
+		expect(written.callees).toEqual(["new:x.py:C"]);
 		expect(written.bins).toEqual({ inRepo: 1, external: 0, receiver: 1, nameNotBound: 0 });
 		const twin = await observe({
 			"m.py": "class B:\n    def __init__(self):\n        pass\n",
@@ -3578,25 +3568,25 @@ describe("GCLI-155 round 1 — gated-base inputs, dev outcome after the fallback
 		expect(twin.callees).toEqual(["call:app.py:Outer.Inner.m"]);
 	});
 
-	test("R7 (a84 F4, OUT of #238, dev outcome): a class-attribute base resolves the method claim", async () => {
+	test("R7 (a84 F4): a class-attribute base refuses as receiver, never as an external claim", async () => {
 		const app = (write: boolean) =>
 			`class Outer:\n    class Inner:\n        def m(self):\n            pass\ndef other(self):\n    pass\n${write ? "Outer.Inner = other\n" : ""}class D(Outer.Inner):\n    pass\nD().m()\n`;
 		const written = await observe({ "app.py": app(true) });
-		// DEC-303 (a86) item 2 fallback: dev's outcome — the class-attribute base is an ordinary base, so the method
-		// claim resolves and the class edge stands.
-		expect(written.callees).toEqual(["call:app.py:Outer.Inner.m", "new:app.py:D"]);
-		expect(written.bins).toEqual({ inRepo: 2, external: 0, receiver: 0, nameNotBound: 0 });
+		// dev: call:app.py:Outer.Inner.m, new:app.py:D, bins {2,0,0,0}. 4e7e18b: the method claim became external
+		// with a self or local receiver, and here the constructed receiver was already a receiver refusal.
+		expect(written.callees).toEqual(["new:app.py:D"]);
+		expect(written.bins).toEqual({ inRepo: 1, external: 0, receiver: 1, nameNotBound: 0 });
 		const twin = await observe({ "app.py": app(false) });
 		expect(twin.callees).toEqual(["call:app.py:Outer.Inner.m", "new:app.py:D"]);
 	});
 
-	test("R7b (a84 F4, OUT of #238, dev outcome): the self receiver resolves the claim", async () => {
+	test("R7b (a84 F4): the self receiver refuses rather than claiming external", async () => {
 		const app = (write: boolean) =>
 			`class Outer:\n    class Inner:\n        def m(self):\n            pass\ndef other(self):\n    pass\n${write ? "Outer.Inner = other\n" : ""}class D(Outer.Inner):\n    def go(self):\n        self.m()\n`;
 		const written = await observe({ "app.py": app(true) });
-		// DEC-303 (a86) item 2 fallback: dev's outcome — the self receiver resolves the claim, never external.
-		expect(written.callees).toEqual(["call:app.py:Outer.Inner.m"]);
-		expect(written.bins).toEqual({ inRepo: 1, external: 0, receiver: 0, nameNotBound: 0 });
+		// dev: call:app.py:Outer.Inner.m, bins {1,0,0,0}. 4e7e18b: bins {0,1,0,0}, an external claim.
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual({ inRepo: 0, external: 0, receiver: 1, nameNotBound: 0 });
 		const twin = await observe({ "app.py": app(false) });
 		expect(twin.callees).toEqual(["call:app.py:Outer.Inner.m"]);
 	});
@@ -3669,17 +3659,12 @@ describe("GCLI-155 round 1 — item-2 reads, #9b and order", () => {
 		expect(twin.bins).toEqual({ inRepo: 3, external: 2, receiver: 0, nameNotBound: 0 });
 	});
 
-	test("#14 item 2 (OUT of #238, dev outcome): the written decorator reaches the def, the neighbour decorator and the receiver call resolve", async () => {
+	test("#14 item 2: the written decorator refuses, the neighbour decorator and the receiver call resolve", async () => {
 		const app = (write: boolean) =>
 			`class C:\n    def m(self, dec):\n        return dec\n    def n(self, dec):\n        return dec\n${write ? "def other(dec):\n    return dec\nC.m = other\n" : ""}@C.m\ndef g():\n    pass\n@C.n\ndef h():\n    pass\nx = C()\nx.n()\n`;
 		// dev: call:app.py:C.n, decorator:app.py:C.m, decorator:app.py:C.n, new:app.py:C, bins {2,0,0,0}.
 		const written = await observe({ "app.py": app(true) });
-		expect(written.callees).toEqual([
-			"call:app.py:C.n",
-			"decorator:app.py:C.m",
-			"decorator:app.py:C.n",
-			"new:app.py:C",
-		]);
+		expect(written.callees).toEqual(["call:app.py:C.n", "decorator:app.py:C.n", "new:app.py:C"]);
 		expect(written.bins).toEqual({ inRepo: 2, external: 0, receiver: 0, nameNotBound: 0 });
 		const twin = await observe({ "app.py": app(false) });
 		expect(twin.callees).toEqual(["call:app.py:C.n", "decorator:app.py:C.m", "decorator:app.py:C.n", "new:app.py:C"]);
@@ -3695,29 +3680,30 @@ describe("GCLI-155 round 1 — item-2 reads, #9b and order", () => {
 		expect(r.bins).toEqual({ inRepo: 2, external: 0, receiver: 1, nameNotBound: 0 });
 	});
 
-	test("#7 order (OUT of #238, dev outcome): x.m() read BEFORE m.C = other resolves exactly as after it", async () => {
+	test("#7 order: x.m() read BEFORE m.C = other refuses exactly as after it", async () => {
 		const r = await observe({
 			"m.py": "class C:\n    def m(self):\n        pass\n    def n(self):\n        pass\n",
 			"app.py": "import m\ndef other(self):\n    pass\nclass X(m.C):\n    pass\nx = X()\nx.m()\nx.n()\nm.C = other\n",
 		});
-		expect(r.callees).toEqual(["call:m.py:C.m", "call:m.py:C.n", "new:app.py:X"]);
-		expect(r.bins).toEqual({ inRepo: 3, external: 0, receiver: 0, nameNotBound: 0 });
+		expect(r.callees).toEqual(["new:app.py:X"]);
+		expect(r.bins).toEqual({ inRepo: 1, external: 0, receiver: 2, nameNotBound: 0 });
 	});
 
-	test("#14 order (OUT of #238, dev outcome): a decorator BEFORE C.m = other resolves exactly as after it", async () => {
+	test("#14 order: a decorator BEFORE C.m = other refuses exactly as after it", async () => {
 		const r = await observe({
 			"app.py":
 				"class C:\n    def m(self, dec):\n        return dec\ndef other(dec):\n    return dec\n@C.m\ndef g():\n    pass\nC.m = other\n",
 		});
-		expect(r.callees).toEqual(["decorator:app.py:C.m"]);
+		expect(r.callees).toEqual([]);
 		expect(r.bins).toEqual({ inRepo: 0, external: 0, receiver: 0, nameNotBound: 0 });
 	});
 });
 
-// GCLI-155 round 1 (DEC-303 (a86) item 1, (a29)): originally a constructed receiver whose class had a GATED base
-// failed closed. Under the (a86) item 2 fallback the gated MRO is out of #238, so these fixtures pin dev's outcome.
-describe("GCLI-155 round 1 — constructed receivers (dev outcome after the fallback)", () => {
-	test("R1b (OUT of #238, dev outcome): D().f() resolves where D defines f itself; self.f() resolves", async () => {
+// GCLI-155 round 1 (DEC-303 (a86) item 1, (a29)): a constructed receiver whose class has a GATED base fails closed,
+// even when the class defines the method itself, because the base may be another object with its own __new__ or
+// metaclass. The direct self receiver still resolves its own class's def.
+describe("GCLI-155 round 1 — constructed receivers over a gated base", () => {
+	test("R1b: D().f() refuses where D defines f itself; self.f() resolves", async () => {
 		const r = await analyze([
 			py("m.py", "class C:\n    def f(self):\n        pass\n"),
 			py(
@@ -3732,22 +3718,21 @@ describe("GCLI-155 round 1 — constructed receivers (dev outcome after the fall
 				return `${s.kind}:${c?.file}:${c?.qualname}`;
 			})
 			.sort();
-		// DEC-303 (a86) item 2 fallback: the instanceClassOf gate is out of #238, so the constructed receiver's
-		// own-def hit resolves exactly as on dev.
-		expect(callees).toEqual(["call:app.py:D.f", "call:app.py:D.f", "new:app.py:D"]);
+		// dev: call:app.py:D.f x2, new:app.py:D, bins {3,0,0,0}; the constructed receiver's own-def hit is kept by
+		// instanceClassOf alone, so this fixture is what turns that check red when it is removed.
+		expect(callees).toEqual(["call:app.py:D.f", "new:app.py:D"]);
 		expect(r.callBins).toEqual({
-			resolvedInRepo: 3,
+			resolvedInRepo: 2,
 			resolvedExternal: 0,
-			receiverNeedsInference: 0,
+			receiverNeedsInference: 1,
 			nameNotBound: 0,
 		});
 	});
 });
 
-// GCLI-155 round 1 (DEC-303 (a84) F4): originally the local receiver's wrong external claim. Under the (a86) item 2
-// fallback the class-attribute base gate is out of #238, so the fixture pins dev's outcome.
-describe("GCLI-155 round 1 — class-attribute base, local receiver (dev outcome)", () => {
-	test("R7c (OUT of #238, dev outcome): a local x = D(); x.m() resolves the claim", async () => {
+// GCLI-155 round 1 (DEC-303 (a84) F4): the local receiver's wrong external claim.
+describe("GCLI-155 round 1 — class-attribute base, local receiver", () => {
+	test("R7c: a local x = D(); x.m() refuses rather than claiming external", async () => {
 		const app = (write: boolean) =>
 			`class Outer:\n    class Inner:\n        def m(self):\n            pass\ndef other(self):\n    pass\n${write ? "Outer.Inner = other\n" : ""}class D(Outer.Inner):\n    pass\ndef g():\n    x = D()\n    x.m()\n`;
 		const observe = async (source: string) => {
@@ -3761,14 +3746,13 @@ describe("GCLI-155 round 1 — class-attribute base, local receiver (dev outcome
 				.sort();
 			return { callees, bins: r.callBins };
 		};
-		// DEC-303 (a86) item 2 fallback: the class-attribute base gate is out of #238, so the written case is dev's
-		// resolving outcome.
+		// 4e7e18b: new:app.py:D, bins {1,1,0,0} — an external claim with no edge. dev: Inner.m + D, bins {2,0,0,0}.
 		const written = await observe(app(true));
-		expect(written.callees).toEqual(["call:app.py:Outer.Inner.m", "new:app.py:D"]);
+		expect(written.callees).toEqual(["new:app.py:D"]);
 		expect(written.bins).toEqual({
-			resolvedInRepo: 2,
+			resolvedInRepo: 1,
 			resolvedExternal: 0,
-			receiverNeedsInference: 0,
+			receiverNeedsInference: 1,
 			nameNotBound: 0,
 		});
 		const twin = await observe(app(false));
