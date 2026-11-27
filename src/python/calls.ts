@@ -1290,12 +1290,20 @@ class FileWalker {
 						const pushed = stack.find((entry) => entry.node.id === value.id);
 						if (pushed !== undefined) pushed.scope = typeScope;
 					}
-					// GCLI-146 (DEC-303 (a76)): a class-body alias's type parameter bound and constraint are lazy too, so
-					// the left side (which holds the type parameters) is read in the same lazy scope.
+					// GCLI-146 (DEC-303 (a76)): a class-body alias's type parameter bound, constraint and default are lazy
+					// too, so the left side (which holds the type parameters) is read in a lazy scope. Binders inside it (a
+					// comprehension target) stay on the class body, as on dev, where this side was walked in the class
+					// scope: a generic alias gets a child scope of its type-parameter scope that records them there.
 					const left = node.childForFieldName("left");
 					if (typeScope?.lazyAlias === true && left !== null) {
+						let leftScope: Scope = typeScope;
+						if (typeScope.bindsInto === undefined) {
+							leftScope = this.newScope("function", typeScope, frame.scope.qualname, null, null, [], null, null);
+							leftScope.typeParams = true;
+							leftScope.bindsInto = frame.scope;
+						}
 						const pushedLeft = stack.find((entry) => entry.node.id === left.id);
-						if (pushedLeft !== undefined) pushedLeft.scope = typeScope;
+						if (pushedLeft !== undefined) pushedLeft.scope = leftScope;
 					}
 					continue;
 				}
