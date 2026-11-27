@@ -2987,16 +2987,21 @@ class Resolver {
 	// --- module helpers ----------------------------------------------------
 
 	/**
-	 * DEC-303 (a22) item 3, group A4: `from m import m` binds that attribute, not the
-	 * module, only when the SOURCE module `m` is a module FILE (`m.py`, never a package
-	 * `__init__.py` or a namespace directory, whose same-named submodule is what Python
-	 * binds) and it defines or re-exports the name. `from . import m` has no module part
-	 * and stays a module.
+	 * DEC-303 (a22) item 3 group A4, broadened by (a28) item 2 NB-b: `from M import n` binds the ATTRIBUTE n, not
+	 * the module S3 collapsed that import to, when M is a plain module FILE (never a package `__init__.py` or a
+	 * namespace directory, whose same-named submodule is what Python binds) that defines or re-exports n. A4 asked
+	 * only about the same-name source (`from m import m`); NB-b adds a module file of a DIFFERENT name that re-exports
+	 * n from a same-named defining file — pkg/impl.py doing `from .other.helper import helper`, so
+	 * `from pkg.impl import helper` binds the def, not the module pkg.other.helper the collapsed target names. The
+	 * submodule cases stay modules because `symbolInModuleOrReexport` returns a symbol only for a def or class, never
+	 * for a binding that names a module. `from . import m` has no module part and stays a module.
 	 */
 	private isSameNameAttribute(binding: ImportBinding, name: string, depth = 0): boolean {
 		if (binding.module === "") return false;
 		const source = this.sourceModuleFile(binding);
-		if (source === null || !(source === `${name}.py` || source.endsWith(`/${name}.py`))) return false;
+		if (source === null) return false;
+		// A4: a package `__init__.py` source is not admitted; a namespace directory has no source file (source null).
+		if (source === "__init__.py" || source.endsWith("/__init__.py")) return false;
 		return this.symbolInModuleOrReexport(source, name, depth + 1) !== null;
 	}
 

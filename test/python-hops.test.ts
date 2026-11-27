@@ -4411,3 +4411,109 @@ describe("GCLI-163 round 1 — B1 __call__ and the per-site fixtures", () => {
 		expect(descendant.callees).toContain("call:m.py:C.m");
 	});
 });
+
+// GCLI-141 (DEC-303 (a28) item 2, NB-b): a re-export hop where the imported name's DEFINING file is same-named
+// (`from .other.helper import helper`) but S3 collapses the from-import's target to that defining file. The
+// submodule test at resolveImportBinding read `isModuleFileForName(target, name)`, which is true for ANY target
+// file named name.py, so `from pkg.impl import helper` (pkg/impl.py re-exports from pkg/other/helper.py) was
+// misclassified as binding the MODULE pkg.helper — module-called — and lost resolution. The test now asks whether
+// the target is the SUBMODULE `name` of the module the import NAMES; when it is not (a collapsed re-export), the
+// import binds the re-exported attribute. This is resolve-more: it CREATES the intended hop edge, and only that.
+describe("GCLI-141 — NB-b, a re-export hop through a differently named module file (DEC-303 (a28))", () => {
+	const observe = async (files: Record<string, string>) => {
+		const r = await analyze(Object.entries(files).map(([path, source]) => py(path, source)));
+		const byId = new Map(r.symbols.map((x) => [x.id, x]));
+		const callees = r.sites
+			.map((s) => {
+				const c = s.calleeId === null ? undefined : byId.get(s.calleeId);
+				return `${s.kind}:${c?.file}:${c?.qualname}`;
+			})
+			.sort();
+		const reasons = (r.unresolvedNameReasons ?? []).map((x) => `${x.reason}:${x.count}`);
+		return { callees, bins: r.callBins, reasons };
+	};
+	const pkg = {
+		"pkg/__init__.py": "",
+		"pkg/other/__init__.py": "",
+		"pkg/other/helper.py": "def helper():\n    pass\n",
+	};
+	const chain = {
+		...pkg,
+		"pkg/helper.py": "from .impl import helper\n",
+		"pkg/impl.py": "from .other.helper import helper\n",
+	};
+
+	test("NB-b: from pkg.impl import helper hops to the defining file and resolves; the rebound twin refuses", async () => {
+		// The module the import NAMES is pkg/impl.py (differently named from `helper`); no pkg.impl.helper submodule
+		// exists, so the name is the attribute the re-export binds. On dev this was module-called / name-not-bound.
+		const written = await observe({
+			...pkg,
+			"pkg/impl.py": "from .other.helper import helper\n",
+			"app.py": "from pkg.impl import helper\nhelper()\n",
+		});
+		expect(written.callees).toEqual(["call:pkg/other/helper.py:helper"]);
+		expect(written.bins).toEqual({
+			resolvedInRepo: 1,
+			resolvedExternal: 0,
+			receiverNeedsInference: 0,
+			nameNotBound: 0,
+		});
+		// refused twin: a rebinding in the middle module cuts the hop (rebound, no edge).
+		const rebound = await observe({
+			...pkg,
+			"pkg/impl.py": "from .other.helper import helper\nhelper = None\n",
+			"app.py": "from pkg.impl import helper\nhelper()\n",
+		});
+		expect(rebound.callees).toEqual([]);
+		expect(rebound.bins).toEqual({
+			resolvedInRepo: 0,
+			resolvedExternal: 0,
+			receiverNeedsInference: 0,
+			nameNotBound: 1,
+		});
+		expect(rebound.reasons).toEqual(["rebound:1"]);
+	});
+
+	test("NB-b: the full chain pkg/helper.py -> pkg/impl.py -> pkg/other/helper.py resolves; the del twin refuses", async () => {
+		const written = await observe({ ...chain, "app.py": "from pkg.helper import helper\nhelper()\n" });
+		expect(written.callees).toEqual(["call:pkg/other/helper.py:helper"]);
+		expect(written.bins).toEqual({
+			resolvedInRepo: 1,
+			resolvedExternal: 0,
+			receiverNeedsInference: 0,
+			nameNotBound: 0,
+		});
+		// refused twin: a `del helper` at the first hop (pkg/helper.py) cuts the chain.
+		const del = await observe({
+			...pkg,
+			"pkg/helper.py": "from .impl import helper\ndel helper\n",
+			"pkg/impl.py": "from .other.helper import helper\n",
+			"app.py": "from pkg.helper import helper\nhelper()\n",
+		});
+		expect(del.callees).toEqual([]);
+		expect(del.reasons).toEqual(["rebound:1"]);
+	});
+
+	test("contrast: a true submodule import stays a module, and the renamed-source and direct same-name hops are unchanged", async () => {
+		// `from pkg import sub` where pkg/sub.py is a real submodule still binds the MODULE (not an attribute): the
+		// target IS pkg's own `sub` submodule.
+		const submodule = await observe({
+			"pkg/__init__.py": "",
+			"pkg/sub.py": "def f():\n    pass\n",
+			"app.py": "from pkg import sub\nsub.f()\n",
+		});
+		expect(submodule.callees).toContain("call:pkg/sub.py:f");
+		// the target-is-a-same-named-DEFINING-file false positive was the only thing changed: a renamed source
+		// (himpl.py) resolved before and still does, and the direct same-name import (A4) still resolves.
+		const renamed = await observe({
+			"pkg/__init__.py": "",
+			"pkg/other/__init__.py": "",
+			"pkg/other/himpl.py": "def helper():\n    pass\n",
+			"pkg/impl.py": "from .other.himpl import helper\n",
+			"app.py": "from pkg.impl import helper\nhelper()\n",
+		});
+		expect(renamed.callees).toEqual(["call:pkg/other/himpl.py:helper"]);
+		const direct = await observe({ ...pkg, "app.py": "from pkg.other.helper import helper\nhelper()\n" });
+		expect(direct.callees).toEqual(["call:pkg/other/helper.py:helper"]);
+	});
+});
