@@ -2218,17 +2218,14 @@ class Resolver {
 		name: string,
 		scope: Scope,
 		use?: UsePosition,
-	): { scope: Scope; bindings: RawBinding[] } | null {
+	): { scope: Scope; bindings: RawBinding[]; classBodyShadowed?: true } | null {
 		let current: Scope | null = scope;
 		let first = true;
-		// GCLI-144 (DEC-303 (a73)): a name the starting class body binds, but only by a statement after this read, is
-		// read from the class, then the globals, then the builtins (LOAD_NAME), never from an enclosing function.
-		let skipFunctions = false;
+		// GCLI-144 (DEC-303 (a73)): the starting class body binds `name`, but only by a statement after this read
+		// (Rule 38 filtered it out). Python reads that name from the class, then the globals, never from an enclosing
+		// function, so a result found further out is flagged and every consumer that can yield an edge refuses it.
+		let classBodyShadowed = false;
 		while (current !== null) {
-			if (skipFunctions && (current.kind === "function" || current.kind === "lambda")) {
-				current = current.parent;
-				continue;
-			}
 			// A class body is not an enclosing scope for its methods (rule 3): only
 			// the starting scope may be a class body.
 			if (first || current.kind !== "class") {
@@ -2247,8 +2244,13 @@ class Resolver {
 								),
 						);
 					}
-					if (bindings.length > 0) return { scope: current, bindings };
-					if (first && current.kind === "class") skipFunctions = true;
+					if (bindings.length > 0) {
+						// Only a result in an enclosing function is wrong: from the module Python reads the same binding.
+						return classBodyShadowed && current.kind !== "module"
+							? { scope: current, bindings, classBodyShadowed: true }
+							: { scope: current, bindings };
+					}
+					if (first && current.kind === "class") classBodyShadowed = true;
 				}
 			}
 			// GCLI-112: a type-parameter scope sits directly inside a class body for a generic declared there, and
@@ -2449,7 +2451,7 @@ class Resolver {
 	 */
 	private isExternalImportReceiver(name: string, scope: Scope, use?: UsePosition): boolean {
 		const found = this.lookupBindings(name, scope, use);
-		if (found === null) return false;
+		if (found === null || found.classBodyShadowed === true) return false;
 		return found.bindings.every(
 			(binding) =>
 				binding.kind === "import" && binding.importBinding != null && binding.importBinding.outcome === "external",
@@ -2465,6 +2467,8 @@ class Resolver {
 	): NameOutcome {
 		const found = this.lookupBindings(name, scope, use);
 		if (found === null) return this.resolveUnbound(name, scope, use, starCtx);
+		// GCLI-144 (DEC-303 (a73)): the class body binds this name after the read; an enclosing function's binding is not it.
+		if (found.classBodyShadowed === true) return { kind: "unresolved", reason: "rebound" };
 		// N1 (GCLI-118): a comprehension's iteration target lives in the comprehension's own scope, so at module
 		// level it is no binding of the module name for a read outside that comprehension. A read with no known
 		// position, or inside the comprehension, keeps it (the conservative reading).
@@ -3266,7 +3270,7 @@ class Resolver {
 				return true;
 			}
 			const found = this.lookupBindings(bindingName, classInfo.parentScope, use);
-			if (found === null || found.bindings.length !== 1) return true;
+			if (found === null || found.classBodyShadowed === true || found.bindings.length !== 1) return true;
 			const binding = found.bindings[0] as RawBinding;
 			const imported = binding.kind === "import" ? binding.importBinding : null;
 			if (imported === null || imported === undefined || imported.kind !== wantKind) return true;
@@ -3297,7 +3301,7 @@ class Resolver {
 
 	private knownClassOf(name: string, scope: Scope, use?: UsePosition): ClassInfo | null {
 		const found = this.lookupBindings(name, scope, use);
-		if (found === null || found.bindings.length !== 1) return null;
+		if (found === null || found.classBodyShadowed === true || found.bindings.length !== 1) return null;
 		const binding = found.bindings[0] as RawBinding;
 		if (binding.kind === "import" && binding.importBinding) {
 			const outcome = this.resolveImportBinding(binding.importBinding);
@@ -4208,7 +4212,7 @@ class Resolver {
 		site: { file: string; line: number; column: number },
 	): CallResolution | null {
 		const found = this.lookupBindings(name, scope, site);
-		if (found === null || found.bindings.length !== 1) return null;
+		if (found === null || found.classBodyShadowed === true || found.bindings.length !== 1) return null;
 		const binding = found.bindings[0] as RawBinding;
 		if (binding.kind !== "assign" || binding.rhs === undefined || binding.rhs.kind !== "call") return null;
 		const classInfo = this.instanceClassOf(this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0));

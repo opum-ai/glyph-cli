@@ -1787,12 +1787,110 @@ describe("GCLI-144 — a class-body read of a name the class body binds skips en
 		expect(runs(r)).toEqual(["m.py:X.run"]);
 	});
 
-	test("a module-level binding is still read: the globals come after the class body", async () => {
-		const r = await probe(
-			`${cls}x = C()\ndef outer():\n    x = C()\n    class Outer:\n        y = CALL\n        from m import X as x\n`,
-			"x.run()",
-			others,
-		);
+	test("a module-level binding with no class-body binding is still read", async () => {
+		const r = await probe(`${cls}x = C()\ndef outer():\n    class Outer:\n        y = CALL\n`, "x.run()", others);
 		expect(runs(r)).toEqual(["app.py:C.run"]);
+	});
+
+	// DEC-303 (a73) item 2, "only REMOVE edges": a result found in an enclosing function is refused, never replaced by
+	// the globals' binding, so no case creates an edge or an external bin. Each case below is measured against dev.
+	describe("the outcome only removes edges", () => {
+		const mod = "class X:\n    def run(self):\n        pass\n";
+		const classes = `${cls}class D:\n    def run(self):\n        pass\n`;
+		const later = "        from m import X as x\n";
+		const NOT_BOUND: Delta = { inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 };
+
+		test("a: module x = D() and outer x = C() give no edge, NOT D.run (dev: C.run)", async () => {
+			const r = await probe(
+				`${classes}x = D()\ndef outer():\n    x = C()\n    class Outer:\n        y = CALL\n${later}`,
+				"x.run()",
+				{ "m.py": mod },
+			);
+			expect(r.delta).toEqual(REFUSED);
+			expect(runs(r)).toEqual([]);
+		});
+
+		test("b: no module x, outer x = C() gives no edge (dev: C.run)", async () => {
+			const r = await probe(
+				`${classes}def outer():\n    x = C()\n    class Outer:\n        y = CALL\n${later}`,
+				"x.run()",
+				{
+					"m.py": mod,
+				},
+			);
+			expect(r.delta).toEqual(REFUSED);
+			expect(runs(r)).toEqual([]);
+		});
+
+		test("c: module x = D() and no enclosing function binding is unchanged (D.run)", async () => {
+			const r = await probe(
+				`${classes}x = D()\ndef outer():\n    class Outer:\n        y = CALL\n${later}`,
+				"x.run()",
+				{
+					"m.py": mod,
+				},
+			);
+			expect(r.delta.inRepo).toBe(1);
+			expect(runs(r)).toEqual(["app.py:D.run"]);
+		});
+
+		test("d: an outer def len is refused, NOT the builtin (dev: outer.len)", async () => {
+			const r = await probe(
+				"def outer():\n    def len(o):\n        pass\n    class Outer:\n        y = CALL\n        from m import len\n",
+				"len([])",
+				{ "m.py": "def len(o):\n    pass\n" },
+			);
+			expect(r.delta).toEqual(NOT_BOUND);
+		});
+
+		test("e and f: a module def and an outer def of the name give no edge, NOT the module def (dev: the outer def)", async () => {
+			for (const name of ["len", "f"]) {
+				const r = await probe(
+					`def ${name}(o=None):\n    pass\ndef outer():\n    def ${name}(o=None):\n        pass\n    class Outer:\n        y = CALL\n        from m import X as ${name}\n`,
+					`${name}()`,
+					{ "m.py": mod },
+				);
+				expect(r.delta, name).toEqual(NOT_BOUND);
+			}
+		});
+
+		test("g: a method reads the name, methods skip the class body, unchanged (C.run)", async () => {
+			const r = await probe(
+				`${classes}def outer():\n    x = C()\n    class Outer:\n${later}        def meth(self):\n            CALL\n`,
+				"x.run()",
+				{ "m.py": mod },
+			);
+			expect(r.delta.inRepo).toBe(1);
+			expect(runs(r)).toEqual(["app.py:C.run"]);
+		});
+
+		test("h: a callable instance read before a class-body import gets no __call__ edge (dev: C.__call__)", async () => {
+			const r = await probe(
+				`class C:\n    def __call__(self):\n        pass\ndef outer():\n    x = C()\n    class Outer:\n        y = CALL\n${later}`,
+				"x()",
+				{ "m.py": mod },
+			);
+			expect(r.callees).not.toContain("app.py:C.__call__");
+			expect(r.delta.inRepo).toBe(0);
+		});
+
+		test("i: an external import receiver read before a class-body import is not claimed external (dev: external)", async () => {
+			const r = await probe(
+				`def outer():\n    import os as x\n    class Outer:\n        y = CALL\n${later}`,
+				"x.getcwd()",
+				{ "m.py": mod },
+			);
+			expect(r.delta).toEqual(REFUSED);
+		});
+
+		test("k: a decorated class whose decorator name is read before a class-body import gets no method edge (dev: In.m)", async () => {
+			const r = await probe(
+				"def outer():\n    from dataclasses import dataclass\n    class Outer:\n        @dataclass\n        class In:\n            def m(self):\n                pass\n        z = In()\n        CALL\n        from m import X as dataclass\n",
+				"z.m()",
+				{ "m.py": mod },
+			);
+			expect(r.callees).not.toContain("app.py:outer.Outer.In.m");
+			expect(r.delta.inRepo).toBe(0);
+		});
 	});
 });
