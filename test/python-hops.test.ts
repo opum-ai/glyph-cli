@@ -2041,8 +2041,11 @@ describe("GCLI-147 — the lazy-read condition GCLI-144 left untested", () => {
 // GCLI-146 (DEC-303 (a76)): a LAZY class-body read (an alias value, or an alias type parameter's bound or constraint) of a
 // name the class body binds ANYWHERE never resolves through an enclosing scope, a star import or a builtin; it REFUSES
 // and does not resolve to the class binding (that would create edges). The bound forms were read eagerly on dev.
-// A PEP 696 default `[T = x.run()]` is covered too: this grammar makes an ERROR node of `T` only and walks `x.run()`
-// as a normal call (see the guard fixture below).
+// A PEP 696 default `[T = x.run()]` is walked too (this grammar makes an ERROR node of `T` only), but it is refused by
+// the SUPERSET rule, not the lazy rule: `typeParameterNames` counts every identifier of a type-parameter list that holds a
+// parse error as a type-parameter name, so a call in a class-body alias default refuses with or without a later import,
+// and loses its dev edge even when that edge was correct. Accepted over-refusal (removal-only); a grammar that parses
+// defaults would restore the edges (see the guard fixture below).
 describe("GCLI-146 — a lazy class-body read of a name the class binds refuses", () => {
 	const cls = "class C:\n    def run(self):\n        pass\n";
 	const others = { "m.py": "class X:\n    def run(self):\n        pass\n" };
@@ -2119,9 +2122,10 @@ describe("GCLI-146 — a lazy class-body read of a name the class binds refuses"
 	// Guard for the PEP 696 default (opum-doc, DEC-303 (a76) item 2), measured: this grammar does NOT drop the call. For
 	// `type A[T = x.run()] = int` the parser makes an ERROR node of `T` only, and `x.run()` is a normal `call` under a
 	// sibling `type` node of the `type_parameter`, so it is walked and recorded as a site (origin/dev: an eager read, the
-	// edge C.run). The left-side walk in the lazy scope covers it, so it is refused like a bound. If a grammar upgrade
-	// changes how a default parses, a red here goes to opum-doc and is not "fixed" by resolving the default.
-	test("guard: a PEP 696 default type A[T = x.run()] with a later class-body import of x is refused, no C.run (dev: C.run)", async () => {
+	// edge C.run). It is refused by the SUPERSET rule (every identifier under a parse error in the list counts as a
+	// type-parameter name), with or without the later import, not by the lazy rule: accepted over-refusal. If a grammar
+	// upgrade changes how a default parses, a red here goes to opum-doc and is not "fixed" by resolving the default.
+	test("guard: a PEP 696 default type A[T = x.run()] is refused by the superset rule, no C.run (dev: C.run), also without a later import", async () => {
 		const r = await bound(`${cls}x = C()\nclass Outer:\n    type A[T = CALL] = int\n${later}`);
 		expect(r.delta).toEqual(REFUSED);
 		expect(r.callees).toEqual([]);
@@ -2188,7 +2192,7 @@ describe("GCLI-146 — a lazy class-body read of a name the class binds refuses"
 			expect(r.edges).toEqual(["g"]);
 		});
 
-		test("outside a class body the alias keeps its type-parameter scope: a def's alias binder is not on the def (no edge)", async () => {
+		test("a def's alias binder stays on the def, as on dev (g() is refused)", async () => {
 			const r = await observe("def g():\n    pass\ndef f():\n    type A[T: [g for g in ()]] = int\n    g()\n");
 			expect(r.edges).toEqual([]);
 			expect(r.bins.nameNotBound).toBe(1);
@@ -2204,6 +2208,86 @@ describe("GCLI-146 — a lazy class-body read of a name the class binds refuses"
 		test("the eager twin keeps the builtin claim: y = len([]) then a later import of len is external, as on dev", async () => {
 			const r = await observe("class Outer:\n    y = len([])\n    from m import len\n");
 			expect(r.bins).toEqual({ inRepo: 0, external: 1, receiver: 0, nameNotBound: 0 });
+		});
+	});
+
+	// Opus round 2 (N2, measured): the bound of a class-body alias now sees the alias's own type parameter names, so a
+	// name that is the alias's type parameter is refused where dev resolved a module def or claimed a builtin (removals;
+	// accepted by DEC-303 (a77) item 2, closer to Python).
+	// Class-body alias defaults, measured: every call in a PEP 696 default refuses, with or without a later binding.
+	// Superset rule; accepted by DEC-303 (a77); a grammar fix for default parsing would restore the edges.
+	describe("a class-body alias default refuses every call in it (measured over-refusal)", () => {
+		test("T = x.run() with x = C() and NO later import: refused (dev: C.run)", async () => {
+			const r = await bound(`${cls}x = C()\nclass Outer:\n    type A[T = CALL] = int\n`);
+			// Superset rule; accepted by DEC-303 (a77); a grammar fix for default parsing would restore the edge.
+			expect(r.delta).toEqual(REFUSED);
+			expect(r.callees).toEqual([]);
+		});
+		test("T = f() with a module def f and NO later import: refused (dev: the edge to f)", async () => {
+			const r = await analyze([py("app.py", "def f():\n    pass\nclass Outer:\n    type A[T = f()] = int\n")]);
+			// Superset rule; accepted by DEC-303 (a77); a grammar fix for default parsing would restore the edge.
+			const names = r.sites
+				.map((site) => r.symbols.find((x) => x.id === site.calleeId)?.qualname)
+				.filter((q) => q !== undefined);
+			expect(names).toEqual([]);
+			expect(r.callBins.nameNotBound).toBe(1);
+		});
+		test("a default outside a class body is unchanged from dev (module-level T = f(): the edge to f)", async () => {
+			const r = await analyze([py("app.py", "def f():\n    pass\ntype A[T = f()] = int\n")]);
+			const names = r.sites
+				.map((site) => r.symbols.find((x) => x.id === site.calleeId)?.qualname)
+				.filter((q) => q !== undefined);
+			expect(names).toEqual(["f"]);
+		});
+	});
+
+	describe("a bound sees the alias's own type parameters (measured removals)", () => {
+		const observe = async (source: string) => {
+			const r = await analyze([py("app.py", source)]);
+			const edges = r.sites
+				.filter((site) => site.file === "app.py")
+				.map((site) => r.symbols.find((x) => x.id === site.calleeId)?.qualname)
+				.filter((q): q is string => q !== undefined);
+			const b = r.callBins;
+			return {
+				edges,
+				bins: {
+					inRepo: b.resolvedInRepo,
+					external: b.resolvedExternal,
+					receiver: b.receiverNeedsInference,
+					nameNotBound: b.nameNotBound,
+				},
+			};
+		};
+		const NOT_BOUND = { inRepo: 0, external: 0, receiver: 0, nameNotBound: 1 };
+
+		test("type A[T: T()] with a module def T: refused (dev: the edge to T)", async () => {
+			const r = await observe("def T():\n    pass\nclass Outer:\n    type A[T: T()] = int\n");
+			expect(r.edges).toEqual([]);
+			expect(r.bins).toEqual(NOT_BOUND);
+		});
+		test("type A[U, T: U()] with a module def U: refused (dev: the edge to U)", async () => {
+			const r = await observe("def U():\n    pass\nclass Outer:\n    type A[U, T: U()] = int\n");
+			expect(r.edges).toEqual([]);
+			expect(r.bins).toEqual(NOT_BOUND);
+		});
+		test("type A[len, T: len([])]: refused, no builtin claim (dev: external 1)", async () => {
+			const r = await observe("class Outer:\n    type A[len, T: len([])] = int\n");
+			expect(r.bins).toEqual(NOT_BOUND);
+		});
+		test("a self parameter of a method read in a nested class's bound is unchanged from dev (the edge to Outer.helper)", async () => {
+			const r = await observe(
+				"class Outer:\n    def helper(self):\n        pass\n    def m(self):\n        class Inner:\n            type A[T: self.helper()] = int\n",
+			);
+			expect(r.edges).toEqual(["Outer.helper"]);
+		});
+		test("Rule 36(ii): a bare call in a bound is a class-body use, so helper() gives no receiver to its def (n is not reached)", async () => {
+			const r = await observe(
+				"class Outer:\n    def helper(self):\n        self.n()\n    def n(self):\n        pass\n    type A[T: helper()] = int\n",
+			);
+			// dev and head: the bare call marks helper as a plain function, so self.n() gets no edge; dropping the lazy
+			// scope's typeParams mark would add the edge to Outer.n.
+			expect(r.edges).toEqual(["Outer.helper"]);
 		});
 	});
 });
