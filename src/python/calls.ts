@@ -3472,9 +3472,13 @@ class Resolver {
 		switch (desc.kind) {
 			case "name": {
 				const outcome = this.resolveBareName(desc.name, scope, 0);
-				return outcome.kind === "symbol" && outcome.symbol.kind === "class"
-					? (this.classById.get(outcome.symbol.id) ?? null)
-					: null;
+				if (outcome.kind === "symbol") {
+					return outcome.symbol.kind === "class" ? (this.classById.get(outcome.symbol.id) ?? null) : null;
+				}
+				// GCLI-169 (DEC-303 (a93) item 1): imports of the SAME class are one binding, so an annotation naming a
+				// name imported twice still names the class. Only that shape is admitted; see the helper.
+				if (outcome.kind === "multiply") return this.duplicateImportedClass(desc.name, scope);
+				return null;
 			}
 			case "dotted": {
 				const symbol = this.resolveDottedToSymbol(desc.segments, scope);
@@ -3490,6 +3494,33 @@ class Resolver {
 			default:
 				return null;
 		}
+	}
+
+	/**
+	 * GCLI-169 (DEC-303 (a93) item 1): a name a scope binds more than once, where EVERY binding is an import that
+	 * resolves to the SAME in-repo class, is one binding of that class — so an annotation naming it names the class.
+	 * The width is the ruling's: relative and absolute spellings agree because both resolve to the class's own
+	 * declaration site, and a conditional import counts only when it names the same class (5.7's `__main__` and 5.8's
+	 * `TYPE_CHECKING` imports do). Anything else refuses: two imports binding DIFFERENT classes, an import followed by
+	 * a non-import rebinding (which `resolveBareName` answers as rebound, never multiply), and an import that resolves
+	 * to an unresolved, external or module target. A `multiply` whose symbols happen to collapse to one class is not
+	 * enough on its own: `resolveMultiply` drops the alternatives it could not resolve, and one of those could be the
+	 * binding a read sees.
+	 */
+	private duplicateImportedClass(name: string, scope: Scope): ClassInfo | null {
+		const found = this.lookupBindings(name, scope);
+		if (found === null || found.classBodyShadowed === true || found.bindings.length < 2) return null;
+		let resolved: ClassInfo | null = null;
+		for (const binding of found.bindings) {
+			if (binding.kind !== "import" || binding.importBinding == null) return null;
+			const outcome = this.resolveImportBinding(binding.importBinding);
+			if (outcome.kind !== "symbol" || outcome.symbol.kind !== "class") return null;
+			const info = this.classById.get(outcome.symbol.id) ?? null;
+			if (info === null) return null;
+			if (resolved !== null && info !== resolved) return null;
+			resolved = info;
+		}
+		return resolved;
 	}
 
 	private resolveDottedToSymbol(segments: readonly string[], scope: Scope): PythonSymbol | null {
@@ -3625,10 +3656,13 @@ class Resolver {
 				return info === null ? null : { info, instance: true, annotated: true };
 			}
 			if (binding.rhs !== undefined && binding.rhs.kind === "call") {
-				const symbol = this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0);
-				const constructed = symbol !== null && symbol.kind === "class" ? (this.classById.get(symbol.id) ?? null) : null;
-				// (a31) Q2: a decorated class may have been replaced, so `x = Cls(); x.m()` is refused.
-				if (constructed === null || this.hasReplacingDecorator(constructed)) return null;
+				// (a31) Q2: a decorated class may have been replaced, so `x = Cls(); x.m()` is refused. GCLI-169 / N5
+				// (DEC-303 (a94) item 3): `Cls(...)` is an instance of `Cls` only when the construction is known to
+				// return one, so the arm reads `instanceClassOf` like E1, R4 and N3 already do — a `__new__` anywhere in
+				// the MRO may return a descendant (whose `__init__` can rewrite `self.__class__`), and a metaclass or an
+				// opaque base can change what the call returns. Removal only: every refusal drops a site.
+				const constructed = this.instanceClassOf(this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0));
+				if (constructed === null) return null;
 				return { info: constructed, instance: true, annotated: false };
 			}
 			return null;

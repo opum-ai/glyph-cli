@@ -517,6 +517,136 @@ describe("rule 6 — attribute call receivers", () => {
 		expect(result.callBins.receiverNeedsInference).toBe(1);
 	});
 
+	// GCLI-169 (DEC-303 (a93) item 1): imports of the SAME class are one binding, so an annotation naming a name
+	// imported twice still names the class. 5.7 is rich/rule.py (a relative import at the top and an absolute one in
+	// the `__main__` demo), 5.8 is rich/table.py (a TYPE_CHECKING import plus the `__main__` one, read through a
+	// closure). The refused twins pin the width: one alternative that is not the same in-repo class refuses.
+	describe("rule 6d — duplicate imports of one class (GCLI-169)", () => {
+		const consoleFile = py(
+			"rich/console.py",
+			"class Console:\n    def render_str(self, text, style=None):\n        pass\n",
+		);
+		const initFile = py("rich/__init__.py", "");
+		const duplicate = '\nif __name__ == "__main__":\n    from rich.console import Console\n';
+
+		test("5.7: a relative import and an absolute __main__ import are one binding", async () => {
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py(
+					"rich/rule.py",
+					`from .console import Console\n\nclass Rule:\n    def __rich_console__(self, console: Console, options):\n        console.render_str("x", style="rule.text")\n${duplicate}`,
+				),
+			]);
+			expect(linesTo(result, symbolId(result, "Console.render_str", "rich/console.py"))).toEqual([5]);
+			expect(result.callBins.receiverNeedsInference).toBe(0);
+		});
+
+		test("5.8: a closure read of a parameter annotated through a duplicate TYPE_CHECKING import", async () => {
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py(
+					"rich/table.py",
+					`from typing import TYPE_CHECKING\n\nif TYPE_CHECKING:\n    from .console import Console\n\nclass Table:\n    def __rich_console__(self, console: "Console", options):\n        def render_annotation(text):\n            console.render_str(text, style="x")\n        return render_annotation\n${duplicate}`,
+				),
+			]);
+			expect(linesTo(result, symbolId(result, "Console.render_str", "rich/console.py"))).toEqual([9]);
+		});
+
+		test("the single-import control resolves the same edge", async () => {
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py(
+					"rich/rule.py",
+					'from .console import Console\n\nclass Rule:\n    def __rich_console__(self, console: Console, options):\n        console.render_str("x", style="rule.text")\n',
+				),
+			]);
+			expect(linesTo(result, symbolId(result, "Console.render_str", "rich/console.py"))).toEqual([5]);
+		});
+
+		test("refused twin: two imports binding DIFFERENT classes", async () => {
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py("rich/other.py", "class Console:\n    def render_str(self, text, style=None):\n        pass\n"),
+				py(
+					"rich/rule.py",
+					'from .console import Console\nfrom .other import Console\n\ndef f(console: Console):\n    console.render_str("x")\n',
+				),
+			]);
+			expect(result.callBins.receiverNeedsInference).toBe(1);
+			expect(result.sites.every((site) => site.calleeId === null)).toBe(true);
+		});
+
+		test("refused twin: an import followed by a non-import rebinding", async () => {
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py(
+					"rich/rule.py",
+					'from .console import Console\n\nif __name__ == "__main__":\n    from rich.console import Console\n\nConsole = make()\n\ndef f(console: Console):\n    console.render_str("x")\n',
+				),
+			]);
+			expect(result.callBins.receiverNeedsInference).toBe(1);
+			expect(result.sites.every((site) => site.calleeId === null)).toBe(true);
+		});
+
+		test("refused twin: a conditional import of a DIFFERENT class", async () => {
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py("rich/other.py", "class Console:\n    def render_str(self, text, style=None):\n        pass\n"),
+				py(
+					"rich/rule.py",
+					'from .console import Console\n\nif TYPE_CHECKING:\n    from .other import Console\n\ndef f(console: Console):\n    console.render_str("x")\n',
+				),
+			]);
+			expect(result.callBins.receiverNeedsInference).toBe(1);
+			expect(result.sites.every((site) => site.calleeId === null)).toBe(true);
+		});
+
+		test("refused twin: the same class plus an alternative that resolves nowhere (an external import)", async () => {
+			// `resolveMultiply` drops the alternatives it cannot resolve, so its one-symbol result is not enough:
+			// every binding must resolve to the same in-repo class, and an external alternative is another binding.
+			const result = await analyze([
+				initFile,
+				consoleFile,
+				py(
+					"rich/rule.py",
+					'from .console import Console\n\ntry:\n    from ext import Console\nexcept ImportError:\n    pass\n\ndef f(console: Console):\n    console.render_str("x")\n',
+				),
+			]);
+			expect(result.callBins.receiverNeedsInference).toBe(1);
+			expect(result.sites.every((site) => site.calleeId === null)).toBe(true);
+		});
+	});
+
+	// GCLI-169 / N5 (DEC-303 (a94) item 3): the 6d constructed arm reads `instanceClassOf` like E1, R4 and N3, so a
+	// class whose `__new__` may return a descendant (that can rewrite `self.__class__`) is not a known instance.
+	describe("rule 6d — a construction whose class has __new__ (GCLI-169 N5)", () => {
+		const body = (withNew: boolean, write: boolean) =>
+			`class Other:\n    def m(self):\n        pass\n\nclass C:\n${withNew ? "    def __new__(cls):\n        return D()\n" : ""}    def m(self):\n        pass\n\nclass D(C):\n    def __init__(self):\n${write ? "        self.__class__ = Other\n" : "        pass\n"}\n`;
+
+		test("N5: a with-write descendant behind __new__ leaves x = C(); x.m() unresolved", async () => {
+			const result = await one(`${body(true, true)}\ndef f():\n    x = C()\n    x.m()\n`);
+			expect(linesTo(result, symbolId(result, "C.m"))).toEqual([]);
+			expect(result.callBins.receiverNeedsInference).toBe(1);
+		});
+
+		test("the no-__new__ control still resolves C.m, its descendant's write notwithstanding", async () => {
+			const result = await one(`${body(false, true)}\ndef f():\n    x = C()\n    x.m()\n`);
+			expect(linesTo(result, symbolId(result, "C.m"))).toEqual([16]);
+		});
+
+		test("the no-write twin is refused too: instanceClassOf cannot read what __new__ returns", async () => {
+			const result = await one(`${body(true, false)}\ndef f():\n    x = C()\n    x.m()\n`);
+			expect(linesTo(result, symbolId(result, "C.m"))).toEqual([]);
+			expect(result.callBins.receiverNeedsInference).toBe(1);
+		});
+	});
+
 	test("rule 6f / rule 29c: a call result and a builtin value need inference; a literal receiver is external", async () => {
 		const result = await one(
 			"def make():\n    return None\ndef f(items):\n    make().m()\n    'x'.join([])\n    items.append(1)\n",
@@ -4928,7 +5058,11 @@ describe("GCLI-115 — a del target is a binding", () => {
 		});
 
 		test("a method reached through a REBOUND in-repo base is not credited to an external base ((a47) item 2 (i))", async () => {
-			const own = "class S(T):\n    pass\ns = S()\nCALL\n";
+			// GCLI-169 / N5: the constructed receiver `s = S()` now refuses before the base is read (the arm consults
+			// `instanceClassOf`, and a rebound or multiply base leaves the MRO opaque), so the base-credit ruling is
+			// exercised through an annotated receiver, which reaches the same `methodLookup`. The constructed form's
+			// refusal is pinned at the end of this test.
+			const own = "class S(T):\n    pass\ndef f(s: S):\n    CALL\n";
 			// cross-module: m.T is rebound (a call value), so S's base may define write; it is not external
 			await expectDelta(
 				`from m import T\n${own}`,
@@ -4938,7 +5072,7 @@ describe("GCLI-115 — a del target is a binding", () => {
 				[py("m.py", "class T:\n    pass\nT = make()\n")],
 			);
 			await expectDelta(
-				"import m\nclass S(m.T):\n    pass\ns = S()\nCALL\n",
+				"import m\nclass S(m.T):\n    pass\ndef f(s: S):\n    CALL\n",
 				"s.write()",
 				REFUSED_REBOUND_BASE,
 				"rebound base through a module attribute",
@@ -4960,15 +5094,25 @@ describe("GCLI-115 — a del target is a binding", () => {
 				[py("m.py", "if X:\n    class T:\n        pass\nelse:\n    class T:\n        pass\n")],
 			);
 			await expectDelta(
-				"import m\nclass S(m.T):\n    pass\ns = S()\nCALL\n",
+				"import m\nclass S(m.T):\n    pass\ndef f(s: S):\n    CALL\n",
 				"s.write()",
 				REFUSED_REBOUND_BASE,
 				"multiply base through a module attribute",
 				[py("m.py", "if X:\n    class T:\n        pass\nelse:\n    class T:\n        pass\n")],
 			);
-			// control: a genuinely external base stays external (the method is found only in it)
+			// GCLI-169 / N5: the constructed form this test used to use refuses at the receiver now, before any base
+			// is credited, so it draws no edge either — the same conclusion by a different reason.
 			await expectDelta(
-				"import ext\nclass S(ext.Base):\n    pass\ns = S()\nCALL\n",
+				"from m import T\nclass S(T):\n    pass\ns = S()\nCALL\n",
+				"s.write()",
+				REFUSED_RECEIVER,
+				"constructed receiver over a rebound base (GCLI-169 N5)",
+				[py("m.py", "class T:\n    pass\nT = make()\n")],
+			);
+			// control: a genuinely external base stays external (the method is found only in it). Annotated for the
+			// same N5 reason as above; the constructed form now lands in the receiver bin instead.
+			await expectDelta(
+				"import ext\nclass S(ext.Base):\n    pass\ndef f(s: S):\n    CALL\n",
 				"s.write()",
 				BUILTIN,
 				"external base",
@@ -5071,11 +5215,14 @@ describe("GCLI-115 — a del target is a binding", () => {
 				["multiply", "if X:\n    class T:\n        pass\nelse:\n    class T:\n        pass\n"],
 				["rebound", "class T:\n    pass\nT = make()\n"],
 			] as const) {
+				// GCLI-169 / N5: the receiver is annotated rather than constructed — `s = S()` now refuses at
+				// `instanceClassOf`, since a multiply or rebound base leaves S's MRO opaque — so the base-credit
+				// assertion reaches `methodLookup` the same way.
 				const result = await analyze([
 					py("m.py", tsource),
 					py(
 						"app.py",
-						"from m import T\nclass U:\n    def write(self):\n        pass\nclass S(T, U):\n    pass\ns = S()\ns.write()\n",
+						"from m import T\nclass U:\n    def write(self):\n        pass\nclass S(T, U):\n    pass\ndef f(s: S):\n    s.write()\n",
 					),
 				]);
 				const uWrite = symbolId(result, "U.write");
