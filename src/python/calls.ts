@@ -3603,7 +3603,11 @@ class Resolver {
 	 * instance dispatch. GCLI-163 threads `instance` into `methodLookup`'s `__class__`-write guard, which must not
 	 * refuse the class-level twin `C.m(...)`.
 	 */
-	private knownClassOf(name: string, scope: Scope, use?: UsePosition): { info: ClassInfo; instance: boolean } | null {
+	private knownClassOf(
+		name: string,
+		scope: Scope,
+		use?: UsePosition,
+	): { info: ClassInfo; instance: boolean; annotated: boolean } | null {
 		const found = this.lookupBindings(name, scope, use);
 		if (found === null || found.classBodyShadowed === true || found.bindings.length !== 1) return null;
 		const binding = found.bindings[0] as RawBinding;
@@ -3611,28 +3615,28 @@ class Resolver {
 			const outcome = this.resolveImportBinding(binding.importBinding);
 			if (outcome.kind === "symbol" && outcome.symbol.kind === "class") {
 				const info = this.classById.get(outcome.symbol.id) ?? null;
-				return info === null ? null : { info, instance: false };
+				return info === null ? null : { info, instance: false, annotated: false };
 			}
 			return null;
 		}
 		if (binding.kind === "assign") {
 			if (binding.annotation && binding.annotationScope) {
 				const info = this.resolveAnnotationClass(binding.annotation, binding.annotationScope);
-				return info === null ? null : { info, instance: true };
+				return info === null ? null : { info, instance: true, annotated: true };
 			}
 			if (binding.rhs !== undefined && binding.rhs.kind === "call") {
 				const symbol = this.resolveCalleeToSymbol(binding.rhs.callee, found.scope, 0);
 				const constructed = symbol !== null && symbol.kind === "class" ? (this.classById.get(symbol.id) ?? null) : null;
 				// (a31) Q2: a decorated class may have been replaced, so `x = Cls(); x.m()` is refused.
 				if (constructed === null || this.hasReplacingDecorator(constructed)) return null;
-				return { info: constructed, instance: true };
+				return { info: constructed, instance: true, annotated: false };
 			}
 			return null;
 		}
 		// K1: the annotation of `*args: T` or `**kw: T` types the ELEMENTS, not the tuple or dict.
 		if (binding.kind === "param" && binding.splat === undefined && binding.annotation && binding.annotationScope) {
 			const info = this.resolveAnnotationClass(binding.annotation, binding.annotationScope);
-			return info === null ? null : { info, instance: true };
+			return info === null ? null : { info, instance: true, annotated: true };
 		}
 		return null;
 	}
@@ -3930,11 +3934,6 @@ class Resolver {
 		// is another one the call can reach. Only INSTANCE dispatch is affected: a class-level call (`C.m(...)`) names
 		// the function on the class, which an instance's `__class__` write never changes, so it stays resolving.
 		if (instanceReceiver && this.classAttributeWritten(receiver, "__class__")) {
-			return { bin: "receiver", reason: "needs-inference" };
-		}
-		// GCLI-151 (DEC-303 (a88) note 4): the same guard, for a write recorded on a DESCENDANT rather than on the
-		// receiver's own MRO. An instance typed as this class may be one of a descendant that rebinds its class.
-		if (instanceReceiver && this.descendantClassWritten(receiver, "__class__")) {
 			return { bin: "receiver", reason: "needs-inference" };
 		}
 		let start = 0;
@@ -4237,6 +4236,12 @@ class Resolver {
 			if (segments.length > 1) return { bin: "receiver", reason: "needs-inference" };
 			// GCLI-140 (DEC-303 (a25) item 1, the x.m bullet): a write to x.m on the local makes x.m() no single binding.
 			if (this.localAttributeWritten(base.name, scope, lastName, site)) {
+				return { bin: "receiver", reason: "needs-inference" };
+			}
+			// GCLI-151 (DEC-303 (a94) item 1): an ANNOTATED or parameter receiver can hold an instance of an in-repo
+			// descendant, whose `__class__` write changes its runtime class. A constructor-bound local cannot, and
+			// stays resolving as on dev (DEC-303 (a94) item 1).
+			if (knownClass.annotated && this.descendantClassWritten(knownClass.info, "__class__")) {
 				return { bin: "receiver", reason: "needs-inference" };
 			}
 			return this.methodLookup(knownClass.info, lastName, false, true, knownClass.instance);
@@ -4555,7 +4560,13 @@ class Resolver {
 	 */
 	private descendantClassWritten(classInfo: ClassInfo, name: string): boolean {
 		for (const descendant of this.descendantsOf(classInfo)) {
-			if (this.classAttrWrites.get(descendant.id)?.has(name) === true) return true;
+			// The write may sit on the descendant's own MRO, a mixin included (DEC-303 (a94) item 2b).
+			const mro = this.computeMro(descendant);
+			// A descendant whose MRO cannot be computed could carry any base: fail closed.
+			if (!mro.ok) return true;
+			for (const entry of mro.entries) {
+				if (entry.kind === "class" && this.classAttrWrites.get(entry.info.id)?.has(name) === true) return true;
+			}
 		}
 		return false;
 	}
@@ -4718,6 +4729,9 @@ class Resolver {
 		// GCLI-140 (DEC-303 (a25) item 1, the self.__class__ bullet): a write to self.__class__ anywhere in the class leaves every self and
 		// type(self) receiver in it unresolved.
 		if (this.classAttributeWritten(receiver.classInfo, "__class__")) return null;
+		// GCLI-151 (DEC-303 (a94) item 2a): an in-repo descendant's `__class__` write changes the runtime class of a
+		// receiver typed as this class, so `k = type(self)` / `k = self.__class__` names no single class either.
+		if (this.descendantClassWritten(receiver.classInfo, "__class__")) return null;
 		// (a23) item 3, (a55) item 3: a class on the MRO that defines `__class__` (an attribute, a
 		// property or a method) leaves `self.__class__` unresolved; `type(self)` does not consult it.
 		if (!classOf.viaType) {

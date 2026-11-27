@@ -4206,9 +4206,9 @@ describe("GCLI-164 — #4 re-dispatch (class-body lazy) and N8 diamond super", (
 	// GCLI-151 note 3 (DEC-303 (a90) item 2): the two fail-closed branches of `superOrderDiffers` need fixtures.
 	// A descendant whose C3 MRO cannot name the receiver as a class entry (`at < 0`), and one whose MRO cannot be
 	// computed at all (`!mro.ok`), both refuse; dev resolved A.m in the first.
-	test("note 3: a descendant whose MRO cannot name the receiver refuses (single inheritance suffices)", async () => {
-		// B is defined twice, so a D(B) descendant's MRO cannot name the receiver as a class entry. Measured: the
-		// refusal is served by the `!mro.ok` branch, not by `at < 0` — removing `if (at < 0) return true` does NOT
+	test("note 3, second !mro.ok fixture: the at<0 mutant is unmet, this shape is served by !mro.ok", async () => {
+		// A second binding of B leaves a D(B) descendant's MRO unable to name the receiver as a class entry. Measured:
+		// the refusal is served by the `!mro.ok` branch, not by `at < 0` — removing `if (at < 0) return true` does NOT
 		// turn this fixture red. No fixture was found that isolates `at < 0`; that branch stays defensive.
 		const r = await observe({
 			"app.py":
@@ -4343,12 +4343,12 @@ describe("GCLI-163 — a cross-module __class__ write leaves an outside receiver
 	});
 });
 
-// GCLI-151 (DEC-303 (a88) note 4): `classAttributeWritten` walks the receiver's MRO, so an `__init__` on a
-// DESCENDANT that writes `self.__class__ = Other` is invisible to it — yet an instance typed as the base may be one
-// of that descendant. `descendantClassWritten` closes the gap for instance dispatch (`methodLookup`'s
-// `instanceReceiver`, which covers the annotated/parameter receiver, the R4 local, the imported instance, the
-// constructed receiver and `__call__`) and for the bare `self.m()` path, which keeps its own guard. Removal-only.
-describe("GCLI-151 — a descendant __class__ write refuses a base-typed instance receiver (DEC-303 (a88) note 4)", () => {
+// GCLI-151 (DEC-303 (a88) note 4, narrowed by (a94) item 1): `classAttributeWritten` walks the receiver's MRO, so
+// an `__init__` on a DESCENDANT that writes `self.__class__ = Other` is invisible to it — yet an ANNOTATED or
+// parameter receiver can hold an instance of that descendant. `descendantClassWritten` closes the gap for those
+// receivers and for the bare `self.m()` path. A constructed local, an imported instance and a bare `C()` cannot hold
+// a descendant and keep resolving as on dev (DEC-303 (a94) item 1). Removal-only.
+describe("GCLI-151 — a descendant __class__ write refuses a base-typed instance receiver (DEC-303 (a88) note 4, (a94) item 1)", () => {
 	const other = "class Other:\n    def m(self):\n        return 2\n    def n(self):\n        return 3\n";
 	const classC = "class C:\n    def m(self):\n        return 1\n    def n(self):\n        return 1\n";
 	const writeD = "class D(C):\n    def __init__(self):\n        self.__class__ = Other\n";
@@ -4394,21 +4394,90 @@ describe("GCLI-151 — a descendant __class__ write refuses a base-typed instanc
 		expect(twin.callees).toContain("call:app.py:C.m");
 	});
 
-	test("R4 local: x = C(); x.m() refuses when a descendant writes; the twin keeps C() and C.m", async () => {
+	test("R4 local pin (DEC-303 (a94) item 1): x = C(); x.m() still RESOLVES when a descendant writes", async () => {
 		const written = await observe({ "app.py": `${other}${classC}${writeD}\ndef f():\n    x = C()\n    x.m()\n` });
-		expect(written.callees).toEqual(["new:app.py:C"]);
-		expect(written.bins).toEqual({ ...REFUSED, resolvedInRepo: 1 });
-		const twin = await observe({ "app.py": `${other}${classC}${plainD}\ndef f():\n    x = C()\n    x.m()\n` });
-		expect(twin.callees).toContain("call:app.py:C.m");
-		expect(twin.callees).toContain("new:app.py:C");
+		expect(written.callees).toContain("call:app.py:C.m");
+		expect(written.callees).toContain("new:app.py:C");
+		expect(written.bins.receiverNeedsInference).toBe(0);
 	});
 
-	test("constructed receiver: C().m() refuses when a descendant writes; the twin keeps the construction and C.m", async () => {
+	test("constructed pin (DEC-303 (a94) item 1): C().m() still RESOLVES when a descendant writes", async () => {
 		const written = await observe({ "app.py": `${other}${classC}${writeD}\ndef f():\n    C().m()\n` });
-		expect(written.callees).toEqual(["new:app.py:C"]);
-		expect(written.bins).toEqual({ ...REFUSED, resolvedInRepo: 1 });
-		const twin = await observe({ "app.py": `${other}${classC}${plainD}\ndef f():\n    C().m()\n` });
+		expect(written.callees).toContain("call:app.py:C.m");
+		expect(written.bins.receiverNeedsInference).toBe(0);
+	});
+
+	test("type(self) alias (DEC-303 (a94) item 2a): k = type(self); k.m() refuses when a descendant writes; the twin resolves", async () => {
+		const withTs =
+			"class C:\n    def m(self):\n        return 1\n    def use(self):\n        k = type(self)\n        k.m()\n";
+		const written = await observe({ "app.py": `${other}${withTs}${writeD}` });
+		expect(written.callees).toEqual([]);
+		// `type(self)` itself is the external builtin, so the bin count for it stays external.
+		expect(written.bins.receiverNeedsInference).toBe(1);
+		const twin = await observe({ "app.py": `${other}${withTs}${plainD}` });
 		expect(twin.callees).toContain("call:app.py:C.m");
+	});
+
+	test("self.__class__ alias (DEC-303 (a94) item 2a): k = self.__class__; k.m() refuses; the twin resolves", async () => {
+		const withCls =
+			"class C:\n    def m(self):\n        return 1\n    def use(self):\n        k = self.__class__\n        k.m()\n";
+		const written = await observe({ "app.py": `${other}${withCls}${writeD}` });
+		expect(written.callees).toEqual([]);
+		expect(written.bins.receiverNeedsInference).toBe(1);
+		const twin = await observe({ "app.py": `${other}${withCls}${plainD}` });
+		expect(twin.callees).toContain("call:app.py:C.m");
+	});
+
+	test("mixin (DEC-303 (a94) item 2b): a __class__ write on a descendant's MIXIN refuses; the twin resolves", async () => {
+		const mix = "class Mix:\n    def __init__(self):\n        self.__class__ = Other\n";
+		const mixTwin = "class Mix:\n    pass\n";
+		const withD = "class D(C, Mix):\n    pass\n";
+		const written = await observe({ "app.py": `${other}${mix}${classC}${withD}def f(x: C):\n    x.m()\n` });
+		expect(written.callees).toEqual([]);
+		expect(written.bins).toEqual(REFUSED);
+		const twin = await observe({ "app.py": `${other}${mixTwin}${classC}${withD}def f(x: C):\n    x.m()\n` });
+		expect(twin.callees).toContain("call:app.py:C.m");
+	});
+
+	test("cross-module annotation (DEC-303 (a94) item 1): x: m.C in app refuses when m's D writes; the twin resolves", async () => {
+		const mWrite = `${other}${classC}${writeD}`;
+		const mPlain = `${other}${classC}${plainD}`;
+		const app = "import m\ndef f(x: m.C):\n    x.m()\n";
+		const written = await observe({ "m.py": mWrite, "app.py": app });
+		expect(written.callees).toEqual([]);
+		const twin = await observe({ "m.py": mPlain, "app.py": app });
+		expect(twin.callees).toContain("call:m.py:C.m");
+	});
+
+	test("two-level descendant (DEC-303 (a94) item 1): a write on E(D(C)) refuses x: C; the twin resolves", async () => {
+		const twoLevel = `${other}${classC}class D(C):\n    pass\nclass E(D):\n    def __init__(self):\n        self.__class__ = Other\n`;
+		const twoLevelTwin = `${other}${classC}class D(C):\n    pass\nclass E(D):\n    pass\n`;
+		const written = await observe({ "app.py": `${twoLevel}def f(x: C):\n    x.m()\n` });
+		expect(written.callees).toEqual([]);
+		const twin = await observe({ "app.py": `${twoLevelTwin}def f(x: C):\n    x.m()\n` });
+		expect(twin.callees).toContain("call:app.py:C.m");
+	});
+
+	test('setattr(self, "__class__", X) fixture (DEC-303 (a94) item 3): a literal setattr records the write and refuses; the twin resolves', async () => {
+		const withSet = `class Other:\n    def m(self):\n        return 2\nclass C:\n    def m(self):\n        return 1\n    def __init__(self):\n        setattr(self, "__class__", Other)\nclass D(C):\n    pass\ndef f(x: C):\n    x.m()\n`;
+		const noSet =
+			"class Other:\n    def m(self):\n        return 2\nclass C:\n    def m(self):\n        return 1\n    def __init__(self):\n        pass\nclass D(C):\n    pass\ndef f(x: C):\n    x.m()\n";
+		const written = await observe({ "app.py": withSet });
+		expect(written.callees).toEqual([]);
+		const twin = await observe({ "app.py": noSet });
+		expect(twin.callees).toContain("call:app.py:C.m");
+	});
+
+	test("imported instance and __call__ pins (DEC-303 (a94) item 1): both still RESOLVE when a descendant writes", async () => {
+		const imported = await observe({
+			"m.py": `${other}${classC}${writeD}inst = C()\n`,
+			"app.py": "from m import inst\ninst.m()\n",
+		});
+		expect(imported.callees).toContain("call:m.py:C.m");
+		const called = await observe({
+			"app.py": `${other}class C:\n    def __call__(self):\n        return 1\n${writeD}def f():\n    x = C()\n    x()\n`,
+		});
+		expect(called.callees).toContain("call:app.py:C.__call__");
 	});
 
 	test("the write changes the whole type: a neighbour x.n() refuses, while a class-level C.m(C()) still resolves", async () => {
