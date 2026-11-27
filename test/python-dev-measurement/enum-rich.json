@@ -1,0 +1,6844 @@
+[
+ {
+  "file": "rich/traceback.py",
+  "line": 220,
+  "kind": "class",
+  "name": "_SyntaxError",
+  "qual": "_SyntaxError",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/traceback.py",
+    "line": 233,
+    "form": "ref",
+    "src": "syntax_error: _SyntaxError | None = None"
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 500,
+    "form": "call",
+    "src": "stack.syntax_error = _SyntaxError("
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 717,
+    "form": "ref",
+    "src": "def _render_syntax_error(self, syntax_error: _SyntaxError) -> RenderResult:"
+   }
+  ]
+ },
+ {
+  "file": "rich/__main__.py",
+  "line": 18,
+  "kind": "class",
+  "name": "ColorBox",
+  "qual": "ColorBox",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/__main__.py",
+    "line": 61,
+    "form": "call",
+    "src": "ColorBox(),"
+   },
+   {
+    "file": "rich/palette.py",
+    "line": 84,
+    "form": "ref",
+    "src": "class ColorBox:"
+   },
+   {
+    "file": "rich/palette.py",
+    "line": 101,
+    "form": "call",
+    "src": "console.print(ColorBox())"
+   }
+  ]
+ },
+ {
+  "file": "rich/pretty.py",
+  "line": 545,
+  "kind": "def",
+  "name": "_is_namedtuple",
+  "qual": "_is_namedtuple",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/pretty.py",
+    "line": 779,
+    "form": "call",
+    "src": "elif _is_namedtuple(obj) and _has_default_namedtuple_repr(obj):"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 855,
+    "form": "call",
+    "src": "node.is_namedtuple = _is_namedtuple(obj)"
+   }
+  ]
+ },
+ {
+  "file": "rich/_win32_console.py",
+  "line": 252,
+  "kind": "def",
+  "name": "SetConsoleCursorPosition",
+  "qual": "SetConsoleCursorPosition",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 244,
+    "form": "ref",
+    "src": "_SetConsoleCursorPosition = windll.kernel32.SetConsoleCursorPosition"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 452,
+    "form": "call",
+    "src": "SetConsoleCursorPosition(self._handle, coords=new_position)"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 496,
+    "form": "call",
+    "src": "SetConsoleCursorPosition("
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 506,
+    "form": "call",
+    "src": "SetConsoleCursorPosition("
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 522,
+    "form": "call",
+    "src": "SetConsoleCursorPosition("
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 533,
+    "form": "call",
+    "src": "SetConsoleCursorPosition(self._handle, coords=WindowsCoordinates(row, column))"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 543,
+    "form": "call",
+    "src": "SetConsoleCursorPosition("
+   }
+  ]
+ },
+ {
+  "file": "rich/bar.py",
+  "line": 15,
+  "kind": "class",
+  "name": "Bar",
+  "qual": "Bar",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/bar.py",
+    "line": 44,
+    "form": "call",
+    "src": "return f\"Bar({self.size}, {self.begin}, {self.end})\""
+   },
+   {
+    "file": "rich/progress_bar.py",
+    "line": 58,
+    "form": "ref",
+    "src": "return f\"<Bar {self.completed!r} of {self.total!r}>\""
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 1403,
+  "kind": "def",
+  "name": "render_str",
+  "qual": "Console.render_str",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/columns.py",
+    "line": 65,
+    "form": "ref",
+    "src": "render_str = console.render_str"
+   },
+   {
+    "file": "rich/columns.py",
+    "line": 67,
+    "form": "call",
+    "src": "render_str(renderable) if isinstance(renderable, str) else renderable"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 131,
+    "form": "ref",
+    "src": "\"\"\"Highlight override for render_str.\"\"\""
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1315,
+    "form": "call",
+    "src": "text_renderable = self.render_str("
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1554,
+    "form": "call",
+    "src": "self.render_str("
+   },
+   {
+    "file": "rich/live.py",
+    "line": 238,
+    "form": "call",
+    "src": "renderable = self.console.render_str(renderable)"
+   },
+   {
+    "file": "rich/measure.py",
+    "line": 99,
+    "form": "call",
+    "src": "renderable = console.render_str("
+   },
+   {
+    "file": "rich/rule.py",
+    "line": 66,
+    "form": "call",
+    "src": "title_text = console.render_str(self.title, style=\"rule.text\")"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 491,
+    "form": "call",
+    "src": "console.render_str(text, style=style, highlight=False)"
+   }
+  ]
+ },
+ {
+  "file": "rich/text.py",
+  "line": 621,
+  "kind": "def",
+  "name": "highlight_words",
+  "qual": "Text.highlight_words",
+  "encl": "Text",
+  "sites": [
+   {
+    "file": "rich/logging.py",
+    "line": 211,
+    "form": "call",
+    "src": "message_text.highlight_words(self.keywords, \"logging.keyword\")"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 1328,
+    "form": "call",
+    "src": "text.highlight_words([\"Lorem\"], \"bold\")"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 1329,
+    "form": "call",
+    "src": "text.highlight_words([\"ipsum\"], \"italic\")"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 243,
+  "kind": "def",
+  "name": "readinto",
+  "qual": "_Reader.readinto",
+  "encl": "_Reader",
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 244,
+    "form": "call",
+    "src": "n = self.handle.readinto(b)  # type: ignore[attr-defined]"
+   }
+  ]
+ },
+ {
+  "file": "rich/logging.py",
+  "line": 123,
+  "kind": "def",
+  "name": "get_level_text",
+  "qual": "RichHandler.get_level_text",
+  "encl": "RichHandler",
+  "sites": [
+   {
+    "file": "rich/logging.py",
+    "line": 233,
+    "form": "call",
+    "src": "level = self.get_level_text(record)"
+   }
+  ]
+ },
+ {
+  "file": "rich/diagnose.py",
+  "line": 10,
+  "kind": "def",
+  "name": "report",
+  "qual": "report",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/diagnose.py",
+    "line": 11,
+    "form": "ref",
+    "src": "\"\"\"Print a report to the terminal with debugging information\"\"\""
+   },
+   {
+    "file": "rich/diagnose.py",
+    "line": 39,
+    "form": "call",
+    "src": "report()"
+   },
+   {
+    "file": "rich/filesize.py",
+    "line": 65,
+    "form": "ref",
+    "src": "or used by **Mac OS X** since v10.6 to report file sizes."
+   }
+  ]
+ },
+ {
+  "file": "rich/table.py",
+  "line": 745,
+  "kind": "def",
+  "name": "_render",
+  "qual": "Table._render",
+  "encl": "Table",
+  "sites": [
+   {
+    "file": "rich/_inspect.py",
+    "line": 76,
+    "form": "call",
+    "src": "Group(*self._render()),"
+   },
+   {
+    "file": "rich/_inspect.py",
+    "line": 125,
+    "form": "call",
+    "src": "def _render(self) -> Iterable[RenderableType]:"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 455,
+    "form": "ref",
+    "src": "self._render: list[RenderableType] | None = None"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 459,
+    "form": "ref",
+    "src": "if self._render is None:"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 460,
+    "form": "ref",
+    "src": "self._render = list(self._renderables)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 461,
+    "form": "ref",
+    "src": "return self._render"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 505,
+    "form": "call",
+    "src": "yield from self._render(console, render_options, widths)"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 783,
+  "kind": "def",
+  "name": "_detect_color_system",
+  "qual": "Console._detect_color_system",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 704,
+    "form": "call",
+    "src": "self._color_system = self._detect_color_system()"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 337,
+  "kind": "class",
+  "name": "ThemeContext",
+  "qual": "ThemeContext",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 345,
+    "form": "ref",
+    "src": "def __enter__(self) -> \"ThemeContext\":"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 890,
+    "form": "ref",
+    "src": "def use_theme(self, theme: Theme, *, inherit: bool = True) -> ThemeContext:"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 898,
+    "form": "ref",
+    "src": "ThemeContext: [description]"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 900,
+    "form": "call",
+    "src": "return ThemeContext(self, theme, inherit)"
+   }
+  ]
+ },
+ {
+  "file": "rich/_fileno.py",
+  "line": 6,
+  "kind": "def",
+  "name": "get_fileno",
+  "qual": "get_fileno",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 2071,
+    "form": "call",
+    "src": "fileno = get_fileno(self.file)"
+   }
+  ]
+ },
+ {
+  "file": "rich/pretty.py",
+  "line": 564,
+  "kind": "def",
+  "name": "traverse",
+  "qual": "traverse",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/pretty.py",
+    "line": 893,
+    "form": "call",
+    "src": "node = traverse("
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 569,
+    "form": "call",
+    "src": "key: pretty.traverse("
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 1545,
+  "kind": "def",
+  "name": "get_renderable",
+  "qual": "Progress.get_renderable",
+  "encl": "Progress",
+  "sites": [
+   {
+    "file": "rich/columns.py",
+    "line": 144,
+    "form": "ref",
+    "src": "get_renderable = itemgetter(1)"
+   },
+   {
+    "file": "rich/columns.py",
+    "line": 146,
+    "form": "call",
+    "src": "get_renderable(_renderable)"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 54,
+    "form": "call",
+    "src": "get_renderable (Callable[[], RenderableType], optional): Optional callable to get renderable. Defaults to None."
+   },
+   {
+    "file": "rich/live.py",
+    "line": 69,
+    "form": "ref",
+    "src": "get_renderable: Callable[[], RenderableType] | None = None,"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 92,
+    "form": "ref",
+    "src": "self._get_renderable = get_renderable"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 94,
+    "form": "call",
+    "src": "self.get_renderable(), vertical_overflow=vertical_overflow"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 103,
+    "form": "call",
+    "src": "def get_renderable(self) -> RenderableType:"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 225,
+    "form": "call",
+    "src": "renderable = Group(*[live.get_renderable() for live in live_stack])"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 227,
+    "form": "call",
+    "src": "renderable = self.get_renderable()"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1100,
+    "form": "ref",
+    "src": "get_renderable=self.get_renderable,"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1591,
+    "form": "call",
+    "src": "return self.get_renderable()"
+   }
+  ]
+ },
+ {
+  "file": "rich/columns.py",
+  "line": 16,
+  "kind": "class",
+  "name": "Columns",
+  "qual": "Columns",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/box.py",
+    "line": 459,
+    "form": "call",
+    "src": "columns = Columns(expand=True, padding=2)"
+   },
+   {
+    "file": "rich/columns.py",
+    "line": 28,
+    "form": "ref",
+    "src": "title (TextType, optional): Optional title for Columns."
+   },
+   {
+    "file": "rich/columns.py",
+    "line": 182,
+    "form": "call",
+    "src": "columns = Columns(files, padding=(0, 1), expand=False, equal=False)"
+   },
+   {
+    "file": "rich/emoji.py",
+    "line": 86,
+    "form": "call",
+    "src": "columns = Columns("
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 874,
+    "form": "call",
+    "src": "Columns("
+   }
+  ]
+ },
+ {
+  "file": "rich/repr.py",
+  "line": 28,
+  "kind": "def",
+  "name": "do_replace",
+  "qual": "auto.do_replace",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_emoji_replace.py",
+    "line": 22,
+    "form": "call",
+    "src": "def do_replace(match: Match[str]) -> str:"
+   },
+   {
+    "file": "rich/_emoji_replace.py",
+    "line": 31,
+    "form": "ref",
+    "src": "return _emoji_sub(do_replace, text)"
+   },
+   {
+    "file": "rich/repr.py",
+    "line": 87,
+    "form": "ref",
+    "src": "return partial(do_replace, angular=angular)"
+   },
+   {
+    "file": "rich/repr.py",
+    "line": 89,
+    "form": "call",
+    "src": "return do_replace(cls, angular=angular)"
+   }
+  ]
+ },
+ {
+  "file": "rich/_win32_console.py",
+  "line": 444,
+  "kind": "def",
+  "name": "move_cursor_to",
+  "qual": "LegacyWindowsTerm.move_cursor_to",
+  "encl": "LegacyWindowsTerm",
+  "sites": [
+   {
+    "file": "rich/_windows_renderer.py",
+    "line": 26,
+    "form": "call",
+    "src": "term.move_cursor_to(WindowsCoordinates(row=y - 1, col=x - 1))"
+   },
+   {
+    "file": "rich/_windows_renderer.py",
+    "line": 30,
+    "form": "call",
+    "src": "term.move_cursor_to(WindowsCoordinates(0, 0))"
+   }
+  ]
+ },
+ {
+  "file": "rich/layout.py",
+  "line": 41,
+  "kind": "class",
+  "name": "_Placeholder",
+  "qual": "_Placeholder",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/layout.py",
+    "line": 156,
+    "form": "call",
+    "src": "self._renderable = renderable or _Placeholder(self)"
+   }
+  ]
+ },
+ {
+  "file": "rich/file_proxy.py",
+  "line": 50,
+  "kind": "def",
+  "name": "flush",
+  "qual": "FileProxy.flush",
+  "encl": "FileProxy",
+  "sites": [
+   {
+    "file": "rich/__init__.py",
+    "line": 58,
+    "form": "ref",
+    "src": "flush: bool = False,"
+   },
+   {
+    "file": "rich/__init__.py",
+    "line": 68,
+    "form": "call",
+    "src": "flush (bool, optional): Has no effect as Rich always flushes output. Defaults to False."
+   },
+   {
+    "file": "rich/_null_file.py",
+    "line": 62,
+    "form": "call",
+    "src": "def flush(self) -> None:"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 374,
+    "form": "ref",
+    "src": "self.flush = file.flush"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 403,
+    "form": "call",
+    "src": "self.flush()"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 2123,
+    "form": "call",
+    "src": "self.file.flush()"
+   }
+  ]
+ },
+ {
+  "file": "rich/syntax.py",
+  "line": 589,
+  "kind": "def",
+  "name": "_get_number_styles",
+  "qual": "Syntax._get_number_styles",
+  "encl": "Syntax",
+  "sites": [
+   {
+    "file": "rich/syntax.py",
+    "line": 731,
+    "form": "call",
+    "src": ") = self._get_number_styles(console)"
+   }
+  ]
+ },
+ {
+  "file": "rich/pretty.py",
+  "line": 214,
+  "kind": "class",
+  "name": "RichFormatter",
+  "qual": "install.display_hook.RichFormatter",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/pretty.py",
+    "line": 233,
+    "form": "call",
+    "src": "rich_formatter = RichFormatter()"
+   }
+  ]
+ },
+ {
+  "file": "rich/live_render.py",
+  "line": 13,
+  "kind": "class",
+  "name": "LiveRender",
+  "qual": "LiveRender",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/live.py",
+    "line": 93,
+    "form": "call",
+    "src": "self._live_render = LiveRender("
+   }
+  ]
+ },
+ {
+  "file": "rich/color.py",
+  "line": 288,
+  "kind": "class",
+  "name": "ColorParseError",
+  "qual": "ColorParseError",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/color.py",
+    "line": 451,
+    "form": "call",
+    "src": "raise ColorParseError(f\"{original_color!r} is not a valid color\")"
+   },
+   {
+    "file": "rich/color.py",
+    "line": 463,
+    "form": "call",
+    "src": "raise ColorParseError(f\"color number must be <= 255 in {color!r}\")"
+   },
+   {
+    "file": "rich/color.py",
+    "line": 473,
+    "form": "call",
+    "src": "raise ColorParseError("
+   },
+   {
+    "file": "rich/color.py",
+    "line": 479,
+    "form": "call",
+    "src": "raise ColorParseError("
+   },
+   {
+    "file": "rich/style.py",
+    "line": 528,
+    "form": "ref",
+    "src": "except ColorParseError as error:"
+   },
+   {
+    "file": "rich/style.py",
+    "line": 555,
+    "form": "ref",
+    "src": "except ColorParseError as error:"
+   }
+  ]
+ },
+ {
+  "file": "rich/control.py",
+  "line": 69,
+  "kind": "def",
+  "name": "bell",
+  "qual": "Control.bell",
+  "encl": "Control",
+  "sites": [
+   {
+    "file": "rich/_emoji_codes.py",
+    "line": 454,
+    "form": "ref",
+    "src": "\"bell\": \"\ud83d\udd14\","
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1086,
+    "form": "call",
+    "src": "def bell(self) -> None:"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1087,
+    "form": "ref",
+    "src": "\"\"\"Play a 'bell' sound (if supported by the terminal).\"\"\""
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1088,
+    "form": "call",
+    "src": "self.control(Control.bell())"
+   },
+   {
+    "file": "rich/control.py",
+    "line": 70,
+    "form": "ref",
+    "src": "\"\"\"Ring the 'bell'.\"\"\""
+   }
+  ]
+ },
+ {
+  "file": "rich/control.py",
+  "line": 195,
+  "kind": "def",
+  "name": "escape_control_codes",
+  "qual": "escape_control_codes",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_inspect.py",
+    "line": 237,
+    "form": "call",
+    "src": "return escape_control_codes(docs)"
+   }
+  ]
+ },
+ {
+  "file": "rich/_null_file.py",
+  "line": 5,
+  "kind": "class",
+  "name": "NullFile",
+  "qual": "NullFile",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_null_file.py",
+    "line": 69,
+    "form": "call",
+    "src": "NULL_FILE = NullFile()"
+   },
+   {
+    "file": "rich/logging.py",
+    "line": 179,
+    "form": "ref",
+    "src": "if isinstance(self.console.file, NullFile):"
+   }
+  ]
+ },
+ {
+  "file": "rich/ansi.py",
+  "line": 126,
+  "kind": "def",
+  "name": "decode",
+  "qual": "AnsiDecoder.decode",
+  "encl": "AnsiDecoder",
+  "sites": [
+   {
+    "file": "rich/ansi.py",
+    "line": 235,
+    "form": "call",
+    "src": "stdout_result = stdout.getvalue().decode(\"utf-8\")"
+   },
+   {
+    "file": "rich/ansi.py",
+    "line": 238,
+    "form": "call",
+    "src": "for line in decoder.decode(stdout_result):"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 316,
+    "form": "call",
+    "src": "result = joiner.join(line for line in decoder.decode(text))"
+   }
+  ]
+ },
+ {
+  "file": "rich/traceback.py",
+  "line": 72,
+  "kind": "def",
+  "name": "install",
+  "qual": "install",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_extension.py",
+    "line": 7,
+    "form": "ref",
+    "src": "from rich.traceback import install as tr_install"
+   },
+   {
+    "file": "rich/_extension.py",
+    "line": 9,
+    "form": "call",
+    "src": "install()"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 260,
+    "form": "ref",
+    "src": "warnings.warn('install \"ipywidgets\" for Jupyter support')"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 155,
+    "form": "call",
+    "src": "def install("
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 887,
+    "form": "call",
+    "src": "install(show_locals=True)"
+   }
+  ]
+ },
+ {
+  "file": "rich/_win32_console.py",
+  "line": 559,
+  "kind": "def",
+  "name": "set_title",
+  "qual": "LegacyWindowsTerm.set_title",
+  "encl": "LegacyWindowsTerm",
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 583,
+    "form": "call",
+    "src": "term.set_title(\"Win32 Console Examples\")"
+   },
+   {
+    "file": "rich/_windows_renderer.py",
+    "line": 56,
+    "form": "call",
+    "src": "term.set_title(title)"
+   }
+  ]
+ },
+ {
+  "file": "rich/measure.py",
+  "line": 125,
+  "kind": "def",
+  "name": "measure_renderables",
+  "qual": "measure_renderables",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 467,
+    "form": "call",
+    "src": "return measure_renderables(console, options, self.renderables)"
+   },
+   {
+    "file": "rich/panel.py",
+    "line": 287,
+    "form": "call",
+    "src": "measure_renderables("
+   }
+  ]
+ },
+ {
+  "file": "rich/markdown.py",
+  "line": 29,
+  "kind": "def",
+  "name": "create",
+  "qual": "MarkdownElement.create",
+  "encl": "MarkdownElement",
+  "sites": [
+   {
+    "file": "rich/markdown.py",
+    "line": 30,
+    "form": "ref",
+    "src": "\"\"\"Factory to create markdown element,"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 114,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> Paragraph:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 146,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> Heading:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 173,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> CodeBlock:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 313,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> MarkdownElement:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 344,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> ListElement:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 416,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> MarkdownElement:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 431,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> MarkdownElement:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 432,
+    "form": "ref",
+    "src": "\"\"\"Factory to create markdown element,"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 618,
+    "form": "call",
+    "src": "context.stack.push(Link.create(self, token))"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 667,
+    "form": "call",
+    "src": "element = element_class.create(self, token)"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1116,
+    "form": "ref",
+    "src": "You can also create a Progress instance using custom columns before"
+   },
+   {
+    "file": "rich/repr.py",
+    "line": 26,
+    "form": "ref",
+    "src": "\"\"\"Class decorator to create __repr__ from __rich_repr__\"\"\""
+   }
+  ]
+ },
+ {
+  "file": "rich/highlighter.py",
+  "line": 80,
+  "kind": "class",
+  "name": "ReprHighlighter",
+  "qual": "ReprHighlighter",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_inspect.py",
+    "line": 51,
+    "form": "call",
+    "src": "self.highlighter = ReprHighlighter()"
+   },
+   {
+    "file": "rich/align.py",
+    "line": 304,
+    "form": "call",
+    "src": "highlighter = ReprHighlighter()"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 640,
+    "form": "call",
+    "src": "highlighter: \"HighlighterType | None\" = ReprHighlighter(),"
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 44,
+    "form": "call",
+    "src": "highlighter = ReprHighlighter()"
+   },
+   {
+    "file": "rich/logging.py",
+    "line": 41,
+    "form": "ref",
+    "src": "highlighter (Highlighter, optional): Highlighter to style log messages, or None to use ReprHighlighter. Defaults to None."
+   },
+   {
+    "file": "rich/logging.py",
+    "line": 69,
+    "form": "ref",
+    "src": "HIGHLIGHTER_CLASS: ClassVar[type[Highlighter]] = ReprHighlighter"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 242,
+    "form": "ref",
+    "src": "highlighter (HighlighterType, optional): Highlighter object to apply to result, or None for ReprHighlighter. Defaults to None."
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 275,
+    "form": "call",
+    "src": "self.highlighter = highlighter or ReprHighlighter()"
+   },
+   {
+    "file": "rich/scope.py",
+    "line": 41,
+    "form": "call",
+    "src": "highlighter = ReprHighlighter()"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 972,
+    "form": "call",
+    "src": "highlight = ReprHighlighter()"
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 643,
+    "form": "call",
+    "src": "highlighter = ReprHighlighter()"
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 718,
+    "form": "call",
+    "src": "highlighter = ReprHighlighter()"
+   }
+  ]
+ },
+ {
+  "file": "rich/segment.py",
+  "line": 538,
+  "kind": "def",
+  "name": "simplify",
+  "qual": "Segment.simplify",
+  "encl": "Segment",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 2275,
+    "form": "call",
+    "src": "Segment.simplify(self._record_buffer)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 2287,
+    "form": "call",
+    "src": "Segment.simplify(self._record_buffer)"
+   },
+   {
+    "file": "rich/jupyter.py",
+    "line": 67,
+    "form": "call",
+    "src": "for text, style, control in Segment.simplify(segments):"
+   }
+  ]
+ },
+ {
+  "file": "rich/_null_file.py",
+  "line": 62,
+  "kind": "def",
+  "name": "flush",
+  "qual": "NullFile.flush",
+  "encl": "NullFile",
+  "sites": [
+   {
+    "file": "rich/__init__.py",
+    "line": 58,
+    "form": "ref",
+    "src": "flush: bool = False,"
+   },
+   {
+    "file": "rich/__init__.py",
+    "line": 68,
+    "form": "call",
+    "src": "flush (bool, optional): Has no effect as Rich always flushes output. Defaults to False."
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 374,
+    "form": "ref",
+    "src": "self.flush = file.flush"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 403,
+    "form": "call",
+    "src": "self.flush()"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 2123,
+    "form": "call",
+    "src": "self.file.flush()"
+   },
+   {
+    "file": "rich/file_proxy.py",
+    "line": 50,
+    "form": "call",
+    "src": "def flush(self) -> None:"
+   }
+  ]
+ },
+ {
+  "file": "rich/_ratio.py",
+  "line": 107,
+  "kind": "def",
+  "name": "ratio_distribute",
+  "qual": "ratio_distribute",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/table.py",
+    "line": 539,
+    "form": "call",
+    "src": "flex_widths = ratio_distribute(flexible_width, ratios, flex_minimum)"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 573,
+    "form": "call",
+    "src": "pad_widths = ratio_distribute(_max_width - table_width, widths)"
+   }
+  ]
+ },
+ {
+  "file": "rich/segment.py",
+  "line": 413,
+  "kind": "def",
+  "name": "set_shape",
+  "qual": "Segment.set_shape",
+  "encl": "Segment",
+  "sites": [
+   {
+    "file": "rich/align.py",
+    "line": 156,
+    "form": "call",
+    "src": "lines = Segment.set_shape(lines, width, height)"
+   },
+   {
+    "file": "rich/screen.py",
+    "line": 42,
+    "form": "call",
+    "src": "lines = Segment.set_shape(lines, width, height, style=style)"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 856,
+    "form": "call",
+    "src": "_Segment.set_shape("
+   }
+  ]
+ },
+ {
+  "file": "rich/scope.py",
+  "line": 81,
+  "kind": "def",
+  "name": "test",
+  "qual": "render_scope.test",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/highlighter.py",
+    "line": 30,
+    "form": "ref",
+    "src": "Text: A test instance with highlighting applied."
+   },
+   {
+    "file": "rich/markup.py",
+    "line": 125,
+    "form": "ref",
+    "src": "Text: A test instance."
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 551,
+    "form": "ref",
+    "src": "obj (Any): The object to test"
+   },
+   {
+    "file": "rich/scope.py",
+    "line": 91,
+    "form": "call",
+    "src": "test(20.3423, 3.1427)"
+   },
+   {
+    "file": "rich/style.py",
+    "line": 720,
+    "form": "call",
+    "src": "def test(self, text: str | None = None) -> None:"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress_bar.py",
+  "line": 18,
+  "kind": "class",
+  "name": "ProgressBar",
+  "qual": "ProgressBar",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 666,
+    "form": "ref",
+    "src": "def render(self, task: \"Task\") -> ProgressBar:"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 668,
+    "form": "call",
+    "src": "return ProgressBar("
+   },
+   {
+    "file": "rich/progress_bar.py",
+    "line": 212,
+    "form": "call",
+    "src": "bar = ProgressBar(width=50, total=100)"
+   }
+  ]
+ },
+ {
+  "file": "rich/scope.py",
+  "line": 14,
+  "kind": "def",
+  "name": "render_scope",
+  "qual": "render_scope",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1998,
+    "form": "call",
+    "src": "renderables.append(render_scope(locals_map, title=\"[i]locals\"))"
+   },
+   {
+    "file": "rich/scope.py",
+    "line": 89,
+    "form": "call",
+    "src": "print(render_scope(locals(), title=\"[i]locals\", sort_keys=False))"
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 762,
+    "form": "call",
+    "src": "yield render_scope("
+   }
+  ]
+ },
+ {
+  "file": "rich/text.py",
+  "line": 847,
+  "kind": "def",
+  "name": "truncate",
+  "qual": "Text.truncate",
+  "encl": "Text",
+  "sites": [
+   {
+    "file": "rich/_null_file.py",
+    "line": 33,
+    "form": "call",
+    "src": "def truncate(self, __size: int | None = 1) -> int:"
+   },
+   {
+    "file": "rich/containers.py",
+    "line": 118,
+    "form": "call",
+    "src": "line.truncate(width, overflow=overflow, pad=True)"
+   },
+   {
+    "file": "rich/containers.py",
+    "line": 122,
+    "form": "call",
+    "src": "line.truncate(width, overflow=overflow)"
+   },
+   {
+    "file": "rich/containers.py",
+    "line": 128,
+    "form": "call",
+    "src": "line.truncate(width, overflow=overflow)"
+   },
+   {
+    "file": "rich/panel.py",
+    "line": 175,
+    "form": "call",
+    "src": "text.truncate(width)"
+   },
+   {
+    "file": "rich/rule.py",
+    "line": 79,
+    "form": "call",
+    "src": "title_text.truncate(truncate_width, overflow=\"ellipsis\")"
+   },
+   {
+    "file": "rich/rule.py",
+    "line": 82,
+    "form": "call",
+    "src": "left.truncate(side_width - 1)"
+   },
+   {
+    "file": "rich/rule.py",
+    "line": 85,
+    "form": "call",
+    "src": "right.truncate(right_length)"
+   },
+   {
+    "file": "rich/rule.py",
+    "line": 90,
+    "form": "call",
+    "src": "title_text.truncate(truncate_width, overflow=\"ellipsis\")"
+   },
+   {
+    "file": "rich/rule.py",
+    "line": 95,
+    "form": "call",
+    "src": "title_text.truncate(truncate_width, overflow=\"ellipsis\")"
+   },
+   {
+    "file": "rich/rule.py",
+    "line": 105,
+    "form": "call",
+    "src": "rule_text.truncate(width)"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 940,
+    "form": "call",
+    "src": "self.truncate(width)"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 1232,
+    "form": "call",
+    "src": "line.truncate(width, overflow=wrap_overflow)"
+   }
+  ]
+ },
+ {
+  "file": "rich/markdown.py",
+  "line": 333,
+  "kind": "def",
+  "name": "on_text",
+  "qual": "TableDataElement.on_text",
+  "encl": "TableDataElement",
+  "sites": [
+   {
+    "file": "rich/markdown.py",
+    "line": 48,
+    "form": "call",
+    "src": "def on_text(self, context: MarkdownContext, text: TextType) -> None:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 100,
+    "form": "call",
+    "src": "def on_text(self, context: MarkdownContext, text: TextType) -> None:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 490,
+    "form": "call",
+    "src": "def on_text(self, text: str, node_type: str) -> None:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 495,
+    "form": "call",
+    "src": "self.stack.top.on_text("
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 499,
+    "form": "call",
+    "src": "self.stack.top.on_text(self, text)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 606,
+    "form": "call",
+    "src": "context.on_text(token.content, node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 608,
+    "form": "call",
+    "src": "context.on_text(\"\\n\", node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 610,
+    "form": "call",
+    "src": "context.on_text(\" \", node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 635,
+    "form": "call",
+    "src": "context.on_text(element.text.plain, node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 637,
+    "form": "call",
+    "src": "context.on_text(\" (\", node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 642,
+    "form": "call",
+    "src": "context.on_text(element.href, node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 644,
+    "form": "call",
+    "src": "context.on_text(\")\", node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 662,
+    "form": "call",
+    "src": "context.on_text(token.content, node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 690,
+    "form": "call",
+    "src": "element.on_text(context, text)"
+   }
+  ]
+ },
+ {
+  "file": "rich/_ratio.py",
+  "line": 147,
+  "kind": "class",
+  "name": "E",
+  "qual": "ratio_distribute.E",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_ratio.py",
+    "line": 152,
+    "form": "call",
+    "src": "resolved = ratio_resolve(110, [E(None, 1, 1), E(None, 1, 1), E(None, 1, 1)])"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 214,
+  "kind": "def",
+  "name": "reset_height",
+  "qual": "ConsoleOptions.reset_height",
+  "encl": "ConsoleOptions",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1332,
+    "form": "call",
+    "src": "_options = _options.reset_height()"
+   }
+  ]
+ },
+ {
+  "file": "rich/segment.py",
+  "line": 565,
+  "kind": "def",
+  "name": "strip_links",
+  "qual": "Segment.strip_links",
+  "encl": "Segment",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 391,
+    "form": "call",
+    "src": "segments = Segment.strip_links(segments)"
+   }
+  ]
+ },
+ {
+  "file": "rich/syntax.py",
+  "line": 179,
+  "kind": "def",
+  "name": "get_style_for_token",
+  "qual": "ANSISyntaxTheme.get_style_for_token",
+  "encl": "ANSISyntaxTheme",
+  "sites": [
+   {
+    "file": "rich/syntax.py",
+    "line": 118,
+    "form": "call",
+    "src": "def get_style_for_token(self, token_type: TokenType) -> Style:"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 144,
+    "form": "call",
+    "src": "def get_style_for_token(self, token_type: TokenType) -> Style:"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 425,
+    "form": "call",
+    "src": "style = self._theme.get_style_for_token(token_type)"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 483,
+    "form": "ref",
+    "src": "_get_theme_style = self._theme.get_style_for_token"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 597,
+    "form": "call",
+    "src": "self._theme.get_style_for_token(Token.Text),"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 603,
+    "form": "call",
+    "src": "self._theme.get_style_for_token(Token.Text),"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 671,
+    "form": "call",
+    "src": "+ self._theme.get_style_for_token(Comment)"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 707,
+    "form": "call",
+    "src": "+ self._theme.get_style_for_token(Comment)"
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 619,
+    "form": "ref",
+    "src": "token_style = theme.get_style_for_token"
+   }
+  ]
+ },
+ {
+  "file": "rich/_inspect.py",
+  "line": 82,
+  "kind": "def",
+  "name": "_get_signature",
+  "qual": "Inspect._get_signature",
+  "encl": "Inspect",
+  "sites": [
+   {
+    "file": "rich/_inspect.py",
+    "line": 157,
+    "form": "call",
+    "src": "signature = self._get_signature(\"\", obj)"
+   },
+   {
+    "file": "rich/_inspect.py",
+    "line": 195,
+    "form": "call",
+    "src": "_signature_text = self._get_signature(key, value)"
+   }
+  ]
+ },
+ {
+  "file": "rich/_win32_console.py",
+  "line": 526,
+  "kind": "def",
+  "name": "move_cursor_to_column",
+  "qual": "LegacyWindowsTerm.move_cursor_to_column",
+  "encl": "LegacyWindowsTerm",
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 638,
+    "form": "call",
+    "src": "term.move_cursor_to_column(16)"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 649,
+    "form": "call",
+    "src": "term.move_cursor_to_column(16)"
+   },
+   {
+    "file": "rich/_windows_renderer.py",
+    "line": 41,
+    "form": "call",
+    "src": "term.move_cursor_to_column(column - 1)"
+   }
+  ]
+ },
+ {
+  "file": "rich/cells.py",
+  "line": 235,
+  "kind": "def",
+  "name": "_split_text",
+  "qual": "_split_text",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/cells.py",
+    "line": 296,
+    "form": "call",
+    "src": "return _split_text(text, cell_position, unicode_version)"
+   },
+   {
+    "file": "rich/cells.py",
+    "line": 322,
+    "form": "call",
+    "src": "text, _ = _split_text(text, total, unicode_version)"
+   }
+  ]
+ },
+ {
+  "file": "rich/text.py",
+  "line": 471,
+  "kind": "def",
+  "name": "stylize_before",
+  "qual": "Text.stylize_before",
+  "encl": "Text",
+  "sites": [
+   {
+    "file": "rich/panel.py",
+    "line": 208,
+    "form": "call",
+    "src": "title_text.stylize_before(border_style)"
+   },
+   {
+    "file": "rich/panel.py",
+    "line": 257,
+    "form": "call",
+    "src": "subtitle_text.stylize_before(border_style)"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 806,
+    "form": "call",
+    "src": "text.stylize_before(stylized_range.style, start, end)"
+   }
+  ]
+ },
+ {
+  "file": "rich/color.py",
+  "line": 513,
+  "kind": "def",
+  "name": "downgrade",
+  "qual": "Color.downgrade",
+  "encl": "Color",
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 418,
+    "form": "call",
+    "src": "fore = color.downgrade(ColorSystem.WINDOWS).number"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 429,
+    "form": "call",
+    "src": "back = bgcolor.downgrade(ColorSystem.WINDOWS).number"
+   },
+   {
+    "file": "rich/style.py",
+    "line": 377,
+    "form": "call",
+    "src": "sgr.extend(self._color.downgrade(color_system).get_ansi_codes())"
+   },
+   {
+    "file": "rich/style.py",
+    "line": 380,
+    "form": "call",
+    "src": "self._bgcolor.downgrade(color_system).get_ansi_codes("
+   }
+  ]
+ },
+ {
+  "file": "rich/markdown.py",
+  "line": 200,
+  "kind": "def",
+  "name": "on_child_close",
+  "qual": "BlockQuote.on_child_close",
+  "encl": "BlockQuote",
+  "sites": [
+   {
+    "file": "rich/markdown.py",
+    "line": 62,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 238,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 278,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 290,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 302,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 352,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 380,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 678,
+    "form": "call",
+    "src": "and context.stack.top.on_child_close(context, element)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 695,
+    "form": "call",
+    "src": "and context.stack.top.on_child_close(context, element)"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 1230,
+  "kind": "def",
+  "name": "wrap_file",
+  "qual": "Progress.wrap_file",
+  "encl": "Progress",
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 299,
+    "form": "call",
+    "src": "def wrap_file("
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 360,
+    "form": "call",
+    "src": "reader = progress.wrap_file(file, total=total, description=description)"
+   }
+  ]
+ },
+ {
+  "file": "rich/errors.py",
+  "line": 25,
+  "kind": "class",
+  "name": "MarkupError",
+  "qual": "MarkupError",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/markup.py",
+    "line": 122,
+    "form": "ref",
+    "src": "MarkupError: If there is a syntax error in the markup."
+   },
+   {
+    "file": "rich/markup.py",
+    "line": 167,
+    "form": "call",
+    "src": "raise MarkupError("
+   },
+   {
+    "file": "rich/markup.py",
+    "line": 174,
+    "form": "call",
+    "src": "raise MarkupError("
+   },
+   {
+    "file": "rich/markup.py",
+    "line": 192,
+    "form": "call",
+    "src": "raise MarkupError("
+   },
+   {
+    "file": "rich/markup.py",
+    "line": 196,
+    "form": "call",
+    "src": "raise MarkupError("
+   }
+  ]
+ },
+ {
+  "file": "rich/text.py",
+  "line": 76,
+  "kind": "def",
+  "name": "right_crop",
+  "qual": "Span.right_crop",
+  "encl": "Span",
+  "sites": [
+   {
+    "file": "rich/text.py",
+    "line": 538,
+    "form": "call",
+    "src": "self.right_crop(len(suffix))"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 666,
+    "form": "call",
+    "src": "self.right_crop(min(whitespace_count, excess))"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 675,
+    "form": "call",
+    "src": "self.right_crop(length - new_length)"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 1169,
+    "form": "call",
+    "src": "def right_crop(self, amount: int = 1) -> None:"
+   }
+  ]
+ },
+ {
+  "file": "rich/prompt.py",
+  "line": 80,
+  "kind": "def",
+  "name": "ask",
+  "qual": "PromptBase.ask",
+  "encl": "PromptBase",
+  "sites": [
+   {
+    "file": "rich/prompt.py",
+    "line": 96,
+    "form": "call",
+    "src": "def ask("
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 110,
+    "form": "call",
+    "src": "def ask("
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 126,
+    "form": "call",
+    "src": ">>> filename = Prompt.ask(\"Enter a filename\")"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 235,
+    "form": "ref",
+    "src": "PromptType: The value to be returned from ask method."
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 304,
+    "form": "call",
+    "src": ">>> name = Prompt.ask(\"Enter your name\")"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 316,
+    "form": "call",
+    "src": ">>> burrito_count = IntPrompt.ask(\"How many burritos do you want to order\")"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 328,
+    "form": "call",
+    "src": ">>> temperature = FloatPrompt.ask(\"Enter desired temperature\")"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 340,
+    "form": "call",
+    "src": ">>> if Confirm.ask(\"Continue\"):"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 365,
+    "form": "call",
+    "src": "if Confirm.ask(\"Run [i]prompt[/i] tests?\", default=True):"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 367,
+    "form": "call",
+    "src": "result = IntPrompt.ask("
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 376,
+    "form": "call",
+    "src": "password = Prompt.ask("
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 385,
+    "form": "call",
+    "src": "fruit = Prompt.ask(\"Enter a fruit\", choices=[\"apple\", \"orange\", \"pear\"])"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 388,
+    "form": "call",
+    "src": "doggie = Prompt.ask("
+   }
+  ]
+ },
+ {
+  "file": "rich/prompt.py",
+  "line": 96,
+  "kind": "def",
+  "name": "ask",
+  "qual": "PromptBase.ask",
+  "encl": "PromptBase",
+  "sites": [
+   {
+    "file": "rich/prompt.py",
+    "line": 80,
+    "form": "call",
+    "src": "def ask("
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 110,
+    "form": "call",
+    "src": "def ask("
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 126,
+    "form": "call",
+    "src": ">>> filename = Prompt.ask(\"Enter a filename\")"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 235,
+    "form": "ref",
+    "src": "PromptType: The value to be returned from ask method."
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 304,
+    "form": "call",
+    "src": ">>> name = Prompt.ask(\"Enter your name\")"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 316,
+    "form": "call",
+    "src": ">>> burrito_count = IntPrompt.ask(\"How many burritos do you want to order\")"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 328,
+    "form": "call",
+    "src": ">>> temperature = FloatPrompt.ask(\"Enter desired temperature\")"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 340,
+    "form": "call",
+    "src": ">>> if Confirm.ask(\"Continue\"):"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 365,
+    "form": "call",
+    "src": "if Confirm.ask(\"Run [i]prompt[/i] tests?\", default=True):"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 367,
+    "form": "call",
+    "src": "result = IntPrompt.ask("
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 376,
+    "form": "call",
+    "src": "password = Prompt.ask("
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 385,
+    "form": "call",
+    "src": "fruit = Prompt.ask(\"Enter a fruit\", choices=[\"apple\", \"orange\", \"pear\"])"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 388,
+    "form": "call",
+    "src": "doggie = Prompt.ask("
+   }
+  ]
+ },
+ {
+  "file": "rich/prompt.py",
+  "line": 110,
+  "kind": "def",
+  "name": "ask",
+  "qual": "PromptBase.ask",
+  "encl": "PromptBase",
+  "sites": [
+   {
+    "file": "rich/prompt.py",
+    "line": 80,
+    "form": "call",
+    "src": "def ask("
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 96,
+    "form": "call",
+    "src": "def ask("
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 126,
+    "form": "call",
+    "src": ">>> filename = Prompt.ask(\"Enter a filename\")"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 235,
+    "form": "ref",
+    "src": "PromptType: The value to be returned from ask method."
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 304,
+    "form": "call",
+    "src": ">>> name = Prompt.ask(\"Enter your name\")"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 316,
+    "form": "call",
+    "src": ">>> burrito_count = IntPrompt.ask(\"How many burritos do you want to order\")"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 328,
+    "form": "call",
+    "src": ">>> temperature = FloatPrompt.ask(\"Enter desired temperature\")"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 340,
+    "form": "call",
+    "src": ">>> if Confirm.ask(\"Continue\"):"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 365,
+    "form": "call",
+    "src": "if Confirm.ask(\"Run [i]prompt[/i] tests?\", default=True):"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 367,
+    "form": "call",
+    "src": "result = IntPrompt.ask("
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 376,
+    "form": "call",
+    "src": "password = Prompt.ask("
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 385,
+    "form": "call",
+    "src": "fruit = Prompt.ask(\"Enter a fruit\", choices=[\"apple\", \"orange\", \"pear\"])"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 388,
+    "form": "call",
+    "src": "doggie = Prompt.ask("
+   }
+  ]
+ },
+ {
+  "file": "rich/_null_file.py",
+  "line": 36,
+  "kind": "def",
+  "name": "writable",
+  "qual": "NullFile.writable",
+  "encl": "NullFile",
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 235,
+    "form": "call",
+    "src": "def writable(self) -> bool:"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 864,
+  "kind": "def",
+  "name": "end_capture",
+  "qual": "Console.end_capture",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 326,
+    "form": "call",
+    "src": "self._result = self._console.end_capture()"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 861,
+    "form": "ref",
+    "src": "\"\"\"Begin capturing console output. Call :meth:`end_capture` to exit capture mode and return output.\"\"\""
+   }
+  ]
+ },
+ {
+  "file": "rich/markdown.py",
+  "line": 490,
+  "kind": "def",
+  "name": "on_text",
+  "qual": "MarkdownContext.on_text",
+  "encl": "MarkdownContext",
+  "sites": [
+   {
+    "file": "rich/markdown.py",
+    "line": 48,
+    "form": "call",
+    "src": "def on_text(self, context: MarkdownContext, text: TextType) -> None:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 100,
+    "form": "call",
+    "src": "def on_text(self, context: MarkdownContext, text: TextType) -> None:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 333,
+    "form": "call",
+    "src": "def on_text(self, context: MarkdownContext, text: TextType) -> None:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 495,
+    "form": "call",
+    "src": "self.stack.top.on_text("
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 499,
+    "form": "call",
+    "src": "self.stack.top.on_text(self, text)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 606,
+    "form": "call",
+    "src": "context.on_text(token.content, node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 608,
+    "form": "call",
+    "src": "context.on_text(\"\\n\", node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 610,
+    "form": "call",
+    "src": "context.on_text(\" \", node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 635,
+    "form": "call",
+    "src": "context.on_text(element.text.plain, node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 637,
+    "form": "call",
+    "src": "context.on_text(\" (\", node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 642,
+    "form": "call",
+    "src": "context.on_text(element.href, node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 644,
+    "form": "call",
+    "src": "context.on_text(\")\", node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 662,
+    "form": "call",
+    "src": "context.on_text(token.content, node_type)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 690,
+    "form": "call",
+    "src": "element.on_text(context, text)"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 274,
+  "kind": "def",
+  "name": "writelines",
+  "qual": "_Reader.writelines",
+  "encl": "_Reader",
+  "sites": [
+   {
+    "file": "rich/_null_file.py",
+    "line": 39,
+    "form": "call",
+    "src": "def writelines(self, __lines: Iterable[str]) -> None:"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 275,
+    "form": "ref",
+    "src": "raise UnsupportedOperation(\"writelines\")"
+   }
+  ]
+ },
+ {
+  "file": "rich/traceback.py",
+  "line": 740,
+  "kind": "def",
+  "name": "_guess_lexer",
+  "qual": "Traceback._guess_lexer",
+  "encl": "Traceback",
+  "sites": [
+   {
+    "file": "rich/traceback.py",
+    "line": 829,
+    "form": "call",
+    "src": "lexer_name = self._guess_lexer(frame.filename, code)"
+   }
+  ]
+ },
+ {
+  "file": "rich/segment.py",
+  "line": 507,
+  "kind": "def",
+  "name": "align_middle",
+  "qual": "Segment.align_middle",
+  "encl": "Segment",
+  "sites": [
+   {
+    "file": "rich/table.py",
+    "line": 852,
+    "form": "call",
+    "src": "return _Segment.align_middle(cell, width, row_height, style)"
+   }
+  ]
+ },
+ {
+  "file": "rich/text.py",
+  "line": 560,
+  "kind": "def",
+  "name": "extend_style",
+  "qual": "Text.extend_style",
+  "encl": "Text",
+  "sites": [
+   {
+    "file": "rich/text.py",
+    "line": 835,
+    "form": "call",
+    "src": "part.extend_style(spaces)"
+   }
+  ]
+ },
+ {
+  "file": "rich/live.py",
+  "line": 41,
+  "kind": "class",
+  "name": "Live",
+  "qual": "Live",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 744,
+    "form": "ref",
+    "src": "self._live_stack: list[Live] = []"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 816,
+    "form": "ref",
+    "src": "def set_live(self, live: \"Live\") -> bool:"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 817,
+    "form": "ref",
+    "src": "\"\"\"Set Live instance. Used by Live context manager (no need to call directly)."
+   },
+   {
+    "file": "rich/console.py",
+    "line": 820,
+    "form": "ref",
+    "src": "live (Live): Live instance using this Console."
+   },
+   {
+    "file": "rich/console.py",
+    "line": 826,
+    "form": "ref",
+    "src": "errors.LiveError: If this Console has a Live context currently active."
+   },
+   {
+    "file": "rich/console.py",
+    "line": 833,
+    "form": "ref",
+    "src": "\"\"\"Clear the Live instance. Used by the Live context manager (no need to call directly).\"\"\""
+   },
+   {
+    "file": "rich/errors.py",
+    "line": 30,
+    "form": "ref",
+    "src": "\"\"\"Error related to Live display.\"\"\""
+   },
+   {
+    "file": "rich/live.py",
+    "line": 25,
+    "form": "ref",
+    "src": "def __init__(self, live: \"Live\", refresh_per_second: float) -> None:"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 245,
+    "form": "ref",
+    "src": "\"\"\"Update the display of the Live Render.\"\"\""
+   },
+   {
+    "file": "rich/live.py",
+    "line": 307,
+    "form": "ref",
+    "src": "from .live import Live as Live"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 370,
+    "form": "call",
+    "src": "with Live(console=console) as live_table:"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1093,
+    "form": "call",
+    "src": "self.live = Live("
+   },
+   {
+    "file": "rich/spinner.py",
+    "line": 130,
+    "form": "call",
+    "src": "with Live(all_spinners, refresh_per_second=20) as live:"
+   },
+   {
+    "file": "rich/status.py",
+    "line": 36,
+    "form": "call",
+    "src": "self._live = Live("
+   }
+  ]
+ },
+ {
+  "file": "rich/live.py",
+  "line": 205,
+  "kind": "def",
+  "name": "_disable_redirect_io",
+  "qual": "Live._disable_redirect_io",
+  "encl": "Live",
+  "sites": [
+   {
+    "file": "rich/live.py",
+    "line": 167,
+    "form": "call",
+    "src": "self._disable_redirect_io()"
+   }
+  ]
+ },
+ {
+  "file": "rich/traceback.py",
+  "line": 756,
+  "kind": "def",
+  "name": "_render_stack",
+  "qual": "Traceback._render_stack",
+  "encl": "Traceback",
+  "sites": [
+   {
+    "file": "rich/traceback.py",
+    "line": 649,
+    "form": "call",
+    "src": "self._render_stack(stack),"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 1185,
+  "kind": "def",
+  "name": "track",
+  "qual": "Progress.track",
+  "encl": "Progress",
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 97,
+    "form": "call",
+    "src": "def track("
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 117,
+    "form": "ref",
+    "src": "You can also track progress of an iterable, which might require that you additionally specify ``total``."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 120,
+    "form": "ref",
+    "src": "sequence (Iterable[ProgressType]): Values you wish to iterate over and track progress."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 166,
+    "form": "call",
+    "src": "yield from progress.track("
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1196,
+    "form": "ref",
+    "src": "You can also track progress of an iterable, which might require that you additionally specify ``total``."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1199,
+    "form": "ref",
+    "src": "sequence (Iterable[ProgressType]): Values you want to iterate over and track progress."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1202,
+    "form": "ref",
+    "src": "task_id: (TaskID): Task to track. Default is new task."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1243,
+    "form": "ref",
+    "src": "task_id (TaskID): Task to track. Default is new task."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1327,
+    "form": "ref",
+    "src": "task_id (TaskID): Task to track. Default is new task."
+   }
+  ]
+ },
+ {
+  "file": "rich/errors.py",
+  "line": 9,
+  "kind": "class",
+  "name": "StyleSyntaxError",
+  "qual": "StyleSyntaxError",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1487,
+    "form": "ref",
+    "src": "except errors.StyleSyntaxError as error:"
+   },
+   {
+    "file": "rich/style.py",
+    "line": 401,
+    "form": "ref",
+    "src": "except errors.StyleSyntaxError:"
+   },
+   {
+    "file": "rich/style.py",
+    "line": 505,
+    "form": "ref",
+    "src": "errors.StyleSyntaxError: If the style definition syntax is invalid."
+   },
+   {
+    "file": "rich/style.py",
+    "line": 525,
+    "form": "call",
+    "src": "raise errors.StyleSyntaxError(\"color expected after 'on'\")"
+   },
+   {
+    "file": "rich/style.py",
+    "line": 529,
+    "form": "call",
+    "src": "raise errors.StyleSyntaxError("
+   },
+   {
+    "file": "rich/style.py",
+    "line": 538,
+    "form": "call",
+    "src": "raise errors.StyleSyntaxError("
+   },
+   {
+    "file": "rich/style.py",
+    "line": 546,
+    "form": "call",
+    "src": "raise errors.StyleSyntaxError(\"URL expected after 'link'\")"
+   },
+   {
+    "file": "rich/style.py",
+    "line": 556,
+    "form": "call",
+    "src": "raise errors.StyleSyntaxError("
+   }
+  ]
+ },
+ {
+  "file": "rich/protocol.py",
+  "line": 9,
+  "kind": "def",
+  "name": "is_renderable",
+  "qual": "is_renderable",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/measure.py",
+    "line": 103,
+    "form": "call",
+    "src": "if is_renderable(renderable):"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 451,
+    "form": "call",
+    "src": "elif is_renderable(renderable):"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 304,
+  "kind": "class",
+  "name": "Capture",
+  "qual": "Capture",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 271,
+    "form": "ref",
+    "src": "\"\"\"An error in the Capture context manager.\"\"\""
+   },
+   {
+    "file": "rich/console.py",
+    "line": 316,
+    "form": "ref",
+    "src": "def __enter__(self) -> \"Capture\":"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 332,
+    "form": "ref",
+    "src": "\"Capture result is not available until context manager exits.\""
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1090,
+    "form": "ref",
+    "src": "def capture(self) -> Capture:"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1102,
+    "form": "ref",
+    "src": "Capture: Context manager with disables writing to the terminal."
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1104,
+    "form": "call",
+    "src": "capture = Capture(self)"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 299,
+  "kind": "def",
+  "name": "wrap_file",
+  "qual": "wrap_file",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 360,
+    "form": "call",
+    "src": "reader = progress.wrap_file(file, total=total, description=description)"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1230,
+    "form": "call",
+    "src": "def wrap_file("
+   }
+  ]
+ },
+ {
+  "file": "rich/highlighter.py",
+  "line": 106,
+  "kind": "class",
+  "name": "JSONHighlighter",
+  "qual": "JSONHighlighter",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/json.py",
+    "line": 48,
+    "form": "call",
+    "src": "highlighter = JSONHighlighter() if highlight else NullHighlighter()"
+   },
+   {
+    "file": "rich/json.py",
+    "line": 95,
+    "form": "call",
+    "src": "highlighter = JSONHighlighter() if highlight else NullHighlighter()"
+   }
+  ]
+ },
+ {
+  "file": "rich/control.py",
+  "line": 155,
+  "kind": "def",
+  "name": "alt_screen",
+  "qual": "Control.alt_screen",
+  "encl": "Control",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1211,
+    "form": "call",
+    "src": "self.control(Control.alt_screen(enable))"
+   }
+  ]
+ },
+ {
+  "file": "rich/pretty.py",
+  "line": 617,
+  "kind": "def",
+  "name": "iter_rich_args",
+  "qual": "traverse._traverse.iter_rich_args",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/pretty.py",
+    "line": 651,
+    "form": "call",
+    "src": "args = list(iter_rich_args(rich_repr_result))"
+   }
+  ]
+ },
+ {
+  "file": "rich/_win32_console.py",
+  "line": 57,
+  "kind": "class",
+  "name": "CONSOLE_SCREEN_BUFFER_INFO",
+  "qual": "CONSOLE_SCREEN_BUFFER_INFO",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 223,
+    "form": "ref",
+    "src": "ctypes.POINTER(CONSOLE_SCREEN_BUFFER_INFO),"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 230,
+    "form": "ref",
+    "src": ") -> CONSOLE_SCREEN_BUFFER_INFO:"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 237,
+    "form": "ref",
+    "src": "CONSOLE_SCREEN_BUFFER_INFO: A CONSOLE_SCREEN_BUFFER_INFO ctype struct contain information about"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 239,
+    "form": "call",
+    "src": "console_screen_buffer_info = CONSOLE_SCREEN_BUFFER_INFO()"
+   }
+  ]
+ },
+ {
+  "file": "rich/syntax.py",
+  "line": 118,
+  "kind": "def",
+  "name": "get_style_for_token",
+  "qual": "SyntaxTheme.get_style_for_token",
+  "encl": "SyntaxTheme",
+  "sites": [
+   {
+    "file": "rich/syntax.py",
+    "line": 144,
+    "form": "call",
+    "src": "def get_style_for_token(self, token_type: TokenType) -> Style:"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 179,
+    "form": "call",
+    "src": "def get_style_for_token(self, token_type: TokenType) -> Style:"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 425,
+    "form": "call",
+    "src": "style = self._theme.get_style_for_token(token_type)"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 483,
+    "form": "ref",
+    "src": "_get_theme_style = self._theme.get_style_for_token"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 597,
+    "form": "call",
+    "src": "self._theme.get_style_for_token(Token.Text),"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 603,
+    "form": "call",
+    "src": "self._theme.get_style_for_token(Token.Text),"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 671,
+    "form": "call",
+    "src": "+ self._theme.get_style_for_token(Comment)"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 707,
+    "form": "call",
+    "src": "+ self._theme.get_style_for_token(Comment)"
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 619,
+    "form": "ref",
+    "src": "token_style = theme.get_style_for_token"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 1494,
+  "kind": "def",
+  "name": "_collect_renderables",
+  "qual": "Console._collect_renderables",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1699,
+    "form": "call",
+    "src": "renderables = self._collect_renderables("
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1975,
+    "form": "call",
+    "src": "renderables = self._collect_renderables("
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 201,
+  "kind": "def",
+  "name": "update_height",
+  "qual": "ConsoleOptions.update_height",
+  "encl": "ConsoleOptions",
+  "sites": [
+   {
+    "file": "rich/padding.py",
+    "line": 94,
+    "form": "call",
+    "src": "render_options = render_options.update_height("
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 97,
+  "kind": "class",
+  "name": "ConsoleDimensions",
+  "qual": "ConsoleDimensions",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 110,
+    "form": "ref",
+    "src": "size: ConsoleDimensions"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 999,
+    "form": "ref",
+    "src": "def size(self) -> ConsoleDimensions:"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1003,
+    "form": "ref",
+    "src": "ConsoleDimensions: A named tuple containing the dimensions."
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1007,
+    "form": "call",
+    "src": "return ConsoleDimensions(self._width - self.legacy_windows, self._height)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1010,
+    "form": "call",
+    "src": "return ConsoleDimensions(80, 25)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1034,
+    "form": "call",
+    "src": "return ConsoleDimensions("
+   }
+  ]
+ },
+ {
+  "file": "rich/_log_render.py",
+  "line": 13,
+  "kind": "class",
+  "name": "LogRender",
+  "qual": "LogRender",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 709,
+    "form": "call",
+    "src": "self._log_render = LogRender("
+   },
+   {
+    "file": "rich/logging.py",
+    "line": 100,
+    "form": "call",
+    "src": "self._log_render = LogRender("
+   }
+  ]
+ },
+ {
+  "file": "rich/_ratio.py",
+  "line": 75,
+  "kind": "def",
+  "name": "ratio_reduce",
+  "qual": "ratio_reduce",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/table.py",
+    "line": 556,
+    "form": "call",
+    "src": "widths = ratio_reduce(excess_width, [1] * len(widths), widths, widths)"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 611,
+    "form": "call",
+    "src": "widths = ratio_reduce(excess_width, ratios, max_reduce, widths)"
+   }
+  ]
+ },
+ {
+  "file": "rich/filesize.py",
+  "line": 52,
+  "kind": "def",
+  "name": "decimal",
+  "qual": "decimal",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/filesize.py",
+    "line": 13,
+    "form": "ref",
+    "src": "__all__ = [\"decimal\"]"
+   },
+   {
+    "file": "rich/filesize.py",
+    "line": 69,
+    "form": "ref",
+    "src": "int (precision): The number of decimal places to include (default = 1)."
+   },
+   {
+    "file": "rich/filesize.py",
+    "line": 76,
+    "form": "call",
+    "src": ">>> filesize.decimal(30000)"
+   },
+   {
+    "file": "rich/filesize.py",
+    "line": 78,
+    "form": "call",
+    "src": ">>> filesize.decimal(30000, precision=2, separator=\"\")"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 818,
+    "form": "call",
+    "src": "data_size = filesize.decimal(int(task.completed))"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 827,
+    "form": "call",
+    "src": "data_size = filesize.decimal(int(task.total)) if task.total is not None else \"\""
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 915,
+    "form": "call",
+    "src": "data_speed = filesize.decimal(int(speed))"
+   }
+  ]
+ },
+ {
+  "file": "rich/layout.py",
+  "line": 184,
+  "kind": "def",
+  "name": "map",
+  "qual": "Layout.map",
+  "encl": "Layout",
+  "sites": [
+   {
+    "file": "rich/_unicode_data/__init__.py",
+    "line": 17,
+    "form": "call",
+    "src": "map(int, version.split(\".\")),"
+   },
+   {
+    "file": "rich/_unicode_data/__init__.py",
+    "line": 40,
+    "form": "call",
+    "src": "map(int, version.split(\".\")),"
+   },
+   {
+    "file": "rich/cells.py",
+    "line": 29,
+    "form": "call",
+    "src": "for character in map(chr, range(_start, _end + 1))"
+   },
+   {
+    "file": "rich/cells.py",
+    "line": 257,
+    "form": "call",
+    "src": "left_size = sum(map(_span_get_cell_len, spans[:offset]))"
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 185,
+    "form": "ref",
+    "src": "\"\"\"Get a map of the last render.\"\"\""
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 255,
+    "form": "call",
+    "src": "self.progress.advance(self.task, advance=sum(map(len, lines)))"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 180,
+    "form": "ref",
+    "src": "\"\"\"Look up style in the style map.\"\"\""
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 1086,
+  "kind": "def",
+  "name": "bell",
+  "qual": "Console.bell",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/_emoji_codes.py",
+    "line": 454,
+    "form": "ref",
+    "src": "\"bell\": \"\ud83d\udd14\","
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1087,
+    "form": "ref",
+    "src": "\"\"\"Play a 'bell' sound (if supported by the terminal).\"\"\""
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1088,
+    "form": "call",
+    "src": "self.control(Control.bell())"
+   },
+   {
+    "file": "rich/control.py",
+    "line": 69,
+    "form": "call",
+    "src": "def bell(cls) -> \"Control\":"
+   },
+   {
+    "file": "rich/control.py",
+    "line": 70,
+    "form": "ref",
+    "src": "\"\"\"Ring the 'bell'.\"\"\""
+   }
+  ]
+ },
+ {
+  "file": "rich/_pick.py",
+  "line": 1,
+  "kind": "def",
+  "name": "pick_bool",
+  "qual": "pick_bool",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/pretty.py",
+    "line": 304,
+    "form": "call",
+    "src": "no_wrap=pick_bool(self.no_wrap, options.no_wrap),"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 759,
+    "form": "call",
+    "src": "options, safe=pick_bool(self.safe_box, console.safe_box)"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 690,
+    "form": "call",
+    "src": "no_wrap=pick_bool(self.no_wrap, options.no_wrap, False),"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 1211,
+    "form": "call",
+    "src": "no_wrap = pick_bool(no_wrap, self.no_wrap, False) or overflow == \"ignore\""
+   }
+  ]
+ },
+ {
+  "file": "rich/segment.py",
+  "line": 263,
+  "kind": "def",
+  "name": "split_lines_terminator",
+  "qual": "Segment.split_lines_terminator",
+  "encl": "Segment",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1730,
+    "form": "call",
+    "src": "for line, add_new_line in Segment.split_lines_terminator("
+   }
+  ]
+ },
+ {
+  "file": "rich/logging.py",
+  "line": 190,
+  "kind": "def",
+  "name": "render_message",
+  "qual": "RichHandler.render_message",
+  "encl": "RichHandler",
+  "sites": [
+   {
+    "file": "rich/logging.py",
+    "line": 175,
+    "form": "call",
+    "src": "message_renderable = self.render_message(record, message)"
+   }
+  ]
+ },
+ {
+  "file": "rich/measure.py",
+  "line": 34,
+  "kind": "def",
+  "name": "with_maximum",
+  "qual": "Measurement.with_maximum",
+  "encl": "Measurement",
+  "sites": [
+   {
+    "file": "rich/measure.py",
+    "line": 75,
+    "form": "call",
+    "src": "measurement = measurement.with_maximum(max_width)"
+   },
+   {
+    "file": "rich/measure.py",
+    "line": 111,
+    "form": "call",
+    "src": ".with_maximum(_max_width)"
+   },
+   {
+    "file": "rich/padding.py",
+    "line": 134,
+    "form": "call",
+    "src": "measurement = measurement.with_maximum(max_width)"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 723,
+    "form": "call",
+    "src": ").with_maximum(max_width)"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 738,
+    "form": "call",
+    "src": ").with_maximum(max_width)"
+   }
+  ]
+ },
+ {
+  "file": "rich/theme.py",
+  "line": 92,
+  "kind": "def",
+  "name": "push_theme",
+  "qual": "ThemeStack.push_theme",
+  "encl": "ThemeStack",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 346,
+    "form": "call",
+    "src": "self.console.push_theme(self.theme)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 875,
+    "form": "call",
+    "src": "def push_theme(self, theme: Theme, *, inherit: bool = True) -> None:"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 884,
+    "form": "call",
+    "src": "self._theme_stack.push_theme(theme, inherit=inherit)"
+   }
+  ]
+ },
+ {
+  "file": "rich/pretty.py",
+  "line": 147,
+  "kind": "def",
+  "name": "_safe_isinstance",
+  "qual": "_safe_isinstance",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/pretty.py",
+    "line": 114,
+    "form": "call",
+    "src": "if _safe_isinstance(value, JupyterRenderable) or value is None:"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 121,
+    "form": "call",
+    "src": "if _safe_isinstance(value, ConsoleRenderable):"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 126,
+    "form": "call",
+    "src": "if _safe_isinstance(value, RichRenderable)"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 192,
+    "form": "call",
+    "src": "if _safe_isinstance(value, RichRenderable)"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 385,
+    "form": "call",
+    "src": "_safe_isinstance(obj, _CONTAINERS)"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 589,
+    "form": "call",
+    "src": "and _safe_isinstance(obj, (bytes, str))"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 619,
+    "form": "call",
+    "src": "if _safe_isinstance(arg, tuple):"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 680,
+    "form": "call",
+    "src": "if _safe_isinstance(arg, tuple):"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 749,
+    "form": "call",
+    "src": "and not _safe_isinstance(obj, type)"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 803,
+    "form": "call",
+    "src": "elif _safe_isinstance(obj, _CONTAINERS):"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 805,
+    "form": "call",
+    "src": "if _safe_isinstance(obj, container_type):"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 829,
+    "form": "call",
+    "src": "if _safe_isinstance(obj, _MAPPING_CONTAINERS):"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 890,
+    "form": "call",
+    "src": "if _safe_isinstance(_object, Node):"
+   }
+  ]
+ },
+ {
+  "file": "rich/layout.py",
+  "line": 37,
+  "kind": "class",
+  "name": "NoSplitter",
+  "qual": "NoSplitter",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/layout.py",
+    "line": 273,
+    "form": "call",
+    "src": "raise NoSplitter(f\"No splitter called {splitter!r}\")"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress_bar.py",
+  "line": 126,
+  "kind": "def",
+  "name": "_render_pulse",
+  "qual": "ProgressBar._render_pulse",
+  "encl": "ProgressBar",
+  "sites": [
+   {
+    "file": "rich/progress_bar.py",
+    "line": 163,
+    "form": "call",
+    "src": "yield from self._render_pulse(console, width, ascii=ascii)"
+   }
+  ]
+ },
+ {
+  "file": "rich/pager.py",
+  "line": 17,
+  "kind": "class",
+  "name": "SystemPager",
+  "qual": "SystemPager",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 369,
+    "form": "call",
+    "src": "self.pager = SystemPager() if pager is None else pager"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1114,
+    "form": "ref",
+    "src": "pager (Pager, optional): A pager object, or None to use :class:`~rich.pager.SystemPager`. Defaults to None."
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 1752,
+  "kind": "def",
+  "name": "print_json",
+  "qual": "Console.print_json",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/__init__.py",
+    "line": 8,
+    "form": "ref",
+    "src": "__all__ = [\"get_console\", \"reconfigure\", \"print\", \"inspect\", \"print_json\"]"
+   },
+   {
+    "file": "rich/__init__.py",
+    "line": 77,
+    "form": "call",
+    "src": "def print_json("
+   },
+   {
+    "file": "rich/__init__.py",
+    "line": 106,
+    "form": "call",
+    "src": "get_console().print_json("
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1798,
+    "form": "call",
+    "src": "f\"json must be str. Did you mean print_json(data={json!r}) ?\""
+   },
+   {
+    "file": "rich/highlighter.py",
+    "line": 232,
+    "form": "call",
+    "src": "console.print_json(json.dumps(obj={\"name\": \"apple\", \"count\": 1}), indent=None)"
+   }
+  ]
+ },
+ {
+  "file": "rich/layout.py",
+  "line": 116,
+  "kind": "def",
+  "name": "get_tree_icon",
+  "qual": "ColumnSplitter.get_tree_icon",
+  "encl": "ColumnSplitter",
+  "sites": [
+   {
+    "file": "rich/layout.py",
+    "line": 76,
+    "form": "call",
+    "src": "def get_tree_icon(self) -> str:"
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 96,
+    "form": "call",
+    "src": "def get_tree_icon(self) -> str:"
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 220,
+    "form": "call",
+    "src": "icon = layout.splitter.get_tree_icon()"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 510,
+  "kind": "def",
+  "name": "get_table_column",
+  "qual": "ProgressColumn.get_table_column",
+  "encl": "ProgressColumn",
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 1568,
+    "form": "call",
+    "src": "else _column.get_table_column().copy()"
+   }
+  ]
+ },
+ {
+  "file": "rich/traceback.py",
+  "line": 760,
+  "kind": "def",
+  "name": "render_locals",
+  "qual": "Traceback._render_stack.render_locals",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/traceback.py",
+    "line": 819,
+    "form": "call",
+    "src": "yield from render_locals(frame)"
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 877,
+    "form": "call",
+    "src": "*render_locals(frame),"
+   }
+  ]
+ },
+ {
+  "file": "rich/markdown.py",
+  "line": 380,
+  "kind": "def",
+  "name": "on_child_close",
+  "qual": "ListItem.on_child_close",
+  "encl": "ListItem",
+  "sites": [
+   {
+    "file": "rich/markdown.py",
+    "line": 62,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 200,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 238,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 278,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 290,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 302,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 352,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 678,
+    "form": "call",
+    "src": "and context.stack.top.on_child_close(context, element)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 695,
+    "form": "call",
+    "src": "and context.stack.top.on_child_close(context, element)"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 542,
+  "kind": "def",
+  "name": "process_renderables",
+  "qual": "RenderHook.process_renderables",
+  "encl": "RenderHook",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1709,
+    "form": "call",
+    "src": "renderables = hook.process_renderables(renderables)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 2011,
+    "form": "call",
+    "src": "renderables = hook.process_renderables(renderables)"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 278,
+    "form": "call",
+    "src": "def process_renderables("
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 2024,
+  "kind": "def",
+  "name": "on_broken_pipe",
+  "qual": "Console.on_broken_pipe",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 2051,
+    "form": "call",
+    "src": "self.on_broken_pipe()"
+   }
+  ]
+ },
+ {
+  "file": "rich/_win32_console.py",
+  "line": 29,
+  "kind": "class",
+  "name": "LegacyWindowsError",
+  "qual": "LegacyWindowsError",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 103,
+    "form": "ref",
+    "src": "LegacyWindowsError: If any error occurs while calling the Windows console API."
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 113,
+    "form": "call",
+    "src": "raise LegacyWindowsError(\"Unable to get legacy Windows Console Mode\")"
+   },
+   {
+    "file": "rich/_windows.py",
+    "line": 29,
+    "form": "ref",
+    "src": "LegacyWindowsError,"
+   },
+   {
+    "file": "rich/_windows.py",
+    "line": 50,
+    "form": "ref",
+    "src": "except LegacyWindowsError:"
+   }
+  ]
+ },
+ {
+  "file": "rich/_inspect.py",
+  "line": 249,
+  "kind": "def",
+  "name": "get_object_types_mro_as_strings",
+  "qual": "get_object_types_mro_as_strings",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_inspect.py",
+    "line": 269,
+    "form": "call",
+    "src": "for type_name in get_object_types_mro_as_strings(obj):"
+   }
+  ]
+ },
+ {
+  "file": "rich/pretty.py",
+  "line": 382,
+  "kind": "def",
+  "name": "is_expandable",
+  "qual": "is_expandable",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1520,
+    "form": "call",
+    "src": "def is_expandable(obj: object) -> bool:"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1523,
+    "form": "ref",
+    "src": "from .pretty import is_expandable as _is_expandable"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1567,
+    "form": "call",
+    "src": "elif is_expandable(renderable):"
+   }
+  ]
+ },
+ {
+  "file": "rich/pretty.py",
+  "line": 478,
+  "kind": "class",
+  "name": "_Line",
+  "qual": "_Line",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/pretty.py",
+    "line": 464,
+    "form": "call",
+    "src": "lines = [_Line(node=self, is_root=True)]"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 481,
+    "form": "ref",
+    "src": "parent: \"_Line | None\" = None"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 503,
+    "form": "ref",
+    "src": "def expand(self, indent_size: int) -> Iterable[\"_Line\"]:"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 510,
+    "form": "call",
+    "src": "new_line = yield _Line("
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 515,
+    "form": "call",
+    "src": "new_line = yield _Line(text=node.open_brace, whitespace=whitespace)"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 520,
+    "form": "call",
+    "src": "line = _Line("
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 529,
+    "form": "call",
+    "src": "yield _Line("
+   }
+  ]
+ },
+ {
+  "file": "rich/traceback.py",
+  "line": 246,
+  "kind": "class",
+  "name": "PathHighlighter",
+  "qual": "PathHighlighter",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/traceback.py",
+    "line": 719,
+    "form": "call",
+    "src": "path_highlighter = PathHighlighter()"
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 757,
+    "form": "call",
+    "src": "path_highlighter = PathHighlighter()"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 2315,
+  "kind": "def",
+  "name": "save_html",
+  "qual": "Console.save_html",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/ansi.py",
+    "line": 241,
+    "form": "call",
+    "src": "console.save_html(\"stdout.html\")"
+   },
+   {
+    "file": "rich/emoji.py",
+    "line": 93,
+    "form": "call",
+    "src": "console.save_html(sys.argv[1])"
+   }
+  ]
+ },
+ {
+  "file": "rich/table.py",
+  "line": 632,
+  "kind": "def",
+  "name": "get_padding",
+  "qual": "Table._get_cells.get_padding",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/table.py",
+    "line": 679,
+    "form": "call",
+    "src": "_Padding(renderable, get_padding(first, last)),"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 570,
+  "kind": "def",
+  "name": "detect_legacy_windows",
+  "qual": "detect_legacy_windows",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 673,
+    "form": "call",
+    "src": "(detect_legacy_windows() and not self.is_jupyter)"
+   }
+  ]
+ },
+ {
+  "file": "rich/text.py",
+  "line": 905,
+  "kind": "def",
+  "name": "pad_left",
+  "qual": "Text.pad_left",
+  "encl": "Text",
+  "sites": [
+   {
+    "file": "rich/containers.py",
+    "line": 123,
+    "form": "call",
+    "src": "line.pad_left((width - cell_len(line.plain)) // 2)"
+   },
+   {
+    "file": "rich/containers.py",
+    "line": 129,
+    "form": "call",
+    "src": "line.pad_left(width - cell_len(line.plain))"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 648,
+    "form": "ref",
+    "src": "_pad_top, pad_right, _pad_bottom, pad_left = self.padding"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 649,
+    "form": "ref",
+    "src": "horizontal_padding = pad_left + pad_right"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 692,
+    "form": "ref",
+    "src": "_, pad_right, _, pad_left = self.padding"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 695,
+    "form": "ref",
+    "src": "pad_left = 0"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 696,
+    "form": "ref",
+    "src": "pad_right = abs(pad_left - pad_right)"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 700,
+    "form": "ref",
+    "src": "pad_left = 0"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 704,
+    "form": "ref",
+    "src": "return pad_left + pad_right"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 947,
+    "form": "call",
+    "src": "self.pad_left(left, character)"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 950,
+    "form": "call",
+    "src": "self.pad_left(excess_space, character)"
+   }
+  ]
+ },
+ {
+  "file": "rich/table.py",
+  "line": 430,
+  "kind": "def",
+  "name": "add_cell",
+  "qual": "Table.add_row.add_cell",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/table.py",
+    "line": 445,
+    "form": "call",
+    "src": "add_cell(column, Text(\"\"))"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 450,
+    "form": "call",
+    "src": "add_cell(column, \"\")"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 452,
+    "form": "call",
+    "src": "add_cell(column, renderable)"
+   }
+  ]
+ },
+ {
+  "file": "rich/__init__.py",
+  "line": 23,
+  "kind": "def",
+  "name": "get_console",
+  "qual": "get_console",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/__init__.py",
+    "line": 8,
+    "form": "ref",
+    "src": "__all__ = [\"get_console\", \"reconfigure\", \"print\", \"inspect\", \"print_json\"]"
+   },
+   {
+    "file": "rich/__init__.py",
+    "line": 49,
+    "form": "call",
+    "src": "_console = get_console()"
+   },
+   {
+    "file": "rich/__init__.py",
+    "line": 73,
+    "form": "call",
+    "src": "write_console = get_console() if file is None else Console(file=file)"
+   },
+   {
+    "file": "rich/__init__.py",
+    "line": 106,
+    "form": "call",
+    "src": "get_console().print_json("
+   },
+   {
+    "file": "rich/__init__.py",
+    "line": 155,
+    "form": "call",
+    "src": "_console = console or get_console()"
+   },
+   {
+    "file": "rich/jupyter.py",
+    "line": 47,
+    "form": "call",
+    "src": "console = get_console()"
+   },
+   {
+    "file": "rich/jupyter.py",
+    "line": 100,
+    "form": "call",
+    "src": "console = get_console()"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 73,
+    "form": "call",
+    "src": "self.console = console if console is not None else get_console()"
+   },
+   {
+    "file": "rich/logging.py",
+    "line": 98,
+    "form": "call",
+    "src": "self.console = console or get_console()"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 117,
+    "form": "call",
+    "src": "console = console or get_console()"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 181,
+    "form": "call",
+    "src": "console = console or get_console()"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 924,
+    "form": "call",
+    "src": "_console = get_console() if console is None else console"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1094,
+    "form": "call",
+    "src": "console=console or get_console(),"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 65,
+    "form": "call",
+    "src": "self.console = console or get_console()"
+   }
+  ]
+ },
+ {
+  "file": "rich/status.py",
+  "line": 10,
+  "kind": "class",
+  "name": "Status",
+  "qual": "Status",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1159,
+    "form": "ref",
+    "src": ") -> \"Status\":"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1170,
+    "form": "ref",
+    "src": "Status: A Status object that may be used as a context manager."
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1174,
+    "form": "call",
+    "src": "status_renderable = Status("
+   },
+   {
+    "file": "rich/status.py",
+    "line": 49,
+    "form": "ref",
+    "src": "\"\"\"Get the Console used by the Status objects.\"\"\""
+   },
+   {
+    "file": "rich/status.py",
+    "line": 95,
+    "form": "ref",
+    "src": "def __enter__(self) -> \"Status\":"
+   }
+  ]
+ },
+ {
+  "file": "rich/box.py",
+  "line": 163,
+  "kind": "def",
+  "name": "get_bottom",
+  "qual": "Box.get_bottom",
+  "encl": "Box",
+  "sites": [
+   {
+    "file": "rich/panel.py",
+    "line": 260,
+    "form": "call",
+    "src": "yield Segment(box.get_bottom([width - 2]), border_style)"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 924,
+    "form": "call",
+    "src": "yield _Segment(_box.get_bottom(widths), border_style)"
+   }
+  ]
+ },
+ {
+  "file": "rich/styled.py",
+  "line": 11,
+  "kind": "class",
+  "name": "Styled",
+  "qual": "Styled",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1579,
+    "form": "call",
+    "src": "renderables = [Styled(renderable, style) for renderable in renderables]"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1985,
+    "form": "call",
+    "src": "renderables = [Styled(renderable, style) for renderable in renderables]"
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 225,
+    "form": "call",
+    "src": "Pretty(layout) if layout.visible else Styled(Pretty(layout), \"dim\")"
+   },
+   {
+    "file": "rich/styled.py",
+    "line": 41,
+    "form": "call",
+    "src": "panel = Styled(Panel(\"hello\"), \"on blue\")"
+   },
+   {
+    "file": "rich/tree.py",
+    "line": 139,
+    "form": "call",
+    "src": "Styled(node.label, style),"
+   }
+  ]
+ },
+ {
+  "file": "rich/measure.py",
+  "line": 46,
+  "kind": "def",
+  "name": "with_minimum",
+  "qual": "Measurement.with_minimum",
+  "encl": "Measurement",
+  "sites": [
+   {
+    "file": "rich/measure.py",
+    "line": 73,
+    "form": "call",
+    "src": "measurement = measurement.with_minimum(min_width)"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 816,
+  "kind": "def",
+  "name": "set_live",
+  "qual": "Console.set_live",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/live.py",
+    "line": 122,
+    "form": "call",
+    "src": "if not self.console.set_live(self):"
+   }
+  ]
+ },
+ {
+  "file": "rich/markup.py",
+  "line": 73,
+  "kind": "def",
+  "name": "_parse",
+  "qual": "_parse",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/markup.py",
+    "line": 153,
+    "form": "call",
+    "src": "for position, plain_text, tag in _parse(markup):"
+   }
+  ]
+ },
+ {
+  "file": "rich/box.py",
+  "line": 84,
+  "kind": "def",
+  "name": "get_plain_headed_box",
+  "qual": "Box.get_plain_headed_box",
+  "encl": "Box",
+  "sites": [
+   {
+    "file": "rich/table.py",
+    "line": 764,
+    "form": "call",
+    "src": "_box = _box.get_plain_headed_box() if _box and not self.show_header else _box"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 253,
+  "kind": "def",
+  "name": "readlines",
+  "qual": "_Reader.readlines",
+  "encl": "_Reader",
+  "sites": [
+   {
+    "file": "rich/_null_file.py",
+    "line": 21,
+    "form": "call",
+    "src": "def readlines(self, __hint: int = 1) -> list[str]:"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 254,
+    "form": "call",
+    "src": "lines = self.handle.readlines(hint)"
+   }
+  ]
+ },
+ {
+  "file": "rich/markdown.py",
+  "line": 238,
+  "kind": "def",
+  "name": "on_child_close",
+  "qual": "TableElement.on_child_close",
+  "encl": "TableElement",
+  "sites": [
+   {
+    "file": "rich/markdown.py",
+    "line": 62,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 200,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 278,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 290,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 302,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 352,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 380,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 678,
+    "form": "call",
+    "src": "and context.stack.top.on_child_close(context, element)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 695,
+    "form": "call",
+    "src": "and context.stack.top.on_child_close(context, element)"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 278,
+  "kind": "class",
+  "name": "_ReadContext",
+  "qual": "_ReadContext",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 361,
+    "form": "call",
+    "src": "return _ReadContext(progress, reader)"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 497,
+    "form": "call",
+    "src": "return _ReadContext(progress, reader)  # type: ignore[return-value, type-var]"
+   }
+  ]
+ },
+ {
+  "file": "rich/repr.py",
+  "line": 112,
+  "kind": "class",
+  "name": "Foo",
+  "qual": "rich_repr.Foo",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/abc.py",
+    "line": 28,
+    "form": "ref",
+    "src": "class Foo:"
+   },
+   {
+    "file": "rich/abc.py",
+    "line": 31,
+    "form": "call",
+    "src": "f = Foo()"
+   },
+   {
+    "file": "rich/repr.py",
+    "line": 118,
+    "form": "call",
+    "src": "foo = Foo()"
+   },
+   {
+    "file": "rich/repr.py",
+    "line": 130,
+    "form": "ref",
+    "src": "Foo.__rich_repr__.angular = True  # type: ignore[attr-defined]"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 1195,
+  "kind": "def",
+  "name": "set_alt_screen",
+  "qual": "Console.set_alt_screen",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 427,
+    "form": "call",
+    "src": "self._changed = self.console.set_alt_screen(True)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 439,
+    "form": "call",
+    "src": "self.console.set_alt_screen(False)"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 127,
+    "form": "call",
+    "src": "self._alt_screen = self.console.set_alt_screen(True)"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 177,
+    "form": "call",
+    "src": "self.console.set_alt_screen(False)"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 232,
+  "kind": "def",
+  "name": "seekable",
+  "qual": "_Reader.seekable",
+  "encl": "_Reader",
+  "sites": [
+   {
+    "file": "rich/_null_file.py",
+    "line": 27,
+    "form": "call",
+    "src": "def seekable(self) -> bool:"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 233,
+    "form": "call",
+    "src": "return self.handle.seekable()"
+   }
+  ]
+ },
+ {
+  "file": "rich/markdown.py",
+  "line": 146,
+  "kind": "def",
+  "name": "create",
+  "qual": "Heading.create",
+  "encl": "Heading",
+  "sites": [
+   {
+    "file": "rich/markdown.py",
+    "line": 29,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> MarkdownElement:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 30,
+    "form": "ref",
+    "src": "\"\"\"Factory to create markdown element,"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 114,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> Paragraph:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 173,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> CodeBlock:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 313,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> MarkdownElement:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 344,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> ListElement:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 416,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> MarkdownElement:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 431,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> MarkdownElement:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 432,
+    "form": "ref",
+    "src": "\"\"\"Factory to create markdown element,"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 618,
+    "form": "call",
+    "src": "context.stack.push(Link.create(self, token))"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 667,
+    "form": "call",
+    "src": "element = element_class.create(self, token)"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1116,
+    "form": "ref",
+    "src": "You can also create a Progress instance using custom columns before"
+   },
+   {
+    "file": "rich/repr.py",
+    "line": 26,
+    "form": "ref",
+    "src": "\"\"\"Class decorator to create __repr__ from __rich_repr__\"\"\""
+   }
+  ]
+ },
+ {
+  "file": "rich/prompt.py",
+  "line": 192,
+  "kind": "def",
+  "name": "get_input",
+  "qual": "PromptBase.get_input",
+  "encl": "PromptBase",
+  "sites": [
+   {
+    "file": "rich/prompt.py",
+    "line": 288,
+    "form": "call",
+    "src": "value = self.get_input(self.console, prompt, self.password, stream=stream)"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 229,
+  "kind": "def",
+  "name": "readable",
+  "qual": "_Reader.readable",
+  "encl": "_Reader",
+  "sites": [
+   {
+    "file": "rich/_null_file.py",
+    "line": 15,
+    "form": "call",
+    "src": "def readable(self) -> bool:"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 230,
+    "form": "call",
+    "src": "return self.handle.readable()"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 908,
+    "form": "ref",
+    "src": "\"\"\"Renders human readable transfer speed.\"\"\""
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1247,
+    "form": "ref",
+    "src": "BinaryIO: A readable file-like object in binary mode."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1331,
+    "form": "ref",
+    "src": "BinaryIO: A readable file-like object in binary mode."
+   },
+   {
+    "file": "rich/theme.py",
+    "line": 66,
+    "form": "ref",
+    "src": "path (str): Path to a config file readable by Python configparser module."
+   }
+  ]
+ },
+ {
+  "file": "rich/__main__.py",
+  "line": 39,
+  "kind": "def",
+  "name": "make_test_card",
+  "qual": "make_test_card",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/__main__.py",
+    "line": 216,
+    "form": "call",
+    "src": "test_card = make_test_card()"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1120,
+    "form": "ref",
+    "src": ">>> from rich.__main__ import make_test_card"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1123,
+    "form": "call",
+    "src": "console.print(make_test_card())"
+   },
+   {
+    "file": "rich/pager.py",
+    "line": 34,
+    "form": "call",
+    "src": "console.print(make_test_card())"
+   }
+  ]
+ },
+ {
+  "file": "rich/text.py",
+  "line": 320,
+  "kind": "def",
+  "name": "styled",
+  "qual": "Text.styled",
+  "encl": "Text",
+  "sites": [
+   {
+    "file": "rich/__main__.py",
+    "line": 204,
+    "form": "ref",
+    "src": "\"\"\"Progress bars, columns, styled logging handler, tracebacks, etc...\"\"\","
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 406,
+    "form": "ref",
+    "src": "\"\"\"Write styled text to the terminal."
+   },
+   {
+    "file": "rich/ansi.py",
+    "line": 121,
+    "form": "ref",
+    "src": "\"\"\"Translate ANSI code in to styled Text.\"\"\""
+   },
+   {
+    "file": "rich/logging.py",
+    "line": 133,
+    "form": "call",
+    "src": "level_text = Text.styled("
+   },
+   {
+    "file": "rich/text.py",
+    "line": 328,
+    "form": "ref",
+    "src": "\"\"\"Construct a Text instance with a pre-applied styled. A style applied in this way won't be used"
+   }
+  ]
+ },
+ {
+  "file": "rich/text.py",
+  "line": 497,
+  "kind": "def",
+  "name": "apply_meta",
+  "qual": "Text.apply_meta",
+  "encl": "Text",
+  "sites": [
+   {
+    "file": "rich/text.py",
+    "line": 387,
+    "form": "call",
+    "src": "text.apply_meta(meta)"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 248,
+  "kind": "def",
+  "name": "readline",
+  "qual": "_Reader.readline",
+  "encl": "_Reader",
+  "sites": [
+   {
+    "file": "rich/_null_file.py",
+    "line": 18,
+    "form": "call",
+    "src": "def readline(self, __limit: int = 1) -> str:"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 2161,
+    "form": "ref",
+    "src": "It works in the same way as Python's builtin :func:`input` function and provides elaborate line editing and history features if Python's builtin :mod:`readline` module is previously loaded."
+   },
+   {
+    "file": "rich/console.py",
+    "line": 2181,
+    "form": "call",
+    "src": "result = stream.readline()"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 249,
+    "form": "call",
+    "src": "line = self.handle.readline(size)"
+   }
+  ]
+ },
+ {
+  "file": "rich/live_render.py",
+  "line": 43,
+  "kind": "def",
+  "name": "set_renderable",
+  "qual": "LiveRender.set_renderable",
+  "encl": "LiveRender",
+  "sites": [
+   {
+    "file": "rich/live.py",
+    "line": 247,
+    "form": "call",
+    "src": "self._live_render.set_renderable(self.renderable)"
+   }
+  ]
+ },
+ {
+  "file": "rich/text.py",
+  "line": 994,
+  "kind": "def",
+  "name": "append_text",
+  "qual": "Text.append_text",
+  "encl": "Text",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1530,
+    "form": "ref",
+    "src": "append_text = text.append"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1553,
+    "form": "call",
+    "src": "append_text("
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1563,
+    "form": "call",
+    "src": "append_text(renderable)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1573,
+    "form": "call",
+    "src": "append_text(_highlighter(str(renderable)))"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 337,
+    "form": "call",
+    "src": "self.content.append_text(text)"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 1025,
+    "form": "ref",
+    "src": "append_text = self._text.append"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 1031,
+    "form": "call",
+    "src": "append_text(content)"
+   }
+  ]
+ },
+ {
+  "file": "rich/table.py",
+  "line": 300,
+  "kind": "def",
+  "name": "get_row_style",
+  "qual": "Table.get_row_style",
+  "encl": "Table",
+  "sites": [
+   {
+    "file": "rich/table.py",
+    "line": 800,
+    "form": "ref",
+    "src": "get_row_style = self.get_row_style"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 817,
+    "form": "call",
+    "src": "get_row_style(console, index - 1 if show_header else index)"
+   }
+  ]
+ },
+ {
+  "file": "rich/live_render.py",
+  "line": 72,
+  "kind": "def",
+  "name": "restore_cursor",
+  "qual": "LiveRender.restore_cursor",
+  "encl": "LiveRender",
+  "sites": [
+   {
+    "file": "rich/live.py",
+    "line": 179,
+    "form": "call",
+    "src": "self.console.control(self._live_render.restore_cursor())"
+   }
+  ]
+ },
+ {
+  "file": "rich/_null_file.py",
+  "line": 21,
+  "kind": "def",
+  "name": "readlines",
+  "qual": "NullFile.readlines",
+  "encl": "NullFile",
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 253,
+    "form": "call",
+    "src": "def readlines(self, hint: int = -1) -> list[bytes]:"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 254,
+    "form": "call",
+    "src": "lines = self.handle.readlines(hint)"
+   }
+  ]
+ },
+ {
+  "file": "rich/table.py",
+  "line": 513,
+  "kind": "def",
+  "name": "_calculate_column_widths",
+  "qual": "Table._calculate_column_widths",
+  "encl": "Table",
+  "sites": [
+   {
+    "file": "rich/table.py",
+    "line": 321,
+    "form": "call",
+    "src": "self._calculate_column_widths("
+   },
+   {
+    "file": "rich/table.py",
+    "line": 478,
+    "form": "call",
+    "src": "widths = self._calculate_column_widths("
+   }
+  ]
+ },
+ {
+  "file": "rich/pretty.py",
+  "line": 155,
+  "kind": "def",
+  "name": "install",
+  "qual": "install",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_extension.py",
+    "line": 7,
+    "form": "ref",
+    "src": "from rich.traceback import install as tr_install"
+   },
+   {
+    "file": "rich/_extension.py",
+    "line": 9,
+    "form": "call",
+    "src": "install()"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 260,
+    "form": "ref",
+    "src": "warnings.warn('install \"ipywidgets\" for Jupyter support')"
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 72,
+    "form": "call",
+    "src": "def install("
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 887,
+    "form": "call",
+    "src": "install(show_locals=True)"
+   }
+  ]
+ },
+ {
+  "file": "rich/repr.py",
+  "line": 93,
+  "kind": "def",
+  "name": "rich_repr",
+  "qual": "rich_repr",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/color.py",
+    "line": 302,
+    "form": "ref",
+    "src": "@rich_repr"
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 131,
+    "form": "ref",
+    "src": "@rich_repr"
+   },
+   {
+    "file": "rich/repr.py",
+    "line": 97,
+    "form": "call",
+    "src": "def rich_repr(*, angular: bool = False) -> Callable[[type[T]], type[T]]: ..."
+   },
+   {
+    "file": "rich/repr.py",
+    "line": 100,
+    "form": "call",
+    "src": "def rich_repr("
+   },
+   {
+    "file": "rich/segment.py",
+    "line": 47,
+    "form": "call",
+    "src": "@rich_repr()"
+   },
+   {
+    "file": "rich/style.py",
+    "line": 39,
+    "form": "ref",
+    "src": "@rich_repr"
+   }
+  ]
+ },
+ {
+  "file": "rich/repr.py",
+  "line": 97,
+  "kind": "def",
+  "name": "rich_repr",
+  "qual": "rich_repr",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/color.py",
+    "line": 302,
+    "form": "ref",
+    "src": "@rich_repr"
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 131,
+    "form": "ref",
+    "src": "@rich_repr"
+   },
+   {
+    "file": "rich/repr.py",
+    "line": 93,
+    "form": "call",
+    "src": "def rich_repr(cls: type[T] | None) -> type[T]: ..."
+   },
+   {
+    "file": "rich/repr.py",
+    "line": 100,
+    "form": "call",
+    "src": "def rich_repr("
+   },
+   {
+    "file": "rich/segment.py",
+    "line": 47,
+    "form": "call",
+    "src": "@rich_repr()"
+   },
+   {
+    "file": "rich/style.py",
+    "line": 39,
+    "form": "ref",
+    "src": "@rich_repr"
+   }
+  ]
+ },
+ {
+  "file": "rich/repr.py",
+  "line": 100,
+  "kind": "def",
+  "name": "rich_repr",
+  "qual": "rich_repr",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/color.py",
+    "line": 302,
+    "form": "ref",
+    "src": "@rich_repr"
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 131,
+    "form": "ref",
+    "src": "@rich_repr"
+   },
+   {
+    "file": "rich/repr.py",
+    "line": 93,
+    "form": "call",
+    "src": "def rich_repr(cls: type[T] | None) -> type[T]: ..."
+   },
+   {
+    "file": "rich/repr.py",
+    "line": 97,
+    "form": "call",
+    "src": "def rich_repr(*, angular: bool = False) -> Callable[[type[T]], type[T]]: ..."
+   },
+   {
+    "file": "rich/segment.py",
+    "line": 47,
+    "form": "call",
+    "src": "@rich_repr()"
+   },
+   {
+    "file": "rich/style.py",
+    "line": 39,
+    "form": "ref",
+    "src": "@rich_repr"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 97,
+  "kind": "def",
+  "name": "track",
+  "qual": "track",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 117,
+    "form": "ref",
+    "src": "You can also track progress of an iterable, which might require that you additionally specify ``total``."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 120,
+    "form": "ref",
+    "src": "sequence (Iterable[ProgressType]): Values you wish to iterate over and track progress."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 166,
+    "form": "call",
+    "src": "yield from progress.track("
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1185,
+    "form": "call",
+    "src": "def track("
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1196,
+    "form": "ref",
+    "src": "You can also track progress of an iterable, which might require that you additionally specify ``total``."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1199,
+    "form": "ref",
+    "src": "sequence (Iterable[ProgressType]): Values you want to iterate over and track progress."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1202,
+    "form": "ref",
+    "src": "task_id: (TaskID): Task to track. Default is new task."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1243,
+    "form": "ref",
+    "src": "task_id (TaskID): Task to track. Default is new task."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1327,
+    "form": "ref",
+    "src": "task_id (TaskID): Task to track. Default is new task."
+   }
+  ]
+ },
+ {
+  "file": "rich/live.py",
+  "line": 278,
+  "kind": "def",
+  "name": "process_renderables",
+  "qual": "Live.process_renderables",
+  "encl": "Live",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 542,
+    "form": "call",
+    "src": "def process_renderables("
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1709,
+    "form": "call",
+    "src": "renderables = hook.process_renderables(renderables)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 2011,
+    "form": "call",
+    "src": "renderables = hook.process_renderables(renderables)"
+   }
+  ]
+ },
+ {
+  "file": "rich/traceback.py",
+  "line": 164,
+  "kind": "def",
+  "name": "ipy_display_traceback",
+  "qual": "install.ipy_excepthook_closure.ipy_display_traceback",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/traceback.py",
+    "line": 190,
+    "form": "ref",
+    "src": "ip._showtraceback = ipy_display_traceback"
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 193,
+    "form": "call",
+    "src": "ip.showsyntaxerror = lambda *args, **kwargs: ipy_display_traceback("
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 1225,
+  "kind": "def",
+  "name": "set_window_title",
+  "qual": "Console.set_window_title",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/control.py",
+    "line": 218,
+    "form": "call",
+    "src": "console.set_window_title(\"\ud83d\ude80 Loading\" + \".\" * i)"
+   }
+  ]
+ },
+ {
+  "file": "rich/json.py",
+  "line": 54,
+  "kind": "def",
+  "name": "from_data",
+  "qual": "JSON.from_data",
+  "encl": "JSON",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1784,
+    "form": "call",
+    "src": "json_renderable = JSON.from_data("
+   }
+  ]
+ },
+ {
+  "file": "rich/cells.py",
+  "line": 161,
+  "kind": "def",
+  "name": "split_graphemes",
+  "qual": "split_graphemes",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/cells.py",
+    "line": 253,
+    "form": "call",
+    "src": "spans, cell_length = split_graphemes(text, unicode_version)"
+   },
+   {
+    "file": "rich/cells.py",
+    "line": 339,
+    "form": "call",
+    "src": "spans, _ = split_graphemes(text, unicode_version)"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 2238,
+  "kind": "def",
+  "name": "export_html",
+  "qual": "Console.export_html",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 595,
+    "form": "ref",
+    "src": "required to call :meth:`export_html`, :meth:`export_svg`, and :meth:`export_text`. Defaults to False."
+   },
+   {
+    "file": "rich/console.py",
+    "line": 2337,
+    "form": "call",
+    "src": "html = self.export_html("
+   },
+   {
+    "file": "rich/default_styles.py",
+    "line": 194,
+    "form": "call",
+    "src": "print(console.export_html(inline_styles=True))"
+   }
+  ]
+ },
+ {
+  "file": "rich/_win32_console.py",
+  "line": 484,
+  "kind": "def",
+  "name": "erase_start_of_line",
+  "qual": "LegacyWindowsTerm.erase_start_of_line",
+  "encl": "LegacyWindowsTerm",
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 642,
+    "form": "call",
+    "src": "term.erase_start_of_line()"
+   },
+   {
+    "file": "rich/_windows_renderer.py",
+    "line": 51,
+    "form": "call",
+    "src": "term.erase_start_of_line()"
+   }
+  ]
+ },
+ {
+  "file": "rich/jupyter.py",
+  "line": 41,
+  "kind": "def",
+  "name": "_repr_mimebundle_",
+  "qual": "JupyterMixin._repr_mimebundle_",
+  "encl": "JupyterMixin",
+  "sites": [
+   {
+    "file": "rich/jupyter.py",
+    "line": 25,
+    "form": "call",
+    "src": "def _repr_mimebundle_("
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 886,
+  "kind": "def",
+  "name": "pop_theme",
+  "qual": "Console.pop_theme",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 355,
+    "form": "call",
+    "src": "self.console.pop_theme()"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 888,
+    "form": "call",
+    "src": "self._theme_stack.pop_theme()"
+   },
+   {
+    "file": "rich/theme.py",
+    "line": 106,
+    "form": "call",
+    "src": "def pop_theme(self) -> None:"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 858,
+  "kind": "class",
+  "name": "DownloadColumn",
+  "qual": "DownloadColumn",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 346,
+    "form": "call",
+    "src": "DownloadColumn(),"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 473,
+    "form": "call",
+    "src": "DownloadColumn(),"
+   }
+  ]
+ },
+ {
+  "file": "rich/filesize.py",
+  "line": 18,
+  "kind": "def",
+  "name": "_to_str",
+  "qual": "_to_str",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/filesize.py",
+    "line": 82,
+    "form": "call",
+    "src": "return _to_str("
+   }
+  ]
+ },
+ {
+  "file": "rich/markdown.py",
+  "line": 344,
+  "kind": "def",
+  "name": "create",
+  "qual": "ListElement.create",
+  "encl": "ListElement",
+  "sites": [
+   {
+    "file": "rich/markdown.py",
+    "line": 29,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> MarkdownElement:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 30,
+    "form": "ref",
+    "src": "\"\"\"Factory to create markdown element,"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 114,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> Paragraph:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 146,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> Heading:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 173,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> CodeBlock:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 313,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> MarkdownElement:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 416,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> MarkdownElement:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 431,
+    "form": "call",
+    "src": "def create(cls, markdown: Markdown, token: Token) -> MarkdownElement:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 432,
+    "form": "ref",
+    "src": "\"\"\"Factory to create markdown element,"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 618,
+    "form": "call",
+    "src": "context.stack.push(Link.create(self, token))"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 667,
+    "form": "call",
+    "src": "element = element_class.create(self, token)"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1116,
+    "form": "ref",
+    "src": "You can also create a Progress instance using custom columns before"
+   },
+   {
+    "file": "rich/repr.py",
+    "line": 26,
+    "form": "ref",
+    "src": "\"\"\"Class decorator to create __repr__ from __rich_repr__\"\"\""
+   }
+  ]
+ },
+ {
+  "file": "rich/scope.py",
+  "line": 45,
+  "kind": "def",
+  "name": "sort_items",
+  "qual": "render_scope.sort_items",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_inspect.py",
+    "line": 128,
+    "form": "call",
+    "src": "def sort_items(item: tuple[str, Any]) -> tuple[bool, str]:"
+   },
+   {
+    "file": "rich/_inspect.py",
+    "line": 149,
+    "form": "ref",
+    "src": "items.sort(key=sort_items)"
+   },
+   {
+    "file": "rich/scope.py",
+    "line": 50,
+    "form": "ref",
+    "src": "items = sorted(scope.items(), key=sort_items) if sort_keys else scope.items()"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 875,
+  "kind": "def",
+  "name": "push_theme",
+  "qual": "Console.push_theme",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 346,
+    "form": "call",
+    "src": "self.console.push_theme(self.theme)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 884,
+    "form": "call",
+    "src": "self._theme_stack.push_theme(theme, inherit=inherit)"
+   },
+   {
+    "file": "rich/theme.py",
+    "line": 92,
+    "form": "call",
+    "src": "def push_theme(self, theme: Theme, inherit: bool = True) -> None:"
+   }
+  ]
+ },
+ {
+  "file": "rich/_unicode_data/__init__.py",
+  "line": 25,
+  "kind": "def",
+  "name": "_parse_version",
+  "qual": "_parse_version",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_unicode_data/__init__.py",
+    "line": 63,
+    "form": "call",
+    "src": "_parse_version(unicode_version)"
+   },
+   {
+    "file": "rich/_unicode_data/__init__.py",
+    "line": 73,
+    "form": "call",
+    "src": "version_numbers = _parse_version(unicode_version)"
+   },
+   {
+    "file": "rich/_unicode_data/__init__.py",
+    "line": 75,
+    "form": "call",
+    "src": "version_numbers = _parse_version(VERSIONS[-1])"
+   }
+  ]
+ },
+ {
+  "file": "rich/text.py",
+  "line": 805,
+  "kind": "def",
+  "name": "expand_tabs",
+  "qual": "Text.expand_tabs",
+  "encl": "Text",
+  "sites": [
+   {
+    "file": "rich/panel.py",
+    "line": 120,
+    "form": "call",
+    "src": "title_text.expand_tabs()"
+   },
+   {
+    "file": "rich/panel.py",
+    "line": 136,
+    "form": "call",
+    "src": "subtitle_text.expand_tabs()"
+   },
+   {
+    "file": "rich/rule.py",
+    "line": 69,
+    "form": "call",
+    "src": "title_text.expand_tabs()"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 1216,
+    "form": "call",
+    "src": "line.expand_tabs(tab_size)"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 1294,
+    "form": "call",
+    "src": "text.expand_tabs()"
+   }
+  ]
+ },
+ {
+  "file": "rich/_inspect.py",
+  "line": 240,
+  "kind": "def",
+  "name": "get_object_types_mro",
+  "qual": "get_object_types_mro",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_inspect.py",
+    "line": 258,
+    "form": "call",
+    "src": "for type_ in get_object_types_mro(obj)"
+   }
+  ]
+ },
+ {
+  "file": "rich/table.py",
+  "line": 690,
+  "kind": "def",
+  "name": "_get_padding_width",
+  "qual": "Table._get_padding_width",
+  "encl": "Table",
+  "sites": [
+   {
+    "file": "rich/table.py",
+    "line": 524,
+    "form": "ref",
+    "src": "get_padding_width = self._get_padding_width"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 718,
+    "form": "call",
+    "src": "padding_width = self._get_padding_width(column._index)"
+   }
+  ]
+ },
+ {
+  "file": "rich/status.py",
+  "line": 88,
+  "kind": "def",
+  "name": "stop",
+  "qual": "Status.stop",
+  "encl": "Status",
+  "sites": [
+   {
+    "file": "rich/live.py",
+    "line": 31,
+    "form": "call",
+    "src": "def stop(self) -> None:"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 139,
+    "form": "call",
+    "src": "self.stop()"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 145,
+    "form": "call",
+    "src": "def stop(self) -> None:"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 158,
+    "form": "call",
+    "src": "self._refresh_thread.stop()"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 193,
+    "form": "call",
+    "src": "self.stop()"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 295,
+    "form": "call",
+    "src": "self.progress.stop()"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1166,
+    "form": "call",
+    "src": "def stop(self) -> None:"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1169,
+    "form": "call",
+    "src": "self.live.stop()"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1183,
+    "form": "call",
+    "src": "self.stop()"
+   },
+   {
+    "file": "rich/status.py",
+    "line": 90,
+    "form": "call",
+    "src": "self._live.stop()"
+   },
+   {
+    "file": "rich/status.py",
+    "line": 105,
+    "form": "call",
+    "src": "self.stop()"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 203,
+    "form": "ref",
+    "src": "start, stop, step = slice.indices(len(self.plain))"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 205,
+    "form": "ref",
+    "src": "lines = self.divide([start, stop])"
+   }
+  ]
+ },
+ {
+  "file": "rich/traceback.py",
+  "line": 154,
+  "kind": "def",
+  "name": "ipy_excepthook_closure",
+  "qual": "install.ipy_excepthook_closure",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/traceback.py",
+    "line": 200,
+    "form": "call",
+    "src": "ipy_excepthook_closure(ip)"
+   }
+  ]
+ },
+ {
+  "file": "rich/control.py",
+  "line": 181,
+  "kind": "def",
+  "name": "strip_control_codes",
+  "qual": "strip_control_codes",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/text.py",
+    "line": 144,
+    "form": "call",
+    "src": "sanitized_text = strip_control_codes(text)"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 401,
+    "form": "call",
+    "src": "sanitized_text = strip_control_codes(new_text)"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 968,
+    "form": "call",
+    "src": "sanitized_text = strip_control_codes(text)"
+   },
+   {
+    "file": "rich/text.py",
+    "line": 1030,
+    "form": "call",
+    "src": "content = strip_control_codes(content)"
+   }
+  ]
+ },
+ {
+  "file": "rich/syntax.py",
+  "line": 563,
+  "kind": "def",
+  "name": "_get_line_numbers_color",
+  "qual": "Syntax._get_line_numbers_color",
+  "encl": "Syntax",
+  "sites": [
+   {
+    "file": "rich/syntax.py",
+    "line": 598,
+    "form": "call",
+    "src": "Style(color=self._get_line_numbers_color()),"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 604,
+    "form": "call",
+    "src": "Style(bold=True, color=self._get_line_numbers_color(0.9)),"
+   }
+  ]
+ },
+ {
+  "file": "rich/live.py",
+  "line": 34,
+  "kind": "def",
+  "name": "run",
+  "qual": "_RefreshThread.run",
+  "encl": "_RefreshThread",
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 69,
+    "form": "call",
+    "src": "def run(self) -> None:"
+   },
+   {
+    "file": "rich/prompt.py",
+    "line": 123,
+    "form": "ref",
+    "src": "\"\"\"Shortcut to construct and run a prompt loop and return the result."
+   },
+   {
+    "file": "rich/spinner.py",
+    "line": 17,
+    "form": "ref",
+    "src": "name (str): Name of spinner (run python -m rich.spinner)."
+   }
+  ]
+ },
+ {
+  "file": "rich/_win32_console.py",
+  "line": 228,
+  "kind": "def",
+  "name": "GetConsoleScreenBufferInfo",
+  "qual": "GetConsoleScreenBufferInfo",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 220,
+    "form": "ref",
+    "src": "_GetConsoleScreenBufferInfo = windll.kernel32.GetConsoleScreenBufferInfo"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 365,
+    "form": "call",
+    "src": "default_text = GetConsoleScreenBufferInfo(handle).wAttributes"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 383,
+    "form": "call",
+    "src": "coord: COORD = GetConsoleScreenBufferInfo(self._handle).dwCursorPosition"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 393,
+    "form": "call",
+    "src": "screen_size: COORD = GetConsoleScreenBufferInfo(self._handle).dwSize"
+   }
+  ]
+ },
+ {
+  "file": "rich/traceback.py",
+  "line": 341,
+  "kind": "def",
+  "name": "from_exception",
+  "qual": "Traceback.from_exception",
+  "encl": "Traceback",
+  "sites": [
+   {
+    "file": "rich/logging.py",
+    "line": 152,
+    "form": "call",
+    "src": "traceback = Traceback.from_exception("
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 132,
+    "form": "call",
+    "src": "exception_traceback = Traceback.from_exception("
+   }
+  ]
+ },
+ {
+  "file": "rich/text.py",
+  "line": 778,
+  "kind": "def",
+  "name": "iter_text",
+  "qual": "Text.join.iter_text",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/text.py",
+    "line": 793,
+    "form": "call",
+    "src": "for text in iter_text():"
+   }
+  ]
+ },
+ {
+  "file": "rich/live.py",
+  "line": 22,
+  "kind": "class",
+  "name": "_RefreshThread",
+  "qual": "_RefreshThread",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/live.py",
+    "line": 88,
+    "form": "ref",
+    "src": "self._refresh_thread: _RefreshThread | None = None"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 142,
+    "form": "call",
+    "src": "self._refresh_thread = _RefreshThread(self, self.refresh_per_second)"
+   }
+  ]
+ },
+ {
+  "file": "rich/tree.py",
+  "line": 14,
+  "kind": "class",
+  "name": "Tree",
+  "qual": "Tree",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/layout.py",
+    "line": 213,
+    "form": "ref",
+    "src": "def tree(self) -> \"Tree\":"
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 232,
+    "form": "call",
+    "src": "tree = Tree("
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 238,
+    "form": "ref",
+    "src": "def recurse(tree: \"Tree\", layout: \"Layout\") -> None:"
+   },
+   {
+    "file": "rich/tree.py",
+    "line": 50,
+    "form": "ref",
+    "src": "self.children: list[Tree] = []"
+   },
+   {
+    "file": "rich/tree.py",
+    "line": 63,
+    "form": "ref",
+    "src": ") -> \"Tree\":"
+   },
+   {
+    "file": "rich/tree.py",
+    "line": 74,
+    "form": "ref",
+    "src": "Tree: A new child Tree, which may be further modified."
+   },
+   {
+    "file": "rich/tree.py",
+    "line": 76,
+    "form": "call",
+    "src": "node = Tree("
+   },
+   {
+    "file": "rich/tree.py",
+    "line": 89,
+    "form": "ref",
+    "src": "stack: list[Iterator[tuple[bool, Tree]]] = []"
+   },
+   {
+    "file": "rich/tree.py",
+    "line": 179,
+    "form": "ref",
+    "src": "stack: list[Iterator[Tree]] = [iter([self])]"
+   },
+   {
+    "file": "rich/tree.py",
+    "line": 237,
+    "form": "call",
+    "src": "root = Tree(\"\ud83c\udf32 [b green]Rich Tree\", highlight=True, hide_root=True)"
+   }
+  ]
+ },
+ {
+  "file": "rich/pretty.py",
+  "line": 585,
+  "kind": "def",
+  "name": "to_repr",
+  "qual": "traverse.to_repr",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/pretty.py",
+    "line": 816,
+    "form": "call",
+    "src": "node = Node(value_repr=to_repr(obj), last=root)"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 835,
+    "form": "call",
+    "src": "child_node.key_repr = to_repr(key)"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 853,
+    "form": "call",
+    "src": "node = Node(value_repr=to_repr(obj), last=root)"
+   }
+  ]
+ },
+ {
+  "file": "rich/box.py",
+  "line": 114,
+  "kind": "def",
+  "name": "get_row",
+  "qual": "Box.get_row",
+  "encl": "Box",
+  "sites": [
+   {
+    "file": "rich/table.py",
+    "line": 872,
+    "form": "call",
+    "src": "_box.get_row(widths, \"foot\", edge=show_edge), border_style"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 902,
+    "form": "call",
+    "src": "_box.get_row(widths, \"head\", edge=show_edge), border_style"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 914,
+    "form": "call",
+    "src": "_box.get_row(widths, \"mid\", edge=show_edge) * leading,"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 919,
+    "form": "call",
+    "src": "_box.get_row(widths, \"row\", edge=show_edge), border_style"
+   }
+  ]
+ },
+ {
+  "file": "rich/_null_file.py",
+  "line": 24,
+  "kind": "def",
+  "name": "seek",
+  "qual": "NullFile.seek",
+  "encl": "NullFile",
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 263,
+    "form": "call",
+    "src": "def seek(self, offset: int, whence: int = 0) -> int:"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 264,
+    "form": "call",
+    "src": "pos = self.handle.seek(offset, whence)"
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 1007,
+  "kind": "def",
+  "name": "percentage",
+  "qual": "Task.percentage",
+  "encl": "Task",
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 569,
+    "form": "ref",
+    "src": "\"\"\"Get the percentage of the character cell that is filled by the cursor\"\"\""
+   },
+   {
+    "file": "rich/default_styles.py",
+    "line": 133,
+    "form": "ref",
+    "src": "\"progress.percentage\": Style(color=\"magenta\"),"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 694,
+    "form": "ref",
+    "src": "\"\"\"Show task progress as a percentage."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 697,
+    "form": "ref",
+    "src": "text_format (str, optional): Format for percentage display. Defaults to \"[progress.percentage]{task.percentage:>3.0f}%\"."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 698,
+    "form": "ref",
+    "src": "text_format_no_percentage (str, optional): Format if percentage is unknown. Defaults to \"\"."
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 709,
+    "form": "ref",
+    "src": "text_format: str = \"[progress.percentage]{task.percentage:>3.0f}%\","
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 740,
+    "form": "ref",
+    "src": "return Text(\"\", style=\"progress.percentage\")"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 747,
+    "form": "ref",
+    "src": "return Text(f\"{data_speed:.1f}{suffix} it/s\", style=\"progress.percentage\")"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1008,
+    "form": "ref",
+    "src": "\"\"\"float: Get progress of task as a percentage. If a None total was set, returns 0\"\"\""
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1111,
+    "form": "call",
+    "src": "- a text column showing completion percentage (TextColumn)"
+   },
+   {
+    "file": "rich/progress_bar.py",
+    "line": 62,
+    "form": "ref",
+    "src": "\"\"\"Calculate percentage complete.\"\"\""
+   }
+  ]
+ },
+ {
+  "file": "rich/segment.py",
+  "line": 294,
+  "kind": "def",
+  "name": "split_and_crop_lines",
+  "qual": "Segment.split_and_crop_lines",
+  "encl": "Segment",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1375,
+    "form": "call",
+    "src": "Segment.split_and_crop_lines("
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1745,
+    "form": "call",
+    "src": "for line in Segment.split_and_crop_lines("
+   },
+   {
+    "file": "rich/console.py",
+    "line": 2019,
+    "form": "call",
+    "src": "for line in Segment.split_and_crop_lines("
+   },
+   {
+    "file": "rich/console.py",
+    "line": 2478,
+    "form": "call",
+    "src": "for y, line in enumerate(Segment.split_and_crop_lines(segments, length=width)):"
+   }
+  ]
+ },
+ {
+  "file": "rich/control.py",
+  "line": 150,
+  "kind": "def",
+  "name": "show_cursor",
+  "qual": "Control.show_cursor",
+  "encl": "Control",
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 553,
+    "form": "call",
+    "src": "def show_cursor(self) -> None:"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 660,
+    "form": "call",
+    "src": "term.show_cursor()"
+   },
+   {
+    "file": "rich/_windows_renderer.py",
+    "line": 45,
+    "form": "call",
+    "src": "term.show_cursor()"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 429,
+    "form": "call",
+    "src": "self.console.show_cursor(False)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 441,
+    "form": "call",
+    "src": "self.console.show_cursor(True)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1184,
+    "form": "call",
+    "src": "def show_cursor(self, show: bool = True) -> bool:"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 1191,
+    "form": "call",
+    "src": "self.control(Control.show_cursor(show))"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 128,
+    "form": "call",
+    "src": "self.console.show_cursor(False)"
+   },
+   {
+    "file": "rich/live.py",
+    "line": 175,
+    "form": "call",
+    "src": "self.console.show_cursor(True)"
+   },
+   {
+    "file": "rich/progress_bar.py",
+    "line": 216,
+    "form": "call",
+    "src": "console.show_cursor(False)"
+   },
+   {
+    "file": "rich/progress_bar.py",
+    "line": 222,
+    "form": "call",
+    "src": "console.show_cursor(True)"
+   }
+  ]
+ },
+ {
+  "file": "rich/syntax.py",
+  "line": 144,
+  "kind": "def",
+  "name": "get_style_for_token",
+  "qual": "PygmentsSyntaxTheme.get_style_for_token",
+  "encl": "PygmentsSyntaxTheme",
+  "sites": [
+   {
+    "file": "rich/syntax.py",
+    "line": 118,
+    "form": "call",
+    "src": "def get_style_for_token(self, token_type: TokenType) -> Style:"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 179,
+    "form": "call",
+    "src": "def get_style_for_token(self, token_type: TokenType) -> Style:"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 425,
+    "form": "call",
+    "src": "style = self._theme.get_style_for_token(token_type)"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 483,
+    "form": "ref",
+    "src": "_get_theme_style = self._theme.get_style_for_token"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 597,
+    "form": "call",
+    "src": "self._theme.get_style_for_token(Token.Text),"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 603,
+    "form": "call",
+    "src": "self._theme.get_style_for_token(Token.Text),"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 671,
+    "form": "call",
+    "src": "+ self._theme.get_style_for_token(Comment)"
+   },
+   {
+    "file": "rich/syntax.py",
+    "line": 707,
+    "form": "call",
+    "src": "+ self._theme.get_style_for_token(Comment)"
+   },
+   {
+    "file": "rich/traceback.py",
+    "line": 619,
+    "form": "ref",
+    "src": "token_style = theme.get_style_for_token"
+   }
+  ]
+ },
+ {
+  "file": "rich/markdown.py",
+  "line": 62,
+  "kind": "def",
+  "name": "on_child_close",
+  "qual": "MarkdownElement.on_child_close",
+  "encl": "MarkdownElement",
+  "sites": [
+   {
+    "file": "rich/markdown.py",
+    "line": 200,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 238,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 278,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 290,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 302,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 352,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 380,
+    "form": "call",
+    "src": "def on_child_close(self, context: MarkdownContext, child: MarkdownElement) -> bool:"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 678,
+    "form": "call",
+    "src": "and context.stack.top.on_child_close(context, element)"
+   },
+   {
+    "file": "rich/markdown.py",
+    "line": 695,
+    "form": "call",
+    "src": "and context.stack.top.on_child_close(context, element)"
+   }
+  ]
+ },
+ {
+  "file": "rich/_win32_console.py",
+  "line": 78,
+  "kind": "def",
+  "name": "GetStdHandle",
+  "qual": "GetStdHandle",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 71,
+    "form": "ref",
+    "src": "_GetStdHandle = windll.kernel32.GetStdHandle"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 363,
+    "form": "call",
+    "src": "handle = GetStdHandle(STDOUT)"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 576,
+    "form": "call",
+    "src": "handle = GetStdHandle()"
+   },
+   {
+    "file": "rich/_windows.py",
+    "line": 28,
+    "form": "ref",
+    "src": "GetStdHandle,"
+   },
+   {
+    "file": "rich/_windows.py",
+    "line": 46,
+    "form": "call",
+    "src": "handle = GetStdHandle()"
+   }
+  ]
+ },
+ {
+  "file": "rich/cells.py",
+  "line": 326,
+  "kind": "def",
+  "name": "chop_cells",
+  "qual": "chop_cells",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_wrap.py",
+    "line": 59,
+    "form": "call",
+    "src": "folded_word = chop_cells(word, width=width)"
+   },
+   {
+    "file": "rich/_wrap.py",
+    "line": 86,
+    "form": "call",
+    "src": "print(chop_cells(\"abcdefghijklmnopqrstuvwxyz\", 10))"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 2126,
+  "kind": "def",
+  "name": "_render_buffer",
+  "qual": "Console._render_buffer",
+  "encl": "Console",
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 392,
+    "form": "call",
+    "src": "content = self._console._render_buffer(segments)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 870,
+    "form": "call",
+    "src": "render_result = self._render_buffer(self._buffer)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 2065,
+    "form": "call",
+    "src": "display(self._buffer, self._render_buffer(self._buffer[:]))"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 2088,
+    "form": "call",
+    "src": "text = self._render_buffer(self._buffer[:])"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 2116,
+    "form": "call",
+    "src": "text = self._render_buffer(self._buffer[:])"
+   },
+   {
+    "file": "rich/jupyter.py",
+    "line": 50,
+    "form": "call",
+    "src": "text = console._render_buffer(segments)"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 286,
+  "kind": "class",
+  "name": "ScreenUpdate",
+  "qual": "ScreenUpdate",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 1862,
+    "form": "call",
+    "src": "screen_update = ScreenUpdate(lines, x, y)"
+   }
+  ]
+ },
+ {
+  "file": "rich/pretty.py",
+  "line": 430,
+  "kind": "def",
+  "name": "check_length",
+  "qual": "Node.check_length",
+  "encl": "Node",
+  "sites": [
+   {
+    "file": "rich/pretty.py",
+    "line": 469,
+    "form": "call",
+    "src": "if expand_all or not line.check_length(max_width):"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 495,
+    "form": "call",
+    "src": "def check_length(self, max_length: int) -> bool:"
+   },
+   {
+    "file": "rich/pretty.py",
+    "line": 501,
+    "form": "call",
+    "src": "return self.node.check_length(start_length, max_length)"
+   }
+  ]
+ },
+ {
+  "file": "rich/_ratio.py",
+  "line": 14,
+  "kind": "def",
+  "name": "ratio_resolve",
+  "qual": "ratio_resolve",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_ratio.py",
+    "line": 152,
+    "form": "call",
+    "src": "resolved = ratio_resolve(110, [E(None, 1, 1), E(None, 1, 1), E(None, 1, 1)])"
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 103,
+    "form": "call",
+    "src": "render_widths = ratio_resolve(width, children)"
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 123,
+    "form": "call",
+    "src": "render_heights = ratio_resolve(height, children)"
+   }
+  ]
+ },
+ {
+  "file": "rich/_win32_console.py",
+  "line": 503,
+  "kind": "def",
+  "name": "move_cursor_down",
+  "qual": "LegacyWindowsTerm.move_cursor_down",
+  "encl": "LegacyWindowsTerm",
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 617,
+    "form": "call",
+    "src": "term.move_cursor_down()"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 625,
+    "form": "call",
+    "src": "term.move_cursor_down()"
+   },
+   {
+    "file": "rich/_windows_renderer.py",
+    "line": 34,
+    "form": "call",
+    "src": "term.move_cursor_down()"
+   }
+  ]
+ },
+ {
+  "file": "rich/layout.py",
+  "line": 96,
+  "kind": "def",
+  "name": "get_tree_icon",
+  "qual": "RowSplitter.get_tree_icon",
+  "encl": "RowSplitter",
+  "sites": [
+   {
+    "file": "rich/layout.py",
+    "line": 76,
+    "form": "call",
+    "src": "def get_tree_icon(self) -> str:"
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 116,
+    "form": "call",
+    "src": "def get_tree_icon(self) -> str:"
+   },
+   {
+    "file": "rich/layout.py",
+    "line": 220,
+    "form": "call",
+    "src": "icon = layout.splitter.get_tree_icon()"
+   }
+  ]
+ },
+ {
+  "file": "rich/markup.py",
+  "line": 146,
+  "kind": "def",
+  "name": "pop_style",
+  "qual": "render.pop_style",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/markup.py",
+    "line": 165,
+    "form": "call",
+    "src": "start, open_tag = pop_style(style_name)"
+   }
+  ]
+ },
+ {
+  "file": "rich/box.py",
+  "line": 66,
+  "kind": "def",
+  "name": "substitute",
+  "qual": "Box.substitute",
+  "encl": "Box",
+  "sites": [
+   {
+    "file": "rich/panel.py",
+    "line": 157,
+    "form": "call",
+    "src": "box = self.box.substitute(options, safe=safe_box)"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 758,
+    "form": "call",
+    "src": "self.box.substitute("
+   }
+  ]
+ },
+ {
+  "file": "rich/progress.py",
+  "line": 765,
+  "kind": "class",
+  "name": "TimeRemainingColumn",
+  "qual": "TimeRemainingColumn",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/progress.py",
+    "line": 152,
+    "form": "call",
+    "src": "TimeRemainingColumn(elapsed_when_finished=True),"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 347,
+    "form": "call",
+    "src": "TimeRemainingColumn(),"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 474,
+    "form": "call",
+    "src": "TimeRemainingColumn(),"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1112,
+    "form": "ref",
+    "src": "- an estimated-time-remaining column (TimeRemainingColumn)"
+   },
+   {
+    "file": "rich/progress.py",
+    "line": 1134,
+    "form": "call",
+    "src": "TimeRemainingColumn(),"
+   }
+  ]
+ },
+ {
+  "file": "rich/console.py",
+  "line": 270,
+  "kind": "class",
+  "name": "CaptureError",
+  "qual": "CaptureError",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 331,
+    "form": "call",
+    "src": "raise CaptureError("
+   }
+  ]
+ },
+ {
+  "file": "rich/_win32_console.py",
+  "line": 128,
+  "kind": "def",
+  "name": "FillConsoleOutputCharacter",
+  "qual": "FillConsoleOutputCharacter",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 460,
+    "form": "call",
+    "src": "FillConsoleOutputCharacter("
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 474,
+    "form": "call",
+    "src": "FillConsoleOutputCharacter("
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 488,
+    "form": "call",
+    "src": "FillConsoleOutputCharacter(self._handle, \" \", length=col, start=start)"
+   }
+  ]
+ },
+ {
+  "file": "rich/cells.py",
+  "line": 82,
+  "kind": "def",
+  "name": "cached_cell_len",
+  "qual": "cached_cell_len",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/cells.py",
+    "line": 109,
+    "form": "call",
+    "src": "return cached_cell_len(text, unicode_version)"
+   },
+   {
+    "file": "rich/segment.py",
+    "line": 9,
+    "form": "ref",
+    "src": "cached_cell_len,"
+   },
+   {
+    "file": "rich/segment.py",
+    "line": 645,
+    "form": "ref",
+    "src": "_cell_len = cached_cell_len"
+   }
+  ]
+ },
+ {
+  "file": "rich/_wrap.py",
+  "line": 26,
+  "kind": "def",
+  "name": "divide_line",
+  "qual": "divide_line",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/text.py",
+    "line": 1223,
+    "form": "call",
+    "src": "offsets = divide_line(str(line), width, fold=wrap_overflow == \"fold\")"
+   }
+  ]
+ },
+ {
+  "file": "rich/_win32_console.py",
+  "line": 568,
+  "kind": "def",
+  "name": "_get_cursor_size",
+  "qual": "LegacyWindowsTerm._get_cursor_size",
+  "encl": "LegacyWindowsTerm",
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 549,
+    "form": "call",
+    "src": "current_cursor_size = self._get_cursor_size()"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 555,
+    "form": "call",
+    "src": "current_cursor_size = self._get_cursor_size()"
+   }
+  ]
+ },
+ {
+  "file": "rich/theme.py",
+  "line": 81,
+  "kind": "class",
+  "name": "ThemeStack",
+  "qual": "ThemeStack",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/console.py",
+    "line": 533,
+    "form": "ref",
+    "src": "theme_stack: ThemeStack"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 740,
+    "form": "call",
+    "src": "theme_stack=ThemeStack(themes.DEFAULT if theme is None else theme)"
+   },
+   {
+    "file": "rich/console.py",
+    "line": 779,
+    "form": "ref",
+    "src": "def _theme_stack(self) -> ThemeStack:"
+   }
+  ]
+ },
+ {
+  "file": "rich/table.py",
+  "line": 706,
+  "kind": "def",
+  "name": "_measure_column",
+  "qual": "Table._measure_column",
+  "encl": "Table",
+  "sites": [
+   {
+    "file": "rich/table.py",
+    "line": 325,
+    "form": "ref",
+    "src": "_measure_column = self._measure_column"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 328,
+    "form": "call",
+    "src": "_measure_column(console, options.update_width(max_width), column)"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 520,
+    "form": "call",
+    "src": "self._measure_column(console, options, column) for column in columns"
+   },
+   {
+    "file": "rich/table.py",
+    "line": 560,
+    "form": "call",
+    "src": "self._measure_column(console, options.update_width(width), column)"
+   }
+  ]
+ },
+ {
+  "file": "rich/_win32_console.py",
+  "line": 204,
+  "kind": "def",
+  "name": "SetConsoleTextAttribute",
+  "qual": "SetConsoleTextAttribute",
+  "encl": null,
+  "sites": [
+   {
+    "file": "rich/_win32_console.py",
+    "line": 196,
+    "form": "ref",
+    "src": "_SetConsoleTextAttribute = windll.kernel32.SetConsoleTextAttribute"
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 438,
+    "form": "call",
+    "src": "SetConsoleTextAttribute("
+   },
+   {
+    "file": "rich/_win32_console.py",
+    "line": 442,
+    "form": "call",
+    "src": "SetConsoleTextAttribute(self._handle, attributes=self._default_text)"
+   }
+  ]
+ }
+]
