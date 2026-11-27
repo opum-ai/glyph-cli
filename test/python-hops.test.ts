@@ -3951,3 +3951,41 @@ describe("GCLI-156 — a write on an in-repo descendant (DEC-303 (a88), shape #6
 		expect(r.bins).toEqual({ resolvedInRepo: 1, resolvedExternal: 1, receiverNeedsInference: 0, nameNotBound: 0 });
 	});
 });
+
+describe("#245 N1 — the reviewer's star-imported head shape, measured", () => {
+	// The reviewer predicted dev external-base -> head receiver/rebound-base for this shape (s.py `import m`; x.py
+	// `from s import *` then `class K(m.B)` with m.B multiply-bound; w.py `s.m = None`), from reading the code without
+	// a shell. Measured on dev 58255fc and on this head, BOTH sides answer receiver/needs-inference with reason
+	// rebound-base, with and without the write, so the shape is dev-equal. It is pinned as a measured fixture and is
+	// NOT a red-before; N1 closes on that measurement, not on a divergence.
+	const files = (write: boolean) => ({
+		"m.py": "try:\n    from ext import B\nexcept ImportError:\n    from ext2 import B\n",
+		"s.py": "import m\n",
+		"x.py": "from s import *\nclass K(m.B):\n    def go(self):\n        self.g()\n",
+		"w.py": `import s\n${write ? "s.m = None\n" : ""}`,
+	});
+	const observe = async (source: Record<string, string>) => {
+		const r = await analyze(Object.entries(source).map(([path, text]) => py(path, text)));
+		return {
+			bins: r.callBins,
+			reasons: (r.unresolvedReceiverReasons ?? []).map((x) => `${x.reason}:${x.count}`),
+			edges: r.sites
+				.filter((s) => s.calleeId !== null)
+				.map((s) => r.symbols.find((x) => x.id === s.calleeId)?.qualname)
+				.filter((q): q is string => q !== undefined),
+		};
+	};
+
+	test("N1: the star-imported head is dev-equal, receiver/rebound-base with and without the write", async () => {
+		const written = await observe(files(true));
+		expect(written.edges).toEqual([]);
+		expect(written.bins).toEqual({
+			resolvedInRepo: 0,
+			resolvedExternal: 0,
+			receiverNeedsInference: 1,
+			nameNotBound: 0,
+		});
+		expect(written.reasons).toEqual(["rebound-base:1"]);
+		expect(await observe(files(false))).toEqual(written);
+	});
+});
