@@ -155,6 +155,15 @@ The two chosen replacements carry this row into section 2 with their pins. None
 matches the owner of a development-corpus or held-out repository: pallets, encode,
 Textualize, tqdm and psf are not among the current or reported former owners.
 
+Two further checks, DEC-303 (a103) item 1. `samuelcolvin/rich` exists as a FORK
+(`fork=true`): samuelcolvin is `pydantic`'s former owner, and GitHub's fork
+relation is not ownership of the development-corpus repository, which is
+`Textualize/rich` at its pin; `pydantic` stays. And the `spotify` scan above
+stopped at the 100-repository API page cap, so it was covered instead by 35 direct
+lookups of the seven corpus and held-out names under python-attrs, hynek,
+pydantic, samuelcolvin and spotify, with `pallets/flask` as a resolving control:
+the only hit was that fork.
+
 ## 4. The draw
 
 - **Unit**: the call site, not the def or target (a36 item 3).
@@ -168,6 +177,10 @@ Textualize, tqdm and psf are not among the current or reported former owners.
   label counts only, never on a score.
 - **Labels**: each drawn site is true, false, or excluded under the (a2) and (a3)
   conventions; polymorphic sites are excluded from the denominator (a36 item 3).
+- **A1 stratum**: expected UNMEASURED. `pydantic`'s four in-package star imports are
+  all inside `if TYPE_CHECKING:` in `pydantic/__init__.py`, and `attrs` and `luigi`
+  have none, so fewer than 20 drawn sites can go through an in-package star
+  re-export; it is reported UNMEASURED as a stated limit under (a36) item 5.
 - **Second labeller**: two DEC-183 reviewer units, model `claude-opus-5-5`,
   independently label a seeded random 20% of each repository's drawn sites, given
   only the enumeration, the checkout at its pin, and the (a2)/(a3) conventions —
@@ -194,9 +207,11 @@ unchanged. Two changes, both (a36) item 3 and (a100):
 2. **No `max-targets`.** The dev census takes the first N targets after ordering;
    the blind census emits every eligible site and the stopping rule governs.
 
-Everything else is the dev census unchanged: the file walk and its test/cache
-exclusions, non-dunder names, at least one call form, at most 14 occurrences of
-any form, call-form-only labelling, and no glyph.
+Everything else is the dev census unchanged: the file walk, the `/tests` and
+`__pycache__` exclusions, non-dunder names, at least one call form, at most 14
+occurrences of any form, call-form-only labelling, and no glyph. The blind census
+adds three exclusions the dev census does not carry — `/.tox`, `/venv` and
+`/.venv` — and none of the three occurs in the three chosen packages.
 
 Control run, on the development sample rich (not a sample repository): 1134
 candidate call sites from 497 eligible targets, 192 sites matching more than one
