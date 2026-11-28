@@ -1520,8 +1520,20 @@ describe("rule 29g — an unaliased dotted import binds the top package", () => 
 
 describe("rule 36 — a rebound or bare-used def yields no receiver", () => {
 	test("rule 36: a class-scope rebinding helper = staticmethod(helper) yields no receiver", async () => {
+		// GCLI-176 (DEC-303 (a110) item 3): narrowed. The wrapper binds the SAME function the def names, so
+		// the class attribute is that function and `self.helper()` reaches it. Every other rebinding — a
+		// non-function value — still yields no receiver; see the negative control below.
 		const result = await one(
 			"class C:\n    def helper(self):\n        pass\n    helper = staticmethod(helper)\n    def m(self):\n        self.helper()\n",
+		);
+		expect(result.callBins.resolvedInRepo).toBe(1);
+		expect(result.callBins.receiverNeedsInference).toBe(0);
+		expect(linesTo(result, symbolId(result, "C.helper"))).toEqual([6]);
+	});
+
+	test("rule 36: a class-scope rebinding to a non-function still yields no receiver", async () => {
+		const result = await one(
+			"class C:\n    def helper(self):\n        pass\n    helper = None\n    def m(self):\n        self.helper()\n",
 		);
 		expect(result.callBins.receiverNeedsInference).toBe(1);
 		expect(linesTo(result, symbolId(result, "C.helper"))).toEqual([]);
@@ -1705,8 +1717,11 @@ describe("rule 43 — calls to a bare-used def still resolve", () => {
 	});
 
 	test("rule 43: a class-scope rebinding still makes calls to the def unresolved", async () => {
+		// GCLI-176 (DEC-303 (a110) item 3): narrowed to rebindings that are NOT the def. An unshadowed
+		// classmethod(def)/staticmethod(def) wrapper names the same function, so the call resolves; any
+		// other value keeps rule 43's refusal (the rule 36 negative control pins that half).
 		const result = await one(
-			"class C:\n    def helper(self):\n        pass\n    helper = staticmethod(helper)\n    def m(self):\n        self.helper()\n",
+			"class C:\n    def helper(self):\n        pass\n    helper = None\n    def m(self):\n        self.helper()\n",
 		);
 		expect(result.callBins.receiverNeedsInference).toBe(1);
 		expect(linesTo(result, symbolId(result, "C.helper"))).toEqual([]);
@@ -5501,5 +5516,79 @@ describe("A2 — module.Class.method resolves as the bare-class lookup does", ()
 			"attribute-not-found",
 			"external import",
 		);
+	});
+});
+
+// --- GCLI-176 (DEC-303 (a110) item 3) --------------------------------------
+
+describe("GCLI-176 — annotated receivers and class-attribute callables, on fixtures", () => {
+	test("annotated receiver: a parameter annotated with a class, called through, reaches the class __call__", async () => {
+		const result = await one(
+			"class Converter:\n    def __call__(self, value):\n        return value\n\ndef apply(converter: Converter, value):\n    return converter(value)\n",
+		);
+		expect(linesTo(result, symbolId(result, "Converter.__call__"))).toEqual([6]);
+		expect(result.callBins.resolvedInRepo).toBe(1);
+		expect(result.callBins.nameNotBound).toBe(0);
+	});
+
+	test("annotated receiver: the annotation may be dotted or quoted", async () => {
+		const dotted = await analyze([
+			py("pkg/__init__.py", ""),
+			py("pkg/mod.py", "class Converter:\n    def __call__(self, v):\n        return v\n"),
+			py("pkg/app.py", "from pkg.mod import Converter\n\ndef apply(c: Converter, v):\n    return c(v)\n"),
+		]);
+		expect(linesTo(dotted, symbolId(dotted, "Converter.__call__", "pkg/mod.py"))).toEqual([4]);
+		const quoted = await one(
+			'class Converter:\n    def __call__(self, v):\n        return v\n\ndef apply(c: "Converter", v):\n    return c(v)\n',
+		);
+		expect(linesTo(quoted, symbolId(quoted, "Converter.__call__"))).toEqual([6]);
+	});
+
+	test("annotated receiver: an unannotated parameter keeps nameNotBound (negative control)", async () => {
+		const result = await one(
+			"class Converter:\n    def __call__(self, value):\n        return value\n\ndef apply(converter, value):\n    return converter(value)\n",
+		);
+		expect(result.callBins.nameNotBound).toBe(1);
+		expect(result.callBins.resolvedInRepo).toBe(0);
+	});
+
+	test("cls-inherited: a classmethod() wrapper on the base is reached through cls in the subclass", async () => {
+		const result = await one(
+			"def helper(cls):\n    return 1\n\nclass Base:\n    helper = classmethod(helper)\n\nclass Child(Base):\n    @classmethod\n    def run(cls):\n        return cls.helper()\n",
+		);
+		expect(linesTo(result, symbolId(result, "helper"))).toEqual([10]);
+		expect(result.callBins.resolvedInRepo).toBe(1);
+		expect(result.callBins.receiverNeedsInference).toBe(0);
+	});
+
+	test("self to module function: a class-body alias to a module-level function is called through self", async () => {
+		const result = await one(
+			"def check_complete(self):\n    return True\n\nclass Task:\n    check_complete = check_complete\n\n    def complete(self):\n        return self.check_complete()\n",
+		);
+		expect(linesTo(result, symbolId(result, "check_complete"))).toEqual([8]);
+		expect(result.callBins.resolvedInRepo).toBe(1);
+	});
+
+	test("self to module function: the alias is inherited through the MRO", async () => {
+		const result = await one(
+			"def check_complete(self):\n    return True\n\nclass BaseTask:\n    check_complete = check_complete\n\nclass Task(BaseTask):\n    def complete(self):\n        return self.check_complete()\n",
+		);
+		expect(linesTo(result, symbolId(result, "check_complete"))).toEqual([9]);
+		expect(result.callBins.resolvedInRepo).toBe(1);
+	});
+
+	test("negative controls: a lambda, a plain attribute and a rebound base keep today's refusal", async () => {
+		const lambda = await one(
+			"class Task:\n    check_complete = lambda self: True\n    def complete(self):\n        return self.check_complete()\n",
+		);
+		expect(lambda.callBins.receiverNeedsInference).toBe(1);
+		const literal = await one(
+			"class Task:\n    check_complete = 1\n    def complete(self):\n        return self.check_complete()\n",
+		);
+		expect(literal.callBins.receiverNeedsInference).toBe(1);
+		const rebound = await one(
+			"def check_complete(self):\n    return True\n\nclass Task:\n    check_complete = check_complete\n\nTask.check_complete = None\n\ndef use(t: Task):\n    return t.check_complete()\n",
+		);
+		expect(rebound.callBins.receiverNeedsInference).toBe(1);
 	});
 });

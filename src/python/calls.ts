@@ -163,7 +163,8 @@ interface ClassOfDesc {
 type BindingRhs =
 	| { kind: "alias"; name: string }
 	/** `classOf`: TS reads this extra fact only; every other reader sees the call as it was before TS. */
-	| { kind: "call"; callee: CalleeDesc; classOf?: ClassOfDesc }
+	/** GCLI-176: `firstArg` is the call's only positional argument when it is a plain identifier (`classmethod(fn)`). */
+	| { kind: "call"; callee: CalleeDesc; classOf?: ClassOfDesc; firstArg?: string }
 	/** ALIAS: the right-hand side is a dotted attribute `B.attr` (one segment after a name). */
 	| { kind: "attr"; callee: CalleeDesc; classOf?: ClassOfDesc }
 	/** LIT: the right-hand side is a literal or comprehension of one builtin type. */
@@ -1191,6 +1192,22 @@ function literalRhs(node: Node): BindingRhs {
 	return type === null ? { kind: "other" } : { kind: "literal", type };
 }
 
+/**
+ * GCLI-176 (DEC-303 (a110) item 3): the text of a call's only positional argument when it is a plain
+ * identifier. `helper = classmethod(helper)` is the one wrapper shape a class attribute may be read
+ * through, so the binding records the name it wraps. Every other call shape (`f(x=1)`, `f(a, b)`,
+ * `f(*args)`, a literal) records nothing, and the class-attribute reader refuses it.
+ */
+function singleIdentifierArgument(call: Node): { firstArg?: string } {
+	const args = call.childForFieldName("arguments");
+	if (args === null) return {};
+	const named = args.namedChildren.filter((child): child is Node => child !== null);
+	if (named.length !== 1) return {};
+	const only = named[0] as Node;
+	if (only.type !== "identifier") return {};
+	return { firstArg: only.text };
+}
+
 class FileWalker {
 	private uid = 0;
 	private readonly classes: ClassInfo[] = [];
@@ -1996,6 +2013,7 @@ class FileWalker {
 								kind: "call",
 								callee: describeCallee(right.childForFieldName("function") ?? right),
 								...classOfField(right),
+								...singleIdentifierArgument(right),
 							}
 						: right.type === "attribute"
 							? { kind: "attr", callee: describeCallee(right), ...classOfField(right) }
@@ -4027,6 +4045,12 @@ class Resolver {
 			}
 			const ids = entry.info.methods.get(name);
 			if (ids === undefined || ids.length === 0) {
+				// GCLI-176 (DEC-303 (a110) item 3): a class-body assignment that names a function is a
+				// callable class attribute — `self.check_complete()` / `cls.helper()` reach it.
+				const attribute = this.classAttributeCallable(entry.info, name);
+				if (attribute !== null) {
+					return this.classAttributeResolution(attribute, receiver, name, fromSuper, polymorphicCheck, sawOpaque);
+				}
 				// DEC-303 (a31) D1: a class-scope binding of the name that is not a def (assign,
 				// annotated, import, for, with, ...) is the class attribute, and it hides a
 				// base's def: the lookup ends here unresolved rather than reaching the base.
@@ -4041,8 +4065,13 @@ class Resolver {
 			if (symbols.length === 0) continue;
 			// Rule 43: only a class-scope rebinding (rule 36(i)) makes a call to the
 			// def unresolved; a bare-used def still resolves, with its own receiver
-			// withheld (rule 36(ii)).
-			if (this.isReboundDef(entry.info, name)) return { bin: "receiver", reason: "needs-inference" };
+			// withheld (rule 36(ii)). GCLI-176 (DEC-303 (a110) item 3): a rebinding that IS the def — an
+			// unshadowed `classmethod(def)`/`staticmethod(def)` wrapper — leaves the def the callable.
+			if (this.isReboundDef(entry.info, name)) {
+				const rebound = this.classAttributeCallable(entry.info, name);
+				if (rebound === null) return { bin: "receiver", reason: "needs-inference" };
+				return this.classAttributeResolution(rebound, receiver, name, fromSuper, polymorphicCheck, sawOpaque);
+			}
 			// Rule 10: a property is not callable as a plain attribute; calling it is
 			// rule 6f (receiver needs inference), never an edge to the property.
 			const callables = symbols.filter((symbol) => symbol.kind !== "property");
@@ -4061,6 +4090,74 @@ class Resolver {
 		if (sawRebound) return { bin: "receiver", reason: "rebound-base" };
 		if (sawOpaque) return { bin: "external", reason: "external-base" };
 		return { bin: "receiver", reason: "instance-attribute" };
+	}
+
+	/**
+	 * GCLI-176 (DEC-303 (a110) item 3, luigi 37/68): the in-repo function a class body binds to `name` by
+	 * ASSIGNMENT, when the assignment's right-hand side is that function directly (`alias = fn`) or an
+	 * unshadowed `classmethod(...)`/`staticmethod(...)` wrapper around it (`helper = classmethod(helper)`).
+	 * The name's LAST class-scope binding decides: a later def or import is not this path, and a
+	 * conditional or may-skip assignment binds only on one path, so it is refused. Everything else the
+	 * class body can bind (a lambda, a construction, a literal, an attribute) returns null, and the
+	 * caller keeps the fail-closed refusal it had before this line existed.
+	 */
+	private classAttributeCallable(classInfo: ClassInfo, name: string): PythonSymbol | null {
+		const scope = classInfo.scope;
+		if (scope === undefined) return null;
+		const bindings = scope.bindings.get(name);
+		if (bindings === undefined || bindings.length === 0) return null;
+		const last = bindings[bindings.length - 1] as RawBinding;
+		if (last.kind !== "assign" || last.bare === true || last.conditional === true || last.maySkip === true) return null;
+		const rhs = last.rhs;
+		if (rhs === undefined) return null;
+		if (rhs.kind === "alias") return this.classBodyFunction(classInfo, rhs.name);
+		if (rhs.kind !== "call" || rhs.firstArg === undefined || rhs.callee.kind !== "name") return null;
+		const wrapper = rhs.callee.name;
+		if (wrapper !== "classmethod" && wrapper !== "staticmethod") return null;
+		// Rule 37's shadow rule: a class body that binds `classmethod` may be calling something else.
+		if (!this.isUnshadowedBuiltin(wrapper, scope, last.position)) return null;
+		return this.classBodyFunction(classInfo, rhs.firstArg);
+	}
+
+	/**
+	 * The function a class-body expression names, for {@link classAttributeCallable}. An earlier `def` in
+	 * the same class body is the class's own symbol for the name (a redefined def is multiply bound and
+	 * refused); otherwise the read is the module's, exactly as the class body would evaluate it, and the
+	 * class body's own bindings are never consulted. Only a function or a method is returned: a class
+	 * attribute holding a class or a property is not called through this path.
+	 */
+	private classBodyFunction(classInfo: ClassInfo, name: string): PythonSymbol | null {
+		const ids = classInfo.methods.get(name);
+		if (ids !== undefined) {
+			if (ids.length !== 1) return null;
+			const own = this.symbolsById.get(ids[0] as string);
+			return own !== undefined && (own.kind === "function" || own.kind === "method") ? own : null;
+		}
+		const symbol = this.resolveCalleeToSymbol({ kind: "name", name }, classInfo.parentScope, 0);
+		return symbol !== null && (symbol.kind === "function" || symbol.kind === "method") ? symbol : null;
+	}
+
+	/** The edge for a class attribute that names a function, built as the def path builds its own. */
+	private classAttributeResolution(
+		symbol: PythonSymbol,
+		receiver: ClassInfo,
+		name: string,
+		fromSuper: boolean,
+		polymorphicCheck: boolean,
+		externalBaseBefore: boolean,
+	): CallResolution {
+		const polymorphic = !fromSuper && polymorphicCheck && this.hasSubclassOverride(receiver, name);
+		return {
+			bin: "inRepo",
+			edges: [
+				symbolEdge(symbol, "call", {
+					externalBaseBefore: externalBaseBefore || undefined,
+					polymorphic: polymorphic || undefined,
+				}),
+			],
+			polymorphic,
+			multiplyBound: false,
+		};
 	}
 
 	// --- construction ------------------------------------------------------
@@ -4170,6 +4267,10 @@ class Resolver {
 		}
 		const instanceCall = this.resolveInstanceCall(name, scope, site);
 		if (instanceCall !== null) return instanceCall;
+		// GCLI-176 (DEC-303 (a110) item 3): a class-annotated binding is instance dispatch too, so a call
+		// through it reaches `type(c).__call__` exactly as `x = C(); x()` does.
+		const annotatedCall = this.resolveAnnotatedCall(name, scope, site);
+		if (annotatedCall !== null) return annotatedCall;
 		const aliased = this.resolveAliasCall(name, scope, site);
 		if (aliased !== null) return aliased;
 		const outcome = this.resolveBareName(name, scope, 0, site);
@@ -5056,6 +5157,49 @@ class Resolver {
 		// INSTANCE dispatch exactly as `x.m()` is, so a `self.__class__` write on C leaves it no single binding. Passing
 		// `instanceReceiver` true makes the guard refuse here; the `bin !== "inRepo"` test below then returns null and
 		// the site falls to `resolveBareName`, moving resolvedInRepo to a name bin — removal only, no created edge.
+		const resolved = this.methodLookup(classInfo, "__call__", false, true, true);
+		return resolved.bin === "inRepo" ? resolved : null;
+	}
+
+	/**
+	 * GCLI-176 (DEC-303 (a110) item 3, attrs 16/23): `c(...)` where `c` has exactly one binding and that
+	 * binding is a parameter (not a splat) or an annotated assignment whose annotation names ONE in-repo
+	 * class. The call is instance dispatch through `type(c).__call__` exactly as `x = C(); x()` is in
+	 * {@link resolveInstanceCall}, so it takes the same class checks and the same `__call__` lookup,
+	 * including the `__class__`-write guard (`instanceReceiver` true).
+	 *
+	 * A bare annotation with no value (`c: C`) binds nothing in Python (PEP 526), so the assign arm
+	 * requires a value. Any other binding — no annotation, an unresolved or external annotation, a
+	 * union of two classes, more than one binding — returns null and the site keeps the bin it had
+	 * (nameNotBound), never receiver-needs-inference: this path only adds an edge where the type is
+	 * statically known.
+	 */
+	private resolveAnnotatedCall(
+		name: string,
+		scope: Scope,
+		site: { file: string; line: number; column: number },
+	): CallResolution | null {
+		const found = this.lookupBindings(name, scope, site);
+		if (found === null || found.classBodyShadowed === true || found.bindings.length !== 1) return null;
+		const binding = found.bindings[0] as RawBinding;
+		let annotation: AnnotationDesc | null = null;
+		let annotationScope: Scope | null = null;
+		if (binding.kind === "param" && binding.splat === undefined) {
+			annotation = binding.annotation ?? null;
+			annotationScope = binding.annotationScope ?? null;
+		} else if (binding.kind === "assign" && binding.bare !== true) {
+			annotation = binding.annotation ?? null;
+			annotationScope = binding.annotationScope ?? null;
+		} else {
+			return null;
+		}
+		if (annotation === null || annotationScope === null) return null;
+		const annotated = this.resolveAnnotationClass(annotation, annotationScope);
+		if (annotated === null) return null;
+		// The MRO, decorator and metaclass checks `x = C()` already applies: an instance whose class is not
+		// the one the annotation names, or whose `__call__` is not readable, is not this path.
+		const classInfo = this.instanceClassOf(this.symbolsById.get(annotated.id) ?? null);
+		if (classInfo === null) return null;
 		const resolved = this.methodLookup(classInfo, "__call__", false, true, true);
 		return resolved.bin === "inRepo" ? resolved : null;
 	}
