@@ -373,3 +373,54 @@ describe("rule 4 — a repository with no nested marker is unchanged", () => {
 		expect(JSON.stringify(await buildModuleGraph(files, { markerDirs: ["elsewhere"] }))).toBe(JSON.stringify(plain));
 	});
 });
+
+// --- GCLI-175: a nested `<sub>/python` source root ---------------------------
+
+/** The vendored shape: `<sub>/pyproject.toml` with its package under `<sub>/python/<pkg>`. */
+const VENDORED_SHAPE: Record<string, string> = {
+	"vendored/pyproject.toml": "",
+	"vendored/python/corepkg/__init__.py": "from corepkg.schema import build\n",
+	"vendored/python/corepkg/schema.py": "def build():\n    return 1\n",
+	"vendored/python/corepkg/use.py": "from corepkg.schema import build\n\ndef run():\n    return build()\n",
+};
+
+describe("GCLI-175 — a nested <sub>/python source root", () => {
+	test("the vendored package resolves in-repo and takes its module name from <sub>/python", async () => {
+		const inputs = Object.entries(VENDORED_SHAPE).map(([path, source]) => py(path, source));
+		const graph = await buildModuleGraph(inputs, { markerDirs: ["vendored"] });
+		expect(graph.exit7).toEqual([]);
+		const binding = bindingIn(graph, "vendored/python/corepkg/use.py", "build");
+		expect(binding.outcome).toBe("resolved");
+		expect(binding.target).toBe("vendored/python/corepkg/schema.py");
+		const module = graph.modules.find((entry) => entry.path === "vendored/python/corepkg/use.py");
+		expect(module?.root).toBe("vendored/python");
+		expect(module?.module).toBe("corepkg.use");
+	});
+
+	test("a genuinely absent package still exits 7 with a named first-party root trigger", async () => {
+		const files: Record<string, string> = {
+			...VENDORED_SHAPE,
+			"vendored/python/corepkg/bad.py": "from missingpkg.x import y\n",
+			"elsewhere/missingpkg/x.py": "y = 1\n",
+			"elsewhere/missingpkg/__init__.py": "",
+		};
+		const inputs = Object.entries(files).map(([path, source]) => py(path, source));
+		const graph = await buildModuleGraph(inputs, { markerDirs: ["vendored"] });
+		// missingpkg/x.py is absent from the vendored source root, so it fails closed.
+		expect(graph.exit7.length).toBeGreaterThan(0);
+		expect(graph.exit7[0]?.name).toBe("missingpkg");
+	});
+
+	test("without the marker the same layout still exits 7 (no silent answer)", async () => {
+		const inputs = Object.entries(VENDORED_SHAPE).map(([path, source]) => py(path, source));
+		const graph = await buildModuleGraph(inputs);
+		expect(graph.exit7.length).toBeGreaterThan(0);
+	});
+
+	test("the CLI indexes the vendored shape with exit 0", () => {
+		const repo = makeScratchRepo(VENDORED_SHAPE);
+		repo.commit("vendored");
+		const result = runCli(repo.root, ["--json", "callers", "build"]);
+		expect(result.code).toBe(0);
+	});
+});

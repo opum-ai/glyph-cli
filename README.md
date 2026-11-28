@@ -77,7 +77,7 @@ inference; it stays unresolved when the target depends on a run-time type.
 
 Nested project roots are discovered by their marker (`pyproject.toml`, `setup.py`
 or `setup.cfg`): a first-party absolute import in a file beneath one resolves
-first against that root's own `""`, `src` and `lib` roots and then against the
+first against that root's own `""`, `src`, `lib` and `python` roots and then against the
 repository's, with the nearest enclosing marker winning (DEC-303 (a18)).
 Stated limits:
 
