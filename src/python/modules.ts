@@ -402,7 +402,8 @@ function nestedProjectRoots(
 
 /**
  * A file's nested source roots, in resolution order (rules 2, 5 and 7): the
- * nearest enclosing marker's own "", `src` and `lib`, relative to it. Empty when
+ * nearest enclosing marker's own "", `src`, `lib` and `python` (GCLI-175: a
+ * vendored `<sub>/python/<pkg>` layout), relative to it. Empty when
  * the file is beneath no nested root, so resolution and module naming fall back
  * to the repository roots exactly as today.
  */
@@ -413,7 +414,7 @@ function nestedSourceRoots(path: string, nestedRoots: readonly string[]): string
 		if (nearest === null || rootDepth(root) > rootDepth(nearest)) nearest = root;
 	}
 	if (nearest === null) return [];
-	return [nearest, joinPath(nearest, "src"), joinPath(nearest, "lib")];
+	return [nearest, joinPath(nearest, "src"), joinPath(nearest, "lib"), joinPath(nearest, "python")];
 }
 
 function moduleNameFor(path: string, root: string): string {
